@@ -49,9 +49,7 @@ jobs:
         if: github.ref_name != 'master'
         run: |
           flatBranchName=$(echo "${{ env.TARGET_BRANCH }}" | sed 's/\//\-/g')
-
-          sed -i "s/name: plane-ce/name: plane-ce-${flatBranchName}/" charts/plane-ce/Chart.yaml
-          # sed -i "s/name: plane-enterprise/name: plane-enterprise-${flatBranchName}/" charts/plane-enterprise/Chart.yaml
+          sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/plane-ce/Chart.yaml
 
       - name: Release Charts
         uses: helm/chart-releaser-action@v1.6.0
