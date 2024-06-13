@@ -71,4 +71,4 @@ jobs:
           CR_KEYRING: ${{ env.CR_KEYRING }}
           CR_PASSPHRASE_FILE: ${{ env.CR_PASSPHRASE_FILE }}
           CR_SIGN: true
-          # CR_MAKE_RELEASE_LATEST: false
+          CR_MAKE_RELEASE_LATEST: false
