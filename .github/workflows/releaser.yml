@@ -64,7 +64,7 @@ jobs:
           config: cr.yaml
           packages_with_index: false
           skip_existing: true
-          mark_as_latest: ${{ env.MARK_AS_LATEST == 'true' }}
+          mark_as_latest: false
         env:
           CR_TOKEN: ${{ env.CR_TOKEN }}
           CR_KEY: "Plane"
