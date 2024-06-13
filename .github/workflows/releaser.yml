@@ -12,6 +12,7 @@ env:
   CR_TOOL_PATH: "${{ github.workspace }}/.cr-tool"
   CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
   TARGET_BRANCH: "${{ github.ref_name }}"
+  MARK_AS_LATEST: "true"
 
 jobs:
   setup:
@@ -53,6 +54,9 @@ jobs:
           sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/plane-ce/Chart.yaml
           sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/plane-enterprise/Chart.yaml
 
+          echo "MARK_AS_LATEST=false" >> "$GITHUB_ENV" #saving private key into github-environemnt
+
+
       - name: Release Charts
         uses: helm/chart-releaser-action@v1.6.0
         with:
@@ -60,6 +64,7 @@ jobs:
           config: cr.yaml
           packages_with_index: false
           skip_existing: true
+          mark_as_latest: ${{ env.MARK_AS_LATEST == 'true' }}
         env:
           CR_TOKEN: ${{ env.CR_TOKEN }}
           CR_KEY: "Plane"
