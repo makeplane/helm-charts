@@ -355,4 +355,31 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-develop-1.0.18/plane-ce-develop-1.0.18.tgz
     version: 1.0.18
+  plane-enterprise:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2024-06-06T06:40:26.046213926Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: dd218b38ce478019171dcecbd738f7e76d652840620371381730bc29c08646b7
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.5/plane-enterprise-1.0.5.tgz
+    version: 1.0.5
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2024-06-06T06:40:26.045600351Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: abc42dc6307b4d62061f0f4fb7e20aa0158604948bdb5b6736a5ca802d8ff35b
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
+    version: 1.0.4
 generated: "2024-06-13T10:23:57.002101747Z"
