@@ -337,4 +337,22 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.4/plane-ce-1.0.4.tgz
     version: 1.0.4
-generated: "2024-06-13T10:14:34.14808365Z"
+  plane-ce-develop:
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 0.20.0
+    created: "2024-06-13T10:23:57.002053707Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 9729123ef30f8f1f5471653e3b8626d5b161033c14b4d9ab34b730a56df5441f
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce-develop
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-develop-1.0.18/plane-ce-develop-1.0.18.tgz
+    version: 1.0.18
+generated: "2024-06-13T10:23:57.002101747Z"
