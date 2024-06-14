@@ -1,0 +1,12 @@
+apiVersion: v2
+
+name: plane-enterprise
+description: Meet Plane. An Enterprise software development tool to manage issues, sprints, and product roadmaps with peace of mind.
+
+type: application
+
+version: 1.0.5
+appVersion: "1.0.0"
+
+home: https://plane.so/
+icon: https://plane.so/favicon/favicon-32x32.png
