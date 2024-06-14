@@ -308,6 +308,7 @@ questions:
   type: boolean
   default: false
   group: "Ingress"
+  show_if: "ingress.enabled=true"
   show_subquestion_if: true
   subquestions:
   - variable: ssl.issuer
