@@ -2,9 +2,6 @@ name: Chart Release
 
 on:
   workflow_dispatch: 
-  push:
-    branches:
-      - master
 
 env:
   CR_CONFIGFILE: "${{ github.workspace }}/cr.yaml"
