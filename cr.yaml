@@ -1,0 +1,12 @@
+sign: false
+
+# Enable automatic generation of release notes using GitHubs release notes generator.
+# see: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+generate-release-notes: true
+
+# package-path: dist/packages
+# index-path: dist/index.yaml
+# skip-existing: true
+git-base-url: https://api.github.com/
+git-upload-url: https://uploads.github.com/
+

@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-secrets
+data:
+  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | b64enc | quote }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-vars
+data:
+    PRIME_HOST: {{ .Values.license.licenseServer | quote }}
+    LICENSE_KEY: {{ .Values.license.licenseKey | quote }}
+    MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
+    LICENSE_DOMAIN: {{ .Values.license.licenseDomain | quote }}
+    LICENSE_VERSION: {{ .Values.planeVersion | quote }}
+    DEPLOY_PLATFORM: "KUBERNETES"
+
+    SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
+    SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
+    DEBUG: "0"
+    DOCKERIZED: "1"
+    GUNICORN_WORKERS: "1"
+
+    WEB_URL: "http://{{ .Values.license.licenseDomain }}"
+
+    {{- if eq .Values.env.cors_allowed_origins "*"}}
+    CORS_ALLOWED_ORIGINS: "*"
+    {{- else if .Values.env.cors_allowed_origins }}
+    CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
+    {{- else}}
+    CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+    {{- end }}
+    
+    {{- if .Values.services.redis.local_setup }}
+    REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+    {{- else }}
+    REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+    {{- end }}
+
+    {{ if .Values.services.postgres.local_setup }}
+    DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
+    {{ else if .Values.env.pgdb_remote_url }}
+    DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+    {{ else }}
+    DATABASE_URL: ""
+    {{ end }}
