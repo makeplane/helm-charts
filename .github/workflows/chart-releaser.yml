@@ -68,7 +68,6 @@ jobs:
       - id: publish-plane-enterprise
         if: github.ref_name == 'master'
         name: Publish Plane-Enterprise
-        working-directory: code
         env:
           CHART_REPO: ${{ env.CHART_NAME_ENTERPRISE }}
           HELM_REPO: plane
