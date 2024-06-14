@@ -15,7 +15,9 @@ ingress:
   enabled: true
   minioHost: ''
   ingressClass: 'nginx'
-  clientMaxBodySize: 10m
+  ingress_annotations: {
+    "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
+  }
 
 ssl:
   createIssuer: false

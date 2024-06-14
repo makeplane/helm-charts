@@ -284,29 +284,32 @@ questions:
     type: string
     default: "5242880"
 
-- variable: ingress.ingressClass
-  label: "Ingress Classname"
-  type: string
+- variable: ingress.enabled
+  label: "Enable Ingress"
+  type: boolean
   required: true
-  default: "nginx"
+  default: true
   group: "Ingress"
+  # show_subquestion_if: true
   subquestions:
-  - variable: ingress.clientMaxBodySize
-    label: "Max Body Size"
-    type: string
-    required: true
-    default: "10m"
   - variable: ingress.minioHost
     label: "Minio Host"
     type: string
     default: "plane-minio.example.com"
     show_if: "services.minio.local_setup=true"
+  - variable: ingress.ingressClass
+    label: "Ingress Classname"
+    type: string
+    required: true
+    default: "nginx"
+    show_if: "ingress.enabled=true"
 
 - variable: ssl.createIssuer
   label: "Create Issuer"
   type: boolean
   default: false
   group: "Ingress"
+  show_if: "ingress.enabled=true"
   show_subquestion_if: true
   subquestions:
   - variable: ssl.issuer

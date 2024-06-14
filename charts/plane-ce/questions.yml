@@ -290,7 +290,6 @@ questions:
   default: true
   required: true
   group: "Ingress"
-  show_subquestion_if: true
   subquestions:
   - variable: ingress.appHost
     label: "App. Host"
@@ -307,11 +306,7 @@ questions:
     type: string
     required: true
     default: "nginx"
-  - variable: ingress.clientMaxBodySize
-    label: "Max Body Size"
-    type: string
-    required: true
-    default: "10m"
+    show_if: "ingress.enabled=true"
 
 - variable: ssl.createIssuer
   label: "Create Issuer"
