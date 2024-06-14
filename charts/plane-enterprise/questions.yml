@@ -290,18 +290,19 @@ questions:
   required: true
   default: true
   group: "Ingress"
-  show_subquestion_if: true
+  # show_subquestion_if: true
   subquestions:
-  - variable: ingress.ingressClass
-    label: "Ingress Classname"
-    type: string
-    required: true
-    default: "nginx"
   - variable: ingress.minioHost
     label: "Minio Host"
     type: string
     default: "plane-minio.example.com"
     show_if: "services.minio.local_setup=true"
+  - variable: ingress.ingressClass
+    label: "Ingress Classname"
+    type: string
+    required: true
+    default: "nginx"
+    show_if: "ingress.enabled=true"
 
 - variable: ssl.createIssuer
   label: "Create Issuer"
