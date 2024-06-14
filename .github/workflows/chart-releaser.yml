@@ -8,6 +8,8 @@ env:
   CR_TOOL_PATH: "${{ github.workspace }}/.cr-tool"
   CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
   TARGET_BRANCH: "${{ github.ref_name }}"
+  CHART_NAME_CE: "plane-ce"
+  CHART_NAME_ENTERPRISE: "plane-enterprise"
 
 jobs:
   setup:
@@ -46,8 +48,8 @@ jobs:
         if: github.ref_name != 'master'
         run: |
           flatBranchName=$(echo "${{ env.TARGET_BRANCH }}" | sed 's/\//\-/g')
-          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/plane-ce/Chart.yaml
-          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/plane-enterprise/Chart.yaml
+          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_CE }}/Chart.yaml
+          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
 
       - name: Release Charts
         uses: helm/chart-releaser-action@v1.6.0
@@ -62,3 +64,18 @@ jobs:
           CR_KEYRING: ${{ env.CR_KEYRING }}
           CR_PASSPHRASE_FILE: ${{ env.CR_PASSPHRASE_FILE }}
           CR_SIGN: true
+
+      - id: publish-plane-enterprise
+        if: github.ref_name == 'master'
+        name: Publish Plane-Enterprise
+        working-directory: code
+        env:
+          CHART_REPO: ${{ env.CHART_NAME_ENTERPRISE }}
+          HELM_REPO: plane
+        run: |
+          mkdir -p tmp
+          helm registry login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_TOKEN }} ${{ vars.HARBOR_REGISTRY }}
+          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d tmp
+          helm push tmp/${{ env.CHART_REPO }}-*.tgz oci://${{ vars.HARBOR_REGISTRY }}/${{env.HELM_REPO}}
+          rm -rf tmp
+
