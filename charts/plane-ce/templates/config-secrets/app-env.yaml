@@ -21,7 +21,7 @@ data:
     DOCKERIZED: "1"
     GUNICORN_WORKERS: {{ .Values.env.gunicorn_api_workers | default 1 | quote }}
 
-    {{- if and .Values.ingress.enabled .Values.ingress.appHost }}
+    {{- if .Values.ingress.appHost }}
     WEB_URL: "http://{{ .Values.ingress.appHost }}"
     {{- else }}
     WEB_URL: ""
@@ -30,11 +30,11 @@ data:
 
     {{- if eq .Values.env.cors_allowed_origins "*"}}
     CORS_ALLOWED_ORIGINS: "*"
-    {{- else if and .Values.ingress.enabled .Values.ingress.appHost .Values.env.cors_allowed_origins }}
+    {{- else if and .Values.ingress.appHost .Values.env.cors_allowed_origins }}
     CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }},{{ .Values.env.cors_allowed_origins }}"
     {{- else if .Values.env.cors_allowed_origins }}
     CORS_ALLOWED_ORIGINS: "{{ .Values.env.cors_allowed_origins }}"
-    {{- else if and .Values.ingress.enabled .Values.ingress.appHost}}
+    {{- else if .Values.ingress.appHost}}
     CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }}"
     {{- else }}
     CORS_ALLOWED_ORIGINS: ""

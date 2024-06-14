@@ -5,8 +5,12 @@ kind: Ingress
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
+  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.clientMaxBodySize | default "5m" | quote}}
+    {{- range $key, $value := .Values.ingress.ingress_annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.ingressClass }}
   rules:
