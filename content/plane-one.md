@@ -1,6 +1,6 @@
 ## Pre-requisite
 - A Plane One license<br>
-  > If you don’t have a license, get it here.
+  > If you don’t have a license, get it <a href="https://prime.plane.so/" target="_blank">here</a> 
 - A working Kubernetes cluster 
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
