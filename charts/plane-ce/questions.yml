@@ -307,14 +307,6 @@ questions:
     required: true
     default: "nginx"
     show_if: "ingress.enabled=true"
-  - variable: ingress.ingress_annotations
-    label: "Ingress Annotations"
-    type: object
-    required: true
-    default: {
-      "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
-    }
-    show_if: "ingress.enabled=true"
 
 - variable: ssl.createIssuer
   label: "Create Issuer"
