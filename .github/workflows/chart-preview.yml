@@ -68,13 +68,12 @@ jobs:
           CHART_REPO: plane-ce
         run: |
           flatBranchName=$(echo "${{ github.ref_name}}" | sed 's/\//\-/g')
-          sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" ${{env.CHART_REPO}}/Chart.yaml
-          sed -i "s/description: .*/description: ${flatBranchName}/g" ${{env.CHART_REPO}}/Chart.yaml
-          sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" ${{env.CHART_REPO}}/Chart.yaml
+          sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" charts/${{env.CHART_REPO}}/Chart.yaml
+          sed -i "s/description: .*/description: ${flatBranchName}/g" charts/${{env.CHART_REPO}}/Chart.yaml
+          sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/${{env.CHART_REPO}}/Chart.yaml
 
-
-          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" $CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
-          cp ${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
+          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
+          cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
           helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
 
       - id: build-plane-enterprise
@@ -86,14 +85,14 @@ jobs:
           CHART_REPO: plane-enterprise
         run: |
           flatBranchName=$(echo "${{ github.ref_name}}" | sed 's/\//\-/g')
-          sed -i "s/description: .*/description: ${flatBranchName}/g" ${{env.CHART_REPO}}/Chart.yaml
-          sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" ${{env.CHART_REPO}}/Chart.yaml
-          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" $CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
-          cp ${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
+          sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" charts/${{env.CHART_REPO}}/Chart.yaml
+          sed -i "s/description: .*/description: ${flatBranchName}/g" charts/${{env.CHART_REPO}}/Chart.yaml
+          sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/${{env.CHART_REPO}}/Chart.yaml
+
+          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
+          cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
           helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
 
-          # helm registry login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_TOKEN }} ${{ vars.HARBOR_REGISTRY }}
-          # helm push ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts/${{ env.CHART_PREFIX }}-${{ env.CHART_REPO }}-*.tgz oci://${{ vars.HARBOR_REGISTRY }}/${{ env.CHART_REPO }}
 
       - name: Publish
         if: ${{ env.BUILD_PLANE_CE == 'true' || env.BUILD_PLANE_EE == 'true' }}
