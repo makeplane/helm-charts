@@ -34,6 +34,11 @@ jobs:
         with:
           path: code
 
+      - name: Short SHA
+        run: |
+          echo "HELM_SUB_FOLDER=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+          echo "CHART_PREFIX=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+
       - name: Configure Git
         working-directory: code
         run: |
@@ -92,7 +97,6 @@ jobs:
           helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
           cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
           helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
-
 
       - name: Publish
         if: ${{ env.BUILD_PLANE_CE == 'true' || env.BUILD_PLANE_EE == 'true' }}
