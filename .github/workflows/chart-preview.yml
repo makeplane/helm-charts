@@ -108,12 +108,12 @@ jobs:
           
           if [ "${{ env.BUILD_PLANE_CE }}" == "true" ]; then
             HTML_CONTENT="$HTML_CONTENT
-            <li><a href='plane-ce/index.yaml'>Plane-CE</a></li>"
+            <li><a href='plane-ce/'>Plane-CE</a></li>"
           fi
 
           if [ "${{ env.BUILD_PLANE_EE }}" == "true" ]; then
             HTML_CONTENT="$HTML_CONTENT
-            <li><a href='plane-enterprise/index.yaml'>Plane-Enterprise</a></li>"
+            <li><a href='plane-enterprise/'>Plane-Enterprise</a></li>"
           fi
 
           HTML_CONTENT="$HTML_CONTENT
