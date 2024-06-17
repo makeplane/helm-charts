@@ -113,6 +113,20 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.sentry_dsn
+    label: "Sentry DSN"
+    type: string
+    default: ""
+  - variable: env.sentry_environment
+    label: "Sentry Environment"
+    type: string
+    default: "Development"
+  - variable: env.secret_key
+    label: "Random Secret Key"
+    type: string
+    required: true
+    default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+    subquestions:
 
 - variable: worker.replicas
   label: "Default Replica Count"
@@ -337,23 +351,9 @@ questions:
     type: password
     default: ""
     description: "Not required for 'http' issuer"
+    show_if: "ssl.issuer=cloudflare || ssl.issuer=digitalocean"
   - variable: ssl.generateCerts
     label: "Enable to generate certificates"
     type: boolean
     default: false
     
-- variable: env.sentry_dsn
-  label: "Sentry DSN"
-  type: string
-  default: ""
-  group: "Misc."
-  subquestions:
-  - variable: env.sentry_environment
-    label: "Sentry Environment"
-    type: string
-    default: "Development"
-  - variable: env.secret_key
-    label: "Random Secret Key"
-    type: string
-    required: true
-    default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
