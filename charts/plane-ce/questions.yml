@@ -351,8 +351,7 @@ questions:
     type: password
     default: ""
     description: "Not required for 'http' issuer"
-    show_if: "ssl.issuer!=http"
-    # show_if: "ssl.issuer=cloudflare || ssl.issuer=digitalocean"
+    show_if: "ssl.issuer=cloudflare || ssl.issuer=digitalocean"
   - variable: ssl.generateCerts
     label: "Enable to generate certificates"
     type: boolean
