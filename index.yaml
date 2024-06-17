@@ -4,6 +4,23 @@ entries:
   - annotations:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
+    appVersion: 0.21.0
+    created: "2024-06-17T07:17:39.524132181Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 310cf37d0a32f7e9268491604d201d643b7351fd9bf998afedbf21a8873d4f95
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.19/plane-ce-1.0.19.tgz
+    version: 1.0.19
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
     appVersion: 0.20.0
     created: "2024-06-14T06:53:05.54660939Z"
     description: Meet Plane. An open-source software development tool to manage issues,
@@ -106,6 +123,19 @@ entries:
   plane-enterprise:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2024-06-17T07:17:39.654188488Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 7291208762ec9ecccaa88b585809d6a2d5a7b01d8deebe39658d8b4abbfe653a
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.6/plane-enterprise-1.0.6.tgz
+    version: 1.0.6
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2024-06-14T06:53:05.724816224Z"
     description: Meet Plane. An Enterprise software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -130,4 +160,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2024-06-17T05:55:23.567657785Z"
+generated: "2024-06-17T07:17:39.654226649Z"
