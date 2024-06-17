@@ -355,5 +355,4 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
-    show_if: "ssl.issuer!=http"
     
