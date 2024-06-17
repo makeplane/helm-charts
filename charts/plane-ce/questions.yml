@@ -167,7 +167,7 @@ questions:
   - variable: redis.image
     label: "Docker Image"
     type: string
-    default: "redis:6.2.7-alpine"
+    default: "valkey/valkey:7.2.5-alpine"
     show_if: "redis.local_setup=true"
   - variable: redis.servicePort
     label: Port
@@ -200,7 +200,7 @@ questions:
   - variable: postgres.image
     label: "Docker Image"
     type: string
-    default: "postgres:15.2-alpine"
+    default: "postgres:15.5-alpine"
     show_if: "postgres.local_setup=true"
   - variable: postgres.servicePort
     label: Service Port
@@ -251,7 +251,7 @@ questions:
   - variable: minio.image
     label: "Docker Image"
     type: string
-    default: "minio/minio:RELEASE.2023-10-25T06-33-25Z"
+    default: "minio/minio:latest"
     show_if: "minio.local_setup=true"
   - variable: minio.root_user
     label: "Root User"
