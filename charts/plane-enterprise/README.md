@@ -71,7 +71,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: <v0.xx.x>`
+          - `planeVersion: <v1.xx.x>`
           - `dockerRegistry.loginid: <REG_USER_ID as on prime.plane.so>`
           - `dockerRegistry.password: <REG_PASSWORD as on prime.plane.so>`
           - `license.licenseKey: <LICENSE_KEY as on prime.plane.so>`
@@ -109,7 +109,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | vX.XX.X | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.1.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
 | license.licenseKey |  | Yes | Holds your license key to Plane One. Copy this from prime.plane.so. |
 | license.licenseDomain | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
