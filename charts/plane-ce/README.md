@@ -72,26 +72,6 @@
 |---|:---:|:---:|---|
 | planeVersion | stable | Yes |  |
 
-### Ingress Setup
-
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| ingress.appHost | 'plane.example.com' | Yes |  |
-| ingress.minioHost | 'plane-minio.example.com' |  | (Optional) Required to open minio console interface |
-| ingress.ingressClass | 'nginx' | Yes | can be any of the supported ingress controller class (eg. nginx, traefik, etc) |
-| ingress.clientMaxBodySize | 5m | Yes | This is set at the ingress controller level to support max data from client. |
-
-### SSL Settings
-
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| ssl.createIssuer | false |  | Set it to true to create Let's Encrypt Service based issuer |
-| ssl.issuer | http |  | (Yes, if createIssuer = true) Allowed - cloudflare, digitalocean, http |
-| ssl.token |  |  | (Yes, if createIssuer = true) api token of dns provider, not required for http |
-| ssl.server | <https://acme-v02.api.letsencrypt.org/directory> |  | (Yes, if createIssuer = true)Lets Encrypt SSL Generation API.  Staging: <https://acme-staging-v02.api.letsencrypt.org/directory> |
-| ssl.email | <plane-admin@example.com> |  | (Yes, if createIssuer = true) Required by Let's Encrypt. Change to a valid email id |
-| ssl.generateCerts | false |  |  |
-
 ### Postgress DB Setup
 
 | Setting | Default | Required | Description |
@@ -199,7 +179,7 @@
 | ingress.appHost | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 | ingress.minioHost | 'plane-minio.example.com' |  | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface. |
 | ingress.ingressClass | 'nginx' | Yes | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.|
-| ingress.clientMaxBodySize | 5m | Yes | Ingress controllers comes with various configuration options. One of which is `max payload size limit`. Setting this value lets you change the default value to user required. |
+| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |  | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required. |
 | ssl.createIssuer | false |  | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true`|
 | ssl.issuer | http |  | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`|
 | ssl.token |  |  | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare` or `digitalocean`(not required for http) |
