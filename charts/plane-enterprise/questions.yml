@@ -181,7 +181,7 @@ questions:
   - variable: services.redis.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/redis:7.2.4-alpine"
+    default: "registry.plane.tools/plane/valkey:7.2.5-alpine"
     show_if: "services.redis.local_setup=true"
   - variable: services.redis.servicePort
     label: Port
