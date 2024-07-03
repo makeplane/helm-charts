@@ -1,9 +1,7 @@
-# Plane One Helm Chart
-
 ## Pre-requisite
 
 - A Plane One license
-  > If you don’t have a license, get it <a href="https://prime.plane.so/" target="_blank">here</a> 
+  > If you don’t have a license, get it at [prime.plane.so](https://prime.plane.so)
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
@@ -71,7 +69,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: <v0.xx.x>`
+          - `planeVersion: <v1.xx.x>`
           - `dockerRegistry.loginid: <REG_USER_ID as on prime.plane.so>`
           - `dockerRegistry.password: <REG_PASSWORD as on prime.plane.so>`
           - `license.licenseKey: <LICENSE_KEY as on prime.plane.so>`
@@ -109,7 +107,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | vX.XX.X | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.1.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
 | license.licenseKey |  | Yes | Holds your license key to Plane One. Copy this from prime.plane.so. |
 | license.licenseDomain | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
@@ -133,7 +131,7 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.redis.local_setup | true |  | Plane uses `redis` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
-| services.redis.image | registry.plane.tools/plane/redis:7.2.4-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
+| services.redis.image | registry.plane.tools/plane/valkey:7.2.5-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
 | services.redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
 | services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url. |
