@@ -181,7 +181,7 @@ questions:
   - variable: services.redis.image
     label: "Docker Image"
     type: string
-    default: "redis:7.2.4-alpine"
+    default: "registry.plane.tools/plane/valkey:7.2.5-alpine"
     show_if: "services.redis.local_setup=true"
   - variable: services.redis.servicePort
     label: Port
@@ -209,7 +209,7 @@ questions:
   - variable: services.postgres.image
     label: "Docker Image"
     type: string
-    default: "postgres:15.2-alpine"
+    default: "registry.plane.tools/plane/postgres:15.5-alpine"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.servicePort
     label: Service Port
@@ -255,7 +255,7 @@ questions:
   - variable: services.minio.image
     label: "Docker Image"
     type: string
-    default: "minio/minio:RELEASE.2023-10-25T06-33-25Z"
+    default: "registry.plane.tools/plane/minio:latest"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.root_user
     label: "Root User"
