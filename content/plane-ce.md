@@ -199,7 +199,7 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 |---    |:---:|---|
 | plane.example.com | /  | <http://plane-web.plane-ce:3000> |
 | plane.example.com | /spaces/*  | <http://plane-space.plane-ce:3000> |
-| plane.example.com | /god-mode/* | <http://plane-admin.plane-ce:8000> |
+| plane.example.com | /god-mode/* | <http://plane-admin.plane-ce:3000> |
 | plane.example.com | /api/*  |  <http://plane-api.plane-ce:8000> |
 | plane.example.com | /auth/* | <http://plane-api.plane-ce:8000> |
 | plane.example.com | /uploads/* | <http://plane-minio.plane-ce:9000> |
