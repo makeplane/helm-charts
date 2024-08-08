@@ -288,6 +288,11 @@ questions:
     type: string
     default: ""
     show_if: "minio.local_setup=false"
+  - variable: env.aws_s3_endpoint_url
+    label: "AWS S3 Endpoint URL"
+    type: string
+    default: ""
+    show_if: "minio.local_setup=false"
   - variable: env.docstore_bucket
     label: "Bucket Name"
     type: string
@@ -296,7 +301,6 @@ questions:
     label: "FIle Upload Size Limit"
     type: string
     default: "5242880"
-
 
 - variable: ingress.enabled
   label: "Install Ingress"
