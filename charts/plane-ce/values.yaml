@@ -110,6 +110,5 @@ env:
   sentry_dsn: ""
   sentry_environment: ""
 
-  gunicorn_api_workers: 1
-  
   cors_allowed_origins: ""
+  default_cluster_domain: cluster.local
