@@ -105,10 +105,6 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: env.gunicorn_api_workers
-    label: "Workers"
-    type: int
-    default: 1
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -322,7 +318,6 @@ questions:
   - variable: ingress.ingressClass
     label: "Ingress Classname"
     type: string
-    required: true
     default: "nginx"
     show_if: "ingress.enabled=true"
 
