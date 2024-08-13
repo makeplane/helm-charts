@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-space
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.space.pullPolicy }}
         image: {{ .Values.space.images | default "makeplane/plane-space" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

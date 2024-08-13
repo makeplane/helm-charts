@@ -4,16 +4,14 @@ dockerRegistry:
   enabled: false
   host: "index.docker.io/v1/"
   loginid: makeplane
-  password: ''
+  password: ""
 
 ingress:
   enabled: true
-  appHost: 'plane.example.com'
-  minioHost: 'plane-minio.example.com'
-  ingressClass: 'nginx'
-  ingress_annotations: {
-    "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
-  }
+  appHost: "plane.example.com"
+  minioHost: "plane-minio.example.com"
+  ingressClass: "nginx"
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
@@ -30,59 +28,67 @@ redis:
   servicePort: 6379
   storageClass: longhorn
   volumeSize: 1Gi
+  pullPolicy: IfNotPresent
 
 postgres:
   local_setup: true
   image: postgres:15.5-alpine
   servicePort: 5432
-  cliConnectPort: ''
+  cliConnectPort: ""
   storageClass: longhorn
   volumeSize: 5Gi
+  pullPolicy: IfNotPresent
 
 minio:
-  local_setup: true
   image: minio/minio:latest
+  local_setup: true
+  pullPolicy: IfNotPresent
+  root_password: password
+  root_user: admin
   storageClass: longhorn
   volumeSize: 5Gi
-  root_user: admin
-  root_password: password
 
 web:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-frontend
-  
+  pullPolicy: IfNotPresent
 
 space:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-space
+  pullPolicy: IfNotPresent
 
 admin:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-admin
+  pullPolicy: IfNotPresent
 
 api:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-backend
+  pullPolicy: IfNotPresent
 
 worker:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-backend
+  pullPolicy: IfNotPresent
 
 beatworker:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-backend
+  pullPolicy: IfNotPresent
 
 env:
   pgdb_username: plane
@@ -103,12 +109,12 @@ env:
   aws_access_key: ""
   aws_secret_access_key: ""
   aws_region: ""
-  
+
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
 
   sentry_dsn: ""
   sentry_environment: ""
 
   gunicorn_api_workers: 1
-  
+
   cors_allowed_origins: ""
