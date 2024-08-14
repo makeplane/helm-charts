@@ -16,42 +16,32 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
-
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
   default: stable
   required: true
-  group: "Docker Images"
-  subquestions:
-  - variable: web.image
-    label: Frontend Docker Image
-    type: string
-    required: true
-    default: "makeplane/plane-frontend"
-  - variable: space.image
-    label: Space Docker Image
-    type: string
-    required: true
-    default: "makeplane/plane-space"
-  - variable: admin.image
-    label: Admin Docker Image
-    type: string
-    required: true
-    default: "makeplane/plane-admin"
-  - variable: api.image
-    label: Backend Docker Image
-    type: string
-    required: true
-    default: "makeplane/plane-backend"
-    description: "Used by API, Worker, Beat-Worker"
+  group: "Docker Registry"
 
-- variable: web.replicas
-  label: "Default Replica Count"
-  type: int
-  default: 1
+- variable: web.image
+  label: Frontend Docker Image
+  type: string
+  required: true
+  default: "makeplane/plane-frontend"
   group: "Web Setup"
   subquestions:
+  - variable: web.pullPolicy
+    label: "Image Pull Policy"
+    type: enum
+    options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+    default: "IfNotPresent"
+  - variable: web.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
   - variable: web.memoryLimit
     label: "Memory Limit"
     type: string
@@ -61,12 +51,26 @@ questions:
     type: string
     default: 500m
   
-- variable: space.replicas
-  label: "Default Replica Count"
-  type: int
-  default: 1
+
+- variable: space.image
+  label: Space Docker Image
+  type: string
+  required: true
+  default: "makeplane/plane-space"
   group: "Spaces Setup"
   subquestions:
+  - variable: space.pullPolicy
+    label: "Image Pull Policy"
+    type: enum
+    options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+    default: "IfNotPresent"
+  - variable: space.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
   - variable: space.memoryLimit
     label: "Memory Limit"
     type: string
@@ -76,12 +80,25 @@ questions:
     type: string
     default: 500m
 
-- variable: admin.replicas
-  label: "Default Replica Count"
-  type: int
-  default: 1
+- variable: admin.image
+  label: Admin Docker Image
+  type: string
+  required: true
+  default: "makeplane/plane-admin"
   group: "Admin Setup"
   subquestions:
+  - variable: admin.pullPolicy
+    label: "Image Pull Policy"
+    type: enum
+    options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+    default: "IfNotPresent"
+  - variable: admin.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
   - variable: admin.memoryLimit
     label: "Memory Limit"
     type: string
@@ -91,12 +108,26 @@ questions:
     type: string
     default: 500m
 
-- variable: api.replicas
-  label: "Default Replica Count"
-  type: int
-  default: 1
+- variable: api.image
+  label: Backend Docker Image
+  type: string
+  required: true
+  default: "makeplane/plane-backend"
+  description: "Used by API, Worker, Beat-Worker"
   group: "API Setup"
   subquestions:
+  - variable: api.pullPolicy
+    label: "Image Pull Policy"
+    type: enum
+    options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+    default: "IfNotPresent"
+  - variable: api.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
   - variable: api.memoryLimit
     label: "Memory Limit"
     type: string
@@ -105,10 +136,6 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: env.gunicorn_api_workers
-    label: "Workers"
-    type: int
-    default: 1
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -288,6 +315,11 @@ questions:
     type: string
     default: ""
     show_if: "minio.local_setup=false"
+  - variable: env.aws_s3_endpoint_url
+    label: "AWS S3 Endpoint URL"
+    type: string
+    default: ""
+    show_if: "minio.local_setup=false"
   - variable: env.docstore_bucket
     label: "Bucket Name"
     type: string
@@ -296,7 +328,6 @@ questions:
     label: "FIle Upload Size Limit"
     type: string
     default: "5242880"
-
 
 - variable: ingress.enabled
   label: "Install Ingress"
@@ -318,7 +349,6 @@ questions:
   - variable: ingress.ingressClass
     label: "Ingress Classname"
     type: string
-    required: true
     default: "nginx"
     show_if: "ingress.enabled=true"
 

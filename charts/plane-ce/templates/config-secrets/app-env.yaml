@@ -19,7 +19,7 @@ data:
     SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
     DEBUG: "0"
     DOCKERIZED: "1"
-    GUNICORN_WORKERS: {{ .Values.env.gunicorn_api_workers | default 1 | quote }}
+    GUNICORN_WORKERS: "1"
 
     {{- if .Values.ingress.appHost }}
     WEB_URL: "http://{{ .Values.ingress.appHost }}"
@@ -41,15 +41,15 @@ data:
     {{- end }}
 
     {{- if .Values.redis.local_setup }}
-    REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+    REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
     {{- else }}
     REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
     {{- end }}
 
-    {{ if .Values.postgres.local_setup }}
-    DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
-    {{ else if .Values.env.pgdb_remote_url }}
+    {{- if .Values.postgres.local_setup }}
+    DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
+    {{- else if .Values.env.pgdb_remote_url }}
     DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
-    {{ else }}
+    {{- else }}
     DATABASE_URL: ""
     {{ end }}
