@@ -18,7 +18,7 @@ spec:
         image: {{ .Values.api.image | default "makeplane/plane-backend" }}:{{ .Values.planeVersion }}
         command: 
           - ./bin/docker-entrypoint-migrator.sh
-        imagePullPolicy: {{ .Values.api.pullPolicy }}
+        imagePullPolicy: {{ .Values.api.pullPolicy | default "IfNotPresent" }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars

@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
       - image: {{ .Values.minio.image }}
-        imagePullPolicy: {{ .Values.minio.pullPolicy }}
+        imagePullPolicy: {{ .Values.minio.pullPolicy | default "IfNotPresent" }}
         name: {{ .Release.Name }}-minio
         stdin: true
         tty: true

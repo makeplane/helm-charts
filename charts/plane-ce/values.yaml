@@ -11,7 +11,9 @@ ingress:
   appHost: "plane.example.com"
   minioHost: "plane-minio.example.com"
   ingressClass: "nginx"
-  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  ingress_annotations: {
+    "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
+  }
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:

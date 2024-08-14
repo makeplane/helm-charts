@@ -59,7 +59,7 @@ spec:
     spec:
       containers:
       - image: {{ .Values.postgres.image }}
-        imagePullPolicy: {{ .Values.postgres.pullPolicy }}
+        imagePullPolicy: {{ .Values.postgres.pullPolicy | default "IfNotPresent" }}
         name: {{ .Release.Name }}-pgdb
         stdin: true
         tty: true

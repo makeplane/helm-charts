@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-worker
-        imagePullPolicy: {{ .Values.worker.pullPolicy }}
+        imagePullPolicy: {{ .Values.worker.pullPolicy | default "IfNotPresent" }}
         image: {{ .Values.worker.image | default "makeplane/plane-backend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
