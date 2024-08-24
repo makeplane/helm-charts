@@ -8,7 +8,6 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
 spec:
-  clusterIP: None
   ports:
   - name: pg-{{ .Values.services.postgres.servicePort }}
     port: {{ .Values.services.postgres.servicePort }}

@@ -8,7 +8,6 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
 spec:
-  clusterIP: None
   ports:
   - name: redis-{{ .Values.redis.servicePort }}
     port: {{ .Values.redis.servicePort }}
