@@ -32,7 +32,7 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
     spec:
       containers:
-      - image: {{ .Values.services.monitor.image }}
+      - image: {{ .Values.services.monitor.image | default "registry.plane.tools/plane/monitor-enterprise" }}:{{ .Values.planeVersion }}
         imagePullPolicy: Always
         name: {{ .Release.Name }}-monitor
         stdin: true
