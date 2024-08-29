@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-monitor
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+spec:
+  clusterIP: None
+  ports:
+  - name: monitor-80
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-monitor-wl
+spec:
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+  serviceName:  {{ .Release.Name }}-monitor
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+    spec:
+      containers:
+      - image: {{ .Values.services.monitor.image }}
+        imagePullPolicy: Always
+        name: {{ .Release.Name }}-monitor
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu: "50m"
+          limits:
+            memory: {{ .Values.services.monitor.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.monitor.cpuLimit | default "500m" | quote}}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-monitor-vars
+              optional: false
+        volumeMounts:
+        - mountPath: /app
+          name: pvc-{{ .Release.Name }}-monitor-vol
+          subPath: ''
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      namespace: {{ .Release.Namespace }}
+      name: pvc-{{ .Release.Name }}-monitor-vol
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.services.monitor.volumeSize | default "100Mi" | quote }}
+      storageClassName: {{ .Values.env.storageClass | quote }}
+      volumeMode: Filesystem
+      
