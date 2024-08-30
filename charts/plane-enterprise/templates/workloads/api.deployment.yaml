@@ -7,7 +7,6 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
 spec:
-  clusterIP: None
   ports:
   - name: api-8000
     port: 8000
