@@ -33,6 +33,7 @@ services:
     image: registry.plane.tools/plane/valkey:7.2.5-alpine
     servicePort: 6379
     volumeSize: 500Mi
+    assign_cluster_ip: false
 
   postgres:
     local_setup: true
@@ -40,6 +41,7 @@ services:
     servicePort: 5432
     cliConnectPort: ''
     volumeSize: 2Gi
+    assign_cluster_ip: false
 
   minio:
     local_setup: true
@@ -47,30 +49,35 @@ services:
     volumeSize: 3Gi
     root_user: admin
     root_password: password
+    assign_cluster_ip: false
 
   web:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/web-enterprise
+    assign_cluster_ip: false
 
   space:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/space-enterprise
+    assign_cluster_ip: false
     
   admin:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/admin-enterprise
+    assign_cluster_ip: false
 
   api:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/backend-enterprise
+    assign_cluster_ip: false
     
   worker:
     replicas: 1

@@ -51,7 +51,7 @@ minio:
   root_user: admin
   storageClass: longhorn
   volumeSize: 5Gi
-  assign_cluster_ip: false
+  assign_cluster_ip: true
 
 web:
   replicas: 1
@@ -59,7 +59,7 @@ web:
   cpuLimit: 500m
   image: makeplane/plane-frontend
   pullPolicy: IfNotPresent
-  assign_cluster_ip: false
+  assign_cluster_ip: true
 
 space:
   replicas: 1
@@ -67,7 +67,7 @@ space:
   cpuLimit: 500m
   image: makeplane/plane-space
   pullPolicy: IfNotPresent
-  assign_cluster_ip: false
+  assign_cluster_ip: true
 
 admin:
   replicas: 1
