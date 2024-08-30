@@ -16,10 +16,6 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
-  - variable: env.storageClass
-    label: "Storage Class for Persistent Volume Claims"
-    type: string
-    default: "longhorn"
 
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
@@ -49,6 +45,10 @@ questions:
     required: true
     default: "registry.plane.tools/plane/backend-enterprise"
     description: "Used by API, Worker, Beat-Worker"
+  - variable: env.storageClass
+    label: "Storage Class for Persistent Volume Claims"
+    type: string
+    default: "longhorn"
 
 - variable: license.licenseServer
   label: "License Server"
@@ -59,7 +59,6 @@ questions:
   - variable: license.licenseKey
     label: "License Key"
     type: string
-    required: true
   - variable: license.licenseDomain
     label: "License Domain"
     type: string
