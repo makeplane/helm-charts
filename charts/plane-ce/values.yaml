@@ -130,7 +130,7 @@ env:
   cors_allowed_origins: ""
   default_cluster_domain: cluster.local
 
-  rabbitmq_username: guest
-  rabbitmq_password: guest
+  rabbitmq_username: plane
+  rabbitmq_password: plane
   rabbitmq_vhost: plane
   rabbitmq_remote_url: "" #INCASE OF REMOTE RABBITMQ URL ONLY
