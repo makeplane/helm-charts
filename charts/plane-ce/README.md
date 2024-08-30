@@ -86,6 +86,7 @@
 | env.pgdb_name | plane |  |  Database name to be used while setting up stateful deployment of `Postgres`|
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `postgres.local_setup` to `false` and set this key with remote connection url. |
 | postgres.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Redis Setup
 
@@ -97,6 +98,7 @@
 | redis.volumeSize | 1Gi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `redis.local_setup` to `false` and set this key with remote connection url. |
 | redis.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -114,6 +116,7 @@
 | env.aws_region |  |  | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | minio.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Web Deployment
 
@@ -123,6 +126,7 @@
 | web.memoryLimit | 1000Mi |  | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
 | web.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | web.image| makeplane/plane-frontend |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Space Deployment
 
@@ -132,6 +136,7 @@
 | space.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
 | space.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | space.image| makeplane/plane-space|  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Admin Deployment
 
@@ -141,6 +146,7 @@
 | admin.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
 | admin.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | admin.image| makeplane/plane-admin |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### API Deployment
 
@@ -152,6 +158,7 @@
 | api.image| makeplane/plane-backend |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | env.sentry_dsn |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
+| api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Worker Deployment
 
@@ -192,6 +199,7 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
+| env.default_cluster_domain | cluster.local | Yes | Set this value as configured in your kubernetes cluster. `cluster.local` is usally the default in most cases. |
 
 ## Custom Ingress Routes
 
