@@ -46,7 +46,6 @@ spec:
       - name: rabbitmq
         image: {{ .Values.rabbitmq.image }}
         imagePullPolicy: {{ .Values.rabbitmq.pullPolicy }}
-
         env:
         envFrom:
           - configMapRef:
