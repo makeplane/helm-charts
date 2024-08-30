@@ -126,6 +126,7 @@
 | env.pgdb_username | plane |  | Database credentials are requried to access the hosted stateful deployment of `postgres`.  Use this key to set the username for the stateful deployment. |
 | env.pgdb_password | plane |  | Database credentials are requried to access the hosted stateful deployment of `postgres`.  Use this key to set the password for the stateful deployment. |
 | env.pgdb_name | plane |  |  Database name to be used while setting up stateful deployment of `Postgres`|
+| services.postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url. |
 
 ### Redis Setup
@@ -136,6 +137,7 @@
 | services.redis.image | registry.plane.tools/plane/valkey:7.2.5-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
 | services.redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
 | services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
+| services.redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
@@ -149,6 +151,7 @@
 | services.minio.root_password | password |  | Storage credentials are requried to access the hosted stateful deployment of `minio`.  Use this key to set the password for the stateful deployment. |
 | env.docstore_bucket | uploads | Yes | Storage bucket name is required as part of configuration. This is where files will be uploaded irrespective of if you are using `Minio` or external `S3` (or compatible) storage service |
 | env.doc_upload_size_limit | 5242880 | Yes | Document Upload Size Limit (default to 5Mb) |
+| services.minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.aws_access_key |  |  | External `S3` (or compatible) storage service provides `access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
 | env.aws_secret_access_key |  |  | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
 | env.aws_region |  |  | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
@@ -162,6 +165,7 @@
 | services.web.memoryLimit | 1000Mi |  | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
 | services.web.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.web.image| registry.plane.tools/plane/web-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| services.web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Space Deployment
 
@@ -171,6 +175,7 @@
 | services.space.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
 | services.space.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.space.image| registry.plane.tools/plane/space-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| services.space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Admin Deployment
 
@@ -180,6 +185,7 @@
 | services.admin.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
 | services.admin.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.admin.image| registry.plane.tools/plane/admin-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### API Deployment
 
@@ -191,6 +197,7 @@
 | services.api.image| registry.plane.tools/plane/backend-enterprise |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | env.sentry_dsn |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
+| services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
   
 ### Worker Deployment
 
