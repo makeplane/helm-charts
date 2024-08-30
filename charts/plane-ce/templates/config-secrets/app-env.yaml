@@ -56,7 +56,7 @@ data:
 
     {{- if .Values.rabbitmq.local_setup }}
     AMQP_URL: "amqp://{{ .Values.env.rabbitmq_username }}:{{ .Values.env.rabbitmq_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.rabbitmq_vhost | default "/" }}"
-    {{- else if .Values.rabbitmq.remote_url }}
+    {{- else if .Values.env.rabbitmq_remote_url }}
     RABBITMQ_URL: {{ .Values.rabbitmq.remote_url }}
     {{- else }}
     AMQP_URL: ""

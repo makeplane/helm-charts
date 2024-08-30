@@ -133,3 +133,4 @@ env:
   rabbitmq_username: guest
   rabbitmq_password: guest
   rabbitmq_vhost: plane
+  rabbitmq_remote_url: "" #INCASE OF REMOTE RABBITMQ URL ONLY
