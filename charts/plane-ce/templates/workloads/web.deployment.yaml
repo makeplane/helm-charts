@@ -7,6 +7,9 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web
 spec:
+  {{- if not .Values.web.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
   ports:
   - name: web-3000
     port: 3000

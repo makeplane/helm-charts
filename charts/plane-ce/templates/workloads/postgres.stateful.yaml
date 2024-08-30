@@ -8,6 +8,9 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
 spec:
+  {{- if not .Values.postgres.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
   ports:
   - name: pg-{{ .Values.postgres.servicePort }}
     port: {{ .Values.postgres.servicePort }}

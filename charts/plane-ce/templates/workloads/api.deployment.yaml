@@ -7,6 +7,9 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
 spec:
+  {{- if not .Values.api.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
   ports:
   - name: api-8000
     port: 8000
