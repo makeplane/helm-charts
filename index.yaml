@@ -5,6 +5,23 @@ entries:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
     appVersion: 0.22.0
+    created: "2024-08-31T04:04:11.029888492Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: d7763f9db3c08599bc0b5f34925e382e657f77ebdba32a34e7d93aeb0e0d770b
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.22/plane-ce-1.0.22.tgz
+    version: 1.0.22
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 0.22.0
     created: "2024-08-14T06:09:13.300671692Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -156,6 +173,21 @@ entries:
     version: 1.0.13
   plane-enterprise:
   - apiVersion: v2
+    appVersion: 1.2.1
+    created: "2024-08-31T04:04:11.128322662Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 679c8c23ceaa6a8382351045c10f36f288c64a6ac7dea0a2aca3a8225e38dabc
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.8/plane-enterprise-1.0.8.tgz
+    version: 1.0.8
+  - apiVersion: v2
     appVersion: 1.0.0
     created: "2024-07-03T08:07:34.502664294Z"
     description: Meet Plane. An Enterprise software development tool to manage issues,
@@ -209,4 +241,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2024-08-14T06:09:13.48728181Z"
+generated: "2024-08-31T04:04:11.128377694Z"
