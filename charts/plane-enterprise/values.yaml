@@ -1,7 +1,7 @@
 planeVersion: v1.2.1
 
 dockerRegistry:
-  enabled: true
+  enabled: false
   registry: registry.plane.tools
   loginid: ''
   password: ''
@@ -62,6 +62,7 @@ services:
     cpuLimit: 500m
     image: registry.plane.tools/plane/monitor-enterprise
     volumeSize: 100Mi
+    assign_cluster_ip: false
 
   space:
     replicas: 1

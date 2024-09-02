@@ -3,7 +3,7 @@ questions:
 - variable: dockerRegistry.enabled
   label: Docker Registry Enabled
   type: boolean
-  default: true
+  default: false
   group: "Docker Registry"
   show_subquestion_if: true
   subquestions:
