@@ -16,10 +16,6 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
-  - variable: env.storageClass
-    label: "Storage Class for Persistent Volume Claims"
-    type: string
-    default: "longhorn"
 
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
@@ -54,6 +50,10 @@ questions:
     required: true
     default: "registry.plane.tools/plane/backend-enterprise"
     description: "Used by API, Worker, Beat-Worker"
+  - variable: env.storageClass
+    label: "Storage Class for Persistent Volume Claims"
+    type: string
+    default: "longhorn"
 
 - variable: license.licenseServer
   label: "License Server"
@@ -80,6 +80,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.web.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
   
 - variable: services.space.replicas
   label: "Default Replica Count"
@@ -95,6 +99,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.space.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 
 - variable: services.admin.replicas
   label: "Default Replica Count"
@@ -110,6 +118,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.admin.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 
 - variable: services.monitor.memoryLimit
   label: "Memory Limit"
@@ -140,6 +152,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -209,6 +225,11 @@ questions:
     type: string
     default: "500Mi"
     show_if: "services.redis.local_setup=true"
+  - variable: services.redis.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.redis.local_setup=true"
   - variable: env.remote_redis_url
     label: "Remote Redis URL"
     type: string
@@ -256,6 +277,11 @@ questions:
     type: string
     default: "plane"
     show_if: "services.postgres.local_setup=true"
+  - variable: services.postgres.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.postgres.local_setup=true"
   - variable: env.pgdb_remote_url
     label: "Remote URL"
     type: string
@@ -287,6 +313,11 @@ questions:
     label: "Volume Size"
     type: string
     default: "5Gi"
+    show_if: "services.minio.local_setup=true"
+  - variable: services.minio.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
     show_if: "services.minio.local_setup=true"
   - variable: env.aws_access_key
     label: "AWS Access Key"
