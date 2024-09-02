@@ -21,6 +21,10 @@ env:
   AWS_REGION: ${{ vars.HELM_PREVIEW_AWS_REGION }}
   AWS_BUCKET: ${{ vars.HELM_PREVIEW_BUCKET }}
   HELM_SUB_FOLDER: ${{ github.run_id }}
+  GNUPGHOME: ${{ github.workspace }}/.gnupg
+  GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
   CHART_PREFIX: ${{ github.run_id }}
   BUILD_PLANE_CE: ${{ github.event.inputs.plane-ce }}
   BUILD_PLANE_EE: ${{ github.event.inputs.plane-enterprise }}
@@ -48,19 +52,30 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Prepare GPG key #this step is for using exported keys and make your github runner
-        working-directory: code
-        run: |
-          gpg_dir=.cr-gpg
-          mkdir "$gpg_dir"
-          keyring="$gpg_dir/secring.gpg" #referring keyring to private key of gpg
-          base64 -d <<< "$GPG_KEYRING_BASE64" > "$keyring" #storing base64 GPG key into keyring 
-          passphrase_file="$gpg_dir/passphrase"
-          echo "$GPG_PASSPHRASE" > "$passphrase_file" #storing passphrase data into a file
-          echo "CR_PASSPHRASE_FILE=$passphrase_file" >> "$GITHUB_ENV" #saving passphrase into github-environment
-          echo "CR_KEYRING=$keyring" >> "$GITHUB_ENV" #saving private key into github-environemnt
         env:
-          GPG_KEYRING_BASE64: "${{ secrets.GPG_KEYRING_BASE64 }}" #Referring secrets of github above
-          GPG_PASSPHRASE: "${{ secrets.GPG_PASSPHRASE }}"
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
+        run: |
+          gpg --version
+          
+          mkdir -p ${{env.GNUPGHOME}}
+          chmod 700 ${{env.GNUPGHOME}}
+
+          # Disable the use of the gpg-agent
+          echo "use-agent" >> ${{env.GNUPGHOME}}/gpg.conf
+          echo "pinentry-mode loopback" >> ${{env.GNUPGHOME}}/gpg.conf
+          echo "no-tty" >> ${{env.GNUPGHOME}}/gpg.conf
+          echo "no-autostart" >> ${{env.GNUPGHOME}}/gpg-agent.conf
+          echo "allow-loopback-pinentry" >> ${{env.GNUPGHOME}}/gpg-agent.conf
+          echo "${{env.GPG_PASSPHRASE}}" > ${{env.CR_PASSPHRASE_FILE}}
+          
+          # Import the GPG key
+          echo "${{ env.GPG_PRIVATE_KEY }}" | gpg --batch --yes --pinentry-mode loopback --passphrase ${{ env.GPG_PASSPHRASE }} --import
+
+          # Re-create keyring in legacy format for Helm compatibility
+          gpg --export-secret-keys --passphrase ${{env.GPG_PASSPHRASE}} > ${{env.GNUPGHOME}}/secring.gpg
+          gpg --export --passphrase ${{env.GPG_PASSPHRASE}} > ${{env.GNUPGHOME}}/pubring.gpg
+
+          chmod 400 ${{env.GNUPGHOME}}/secring.gpg
 
       - id: build-plane-ce
         if: ${{ env.BUILD_PLANE_CE == 'true' }}
@@ -69,13 +84,16 @@ jobs:
         env:
           EXPORT_DIR: ${{env.PREVIEW_BUILD_FOLDER}}
           CHART_REPO: plane-ce
+          CR_KEY: ${{ env.GPG_KEY_NAME }}
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
+          CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
         run: |
           flatBranchName=$(echo "${{ github.ref_name}}" | sed 's/\//\-/g')
           sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" charts/${{env.CHART_REPO}}/Chart.yaml
           sed -i "s/description: .*/description: ${flatBranchName}/g" charts/${{env.CHART_REPO}}/Chart.yaml
           # sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/${{env.CHART_REPO}}/Chart.yaml
 
-          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
+          helm package --sign --key "$CR_KEY" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
           cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
           helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
 
@@ -86,13 +104,16 @@ jobs:
         env:
           EXPORT_DIR: ${{env.PREVIEW_BUILD_FOLDER}}
           CHART_REPO: plane-enterprise
+          CR_KEY: ${{ env.GPG_KEY_NAME }}
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
+          CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
         run: |
           flatBranchName=$(echo "${{ github.ref_name}}" | sed 's/\//\-/g')
           sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" charts/${{env.CHART_REPO}}/Chart.yaml
           sed -i "s/description: .*/description: ${flatBranchName}/g" charts/${{env.CHART_REPO}}/Chart.yaml
           # sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/${{env.CHART_REPO}}/Chart.yaml
 
-          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
+          helm package --sign --key "$CR_KEY" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
           cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
           helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
 
