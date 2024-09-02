@@ -78,3 +78,42 @@ jobs:
           helm push tmp/${{ env.CHART_REPO }}-*.tgz oci://${{ vars.HARBOR_REGISTRY }}/${{env.HELM_REPO}}
           rm -rf tmp
 
+  publish:
+    if: ${{ github.ref_name == 'master' }}
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: code
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: gh-pages
+          path: pages
+
+      - name: Configure Git
+        working-directory: pages
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Copy Readme
+        run: |
+          cp code/charts/plane-ce/README.md pages/content/plane-ce.md
+          cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+
+      - name: Publish pages
+        working-directory: pages
+        run: |
+          git add .
+          git commit -m "Updated READMEs"
+          git push
+
+
