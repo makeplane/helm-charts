@@ -7,6 +7,10 @@ env:
   CR_CONFIGFILE: "${{ github.workspace }}/cr.yaml"
   CR_TOOL_PATH: "${{ github.workspace }}/.cr-tool"
   CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  GNUPGHOME: ${{ github.workspace }}/.gnupg
+  GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
   TARGET_BRANCH: "${{ github.ref_name }}"
   CHART_NAME_CE: "plane-ce"
   CHART_NAME_ENTERPRISE: "plane-enterprise"
@@ -31,18 +35,30 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Prepare GPG key #this step is for using exported keys and make your github runner
-        run: |
-          gpg_dir=.cr-gpg
-          mkdir "$gpg_dir"
-          keyring="$gpg_dir/secring.gpg" #referring keyring to private key of gpg
-          base64 -d <<< "$GPG_KEYRING_BASE64" > "$keyring" #storing base64 GPG key into keyring 
-          passphrase_file="$gpg_dir/passphrase"
-          echo "$GPG_PASSPHRASE" > "$passphrase_file" #storing passphrase data into a file
-          echo "CR_PASSPHRASE_FILE=$passphrase_file" >> "$GITHUB_ENV" #saving passphrase into github-environment
-          echo "CR_KEYRING=$keyring" >> "$GITHUB_ENV" #saving private key into github-environemnt
         env:
-          GPG_KEYRING_BASE64: "${{ secrets.GPG_KEYRING_BASE64 }}" #Referring secrets of github above
-          GPG_PASSPHRASE: "${{ secrets.GPG_PASSPHRASE }}"
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
+        run: |
+          gpg --version
+          
+          mkdir -p ${{env.GNUPGHOME}}
+          chmod 700 ${{env.GNUPGHOME}}
+
+          # Disable the use of the gpg-agent
+          echo "use-agent" >> ${{env.GNUPGHOME}}/gpg.conf
+          echo "pinentry-mode loopback" >> ${{env.GNUPGHOME}}/gpg.conf
+          echo "no-tty" >> ${{env.GNUPGHOME}}/gpg.conf
+          echo "no-autostart" >> ${{env.GNUPGHOME}}/gpg-agent.conf
+          echo "allow-loopback-pinentry" >> ${{env.GNUPGHOME}}/gpg-agent.conf
+          echo "${{env.GPG_PASSPHRASE}}" > ${{env.CR_PASSPHRASE_FILE}}
+          
+          # Import the GPG key
+          echo "${{ env.GPG_PRIVATE_KEY }}" | gpg --batch --yes --pinentry-mode loopback --passphrase ${{ env.GPG_PASSPHRASE }} --import
+
+          # Re-create keyring in legacy format for Helm compatibility
+          gpg --export-secret-keys --passphrase ${{env.GPG_PASSPHRASE}} > ${{env.GNUPGHOME}}/secring.gpg
+          gpg --export --passphrase ${{env.GPG_PASSPHRASE}} > ${{env.GNUPGHOME}}/pubring.gpg
+
+          chmod 400 ${{env.GNUPGHOME}}/secring.gpg
 
       - name: Rename Chart
         if: github.ref_name != 'master'
@@ -60,21 +76,63 @@ jobs:
           skip_existing: true
         env:
           CR_TOKEN: ${{ env.CR_TOKEN }}
-          CR_KEY: "Plane"
-          CR_KEYRING: ${{ env.CR_KEYRING }}
-          CR_PASSPHRASE_FILE: ${{ env.CR_PASSPHRASE_FILE }}
+          CR_KEY: ${{ env.GPG_KEY_NAME }}
+          CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
           CR_SIGN: true
 
       - id: publish-plane-enterprise
         if: github.ref_name == 'master'
-        name: Publish Plane-Enterprise
+        name: Harbor Publish Plane-Enterprise
         env:
           CHART_REPO: ${{ env.CHART_NAME_ENTERPRISE }}
           HELM_REPO: plane
+          CR_KEY: ${{ env.GPG_KEY_NAME }}
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
+          CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
         run: |
           mkdir -p tmp
           helm registry login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_TOKEN }} ${{ vars.HARBOR_REGISTRY }}
-          helm package --sign --key "Plane" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d tmp
+          helm package --sign --key "$CR_KEY" --keyring "$CR_KEYRING" --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d tmp
           helm push tmp/${{ env.CHART_REPO }}-*.tgz oci://${{ vars.HARBOR_REGISTRY }}/${{env.HELM_REPO}}
           rm -rf tmp
+
+  publish:
+    if: ${{ github.ref_name == 'master' }}
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: code
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: gh-pages
+          path: pages
+
+      - name: Configure Git
+        working-directory: pages
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Copy Readme
+        run: |
+          cp code/charts/plane-ce/README.md pages/content/plane-ce.md
+          cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+
+      - name: Publish pages
+        working-directory: pages
+        run: |
+          git add .
+          git commit -m "Updated READMEs"
+          git push
+
 
