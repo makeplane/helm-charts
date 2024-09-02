@@ -7,7 +7,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmqdb-secrets
 data:
-  RABBITMQ_DEFAULT_PASSWORD: {{ .Values.env.rabbitmq_password | default "guest" | b64enc | quote }}
+  RABBITMQ_DEFAULT_PASS: {{ .Values.env.rabbitmq_password | default "plane" | b64enc | quote }}
 ---
 
 apiVersion: v1
@@ -16,7 +16,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmqdb-vars
 data:
-  RABBITMQ_DEFAULT_USER: {{ .Values.env.rabbitmq_username | default "guest" | quote }}
-  RABBITMQ_DEFAULT_VHOST: {{ .Values.env.rabbitmq_vhost | default "/" | quote }}
+  RABBITMQ_DEFAULT_USER: {{ .Values.env.rabbitmq_username | default "plane" | quote }}
+  RABBITMQ_DEFAULT_VHOST: {{ .Values.env.rabbitmq_vhost | default "plane" | quote }}
 ---
 {{- end}}
