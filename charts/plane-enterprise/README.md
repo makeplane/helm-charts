@@ -1,5 +1,3 @@
-# Plane Enterprise Helm Chart
-
 ## Pre-requisite
 
 - A working Kubernetes cluster
