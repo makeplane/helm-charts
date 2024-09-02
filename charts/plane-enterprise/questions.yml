@@ -137,6 +137,10 @@ questions:
     label: "Volume Size"
     type: string
     default: "100Mi"
+  - variable: services.monitor.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 
 - variable: services.api.replicas
   label: "Default Replica Count"
