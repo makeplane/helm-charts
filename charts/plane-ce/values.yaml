@@ -31,6 +31,7 @@ redis:
   storageClass: longhorn
   volumeSize: 1Gi
   pullPolicy: IfNotPresent
+  assign_cluster_ip: false
 
 postgres:
   local_setup: true
@@ -40,6 +41,7 @@ postgres:
   storageClass: longhorn
   volumeSize: 5Gi
   pullPolicy: IfNotPresent
+  assign_cluster_ip: false
 
 rabbitmq:
   local_setup: true
@@ -61,6 +63,7 @@ minio:
   root_user: admin
   storageClass: longhorn
   volumeSize: 5Gi
+  assign_cluster_ip: true
 
 web:
   replicas: 1
@@ -68,6 +71,7 @@ web:
   cpuLimit: 500m
   image: makeplane/plane-frontend
   pullPolicy: IfNotPresent
+  assign_cluster_ip: true
 
 space:
   replicas: 1
@@ -75,6 +79,7 @@ space:
   cpuLimit: 500m
   image: makeplane/plane-space
   pullPolicy: IfNotPresent
+  assign_cluster_ip: true
 
 admin:
   replicas: 1
@@ -82,6 +87,7 @@ admin:
   cpuLimit: 500m
   image: makeplane/plane-admin
   pullPolicy: IfNotPresent
+  assign_cluster_ip: true
 
 api:
   replicas: 1
@@ -89,6 +95,7 @@ api:
   cpuLimit: 500m
   image: makeplane/plane-backend
   pullPolicy: IfNotPresent
+  assign_cluster_ip: false
 
 worker:
   replicas: 1

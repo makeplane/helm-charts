@@ -8,7 +8,9 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
 spec:
+  {{- if not .Values.minio.assign_cluster_ip }}
   clusterIP: None
+  {{- end }}
   ports:
   - name: minio-api-9000
     port: 9000

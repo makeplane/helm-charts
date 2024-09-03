@@ -50,6 +50,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: web.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
   
 
 - variable: space.image
@@ -79,6 +83,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: space.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 
 - variable: admin.image
   label: Admin Docker Image
@@ -107,6 +115,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: admin.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: true
 
 - variable: api.image
   label: Backend Docker Image
@@ -136,6 +148,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -211,6 +227,11 @@ questions:
     type: string
     default: "1Gi"
     show_if: "redis.local_setup=true"
+  - variable: redis.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "redis.local_setup=true"
   - variable: env.remote_redis_url
     label: "Remote Redis URL"
     type: string
@@ -262,6 +283,11 @@ questions:
     label: "DB Name"
     type: string
     default: "plane"
+    show_if: "postgres.local_setup=true"
+  - variable: postgres.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
     show_if: "postgres.local_setup=true"
   - variable: env.pgdb_remote_url
     label: "Remote URL"
@@ -345,6 +371,11 @@ questions:
     label: "Volume Size"
     type: string
     default: "5Gi"
+    show_if: "minio.local_setup=true"
+  - variable: minio.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
     show_if: "minio.local_setup=true"
   - variable: env.aws_access_key
     label: "AWS Access Key"

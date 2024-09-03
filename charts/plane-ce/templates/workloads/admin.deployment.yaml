@@ -7,7 +7,9 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
 spec:
+  {{- if not .Values.admin.assign_cluster_ip }}
   clusterIP: None
+  {{- end }}
   ports:
   - name: admin-3000
     port: 3000
