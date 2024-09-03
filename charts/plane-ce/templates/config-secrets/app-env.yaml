@@ -55,9 +55,9 @@ data:
     {{ end }}
 
     {{- if .Values.rabbitmq.local_setup }}
-    AMQP_URL: "amqp://{{ .Values.env.rabbitmq_username }}:{{ .Values.env.rabbitmq_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.rabbitmq_vhost }}"
-    {{- else if .Values.env.rabbitmq_remote_url }}
-    RABBITMQ_URL: {{ .Values.rabbitmq.remote_url }}
+    AMQP_URL: "amqp://{{ .Values.rabbitmq.default_user}}:{{ .Values.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq-5672.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+    {{- else if .Values.rabbitmq.external_rabbitmq_url }}
+    AMQP_URL: {{ .Values.rabbitmq.external_rabbitmq_url}}
     {{- else }}
     AMQP_URL: ""
     {{ end }}

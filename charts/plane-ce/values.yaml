@@ -43,12 +43,14 @@ postgres:
 
 rabbitmq:
   local_setup: true
-  image: rabbitmq:3.13.6-management-alpine
-  pullPolicy: IfNotPresent
-  amqp_servicePort: 5672
-  mgmt_servicePort: 15672
-  volumeSize: 1Gi
-  storageClass: standard
+  image: rabbitmq:3-management
+  servicePort: 5672
+  managementPort: 15672
+  storageClass: longhorn
+  volumeSize: 500Mi
+  default_user: plane
+  default_password: plane
+  external_rabbitmq_url: ''
 
 minio:
   image: minio/minio:latest
@@ -129,8 +131,3 @@ env:
 
   cors_allowed_origins: ""
   default_cluster_domain: cluster.local
-
-  rabbitmq_username: plane
-  rabbitmq_password: plane
-  rabbitmq_vhost: plane
-  rabbitmq_remote_url: "" #INCASE OF REMOTE RABBITMQ URL ONLY

@@ -3,74 +3,69 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-rabbitmq
   namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-rabbitmq
   labels:
-    app: {{ .Release.Name }}-rabbitmq
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
 spec:
   clusterIP: None
   ports:
-  - name: amqp-{{ .Values.rabbitmq.amqp_servicePort }}
-    port: {{ .Values.rabbitmq.amqp_servicePort }}
-    targetPort: 5672
-    protocol: TCP 
-  - name: management-{{ .Values.rabbitmq.mgmt_servicePort }}
-    port: {{ .Values.rabbitmq.mgmt_servicePort }}
-    targetPort: 15672
+  - name: rabbitmq-{{ .Values.rabbitmq.servicePort }}
+    port: {{ .Values.rabbitmq.servicePort }}
     protocol: TCP
-      
+    targetPort: 5672
+  - name: rabbitmq-mgmt-{{ .Values.rabbitmq.managementPort }}
+    port: {{ .Values.rabbitmq.managementPort }}
+    protocol: TCP
+    targetPort: 15672
   selector:
-    app: {{ .Release.Name }}-rabbitmq
-
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
 ---
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ .Release.Name }}-rabbitmq
   namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ .Release.Name }}-rabbitmq
+  name: {{ .Release.Name }}-rabbitmq-wl
 spec:
   selector:
     matchLabels:
-      app: {{ .Release.Name }}-rabbitmq
-  serviceName: {{ .Release.Name }}-rabbitmq
-  replicas: {{ .Values.replicaCount }}
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+  serviceName:  {{ .Release.Name }}-rabbitmq
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-rabbitmq
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
     spec:
       containers:
-      - name: rabbitmq
-        image: {{ .Values.rabbitmq.image }}
-        imagePullPolicy: {{ .Values.rabbitmq.pullPolicy }}
-        env:
+      - image: {{ .Values.rabbitmq.image }}
+        imagePullPolicy: Always
+        name: {{ .Release.Name }}-rabbitmq
+        stdin: true
+        tty: true
         envFrom:
-          - configMapRef:
-              name: {{ .Release.Name }}-rabbitmqdb-vars
-              optional: false
           - secretRef:
-              name: {{ .Release.Name }}-rabbitmqdb-secrets
+              name: {{ .Release.Name }}-rabbitmq-secrets
               optional: false
         volumeMounts:
         - mountPath: /var/lib/rabbitmq
-          name: pvc-{{ .Release.Name }}-rabbitmqdb-vol
+          name: pvc-{{ .Release.Name }}-rabbitmq-vol
           subPath: ''
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
-  - metadata:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
       creationTimestamp: null
       namespace: {{ .Release.Namespace }}
-      name: pvc-{{ .Release.Name }}-rabbitmqdb-vol
+      name: pvc-{{ .Release.Name }}-rabbitmq-vol
     spec:
-      accessModes: [ "ReadWriteOnce" ]
+      accessModes:
+      - ReadWriteOnce
       resources:
         requests:
           storage: {{ .Values.rabbitmq.volumeSize | default "1Gi" | quote }}
-      storageClassName: {{ .Values.rabbitmq.storageClass | default "standard" }}
+      storageClassName: {{ .Values.rabbitmq.storageClass }}
       volumeMode: Filesystem
-
+      
 {{- end }}
