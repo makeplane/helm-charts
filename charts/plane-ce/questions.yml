@@ -295,56 +295,56 @@ questions:
     default: "postrgres://"
     show_if: "postgres.local_setup=false"
 
-- variable: services.rabbitmq.local_setup
+- variable: rabbitmq.local_setup
   label: "Install RabbitMQ"
   type: boolean
   default: true
   group: "RabbitMQ Setup"
   subquestions:
-  - variable: services.rabbitmq.image
+  - variable: rabbitmq.image
     label: "Docker Image"
     type: string
     default: "rabbitmq:3.13.6-management-alpine"
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.servicePort
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.servicePort
     label: Service Port
     type: int
     default: 5672
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.managementPort
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.managementPort
     label: Management Port
     type: int
     default: 15672
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.assign_cluster_ip
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.assign_cluster_ip
     label: "Assign ClusterIP"
     type: boolean
     default: false
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.storageClass
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.storageClass
     label: "Storage Class"
     type: string
     default: "longhorn"
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.volumeSize
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.volumeSize
     label: "Volume Size"
     type: string
     default: "100Mi"
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.default_user
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.default_user
     label: "Username"
     type: string
     default: "plane"
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.default_password
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.default_password
     label: "Password"
     type: password
     default: "plane"
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.external_rabbitmq_url
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.external_rabbitmq_url
     label: "Remote URL"
     type: string
-    show_if: "services.rabbitmq.local_setup=false"
+    show_if: "rabbitmq.local_setup=false"
 
 - variable: minio.local_setup
   label: "Install Minio"

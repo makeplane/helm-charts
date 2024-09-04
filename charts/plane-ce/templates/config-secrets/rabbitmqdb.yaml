@@ -1,4 +1,4 @@
-{{- if .Values.rabbitmq.local_setup -}}
+{{- if .Values.rabbitmq.local_setup }}
 
 apiVersion: v1
 kind: Secret
@@ -11,4 +11,4 @@ data:
   RABBITMQ_DEFAULT_PASS: {{ .Values.rabbitmq.default_password | default "plane" | b64enc |quote }}
 ---
 
-{{- end -}}
+{{- end }}
