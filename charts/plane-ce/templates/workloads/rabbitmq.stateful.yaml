@@ -66,7 +66,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: {{ .Values.rabbitmq.volumeSize | default "1Gi" | quote }}
+          storage: {{ .Values.rabbitmq.volumeSize | default "500Mi" | quote }}
       storageClassName: {{ .Values.rabbitmq.storageClass }}
       volumeMode: Filesystem
       

@@ -316,6 +316,11 @@ questions:
     type: int
     default: 15672
     show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.assign_cluster_ip
+    label: "Assign ClusterIP"
+    type: boolean
+    default: false
+    show_if: "services.rabbitmq.local_setup=true"
   - variable: services.rabbitmq.storageClass
     label: "Storage Class"
     type: string
