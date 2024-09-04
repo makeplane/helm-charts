@@ -80,7 +80,6 @@ jobs:
           CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
           CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
           CR_SIGN: true
-          CR_MAKE_RELEASE_LATEST: false
 
       - id: publish-plane-enterprise
         if: github.ref_name == 'master'
