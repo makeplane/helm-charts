@@ -321,10 +321,6 @@ questions:
     label: "Remote URL"
     type: string
     show_if: "services.rabbitmq.local_setup=false"
-  - variable: services.rabbitmq.assign_cluster_ip
-    label: "Assign Cluster IP"
-    type: boolean
-    default: false
     
 - variable: services.minio.local_setup
   label: "Install Minio"
