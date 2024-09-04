@@ -2,6 +2,15 @@ name: Chart Release
 
 on:
   workflow_dispatch: 
+    inputs:
+      plane-ce:
+        description: 'Build Plane CE'
+        type: boolean
+        default: false
+      plane-ee:
+        description: 'Build Plane EE'
+        type: boolean
+        default: false
 
 env:
   CR_CONFIGFILE: "${{ github.workspace }}/cr.yaml"
@@ -14,9 +23,11 @@ env:
   TARGET_BRANCH: "${{ github.ref_name }}"
   CHART_NAME_CE: "plane-ce"
   CHART_NAME_ENTERPRISE: "plane-enterprise"
+  MARK_AS_LATEST: true
 
 jobs:
   setup:
+    if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -60,12 +71,28 @@ jobs:
 
           chmod 400 ${{env.GNUPGHOME}}/secring.gpg
 
+      - name: Remove unwanted charts
+        run: |
+          if [ "${{ github.event.inputs.plane-ce }}" = "false" ]; then
+            rm -rf charts/${{ env.CHART_NAME_CE }}
+          fi
+          if [ "${{ github.event.inputs.plane-ee }}" = "false" ]; then
+            rm -rf charts/${{ env.CHART_NAME_ENTERPRISE }}
+          fi
+
       - name: Rename Chart
         if: github.ref_name != 'master'
         run: |
           flatBranchName=$(echo "${{ env.TARGET_BRANCH }}" | sed 's/\//\-/g')
-          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_CE }}/Chart.yaml
-          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
+          if [ "${{ github.event.inputs.plane-ce }}" = "true" ]; then
+            sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_CE }}/Chart.yaml
+          fi
+
+          if [ "${{ github.event.inputs.plane-ee }}" = "true" ]; then
+            sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
+          fi
+
+          echo "MARK_AS_LATEST=false" >> $GITHUB_ENV
 
       - name: Release Charts
         uses: helm/chart-releaser-action@v1.6.0
@@ -74,6 +101,7 @@ jobs:
           config: cr.yaml
           packages_with_index: false
           skip_existing: true
+          mark_as_latest: ${{ env.MARK_AS_LATEST }}
         env:
           CR_TOKEN: ${{ env.CR_TOKEN }}
           CR_KEY: ${{ env.GPG_KEY_NAME }}
@@ -82,7 +110,7 @@ jobs:
           CR_SIGN: true
 
       - id: publish-plane-enterprise
-        if: github.ref_name == 'master'
+        if: ${{ github.ref_name == 'master' && github.event.inputs.plane-ee == 'true' }}
         name: Harbor Publish Plane-Enterprise
         env:
           CHART_REPO: ${{ env.CHART_NAME_ENTERPRISE }}
@@ -125,14 +153,23 @@ jobs:
 
       - name: Copy Readme
         run: |
-          cp code/charts/plane-ce/README.md pages/content/plane-ce.md
-          cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+          if [ "${{ github.event.inputs.plane-ce }}" = "true" ]; then
+            cp code/charts/plane-ce/README.md pages/content/plane-ce.md
+          fi
+          if [ "${{ github.event.inputs.plane-ee }}" = "true" ]; then
+            cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+          fi
 
       - name: Publish pages
         working-directory: pages
         run: |
           git add .
-          git commit -m "Updated READMEs"
-          git push
-
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit"
+          else
+            # Commit and push the changes
+            git commit -m "Updated READMEs"
+            git push
+          fi
+  
 
