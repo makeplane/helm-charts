@@ -27,7 +27,7 @@ env:
 
 jobs:
   setup:
-    if: ${{ github.event.inputs.plane-ce == true || github.event.inputs.plane-ee == true }}
+    if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
