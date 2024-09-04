@@ -75,7 +75,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: {{ .Values.minio.volumeSize | default "5Gi" | quote }}
+          storage: {{ .Values.minio.volumeSize | default "1Gi" | quote }}
       storageClassName: {{ .Values.minio.storageClass }}
       volumeMode: Filesystem
 

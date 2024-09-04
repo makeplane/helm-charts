@@ -225,7 +225,7 @@ questions:
   - variable: redis.volumeSize
     label: "Volume Size"
     type: string
-    default: "1Gi"
+    default: "100Mi"
     show_if: "redis.local_setup=true"
   - variable: redis.assign_cluster_ip
     label: "Assign Cluster IP"
@@ -267,7 +267,7 @@ questions:
   - variable: postgres.volumeSize
     label: "Volume Size"
     type: string
-    default: "5Gi"
+    default: "1Gi"
     show_if: "postgres.local_setup=true"
   - variable: env.pgdb_username
     label: "Username"
@@ -329,7 +329,7 @@ questions:
   - variable: services.rabbitmq.volumeSize
     label: "Volume Size"
     type: string
-    default: "500Mi"
+    default: "100Mi"
     show_if: "services.rabbitmq.local_setup=true"
   - variable: services.rabbitmq.default_user
     label: "Username"
@@ -375,7 +375,7 @@ questions:
   - variable: minio.volumeSize
     label: "Volume Size"
     type: string
-    default: "5Gi"
+    default: "1Gi"
     show_if: "minio.local_setup=true"
   - variable: minio.assign_cluster_ip
     label: "Assign Cluster IP"

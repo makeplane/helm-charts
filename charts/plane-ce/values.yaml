@@ -29,7 +29,7 @@ redis:
   image: valkey/valkey:7.2.5-alpine
   servicePort: 6379
   storageClass: longhorn
-  volumeSize: 1Gi
+  volumeSize: 100Mi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
 
@@ -39,7 +39,7 @@ postgres:
   servicePort: 5432
   cliConnectPort: ""
   storageClass: longhorn
-  volumeSize: 5Gi
+  volumeSize: 1Gi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
 
@@ -49,7 +49,7 @@ rabbitmq:
   servicePort: 5672
   managementPort: 15672
   storageClass: longhorn
-  volumeSize: 500Mi
+  volumeSize: 100Mi
   default_user: plane
   default_password: plane
   external_rabbitmq_url: ''
@@ -62,7 +62,7 @@ minio:
   root_password: password
   root_user: admin
   storageClass: longhorn
-  volumeSize: 5Gi
+  volumeSize: 1Gi
   assign_cluster_ip: true
 
 web:
