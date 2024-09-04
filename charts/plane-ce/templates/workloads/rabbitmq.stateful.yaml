@@ -1,0 +1,73 @@
+{{- if .Values.rabbitmq.local_setup }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-rabbitmq
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+spec:
+  {{- if not .Values.rabbitmq.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: rabbitmq-{{ .Values.rabbitmq.servicePort }}
+    port: {{ .Values.rabbitmq.servicePort }}
+    protocol: TCP
+    targetPort: 5672
+  - name: rabbitmq-mgmt-{{ .Values.rabbitmq.managementPort }}
+    port: {{ .Values.rabbitmq.managementPort }}
+    protocol: TCP
+    targetPort: 15672
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-rabbitmq-wl
+spec:
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+  serviceName:  {{ .Release.Name }}-rabbitmq
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+    spec:
+      containers:
+      - image: {{ .Values.rabbitmq.image }}
+        imagePullPolicy: Always
+        name: {{ .Release.Name }}-rabbitmq
+        stdin: true
+        tty: true
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-rabbitmq-secrets
+              optional: false
+        volumeMounts:
+        - mountPath: /var/lib/rabbitmq
+          name: pvc-{{ .Release.Name }}-rabbitmq-vol
+          subPath: ''
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      namespace: {{ .Release.Namespace }}
+      name: pvc-{{ .Release.Name }}-rabbitmq-vol
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.rabbitmq.volumeSize | default "100Mi" | quote }}
+      storageClassName: {{ .Values.rabbitmq.storageClass }}
+      volumeMode: Filesystem
+      
+{{- end }}

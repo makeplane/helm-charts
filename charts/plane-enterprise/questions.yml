@@ -271,6 +271,57 @@ questions:
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
 
+- variable: services.rabbitmq.local_setup
+  label: "Install RabbitMQ"
+  type: boolean
+  default: true
+  group: "RabbitMQ Setup"
+  subquestions:
+  - variable: services.rabbitmq.image
+    label: "Docker Image"
+    type: string
+    default: "rabbitmq:3.13.6-management-alpine"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.servicePort
+    label: Service Port
+    type: int
+    default: 5672
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.managementPort
+    label: Management Port
+    type: int
+    default: 15672
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.assign_cluster_ip
+    label: "Assign ClusterIP"
+    type: boolean
+    default: false
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.storageClass
+    label: "Storage Class"
+    type: string
+    default: "longhorn"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "100Mi"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.default_user
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.default_password
+    label: "Password"
+    type: password
+    default: "plane"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.external_rabbitmq_url
+    label: "Remote URL"
+    type: string
+    show_if: "services.rabbitmq.local_setup=false"
+    
 - variable: services.minio.local_setup
   label: "Install Minio"
   type: boolean

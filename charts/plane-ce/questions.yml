@@ -225,7 +225,7 @@ questions:
   - variable: redis.volumeSize
     label: "Volume Size"
     type: string
-    default: "1Gi"
+    default: "100Mi"
     show_if: "redis.local_setup=true"
   - variable: redis.assign_cluster_ip
     label: "Assign Cluster IP"
@@ -267,7 +267,7 @@ questions:
   - variable: postgres.volumeSize
     label: "Volume Size"
     type: string
-    default: "5Gi"
+    default: "1Gi"
     show_if: "postgres.local_setup=true"
   - variable: env.pgdb_username
     label: "Username"
@@ -294,6 +294,57 @@ questions:
     type: string
     default: "postrgres://"
     show_if: "postgres.local_setup=false"
+
+- variable: rabbitmq.local_setup
+  label: "Install RabbitMQ"
+  type: boolean
+  default: true
+  group: "RabbitMQ Setup"
+  subquestions:
+  - variable: rabbitmq.image
+    label: "Docker Image"
+    type: string
+    default: "rabbitmq:3.13.6-management-alpine"
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.servicePort
+    label: Service Port
+    type: int
+    default: 5672
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.managementPort
+    label: Management Port
+    type: int
+    default: 15672
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.assign_cluster_ip
+    label: "Assign ClusterIP"
+    type: boolean
+    default: false
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.storageClass
+    label: "Storage Class"
+    type: string
+    default: "longhorn"
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "100Mi"
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.default_user
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.default_password
+    label: "Password"
+    type: password
+    default: "plane"
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.external_rabbitmq_url
+    label: "Remote URL"
+    type: string
+    show_if: "rabbitmq.local_setup=false"
 
 - variable: minio.local_setup
   label: "Install Minio"
@@ -324,7 +375,7 @@ questions:
   - variable: minio.volumeSize
     label: "Volume Size"
     type: string
-    default: "5Gi"
+    default: "1Gi"
     show_if: "minio.local_setup=true"
   - variable: minio.assign_cluster_ip
     label: "Assign Cluster IP"

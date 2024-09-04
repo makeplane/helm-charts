@@ -9,4 +9,3 @@ generate-release-notes: true
 # skip-existing: true
 git-base-url: https://api.github.com/
 git-upload-url: https://uploads.github.com/
-
