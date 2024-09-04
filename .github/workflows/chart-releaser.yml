@@ -110,7 +110,7 @@ jobs:
           CR_SIGN: true
 
       - id: publish-plane-enterprise
-        if: github.ref_name == 'master'
+        if: ${{ github.ref_name == 'master' && github.event.inputs.plane-ee == 'true' }}
         name: Harbor Publish Plane-Enterprise
         env:
           CHART_REPO: ${{ env.CHART_NAME_ENTERPRISE }}
@@ -153,14 +153,23 @@ jobs:
 
       - name: Copy Readme
         run: |
-          cp code/charts/plane-ce/README.md pages/content/plane-ce.md
-          cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+          if [ "${{ github.event.inputs.plane-ce }}" = "true" ]; then
+            cp code/charts/plane-ce/README.md pages/content/plane-ce.md
+          fi
+          if [ "${{ github.event.inputs.plane-ee }}" = "true" ]; then
+            cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+          fi
 
       - name: Publish pages
         working-directory: pages
         run: |
           git add .
-          git commit -m "Updated READMEs"
-          git push
-
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit"
+          else
+            # Commit and push the changes
+            git commit -m "Updated READMEs"
+            git push
+          fi
+  
 
