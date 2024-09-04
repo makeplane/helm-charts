@@ -14,6 +14,7 @@ env:
   TARGET_BRANCH: "${{ github.ref_name }}"
   CHART_NAME_CE: "plane-ce"
   CHART_NAME_ENTERPRISE: "plane-enterprise"
+  MARK_AS_LATEST: true
 
 jobs:
   setup:
@@ -67,6 +68,8 @@ jobs:
           sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_CE }}/Chart.yaml
           sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
 
+          echo "MARK_AS_LATEST=false" >> $GITHUB_ENV
+
       - name: Release Charts
         uses: helm/chart-releaser-action@v1.6.0
         with:
@@ -74,6 +77,7 @@ jobs:
           config: cr.yaml
           packages_with_index: false
           skip_existing: true
+          mark_as_latest: ${{ env.MARK_AS_LATEST }}
         env:
           CR_TOKEN: ${{ env.CR_TOKEN }}
           CR_KEY: ${{ env.GPG_KEY_NAME }}
