@@ -2,6 +2,15 @@ name: Chart Release
 
 on:
   workflow_dispatch: 
+    inputs:
+      plane-ce:
+        description: 'Build Plane CE'
+        type: boolean
+        default: false
+      plane-ee:
+        description: 'Build Plane EE'
+        type: boolean
+        default: false
 
 env:
   CR_CONFIGFILE: "${{ github.workspace }}/cr.yaml"
@@ -18,6 +27,7 @@ env:
 
 jobs:
   setup:
+    if: ${{ github.event.inputs.plane-ce == true || github.event.inputs.plane-ee == true }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -61,12 +71,26 @@ jobs:
 
           chmod 400 ${{env.GNUPGHOME}}/secring.gpg
 
+      - name: Remove unwanted charts
+        run: |
+          if [ "${{ github.event.inputs.plane-ce }}" = "false" ]; then
+            rm -rf charts/${{ env.CHART_NAME_CE }}
+          fi
+          if [ "${{ github.event.inputs.plane-ee }}" = "false" ]; then
+            rm -rf charts/${{ env.CHART_NAME_ENTERPRISE }}
+          fi
+
       - name: Rename Chart
         if: github.ref_name != 'master'
         run: |
           flatBranchName=$(echo "${{ env.TARGET_BRANCH }}" | sed 's/\//\-/g')
-          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_CE }}/Chart.yaml
-          sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
+          if [ "${{ github.event.inputs.plane-ce }}" = "true" ]; then
+            sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_CE }}/Chart.yaml
+          fi
+
+          if [ "${{ github.event.inputs.plane-ee }}" = "true" ]; then
+            sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
+          fi
 
           echo "MARK_AS_LATEST=false" >> $GITHUB_ENV
 
