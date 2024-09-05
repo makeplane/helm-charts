@@ -74,12 +74,28 @@ spec:
             path: /
             pathType: Prefix
     {{- end }}
+    {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+    - host: {{ .Values.ingress.rabbitmqHost}}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 15672
+                name: {{ .Release.Name }}-rabbitmq
+            path: /
+            pathType: Prefix
+    {{- end }}
   {{- if .Values.ssl.generateCerts }}
   tls:
     - hosts:
       - {{ .Values.license.licenseDomain | quote }}
       {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
+      {{ end }}
+      - {{ .Values.license.licenseDomain | quote }}
+      {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+      - {{ .Values.ingress.rabbitmqHost | quote }}
       {{ end }}
       secretName: {{ .Release.Name }}-ssl-cert
   {{- end }}
