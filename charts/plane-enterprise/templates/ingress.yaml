@@ -93,7 +93,6 @@ spec:
       {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{ end }}
-      - {{ .Values.license.licenseDomain | quote }}
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
       - {{ .Values.ingress.rabbitmqHost | quote }}
       {{ end }}
