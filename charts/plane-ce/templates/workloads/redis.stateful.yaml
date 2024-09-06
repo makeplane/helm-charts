@@ -61,7 +61,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: {{ .Values.redis.volumeSize | default "1Gi" | quote }}
+          storage: {{ .Values.redis.volumeSize | default "100Mi" | quote }}
       storageClassName: {{ .Values.redis.storageClass }}
       volumeMode: Filesystem
       
