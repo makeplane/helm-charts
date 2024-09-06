@@ -18,12 +18,12 @@ ingress:
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
-  createIssuer: true
+  createIssuer: false
   issuer: "http" # Allowed : cloudflare, digitalocean, http
   token: "" # not required for http
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
-  generateCerts: true
+  generateCerts: false
 
 redis:
   local_setup: true
