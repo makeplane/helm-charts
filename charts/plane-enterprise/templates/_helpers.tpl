@@ -3,5 +3,5 @@
 {{- end }}
 
 {{- define "hashString" -}}
-{{- printf "%s%s%s%s%s" .Values.license.licenseServer .Values.license.licenseDomain .Values.license.licenseKey .Release.Namespace .Release.Name | sha256sum  -}}
+{{- printf "%s%s%s%s" .Values.license.licenseServer .Values.license.licenseDomain .Release.Namespace .Release.Name | sha256sum  -}}
 {{- end -}}

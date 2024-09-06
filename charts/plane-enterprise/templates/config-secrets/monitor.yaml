@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-monitor-vars
+data:
+    PRIME_HOST: {{ .Values.license.licenseServer | quote }}
+    MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
+    APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
+    APP_VERSION: {{ .Values.planeVersion | quote }}
+    DEPLOY_PLATFORM: "KUBERNETES"
+    API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"

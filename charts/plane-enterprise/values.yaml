@@ -1,14 +1,13 @@
 planeVersion: v1.2.1
 
 dockerRegistry:
-  enabled: true
+  enabled: false
   registry: registry.plane.tools
   loginid: ''
   password: ''
 
 license:
   licenseServer: https://prime.plane.so
-  licenseKey: ''
   licenseDomain: 'plane.example.com'
 
 ingress:
@@ -69,6 +68,13 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/web-enterprise
+    assign_cluster_ip: false
+
+  monitor:
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    image: registry.plane.tools/plane/monitor-enterprise
+    volumeSize: 100Mi
     assign_cluster_ip: false
 
   space:
