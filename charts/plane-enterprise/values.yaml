@@ -14,6 +14,7 @@ license:
 ingress:
   enabled: true
   minioHost: ''
+  rabbitmqHost: ''
   ingressClass: 'nginx'
   ingress_annotations: {
     "nginx.ingress.kubernetes.io/proxy-body-size": "5m",

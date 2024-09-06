@@ -428,6 +428,11 @@ questions:
     type: string
     default: "plane-minio.example.com"
     show_if: "minio.local_setup=true"
+  - variable: ingress.rabbitmqHost
+    label: "Rabbitmq Host"
+    type: string
+    default: "plane-rabbitmq.example.com"
+    show_if: "rabbitmq.local_setup=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
     type: string

@@ -378,7 +378,7 @@ questions:
     type: string
     default: "uploads"
   - variable: env.doc_upload_size_limit
-    label: "FIle Upload Size Limit"
+    label: "File Upload Size Limit"
     type: string
     default: "5242880"
 
@@ -395,6 +395,11 @@ questions:
     type: string
     default: "plane-minio.example.com"
     show_if: "services.minio.local_setup=true"
+  - variable: ingress.rabbitmqHost
+    label: "Rabbitmq Host"
+    type: string
+    default: "plane-rabbitmq.example.com"
+    show_if: "services.rabbitmq.local_setup=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
     type: string
