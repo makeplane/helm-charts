@@ -111,11 +111,11 @@ beatworker:
   pullPolicy: IfNotPresent
 
 external_secrets:
-  enabled: true
-  rabbitmq_secrets: 'rabbitmq-test-secret' # RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS 
-  pgdb_secrets: 'pgdb-test-secret' # POSTGRES_PASSWORD
-  doc_store_secrets: 'doc-store-test-secret' # 
-  app_env_secrets: 'app-env-test-secret' #
+  enabled: false
+  rabbitmq_secrets: '' # RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS 
+  pgdb_secrets: '' # POSTGRES_PASSWORD
+  doc_store_secrets: '' # 
+  app_env_secrets: '' #
 
 env:
   pgdb_username: plane

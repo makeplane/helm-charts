@@ -473,4 +473,27 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
-    
+
+- variable: external_secrets.enabled
+  label: "External Secrets"
+  type: boolean
+  default: false
+  group: "Secrets Name"
+  show_subquestion_if: true
+  subquestions:
+  - variable: external_secrets.rabbitmq_secrets
+    label: "RabbitMQ Secrets File Name"
+    type: string
+    default: ""
+  - variable: external_secrets.pgdb_secrets
+    label: "Postgres Secrets File Name"
+    type: string
+    default: ""
+  - variable: external_secrets.doc_store_secrets
+    label: "Doc Store and Minio Secrets File Name"
+    type: string
+    default: ""
+  - variable: external_secrets.app_env_secrets
+    label: "App Envs Secrets File Name"
+    type: string
+    default: ""
