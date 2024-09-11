@@ -51,12 +51,15 @@ spec:
           - --console-address 
           - :9090
         envFrom:
-          - configMapRef:
-              name: {{ .Release.Name }}-doc-store-vars
+            {{- if .Values.external_secrets.enabled }}
+            - secretRef:
+              name: {{ .Values.external_secrets.doc_store_secrets | default ""  }}
               optional: false
-          - secretRef:
-              name: {{ .Release.Name }}-doc-store-secrets
-              optional: false
+            {{- else }}
+            - secretRef:
+                name: {{ .Release.Name }}-doc-store-secrets
+                optional: false
+            {{- end }}
         volumeMounts:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-minio-vol
@@ -109,12 +112,15 @@ spec:
               /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME; 
               /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
           envFrom:
-            - configMapRef:
-                name: {{ .Release.Name }}-doc-store-vars
-                optional: false
+            {{- if .Values.external_secrets.enabled }}
+            - secretRef:
+              name: {{ .Values.external_secrets.doc_store_secrets | default ""  }}
+              optional: false
+            {{- else }}
             - secretRef:
                 name: {{ .Release.Name }}-doc-store-secrets
                 optional: false
+            {{- end }}
           image: minio/mc
           imagePullPolicy: {{ .Values.minio.pullPolicy }}
           name: {{ .Release.Name }}-minio-bucket

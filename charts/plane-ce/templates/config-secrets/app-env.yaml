@@ -4,8 +4,29 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-secrets
-data:
-  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | b64enc | quote }}
+stringData:
+  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
+  {{- if .Values.redis.local_setup }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
+  {{- else }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+
+  {{- if .Values.postgres.local_setup }}
+  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
+  {{- else if .Values.env.pgdb_remote_url }}
+  DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+  {{- else }}
+  DATABASE_URL: ""
+  {{ end }}
+
+  {{- if .Values.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.rabbitmq.default_user}}:{{ .Values.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.rabbitmq.external_rabbitmq_url}}
+  {{- else }}
+  AMQP_URL: ""
+  {{ end }}
 
 ---
 
@@ -39,25 +60,3 @@ data:
     {{- else }}
     CORS_ALLOWED_ORIGINS: ""
     {{- end }}
-
-    {{- if .Values.redis.local_setup }}
-    REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
-    {{- else }}
-    REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
-    {{- end }}
-
-    {{- if .Values.postgres.local_setup }}
-    DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
-    {{- else if .Values.env.pgdb_remote_url }}
-    DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
-    {{- else }}
-    DATABASE_URL: ""
-    {{ end }}
-
-    {{- if .Values.rabbitmq.local_setup }}
-    AMQP_URL: "amqp://{{ .Values.rabbitmq.default_user}}:{{ .Values.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
-    {{- else if .Values.rabbitmq.external_rabbitmq_url }}
-    AMQP_URL: {{ .Values.rabbitmq.external_rabbitmq_url}}
-    {{- else }}
-    AMQP_URL: ""
-    {{ end }}

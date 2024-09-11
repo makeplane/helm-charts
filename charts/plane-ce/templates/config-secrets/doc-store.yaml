@@ -1,26 +1,17 @@
-
+{{- if (not .Values.external_secrets.enabled) }}
 apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-doc-store-secrets
-data:
+stringData:
   {{ if .Values.minio.local_setup }}
-  MINIO_ROOT_PASSWORD: {{ .Values.minio.root_password | default "password" | b64enc | quote}}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.minio.root_password | default "password" | b64enc | quote  }}
+  MINIO_ROOT_PASSWORD: {{ .Values.minio.root_password | default "password" | quote}}
+  AWS_SECRET_ACCESS_KEY: {{ .Values.minio.root_password | default "password" | quote  }}
   {{ else }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | b64enc | quote  }}
+  AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | quote  }}
   {{ end }}
-
----
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-doc-store-vars
-data:
   FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default 5242880 | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
   {{ if .Values.minio.local_setup }}
@@ -39,3 +30,4 @@ data:
 
   {{ end }}
 ---
+{{- end }}

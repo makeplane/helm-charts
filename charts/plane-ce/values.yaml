@@ -12,9 +12,7 @@ ingress:
   minioHost: "plane-minio.example.com"
   rabbitmqHost: "plane-rabbitmq.example.com"
   ingressClass: "nginx"
-  ingress_annotations: {
-    "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
-  }
+  ingress_annotations: {"nginx.ingress.kubernetes.io/proxy-body-size": "5m"}
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
@@ -112,6 +110,13 @@ beatworker:
   image: makeplane/plane-backend
   pullPolicy: IfNotPresent
 
+external_secrets:
+  enabled: true
+  rabbitmq_secrets: 'rabbitmq-test-secret' # RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS 
+  pgdb_secrets: 'pgdb-test-secret' # POSTGRES_PASSWORD
+  doc_store_secrets: 'doc-store-test-secret' # 
+  app_env_secrets: 'app-env-test-secret' #
+
 env:
   pgdb_username: plane
   pgdb_password: plane
@@ -132,7 +137,7 @@ env:
   aws_secret_access_key: ""
   aws_region: ""
   aws_s3_endpoint_url: ""
-  
+
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
 
   sentry_dsn: ""

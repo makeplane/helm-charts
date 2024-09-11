@@ -69,12 +69,15 @@ spec:
           - name: PGDATA
             value: /var/lib/postgresql/data/plane
         envFrom:
-          - configMapRef:
-              name: {{ .Release.Name }}-pgdb-vars
+          {{- if .Values.external_secrets.enabled }}
+          - secretRef:
+              name: {{ .Values.external_secrets.pgdb_secrets | default ""  }}
               optional: false
+          {{- else }}
           - secretRef:
               name: {{ .Release.Name }}-pgdb-secrets
               optional: false
+          {{- end }}
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: pvc-{{ .Release.Name }}-pgdb-vol
