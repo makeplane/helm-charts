@@ -59,8 +59,8 @@ spec:
               optional: false
           {{- if .Values.external_secrets.enabled }}
           - secretRef:
-            name: {{ .Values.external_secrets.app_env_secrets | default ""  }}
-            optional: false
+              name: {{ .Values.external_secrets.app_env_secrets | default ""  }}
+              optional: false
           {{- else }}
           - secretRef:
               name: {{ .Release.Name }}-app-secrets
@@ -68,8 +68,8 @@ spec:
           {{- end }}
           {{- if .Values.external_secrets.enabled }}
           - secretRef:
-            name: {{ .Values.external_secrets.doc_store_secrets | default ""  }}
-            optional: false
+              name: {{ .Values.external_secrets.doc_store_secrets | default ""  }}
+              optional: false
           {{- else }}
           - secretRef:
               name: {{ .Release.Name }}-doc-store-secrets
