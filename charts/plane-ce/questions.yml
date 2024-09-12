@@ -484,16 +484,16 @@ questions:
   - variable: external_secrets.rabbitmq_secrets
     label: "RabbitMQ Secrets File Name"
     type: string
-    default: ""
+    default: "rabbitmq-secrets"
   - variable: external_secrets.pgdb_secrets
     label: "Postgres Secrets File Name"
     type: string
-    default: ""
+    default: "postgres-secrets"
   - variable: external_secrets.doc_store_secrets
     label: "Doc Store and Minio Secrets File Name"
     type: string
-    default: ""
+    default: "minio-secrets"
   - variable: external_secrets.app_env_secrets
     label: "App Envs Secrets File Name"
     type: string
-    default: ""
+    default: "pgdb-secrets"
