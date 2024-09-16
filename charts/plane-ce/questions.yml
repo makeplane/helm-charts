@@ -306,6 +306,15 @@ questions:
     type: string
     default: "rabbitmq:3.13.6-management-alpine"
     show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.pullPolicy
+    label: "Image Pull Policy"
+    type: enum
+    options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+    default: "IfNotPresent"
+    show_if: "rabbitmq.local_setup=true"
   - variable: rabbitmq.servicePort
     label: Service Port
     type: int
