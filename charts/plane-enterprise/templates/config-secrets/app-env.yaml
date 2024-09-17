@@ -27,6 +27,7 @@ data:
     DEBUG: "0"
     DOCKERIZED: "1"
     GUNICORN_WORKERS: "1"
+    INSTANCE_CHANGELOG_URL: {{ .Values.env.instance_changelog_url | default "https://api.plane.so/api/public/anchor/c210fcf7b0ff439490b1cd606b4bb92b/pages/" | quote }}
 
     WEB_URL: "http://{{ .Values.license.licenseDomain }}"
 

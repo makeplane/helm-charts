@@ -137,4 +137,4 @@ env:
   sentry_environment: ''
 
   cors_allowed_origins: ''
-  instance_admin_email: ''
+  instance_changelog_url: "https://api.plane.so/api/public/anchor/c210fcf7b0ff439490b1cd606b4bb92b/pages/"
