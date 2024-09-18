@@ -97,7 +97,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.2.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.3.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
 | license.licenseDomain | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
