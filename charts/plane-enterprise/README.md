@@ -26,7 +26,7 @@
   4. Set-up and customization
       - Quick set-up
 
-        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Redis, and Minio with a persistent volume claim using the `longhorn` storage class. This also sets up the ingress routes for you using `nginx` ingress class.
+        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Redis/Valkey, and Minio with a persistent volume claim using the `longhorn` storage class. This also sets up the ingress routes for you using `nginx` ingress class.
         > To customize this, see `Custom ingress routes` below.
 
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
@@ -116,11 +116,11 @@
 | services.postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url. |
 
-### Redis Setup
+### Redis/Valkey Setup
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| services.redis.local_setup | true |  | Plane uses `redis` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
+| services.redis.local_setup | true |  | Plane uses `valkey` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
 | services.redis.image | registry.plane.tools/plane/valkey:7.2.5-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
 | services.redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
 | services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
@@ -173,6 +173,19 @@
 | services.admin.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.admin.image| registry.plane.tools/plane/admin-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+
+### Live Service Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.live.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
+| services.live.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.live.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.live.image| registry.plane.tools/plane/live-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| env.live_sentry_dsn |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
+| env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
+| env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
+| services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Monitor Deployment
 
@@ -243,6 +256,7 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com | /  | <http://plane-app-web.plane:3000> |
 | plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> |
 | plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> |
+| plane.example.com | /live/* | <http://plane-app-live.plane:3000> |
 | plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> |
 | plane.example.com | /auth/* | <http://plane-app-api.plane:8000> |
 | plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> |

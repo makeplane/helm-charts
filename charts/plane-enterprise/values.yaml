@@ -1,4 +1,4 @@
-planeVersion: v1.2.1
+planeVersion: v1.3.0
 
 dockerRegistry:
   enabled: false
@@ -91,6 +91,13 @@ services:
     image: registry.plane.tools/plane/admin-enterprise
     assign_cluster_ip: false
 
+  live:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    image: registry.plane.tools/plane/live-enterprise
+    assign_cluster_ip: false
+
   api:
     replicas: 1
     memoryLimit: 1000Mi
@@ -138,3 +145,8 @@ env:
 
   cors_allowed_origins: ''
   instance_admin_email: ''
+
+  live_sentry_dsn: ""
+  live_sentry_environment: ""
+  live_sentry_traces_sample_rate: ""
+
