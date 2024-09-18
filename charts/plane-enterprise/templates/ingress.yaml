@@ -52,6 +52,13 @@ spec:
                 name: {{ .Release.Name }}-api
             path: /auth/
             pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-live
+            path: /live/
+            pathType: Prefix
           {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
           - backend:
               service:
