@@ -1,19 +1,19 @@
 planeVersion: v1.2.1
 
 dockerRegistry:
-  enabled: true
+  enabled: false
   registry: registry.plane.tools
   loginid: ''
   password: ''
 
 license:
   licenseServer: https://prime.plane.so
-  licenseKey: ''
   licenseDomain: 'plane.example.com'
 
 ingress:
   enabled: true
   minioHost: ''
+  rabbitmqHost: ''
   ingressClass: 'nginx'
   ingress_annotations: {
     "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
@@ -43,6 +43,18 @@ services:
     volumeSize: 2Gi
     assign_cluster_ip: false
 
+  rabbitmq:
+    local_setup: true
+    image: rabbitmq:3.13.6-management-alpine
+    servicePort: 5672
+    managementPort: 15672
+    storageClass: longhorn
+    volumeSize: 100Mi
+    default_user: plane
+    default_password: plane
+    external_rabbitmq_url: ''
+    assign_cluster_ip: false
+
   minio:
     local_setup: true
     image: registry.plane.tools/plane/minio:latest
@@ -56,6 +68,13 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/web-enterprise
+    assign_cluster_ip: false
+
+  monitor:
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    image: registry.plane.tools/plane/monitor-enterprise
+    volumeSize: 100Mi
     assign_cluster_ip: false
 
   space:

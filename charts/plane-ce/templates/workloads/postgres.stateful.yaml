@@ -93,7 +93,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: {{ .Values.postgres.volumeSize | default "5Gi" | quote }}
+          storage: {{ .Values.postgres.volumeSize | default "1Gi" | quote }}
       storageClassName: {{ .Values.postgres.storageClass }}
       volumeMode: Filesystem
       

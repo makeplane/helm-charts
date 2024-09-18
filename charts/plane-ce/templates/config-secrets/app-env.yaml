@@ -53,3 +53,11 @@ data:
     {{- else }}
     DATABASE_URL: ""
     {{ end }}
+
+    {{- if .Values.rabbitmq.local_setup }}
+    AMQP_URL: "amqp://{{ .Values.rabbitmq.default_user}}:{{ .Values.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+    {{- else if .Values.rabbitmq.external_rabbitmq_url }}
+    AMQP_URL: {{ .Values.rabbitmq.external_rabbitmq_url}}
+    {{- else }}
+    AMQP_URL: ""
+    {{ end }}

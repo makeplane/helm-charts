@@ -16,11 +16,11 @@ metadata:
   name: {{ .Release.Name }}-app-vars
 data:
     PRIME_HOST: {{ .Values.license.licenseServer | quote }}
-    LICENSE_KEY: {{ .Values.license.licenseKey | quote }}
     MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
-    LICENSE_DOMAIN: {{ .Values.license.licenseDomain | quote }}
-    LICENSE_VERSION: {{ .Values.planeVersion | quote }}
-    DEPLOY_PLATFORM: "KUBERNETES"
+    APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
+    APP_VERSION: {{ .Values.planeVersion | quote }}
+    PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local/"
+    FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local/"
 
     SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
     SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
@@ -50,4 +50,12 @@ data:
     DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
     {{ else }}
     DATABASE_URL: ""
+    {{ end }}
+
+    {{- if .Values.services.rabbitmq.local_setup }}
+    AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+    {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+    AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
+    {{- else }}
+    AMQP_URL: ""
     {{ end }}

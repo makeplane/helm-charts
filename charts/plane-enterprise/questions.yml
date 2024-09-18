@@ -3,7 +3,7 @@ questions:
 - variable: dockerRegistry.enabled
   label: Docker Registry Enabled
   type: boolean
-  default: true
+  default: false
   group: "Docker Registry"
   show_subquestion_if: true
   subquestions:
@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: latest
+  default: v1.2.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -39,6 +39,11 @@ questions:
     type: string
     required: true
     default: "registry.plane.tools/plane/admin-enterprise"
+  - variable: services.monitor.image
+    label: Monitor Docker Image
+    type: string
+    required: true
+    default: "registry.plane.tools/plane/monitor-enterprise"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
@@ -56,9 +61,6 @@ questions:
   required: true
   group: "License Setup"
   subquestions:
-  - variable: license.licenseKey
-    label: "License Key"
-    type: string
   - variable: license.licenseDomain
     label: "License Domain"
     type: string
@@ -117,6 +119,25 @@ questions:
     type: string
     default: 500m
   - variable: services.admin.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
+- variable: services.monitor.memoryLimit
+  label: "Memory Limit"
+  type: string
+  default: 1000Mi
+  group: "Monitor Setup"
+  subquestions:
+  - variable: services.monitor.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.monitor.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "100Mi"
+  - variable: services.monitor.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: false
@@ -271,6 +292,57 @@ questions:
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
 
+- variable: services.rabbitmq.local_setup
+  label: "Install RabbitMQ"
+  type: boolean
+  default: true
+  group: "RabbitMQ Setup"
+  subquestions:
+  - variable: services.rabbitmq.image
+    label: "Docker Image"
+    type: string
+    default: "rabbitmq:3.13.6-management-alpine"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.servicePort
+    label: Service Port
+    type: int
+    default: 5672
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.managementPort
+    label: Management Port
+    type: int
+    default: 15672
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.assign_cluster_ip
+    label: "Assign ClusterIP"
+    type: boolean
+    default: false
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.storageClass
+    label: "Storage Class"
+    type: string
+    default: "longhorn"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "100Mi"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.default_user
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.default_password
+    label: "Password"
+    type: password
+    default: "plane"
+    show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.external_rabbitmq_url
+    label: "Remote URL"
+    type: string
+    show_if: "services.rabbitmq.local_setup=false"
+    
 - variable: services.minio.local_setup
   label: "Install Minio"
   type: boolean
@@ -327,7 +399,7 @@ questions:
     type: string
     default: "uploads"
   - variable: env.doc_upload_size_limit
-    label: "FIle Upload Size Limit"
+    label: "File Upload Size Limit"
     type: string
     default: "5242880"
 
@@ -344,6 +416,11 @@ questions:
     type: string
     default: "plane-minio.example.com"
     show_if: "services.minio.local_setup=true"
+  - variable: ingress.rabbitmqHost
+    label: "Rabbitmq Host"
+    type: string
+    default: "plane-rabbitmq.example.com"
+    show_if: "services.rabbitmq.local_setup=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
     type: string
