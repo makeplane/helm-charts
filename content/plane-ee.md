@@ -1,24 +1,16 @@
-# Plane One Helm Chart
-
 ## Pre-requisite
 
-- A Plane One license
-  > If you don’t have a license, get it at [prime.plane.so](https://prime.plane.so)
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
-## Installing Plane One
+## Installing Plane Enterprise
 
   1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
   2. Set the following environment variables.
   
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
-      > You will get the values for the variables from [prime.plane.so](https://prime.plane.so) under the Kuberntes tab of your license's details page. When installing Plane One for the first time, remember to specify a domain name.
 
       ```bash
-      LICENSE_KEY=<your_license_key>
-      REG_USER_ID=<license-XXXXX+XXXX-XXXX-XXX-XXXXX>
-      REG_PASSWORD=<******>
       PLANE_VERSION=<v1.xx.x>
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
@@ -40,15 +32,13 @@
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
 
         ```bash
-        helm install one-app plane/plane-enterprise \
+        helm install plane-app plane/plane-enterprise \
             --create-namespace \
-            --namespace plane-one \
-            --set dockerRegistry.loginid=${REG_USER_ID} \
-            --set dockerRegistry.password=${REG_PASSWORD} \
-            --set license.licenseKey=${LICENSE_KEY} \
+            --namespace plane \
             --set license.licenseDomain=${DOMAIN_NAME} \
             --set license.licenseServer=https://prime.plane.so \
             --set planeVersion=${PLANE_VERSION} \
+            --set ingress.enabled=true \
             --set ingress.ingressClass=nginx \
             --set env.storageClass=longhorn \
             --timeout 10m \
@@ -56,8 +46,8 @@
             --wait-for-jobs
         ```
 
-        > This is the minimum required to set up Plane One. You can change the default namespace from `plane-one`, the default appname
-        from `one-app`, the default storage class from `env.storageClass`, and the default ingress class from `ingress.ingressClass` to 
+        > This is the minimum required to set up Plane Enterprise. You can change the default namespace from `plane`, the default appname
+        from `plane-app`, the default storage class from `longhorn`, and the default ingress class from `nginx` to 
         whatever you would like to.<br> <br>
         You can also pass other settings referring to `Configuration Settings` section.
 
@@ -72,11 +62,9 @@
 
           Make sure you set the minimum required values as below.
           - `planeVersion: <v1.xx.x>`
-          - `dockerRegistry.loginid: <REG_USER_ID as on prime.plane.so>`
-          - `dockerRegistry.password: <REG_PASSWORD as on prime.plane.so>`
-          - `license.licenseKey: <LICENSE_KEY as on prime.plane.so>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `license.licenseServer: https://prime.plane.so`
+          - `ingress.enabled: <true | false>`
           - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
           - `env.storageClass: <longhorn or any other storage class configured in your cluster>`
 
@@ -85,9 +73,9 @@
           After saving the `values.yaml` file, continue to be on the same Terminal window as on the previous steps, copy the code below, and paste it on your Terminal screen.
 
           ```bash
-          helm install one-app plane/plane-enterprise \
+          helm install plane-app plane/plane-enterprise \
               --create-namespace \
-              --namespace plane-one \
+              --namespace plane \
               -f values.yaml \
               --timeout 10m \
               --wait \
@@ -100,7 +88,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| dockerRegistry.enabled | true | Yes | Plane uses a private Docker registry which needs authenticated login. This must be set to `true` to install Plane One. |
+| dockerRegistry.enabled | false |  | Plane uses a private Docker registry which needs authenticated login. This must be set to `true` to install Plane Enterprise. |
 | dockerRegistry.registry |  registry.plane.tools| Yes | The host that will serve the required Docker images; Don't change this. |
 | dockerRegistry.loginid |  | Yes | Sets the `loginid` for the Docker registry. This is the same as the REG_USER_ID value on prime. plane.so |
 | dockerRegistry.password |  | Yes | Sets the `password` for the Docker registry. This is the same as the REG_PASSWORD value on prime.plane.so|
@@ -109,9 +97,8 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.1.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.2.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
-| license.licenseKey |  | Yes | Holds your license key to Plane One. Copy this from prime.plane.so. |
 | license.licenseDomain | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
@@ -187,6 +174,16 @@
 | services.admin.image| registry.plane.tools/plane/admin-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
+### Monitor Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.monitor.memoryLimit | 1000Mi |  | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.monitor.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.monitor.image| registry.plane.tools/plane/monitor-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| services.monitor.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
+| services.monitor.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+
 ### API Deployment
 
 | Setting | Default | Required | Description |
@@ -243,10 +240,10 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 
 | Host | Path | Service |
 |---    |:---:|---|
-| plane.example.com | /  | <http://plane-web.plane-one:3000> |
-| plane.example.com | /spaces/*  | <http://plane-space.plane-one:3000> |
-| plane.example.com | /god-mode/* | <http://plane-admin.plane-one:3000> |
-| plane.example.com | /api/*  |  <http://plane-api.plane-one:8000> |
-| plane.example.com | /auth/* | <http://plane-api.plane-one:8000> |
-| plane.example.com | /uploads/* | <http://plane-minio.plane-one:9000> |
-| plane-minio.example.com | / | <http://plane-minio.plane-one:9090> |
+| plane.example.com | /  | <http://plane-app-web.plane:3000> |
+| plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> |
+| plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> |
+| plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> |
+| plane.example.com | /auth/* | <http://plane-app-api.plane:8000> |
+| plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> |
+| plane-minio.example.com | / | <http://plane-app-minio.plane:9090> |
