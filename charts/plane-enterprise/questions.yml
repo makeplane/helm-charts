@@ -389,6 +389,11 @@ questions:
     type: string
     default: "registry.plane.tools/plane/minio:latest"
     show_if: "services.minio.local_setup=true"
+  - variable: services.minio.image_mc
+    label: "MinIO Client Docker Image"
+    type: string
+    default: "minio/mc:latest"
+    show_if: "services.minio.local_setup=true"
   - variable: services.minio.root_user
     label: "Root User"
     type: string

@@ -115,7 +115,7 @@ spec:
             - secretRef:
                 name: {{ .Release.Name }}-doc-store-secrets
                 optional: false
-          image: minio/mc
+          image: {{ .Values.services.minio.image_mc }}
           imagePullPolicy: Always
           name: {{ .Release.Name }}-minio-bucket
       serviceAccount: {{ .Release.Name }}-srv-account
