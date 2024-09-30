@@ -67,7 +67,7 @@ spec:
       resources:
         requests:
           storage: {{ .Values.services.rabbitmq.volumeSize | default "100Mi" | quote }}
-      storageClassName: {{ .Values.services.rabbitmq.storageClass }}
+      storageClassName: {{ .Values.env.storageClass }}
       volumeMode: Filesystem
       
 {{- end }}

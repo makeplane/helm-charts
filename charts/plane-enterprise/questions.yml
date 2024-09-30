@@ -353,7 +353,7 @@ questions:
     type: boolean
     default: false
     show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.storageClass
+  - variable: env.storageClass
     label: "Storage Class"
     type: string
     default: "longhorn"
