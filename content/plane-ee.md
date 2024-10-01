@@ -84,7 +84,7 @@
 
 ## Available customizations
 
-### Docker registry
+<!-- ### Docker registry
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
@@ -92,14 +92,14 @@
 | dockerRegistry.registry |  registry.plane.tools| Yes | The host that will serve the required Docker images; Don't change this. |
 | dockerRegistry.loginid |  | Yes | Sets the `loginid` for the Docker registry. This is the same as the REG_USER_ID value on prime. plane.so |
 | dockerRegistry.password |  | Yes | Sets the `password` for the Docker registry. This is the same as the REG_PASSWORD value on prime.plane.so|
-  
+   -->
 ### License
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.3.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.3.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
-| license.licenseDomain | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
+| license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
 
@@ -126,6 +126,20 @@
 | services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url. |
+
+### RabbitMQ Setup
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.rabbitmq.local_setup | true |  | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to  `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
+| services.rabbitmq.image | rabbitmq:3.13.6-management-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)|
+| services.rabbitmq.servicePort | 5672 |  | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`. |
+| services.rabbitmq.managementPort | 15672 |  | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`. |
+| services.rabbitmq.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
+| services.rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
+| services.rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
+| services.rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -251,13 +265,14 @@
 
 If you are planning to use 3rd party ingress providers, here is the available route configuration
 
-| Host | Path | Service |
-|---    |:---:|---|
-| plane.example.com | /  | <http://plane-app-web.plane:3000> |
-| plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> |
-| plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> |
-| plane.example.com | /live/* | <http://plane-app-live.plane:3000> |
-| plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> |
-| plane.example.com | /auth/* | <http://plane-app-api.plane:8000> |
-| plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> |
-| plane-minio.example.com | / | <http://plane-app-minio.plane:9090> |
+| Host | Path | Service | Required |
+|---    |:---:|---|:--- |
+| plane.example.com | /  | <http://plane-app-web.plane:3000> | Yes |
+| plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> | Yes |
+| plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> | Yes |
+| plane.example.com | /live/* | <http://plane-app-live.plane:3000> | Yes |
+| plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> | Yes |
+| plane.example.com | /auth/* | <http://plane-app-api.plane:8000> | Yes |
+| plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> | Yes (Only if using local setup) |
+| plane-minio.example.com | / | <http://plane-app-minio.plane:9090> | (Optional) if using local setup, this will enable minio console access |
+| plane-mq.example.com | / | <http://plane-app-minio.plane:15672> | (Optional) if using local setuo, this will enable management console access |
