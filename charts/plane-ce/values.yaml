@@ -95,7 +95,7 @@ live:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
-  image: makeplane/plane-live:preview
+  image: makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
 
