@@ -32,6 +32,8 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+      annotations:
+        timestamp: {{ now | quote }}
     spec:
       containers:
       - image: {{ .Values.services.monitor.image | default "registry.plane.tools/plane/monitor-enterprise" }}:{{ .Values.planeVersion }}
