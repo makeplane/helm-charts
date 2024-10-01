@@ -36,7 +36,7 @@ redis:
 
 postgres:
   local_setup: true
-  image: postgres:15.5-alpine
+  image: postgres:15.7-alpine
   servicePort: 5432
   cliConnectPort: ""
   storageClass: longhorn
@@ -59,6 +59,7 @@ rabbitmq:
 
 minio:
   image: minio/minio:latest
+  image_mc: minio/mc:latest
   local_setup: true
   pullPolicy: IfNotPresent
   root_password: password

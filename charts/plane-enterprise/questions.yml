@@ -285,7 +285,7 @@ questions:
   - variable: services.postgres.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/postgres:15.5-alpine"
+    default: "registry.plane.tools/plane/postgres:15.7-alpine"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.servicePort
     label: Service Port
@@ -383,6 +383,11 @@ questions:
     label: "Docker Image"
     type: string
     default: "registry.plane.tools/plane/minio:latest"
+    show_if: "services.minio.local_setup=true"
+  - variable: services.minio.image_mc
+    label: "MinIO Client Docker Image"
+    type: string
+    default: "registry.plane.tools/plane/mc:latest"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.root_user
     label: "Root User"
