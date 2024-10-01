@@ -1,5 +1,3 @@
-# Plane CE Helm Chart
-
 ## Pre-requisite
 
 - A working Kubernetes cluster
