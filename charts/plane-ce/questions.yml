@@ -125,7 +125,7 @@ questions:
   type: string
   required: true
   default: "makeplane/plane-live"
-  description: "Used by API, Worker, Beat-Worker"
+  description: "Live Server Setup"
   group: "Live Setup"
   subquestions:
   - variable: live.pullPolicy
