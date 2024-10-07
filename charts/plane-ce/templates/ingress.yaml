@@ -42,6 +42,13 @@ spec:
               service:
                 port:
                   number: 3000
+                name: {{ .Release.Name }}-live
+            path: /live/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
                 name: {{ .Release.Name }}-space
             path: /spaces
             pathType: Prefix
