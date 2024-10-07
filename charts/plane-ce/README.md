@@ -21,7 +21,7 @@
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
 
         ```bash
-          helm install plane-app makeplane/plane-ce \
+          helm upgrade --install plane-app makeplane/plane-ce \
               --create-namespace \
               --namespace plane-ce \
               --set planeVersion=stable \
@@ -53,7 +53,7 @@
         After saving the `values.yaml` file, continue to be on the same Terminal window as on the previous steps, copy the code below, and paste it on your Terminal screen.
 
         ```bash
-        helm install plane-app makeplane/plane-ce \
+        helm upgrade --install plane-app makeplane/plane-ce \
             --create-namespace \
             --namespace plane-ce \
             -f values.yaml \
@@ -86,7 +86,7 @@
 | postgres.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
-### Redis Setup
+### Redis/Valkey Setup
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
@@ -241,4 +241,4 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com | /auth/* | <http://plane-app-api.plane:8000> | Yes |
 | plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> | Yes (Only if using local setup) |
 | plane-minio.example.com | / | <http://plane-app-minio.plane:9090> | (Optional) if using local setup, this will enable minio console access |
-| plane-mq.example.com | / | <http://plane-app-minio.plane:15672> | (Optional) if using local setup, this will enable management console access |
+| plane-mq.example.com | / | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |
