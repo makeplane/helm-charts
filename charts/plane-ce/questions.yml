@@ -120,6 +120,52 @@ questions:
     type: boolean
     default: true
 
+- variable: live.image
+  label: Live Docker Image
+  type: string
+  required: true
+  default: "makeplane/plane-live"
+  description: "Live Server Setup"
+  group: "Live Setup"
+  subquestions:
+  - variable: live.pullPolicy
+    label: "Image Pull Policy"
+    type: enum
+    options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+    default: "IfNotPresent"
+  - variable: live.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: live.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: live.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: live.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  
+  - variable: env.live_sentry_dsn
+    label: "Live Sentry DSN"
+    type: string
+    default: ""
+  - variable: env.live_sentry_environment
+    label: "Live Sentry Environment"
+    type: string
+    default: ""
+  - variable: env.live_sentry_traces_sample_rate
+    label: "Live Sentry Traces Sample Rate"
+    type: string
+    default: ""
+
 - variable: api.image
   label: Backend Docker Image
   type: string

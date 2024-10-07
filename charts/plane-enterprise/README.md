@@ -3,7 +3,7 @@
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
-## Installing Plane Enterprise
+## Installing Plane
 
   1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
   2. Set the following environment variables.
@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=<v1.xx.x>
+      PLANE_VERSION=v1.3.1 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -61,7 +61,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: <v1.xx.x>`
+          - `planeVersion: v1.3.1 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `license.licenseServer: https://prime.plane.so`
           - `ingress.enabled: <true | false>`
@@ -275,4 +275,4 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com | /auth/* | <http://plane-app-api.plane:8000> | Yes |
 | plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> | Yes (Only if using local setup) |
 | plane-minio.example.com | / | <http://plane-app-minio.plane:9090> | (Optional) if using local setup, this will enable minio console access |
-| plane-mq.example.com | / | <http://plane-app-minio.plane:15672> | (Optional) if using local setuo, this will enable management console access |
+| plane-mq.example.com | / | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |

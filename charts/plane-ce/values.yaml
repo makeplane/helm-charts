@@ -91,6 +91,14 @@ admin:
   pullPolicy: Always
   assign_cluster_ip: false
 
+live:
+  replicas: 1
+  memoryLimit: 1000Mi
+  cpuLimit: 500m
+  image: makeplane/plane-live
+  pullPolicy: Always
+  assign_cluster_ip: false
+
 api:
   replicas: 1
   memoryLimit: 1000Mi
@@ -141,3 +149,8 @@ env:
 
   cors_allowed_origins: ""
   default_cluster_domain: cluster.local
+
+  live_sentry_dsn: ""
+  live_sentry_environment: ""
+  live_sentry_traces_sample_rate: ""
+
