@@ -4,7 +4,7 @@ entries:
   - annotations:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
-    appVersion: 0.22.0
+    appVersion: 0.23.0
     created: "2024-10-07T13:42:42.932358214Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
