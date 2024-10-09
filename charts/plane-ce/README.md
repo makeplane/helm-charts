@@ -27,10 +27,12 @@
               --set planeVersion=stable \
               --set ingress.appHost="plane.example.com" \
               --set ingress.minioHost="plane-minio.example.com" \
+              --set ingress.rabbitmqHost="plane-rabbitmq.example.com" \
               --set ingress.ingressClass=nginx \
               --set postgres.storageClass=longhorn \
               --set redis.storageClass=longhorn \
               --set minio.storageClass=longhorn \
+               --set rabbitmq.storageClass=longhorn \
               --timeout 10m \
               --wait \
               --wait-for-jobs
@@ -108,6 +110,7 @@
 | rabbitmq.servicePort | 5672 |  | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`. |
 | rabbitmq.managementPort | 15672 |  | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`. |
 | rabbitmq.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
+| rabbitmq.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
