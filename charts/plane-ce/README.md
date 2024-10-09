@@ -32,7 +32,7 @@
               --set postgres.storageClass=longhorn \
               --set redis.storageClass=longhorn \
               --set minio.storageClass=longhorn \
-               --set rabbitmq.storageClass=longhorn \
+              --set rabbitmq.storageClass=longhorn \
               --timeout 10m \
               --wait \
               --wait-for-jobs
