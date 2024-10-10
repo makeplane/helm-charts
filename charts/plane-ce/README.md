@@ -27,10 +27,12 @@
               --set planeVersion=stable \
               --set ingress.appHost="plane.example.com" \
               --set ingress.minioHost="plane-minio.example.com" \
+              --set ingress.rabbitmqHost="plane-mq.example.com" \
               --set ingress.ingressClass=nginx \
               --set postgres.storageClass=longhorn \
               --set redis.storageClass=longhorn \
               --set minio.storageClass=longhorn \
+              --set rabbitmq.storageClass=longhorn \
               --timeout 10m \
               --wait \
               --wait-for-jobs
@@ -108,6 +110,7 @@
 | rabbitmq.servicePort | 5672 |  | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`. |
 | rabbitmq.managementPort | 15672 |  | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`. |
 | rabbitmq.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
+| rabbitmq.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -211,6 +214,7 @@
 | ingress.enabled | true |  | Ingress setup in kubernetes is a common practice to expose application to the intended audience.  Set it to `false` if you are using external ingress providers like `Cloudflare` |
 | ingress.appHost | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 | ingress.minioHost | 'plane-minio.example.com' |  | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface. |
+| ingress.rabbitmqHost | 'plane-mq.example.com' |  | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface. |
 | ingress.ingressClass | 'nginx' | Yes | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.|
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |  | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required. |
 | ssl.createIssuer | false |  | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true`|
