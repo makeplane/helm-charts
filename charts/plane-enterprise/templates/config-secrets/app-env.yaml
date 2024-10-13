@@ -25,6 +25,7 @@ data:
   {{ end }}
 
 ---
+{{- end }}
 
 apiVersion: v1
 kind: ConfigMap
