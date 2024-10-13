@@ -1,3 +1,4 @@
+{{- if (not .Values.env.existingSecret) }}
 apiVersion: v1
 kind: Secret
 type: Opaque
@@ -6,6 +7,22 @@ metadata:
   name: {{ .Release.Name }}-app-secrets
 data:
   SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | b64enc | quote }}
+
+  {{ if .Values.services.postgres.local_setup }}
+  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
+  {{ else if .Values.env.pgdb_remote_url }}
+  DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+  {{ else }}
+  DATABASE_URL: ""
+  {{ end }}
+
+  {{- if .Values.services.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
+  {{- else }}
+  AMQP_URL: ""
+  {{ end }}
 
 ---
 
@@ -37,25 +54,9 @@ data:
     {{- else}}
     CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
     {{- end }}
-    
+
     {{- if .Values.services.redis.local_setup }}
     REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
     {{- else }}
     REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
     {{- end }}
-
-    {{ if .Values.services.postgres.local_setup }}
-    DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
-    {{ else if .Values.env.pgdb_remote_url }}
-    DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
-    {{ else }}
-    DATABASE_URL: ""
-    {{ end }}
-
-    {{- if .Values.services.rabbitmq.local_setup }}
-    AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
-    {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
-    AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
-    {{- else }}
-    AMQP_URL: ""
-    {{ end }}

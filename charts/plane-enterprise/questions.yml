@@ -207,6 +207,11 @@ questions:
     label: "Sentry Environment"
     type: string
     default: "Development"
+  - variable: env.existingSecret
+    label: "Existing Secret for app env"
+    type: string
+    default: ""
+    description: "Should contain the key `SECRET_KEY` and optionally: `DATABASE_URL`, and `AMQP_URL`"
   - variable: env.secret_key
     label: "Random Secret Key"
     type: string
@@ -389,6 +394,11 @@ questions:
     type: string
     default: "admin"
     show_if: "services.minio.local_setup=true"
+  - variable: services.minio.existingSecret
+    label: "Existing Secret for doc-store"
+    type: string
+    default: ""
+    description: "Should contain the keys `AWS_SECRET_ACCESS_KEY` and `MINIO_ROOT_PASSWORD` (if minio.local_setup=true)"
   - variable: services.minio.root_password
     label: "Root Password"
     type: password

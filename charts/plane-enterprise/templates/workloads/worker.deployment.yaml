@@ -36,13 +36,13 @@ spec:
               name: {{ .Release.Name }}-app-vars
               optional: false
           - secretRef:
-              name: {{ .Release.Name }}-app-secrets
+              name: {{ include "app-secret" . }}
               optional: false
           - configMapRef:
               name: {{ .Release.Name }}-doc-store-vars
               optional: false
           - secretRef:
-              name: {{ .Release.Name }}-doc-store-secrets
+              name: {{ include "doc-store-secret" . }}
               optional: false
 
       serviceAccount: {{ .Release.Name }}-srv-account

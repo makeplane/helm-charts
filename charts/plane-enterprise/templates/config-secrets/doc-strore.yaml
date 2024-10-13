@@ -1,3 +1,4 @@
+{{- if and (or .Values.services.minio.root_password .Values.env.aws_secret_access_key) (not .Values.services.minio.existingSecret) }}
 
 apiVersion: v1
 kind: Secret
@@ -7,13 +8,14 @@ metadata:
   name: {{ .Release.Name }}-doc-store-secrets
 data:
   {{ if .Values.services.minio.local_setup }}
-  MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | b64enc | quote}}
+  MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | b64enc | quote }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.services.minio.root_password | default "password" | b64enc | quote  }}
   {{ else }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | b64enc | quote  }}
   {{ end }}
 
 ---
+{{- end }}
 
 apiVersion: v1
 kind: ConfigMap
