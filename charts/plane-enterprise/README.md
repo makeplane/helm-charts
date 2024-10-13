@@ -260,6 +260,7 @@
 |---|:---:|:---:|---|
 | env.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
+| env.existingSecret | "" | No | If you want to use an existing secret for the application, set this value as per your existing secret name. It must contain keys for `SECRET_KEY` and optionally: `DATABASE_URL`, and `AMQP_URL`.|
   
 ## Custom Ingress Routes
 
