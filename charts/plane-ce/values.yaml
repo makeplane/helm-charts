@@ -24,6 +24,8 @@ ssl:
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
   generateCerts: false
+  self_managed: false
+
 
 redis:
   local_setup: true
