@@ -65,7 +65,7 @@ spec:
                 port:
                   number: 9000
                 name: {{ .Release.Name }}-minio
-            path: /{{ .Values.env.docstore_bucket }}/
+            path: /{{ .Values.env.docstore_bucket }}(/|$)(.*)
             pathType: Prefix
           {{- end }}
 
