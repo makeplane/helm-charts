@@ -103,7 +103,12 @@ spec:
       {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
       - {{ .Values.ingress.rabbitmqHost | quote }}
       {{- end }}
+      {{- if .Values.ssl.self_managed }}
+      secretName: {{ .Values.ssl.self_managed_secret }}
+      {{- else }}
       secretName: {{ .Release.Name }}-ssl-cert
+      {{- end }}
+
   {{- end }}
 
 {{- end }}

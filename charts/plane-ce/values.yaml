@@ -25,6 +25,7 @@ ssl:
   email: plane@example.com
   generateCerts: false
   self_managed: false
+  self_managed_secret: "" # self-managed secret name
 
 
 redis:
