@@ -93,7 +93,7 @@ spec:
             path: /
             pathType: Prefix
     {{- end }}
-  {{- if .Values.ssl.generateCerts }}
+  {{- if or .Values.ssl.generateCerts .Values.ssl.self_managed }}
   tls:
     - hosts:
       - {{ .Values.ingress.appHost | quote }}
@@ -104,7 +104,7 @@ spec:
       - {{ .Values.ingress.rabbitmqHost | quote }}
       {{- end }}
       {{- if .Values.ssl.self_managed }}
-      secretName: {{ .Values.ssl.self_managed_secret }}
+      secretName: {{ .Values.ssl.self_managed_secret | quote }}
       {{- else }}
       secretName: {{ .Release.Name }}-ssl-cert
       {{- end }}
