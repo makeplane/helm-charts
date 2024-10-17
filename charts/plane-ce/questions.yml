@@ -528,4 +528,13 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
-    
+  - variable: ssl.self_managed
+    label: "Use self-managed SSL"
+    type: boolean
+    default: false
+  - variable: ssl.self_managed_secret
+    label: "Self-managed secret name"
+    type: string
+    default: ""
+    show_if: "ssl.self_managed=true"
+    description: "Name of the self-managed secret"
