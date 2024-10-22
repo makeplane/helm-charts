@@ -1,4 +1,4 @@
-planeVersion: v1.2.1
+planeVersion: v1.3.1
 
 dockerRegistry:
   enabled: false
@@ -48,7 +48,6 @@ services:
     image: rabbitmq:3.13.6-management-alpine
     servicePort: 5672
     managementPort: 15672
-    storageClass: longhorn
     volumeSize: 100Mi
     default_user: plane
     default_password: plane
@@ -89,6 +88,13 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/admin-enterprise
+    assign_cluster_ip: false
+
+  live:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    image: registry.plane.tools/plane/live-enterprise
     assign_cluster_ip: false
 
   api:
@@ -138,3 +144,8 @@ env:
 
   cors_allowed_origins: ''
   instance_admin_email: ''
+
+  live_sentry_dsn: ""
+  live_sentry_environment: ""
+  live_sentry_traces_sample_rate: ""
+

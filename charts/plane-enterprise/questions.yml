@@ -39,6 +39,11 @@ questions:
     type: string
     required: true
     default: "registry.plane.tools/plane/admin-enterprise"
+  - variable: services.live.image
+    label: Live Docker Image
+    type: string
+    required: true
+    default: "registry.plane.tools/plane/live-enterprise"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
@@ -122,6 +127,36 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+
+- variable: services.live.replicas
+  label: "Default Replica Count"
+  type: int
+  default: 1
+  group: "Live Setup"
+  subquestions:
+  - variable: services.live.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.live.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.live.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.live_sentry_dsn
+    label: "Sentry DSN"
+    type: string
+    default: ""
+  - variable: env.live_sentry_environment
+    label: "Sentry Environment"
+    type: string
+    default: "Development"
+  - variable: env.live_sentry_traces_sample_rate
+    label: "Sentry Traces Sample Rate"
+    type: string
 
 - variable: services.monitor.memoryLimit
   label: "Memory Limit"
@@ -317,11 +352,6 @@ questions:
     label: "Assign ClusterIP"
     type: boolean
     default: false
-    show_if: "services.rabbitmq.local_setup=true"
-  - variable: services.rabbitmq.storageClass
-    label: "Storage Class"
-    type: string
-    default: "longhorn"
     show_if: "services.rabbitmq.local_setup=true"
   - variable: services.rabbitmq.volumeSize
     label: "Volume Size"

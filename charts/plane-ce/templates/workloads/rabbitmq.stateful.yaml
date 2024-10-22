@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - image: {{ .Values.rabbitmq.image }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.rabbitmq.pullPolicy | default "IfNotPresent" | quote }}
         name: {{ .Release.Name }}-rabbitmq
         stdin: true
         tty: true

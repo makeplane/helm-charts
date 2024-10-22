@@ -24,6 +24,8 @@ env:
   CHART_NAME_CE: "plane-ce"
   CHART_NAME_ENTERPRISE: "plane-enterprise"
   MARK_AS_LATEST: true
+  MARK_AS_PRERELASE: false
+  PAGES_INDEX_PATH: ""
 
 jobs:
   setup:
@@ -93,15 +95,19 @@ jobs:
           fi
 
           echo "MARK_AS_LATEST=false" >> $GITHUB_ENV
+          echo "MARK_AS_PRERELASE=true" >> $GITHUB_ENV
+          echo "PAGES_INDEX_PATH=${flatBranchName}" >> $GITHUB_ENV
 
       - name: Release Charts
-        uses: helm/chart-releaser-action@v1.6.0
+        uses: mguptahub/chart-releaser-action@v1.6.2
         with:
           charts_dir: charts
           config: cr.yaml
           packages_with_index: false
           skip_existing: true
           mark_as_latest: ${{ env.MARK_AS_LATEST }}
+          prerelease: ${{ env.MARK_AS_PRERELASE }}
+          pages_index_path: ${{ env.PAGES_INDEX_PATH }}
         env:
           CR_TOKEN: ${{ env.CR_TOKEN }}
           CR_KEY: ${{ env.GPG_KEY_NAME }}

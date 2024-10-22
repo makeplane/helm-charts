@@ -10,10 +10,10 @@ spec:
   clusterIP: None
   {{- end }}
   ports:
-  - name: monitor-80
-    port: 80
+  - name: monitor-8080
+    port: 8080
     protocol: TCP
-    targetPort: 80
+    targetPort: 8080
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
 ---
@@ -32,6 +32,8 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+      annotations:
+        timestamp: {{ now | quote }}
     spec:
       containers:
       - image: {{ .Values.services.monitor.image | default "registry.plane.tools/plane/monitor-enterprise" }}:{{ .Values.planeVersion }}

@@ -45,6 +45,7 @@ postgres:
 rabbitmq:
   local_setup: true
   image: rabbitmq:3.13.6-management-alpine
+  pullPolicy: IfNotPresent
   servicePort: 5672
   managementPort: 15672
   storageClass: longhorn
@@ -62,38 +63,46 @@ minio:
   root_user: admin
   storageClass: longhorn
   volumeSize: 1Gi
-  assign_cluster_ip: true
+  assign_cluster_ip: false
 
 web:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-frontend
-  pullPolicy: IfNotPresent
-  assign_cluster_ip: true
+  pullPolicy: Always
+  assign_cluster_ip: false
 
 space:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-space
-  pullPolicy: IfNotPresent
-  assign_cluster_ip: true
+  pullPolicy: Always
+  assign_cluster_ip: false
 
 admin:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-admin
-  pullPolicy: IfNotPresent
-  assign_cluster_ip: true
+  pullPolicy: Always
+  assign_cluster_ip: false
+
+live:
+  replicas: 1
+  memoryLimit: 1000Mi
+  cpuLimit: 500m
+  image: makeplane/plane-live
+  pullPolicy: Always
+  assign_cluster_ip: false
 
 api:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-backend
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   assign_cluster_ip: false
 
 worker:
@@ -101,14 +110,14 @@ worker:
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-backend
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 beatworker:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
   image: makeplane/plane-backend
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 external_secrets:
   enabled: false
@@ -145,3 +154,8 @@ env:
 
   cors_allowed_origins: ""
   default_cluster_domain: cluster.local
+
+  live_sentry_dsn: ""
+  live_sentry_environment: ""
+  live_sentry_traces_sample_rate: ""
+

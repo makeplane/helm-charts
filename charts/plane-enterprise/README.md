@@ -3,7 +3,7 @@
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
-## Installing Plane Enterprise
+## Installing Plane
 
   1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
   2. Set the following environment variables.
@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=<v1.xx.x>
+      PLANE_VERSION=v1.3.1 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -26,7 +26,7 @@
   4. Set-up and customization
       - Quick set-up
 
-        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Redis, and Minio with a persistent volume claim using the `longhorn` storage class. This also sets up the ingress routes for you using `nginx` ingress class.
+        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Redis/Valkey, and Minio with a persistent volume claim using the `longhorn` storage class. This also sets up the ingress routes for you using `nginx` ingress class.
         > To customize this, see `Custom ingress routes` below.
 
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
@@ -61,7 +61,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: <v1.xx.x>`
+          - `planeVersion: v1.3.1 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `license.licenseServer: https://prime.plane.so`
           - `ingress.enabled: <true | false>`
@@ -84,7 +84,7 @@
 
 ## Available customizations
 
-### Docker registry
+<!-- ### Docker registry
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
@@ -92,14 +92,14 @@
 | dockerRegistry.registry |  registry.plane.tools| Yes | The host that will serve the required Docker images; Don't change this. |
 | dockerRegistry.loginid |  | Yes | Sets the `loginid` for the Docker registry. This is the same as the REG_USER_ID value on prime. plane.so |
 | dockerRegistry.password |  | Yes | Sets the `password` for the Docker registry. This is the same as the REG_PASSWORD value on prime.plane.so|
-  
+   -->
 ### License
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.2.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.3.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
-| license.licenseDomain | 'plane.example.com' | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
+| license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
 
@@ -116,16 +116,30 @@
 | services.postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url. |
 
-### Redis Setup
+### Redis/Valkey Setup
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| services.redis.local_setup | true |  | Plane uses `redis` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
+| services.redis.local_setup | true |  | Plane uses `valkey` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
 | services.redis.image | registry.plane.tools/plane/valkey:7.2.5-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
 | services.redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
 | services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url. |
+
+### RabbitMQ Setup
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.rabbitmq.local_setup | true |  | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to  `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
+| services.rabbitmq.image | rabbitmq:3.13.6-management-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)|
+| services.rabbitmq.servicePort | 5672 |  | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`. |
+| services.rabbitmq.managementPort | 15672 |  | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`. |
+| services.rabbitmq.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
+| services.rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
+| services.rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
+| services.rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -173,6 +187,19 @@
 | services.admin.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.admin.image| registry.plane.tools/plane/admin-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+
+### Live Service Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.live.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
+| services.live.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.live.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.live.image| registry.plane.tools/plane/live-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| env.live_sentry_dsn |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
+| env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
+| env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
+| services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Monitor Deployment
 
@@ -238,12 +265,14 @@
 
 If you are planning to use 3rd party ingress providers, here is the available route configuration
 
-| Host | Path | Service |
-|---    |:---:|---|
-| plane.example.com | /  | <http://plane-app-web.plane:3000> |
-| plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> |
-| plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> |
-| plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> |
-| plane.example.com | /auth/* | <http://plane-app-api.plane:8000> |
-| plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> |
-| plane-minio.example.com | / | <http://plane-app-minio.plane:9090> |
+| Host | Path | Service | Required |
+|---    |:---:|---|:--- |
+| plane.example.com | /  | <http://plane-app-web.plane:3000> | Yes |
+| plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> | Yes |
+| plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> | Yes |
+| plane.example.com | /live/* | <http://plane-app-live.plane:3000> | Yes |
+| plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> | Yes |
+| plane.example.com | /auth/* | <http://plane-app-api.plane:8000> | Yes |
+| plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> | Yes (Only if using local setup) |
+| plane-minio.example.com | / | <http://plane-app-minio.plane:9090> | (Optional) if using local setup, this will enable minio console access |
+| plane-mq.example.com | / | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |
