@@ -120,22 +120,22 @@ beatworker:
   pullPolicy: Always
 
 external_secrets:
-  enabled: false
-  rabbitmq_secrets: '' # RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS 
-  pgdb_secrets: '' # POSTGRES_PASSWORD
-  doc_store_secrets: '' # 
-  app_env_secrets: '' #
+  rabbitmq_secrets: '' 
+  pgdb_secrets: ''
+  doc_store_secrets: ''
+  app_env_secrets: ''
 
 env:
-  pgdb_username: plane
-  pgdb_password: plane
-  pgdb_name: plane
-  pgdb_remote_url: "" #INCASE OF REMOTE PG DB URL ONLY
 
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
   remote_redis_url: "" #INCASE OF REMOTE REDIS ONLY
+  
   # POSTGRES DB VALUES
+  pgdb_username: plane
+  pgdb_password: plane
+  pgdb_name: plane
+  pgdb_remote_url: "" #INCASE OF REMOTE PG DB URL ONLY
 
   # DATA STORE
   docstore_bucket: "uploads"
