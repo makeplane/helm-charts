@@ -231,6 +231,34 @@
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
 | env.default_cluster_domain | cluster.local | Yes | Set this value as configured in your kubernetes cluster. `cluster.local` is usally the default in most cases. |
 
+
+## External Secrets Config
+
+To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
+
+| Secret Name | Env Var Name | Description | Example Value |
+|--- |:---|:---|:---|
+| rabbitmq_secrets     | `RABBITMQ_DEFAULT_USER`  | The default RabbitMQ user                    | `plane`      |
+|                      | `RABBITMQ_DEFAULT_PASS`  | The default RabbitMQ password                | `plane`      |
+| pgdb_secrets         | `POSTGRES_PASSWORD`      | Password for PostgreSQL database             | `plane`   |
+|                      | `POSTGRES_DB`            | Name of the PostgreSQL database              | `plane`      |
+|                      | `POSTGRES_USER`          | PostgreSQL user                              | `plane`       |
+| doc_store_secrets    | `MINIO_ROOT_PASSWORD`    | MinIO root password                          | `password`    |
+|                      | `AWS_SECRET_ACCESS_KEY`  | AWS Secret Access Key                        | `your_aws_secret`    |
+|                      | `AWS_ACCESS_KEY_ID`      | AWS Access Key ID                            | `your_aws_key`       |
+|                      | `AWS_S3_BUCKET_NAME`     | AWS S3 Bucket Name                           | `your_bucket_name`   |
+|                      | `MINIO_ROOT_USER`        | MinIO root user                              | `admin`    |
+|                      | `AWS_S3_ENDPOINT_URL`    | Endpoint URL for AWS S3 or MinIO             | `http://{{ .Release.Name }}-minio:9000`  |
+|                      | `FILE_SIZE_LIMIT`        | Limit for file uploads in your system        | `5MB`               |
+|                      | `USE_MINIO`              | Flag to enable MinIO as the storage backend  | `0/1`         |
+|                      | `AWS_REGION`             | AWS region where your S3 bucket is located   | `your_aws_region`    |
+| app_env_secrets      | `SECRET_KEY`             | Random secret key                            | `60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5`  |
+|                      | `REDIS_URL`              | Redis URL                                    | `redis://{release-name}-redis.{namespace}.svc.{cluster-domain}:6379/`  |
+|                      | `DATABASE_URL`           | Postgres DB URL                              | `postgresql://{username}:{password}@{release-name}-pgdb.{namespace}.svc.{cluster-domain}/{dbname}`  |
+|                      | `AMQP_URL`               | RabbitMQ URL                                 | `amqp://{username}:{password}@{release-name}-rabbitmq.{namespace}.svc.{cluster-domain}/`  |
+
+
+
 ## Custom Ingress Routes
 
 If you are planning to use 3rd party ingress providers, here is the available route configuration
