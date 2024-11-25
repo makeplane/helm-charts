@@ -59,13 +59,20 @@ spec:
                 name: {{ .Release.Name }}-live
             path: /live/
             pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /graphql/
+            pathType: Prefix
           {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
           - backend:
               service:
                 port:
                   number: 9000
                 name: {{ .Release.Name }}-minio
-            path: /{{ .Values.env.docstore_bucket }}/
+            path: /{{ .Values.env.docstore_bucket }}
             pathType: Prefix
           {{- end }}
 
