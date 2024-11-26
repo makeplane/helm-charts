@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=v1.3.1 # or the last released version
+      PLANE_VERSION=v1.5.0 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -61,7 +61,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: v1.3.1 <or the last released version>`
+          - `planeVersion: v1.5.0 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `license.licenseServer: https://prime.plane.so`
           - `ingress.enabled: <true | false>`
@@ -97,7 +97,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.3.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.5.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseServer | <https://prime.plane.so> | Yes | Sets the value of the `licenseServer` that gets you your license and validates it periodically. Don't change this. |
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
