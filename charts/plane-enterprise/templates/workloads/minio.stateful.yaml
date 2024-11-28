@@ -55,7 +55,7 @@ spec:
               name: {{ .Release.Name }}-doc-store-vars
               optional: false
           - secretRef:
-              name: {{ .Release.Name }}-doc-store-secrets
+                name: {{ include "doc-store-secret" . }}
               optional: false
         volumeMounts:
         - mountPath: /data
@@ -113,7 +113,7 @@ spec:
                 name: {{ .Release.Name }}-doc-store-vars
                 optional: false
             - secretRef:
-                name: {{ .Release.Name }}-doc-store-secrets
+                name: {{ include "doc-store-secret" . }}
                 optional: false
           image: minio/mc
           imagePullPolicy: Always
