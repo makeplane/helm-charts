@@ -1,4 +1,4 @@
-planeVersion: v1.5.0
+planeVersion: v1.5.1
 
 dockerRegistry:
   enabled: false
@@ -37,7 +37,7 @@ services:
 
   postgres:
     local_setup: true
-    image: registry.plane.tools/plane/postgres:15.5-alpine
+    image: registry.plane.tools/plane/postgres:15.7-alpine
     servicePort: 5432
     cliConnectPort: ''
     volumeSize: 2Gi
@@ -57,6 +57,7 @@ services:
   minio:
     local_setup: true
     image: registry.plane.tools/plane/minio:latest
+    image_mc: minio/mc:latest
     volumeSize: 3Gi
     root_user: admin
     root_password: password

@@ -34,9 +34,9 @@ questions:
     label: "Image Pull Policy"
     type: enum
     options:
-      - "Always"
-      - "IfNotPresent"
-      - "Never"
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
     default: "IfNotPresent"
   - variable: web.replicas
     label: "Default Replica Count"
@@ -54,7 +54,6 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  
 
 - variable: space.image
   label: Space Docker Image
@@ -67,9 +66,9 @@ questions:
     label: "Image Pull Policy"
     type: enum
     options:
-      - "Always"
-      - "IfNotPresent"
-      - "Never"
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
     default: "IfNotPresent"
   - variable: space.replicas
     label: "Default Replica Count"
@@ -99,9 +98,9 @@ questions:
     label: "Image Pull Policy"
     type: enum
     options:
-      - "Always"
-      - "IfNotPresent"
-      - "Never"
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
     default: "IfNotPresent"
   - variable: admin.replicas
     label: "Default Replica Count"
@@ -132,9 +131,9 @@ questions:
     label: "Image Pull Policy"
     type: enum
     options:
-      - "Always"
-      - "IfNotPresent"
-      - "Never"
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
     default: "IfNotPresent"
   - variable: live.replicas
     label: "Default Replica Count"
@@ -152,7 +151,7 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  
+
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -178,9 +177,9 @@ questions:
     label: "Image Pull Policy"
     type: enum
     options:
-      - "Always"
-      - "IfNotPresent"
-      - "Never"
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
     default: "IfNotPresent"
   - variable: api.replicas
     label: "Default Replica Count"
@@ -216,6 +215,7 @@ questions:
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
     subquestions:
+
 
 - variable: worker.replicas
   label: "Default Replica Count"
@@ -294,7 +294,7 @@ questions:
   - variable: postgres.image
     label: "Docker Image"
     type: string
-    default: "postgres:15.5-alpine"
+    default: "postgres:15.7-alpine"
     show_if: "postgres.local_setup=true"
   - variable: postgres.servicePort
     label: Service Port
@@ -356,9 +356,9 @@ questions:
     label: "Image Pull Policy"
     type: enum
     options:
-      - "Always"
-      - "IfNotPresent"
-      - "Never"
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
     default: "IfNotPresent"
     show_if: "rabbitmq.local_setup=true"
   - variable: rabbitmq.servicePort
@@ -411,6 +411,11 @@ questions:
     label: "Docker Image"
     type: string
     default: "minio/minio:latest"
+    show_if: "minio.local_setup=true"
+  - variable: minio.image_mc
+    label: "MinIO Client Docker Image"
+    type: string
+    default: "minio/mc:latest"
     show_if: "minio.local_setup=true"
   - variable: minio.root_user
     label: "Root User"
@@ -506,9 +511,9 @@ questions:
     label: "SSL Issuer"
     type: enum
     options:
-      - "http"
-      - "cloudflare"
-      - "digitalocean"
+    - "http"
+    - "cloudflare"
+    - "digitalocean"
     default: "http"
   - variable: ssl.server
     label: "Let's Encrypt Server URL"
@@ -528,4 +533,3 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
-    

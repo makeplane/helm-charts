@@ -89,7 +89,7 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  
+
 - variable: services.space.replicas
   label: "Default Replica Count"
   type: int
@@ -285,7 +285,7 @@ questions:
   - variable: services.postgres.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/postgres:15.5-alpine"
+    default: "registry.plane.tools/plane/postgres:15.7-alpine"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.servicePort
     label: Service Port
@@ -372,7 +372,7 @@ questions:
     label: "Remote URL"
     type: string
     show_if: "services.rabbitmq.local_setup=false"
-    
+
 - variable: services.minio.local_setup
   label: "Install Minio"
   type: boolean
@@ -383,6 +383,11 @@ questions:
     label: "Docker Image"
     type: string
     default: "registry.plane.tools/plane/minio:latest"
+    show_if: "services.minio.local_setup=true"
+  - variable: services.minio.image_mc
+    label: "MinIO Client Docker Image"
+    type: string
+    default: "minio/mc:latest"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.root_user
     label: "Root User"
@@ -470,9 +475,9 @@ questions:
     label: "SSL Issuer"
     type: enum
     options:
-      - "http"
-      - "cloudflare"
-      - "digitalocean"
+    - "http"
+    - "cloudflare"
+    - "digitalocean"
     default: "http"
   - variable: ssl.server
     label: "Let's Encrypt Server URL"
@@ -492,4 +497,3 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
-
