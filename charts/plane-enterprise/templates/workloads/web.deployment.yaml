@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-web
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.services.web.pullPolicy | default "Always" }}
         image: {{ .Values.services.web.image | default "registry.plane.tools/plane/web-enterprise" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

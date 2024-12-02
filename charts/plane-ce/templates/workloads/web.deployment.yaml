@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-web
-        imagePullPolicy: {{ .Values.web.pullPolicy | default "IfNotPresent" }}
+        imagePullPolicy: {{ .Values.web.pullPolicy | default "Always" }}
         image: {{ .Values.web.image | default "makeplane/plane-frontend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

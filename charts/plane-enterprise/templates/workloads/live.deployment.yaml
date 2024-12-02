@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-live
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.services.live.pullPolicy | default "Always" }}
         image: {{ .Values.services.live.image | default "makeplane/live-enterprise" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
