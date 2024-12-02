@@ -29,16 +29,44 @@ questions:
     type: string
     required: true
     default: "registry.plane.tools/plane/web-enterprise"
+    subquestions:
+    - variable: services.web.pullPolicy
+      label: "Web Pull Policy"
+      type: enum
+      options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+      default: "Always"
   - variable: services.space.image
     label: Space Docker Image
     type: string
     required: true
     default: "registry.plane.tools/plane/space-enterprise"
+    subquestions:
+    - variable: services.space.pullPolicy
+      label: "Space Pull Policy"
+      type: enum
+      options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+      default: "Always"
   - variable: services.admin.image
     label: Admin Docker Image
     type: string
     required: true
     default: "registry.plane.tools/plane/admin-enterprise"
+    subquestions:
+    - variable: services.admin.pullPolicy
+      label: "Admin Pull Policy"
+      type: enum
+      options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+      default: "Always"
+  
   - variable: services.live.image
     label: Live Docker Image
     type: string
@@ -55,6 +83,15 @@ questions:
     required: true
     default: "registry.plane.tools/plane/backend-enterprise"
     description: "Used by API, Worker, Beat-Worker"
+    subquestions:
+    - variable: services.live.pullPolicy
+      label: "Live Pull Policy"
+      type: enum
+      options:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"
+      default: "Always"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: string
@@ -254,6 +291,14 @@ questions:
     type: string
     default: "registry.plane.tools/plane/valkey:7.2.5-alpine"
     show_if: "services.redis.local_setup=true"
+  - variable: services.redis.pullPolicy
+    label: "Redis Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: services.redis.servicePort
     label: Port
     type: int
@@ -282,6 +327,14 @@ questions:
   group: "Postgres Setup"
   # show_subquestion_if: true
   subquestions:
+  - variable: services.postgres.pullPolicy
+    label: "Postgres Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: services.postgres.image
     label: "Docker Image"
     type: string
@@ -338,6 +391,14 @@ questions:
     type: string
     default: "rabbitmq:3.13.6-management-alpine"
     show_if: "services.rabbitmq.local_setup=true"
+  - variable: services.rabbitmq.pullPolicy
+    label: "RabbitMQ Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: services.rabbitmq.servicePort
     label: Service Port
     type: int
@@ -384,6 +445,14 @@ questions:
     type: string
     default: "registry.plane.tools/plane/minio:latest"
     show_if: "services.minio.local_setup=true"
+  - variable: services.minio.pullPolicy
+    label: "Minio Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: services.minio.image_mc
     label: "MinIO Client Docker Image"
     type: string

@@ -37,7 +37,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: web.replicas
     label: "Default Replica Count"
     type: int
@@ -69,7 +69,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: space.replicas
     label: "Default Replica Count"
     type: int
@@ -101,7 +101,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: admin.replicas
     label: "Default Replica Count"
     type: int
@@ -134,7 +134,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: live.replicas
     label: "Default Replica Count"
     type: int
@@ -180,7 +180,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: api.replicas
     label: "Default Replica Count"
     type: int
@@ -253,6 +253,14 @@ questions:
   default: true
   group: "Redis Setup"
   subquestions:
+  - variable: redis.pullPolicy
+    label: "Redis Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: redis.image
     label: "Docker Image"
     type: string
@@ -291,6 +299,14 @@ questions:
   group: "Postgres Setup"
   # show_subquestion_if: true
   subquestions:
+  - variable: postgres.pullPolicy
+    label: "Postgres Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: postgres.image
     label: "Docker Image"
     type: string
@@ -347,6 +363,14 @@ questions:
   default: true
   group: "RabbitMQ Setup"
   subquestions:
+  - variable: rabbitmq.pullPolicy
+    label: "RabbitMQ Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: rabbitmq.image
     label: "Docker Image"
     type: string
@@ -407,6 +431,14 @@ questions:
   default: true
   group: "Storage Setup"
   subquestions:
+  - variable: minio.pullPolicy
+    label: "Minio Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: minio.image
     label: "Docker Image"
     type: string
