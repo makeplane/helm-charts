@@ -359,14 +359,6 @@ questions:
   default: true
   group: "RabbitMQ Setup"
   subquestions:
-  - variable: rabbitmq.pullPolicy
-    label: "RabbitMQ Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "IfNotPresent"
   - variable: rabbitmq.image
     label: "Docker Image"
     type: string
