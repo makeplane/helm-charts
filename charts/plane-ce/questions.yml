@@ -16,6 +16,7 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
+ 
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
@@ -151,7 +152,6 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -214,8 +214,6 @@ questions:
     type: string
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
-    subquestions:
-
 
 - variable: worker.replicas
   label: "Default Replica Count"

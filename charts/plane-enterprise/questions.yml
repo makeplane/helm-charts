@@ -39,7 +39,6 @@ questions:
     type: string
     required: true
     default: "registry.plane.tools/plane/admin-enterprise"
-  
   - variable: services.live.image
     label: Live Docker Image
     type: string
@@ -97,7 +96,6 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-
   - variable: services.space.pullPolicy
     label: "Space Pull Policy"
     type: enum
@@ -124,7 +122,6 @@ questions:
       label: "Assign Cluster IP"
       type: boolean
       default: false
-
   - variable: services.admin.pullPolicy
     label: "Admin Pull Policy"
     type: enum
@@ -151,7 +148,6 @@ questions:
       label: "Assign Cluster IP"
       type: boolean
       default: false
-
   - variable: services.live.pullPolicy
     label: "Live Pull Policy"
     type: enum
@@ -189,7 +185,6 @@ questions:
     - variable: env.live_sentry_traces_sample_rate
       label: "Sentry Traces Sample Rate"
       type: string
-
   - variable: services.monitor.pullPolicy
     label: "Monitor Pull Policy"
     type: enum
@@ -216,7 +211,6 @@ questions:
       label: "Assign Cluster IP"
       type: boolean
       default: false
-
   - variable: services.api.pullPolicy
     label: "API Pull Policy"
     type: enum
@@ -357,7 +351,6 @@ questions:
     type: int
     default: 5432
     show_if: "services.postgres.local_setup=true"
-  
   - variable: services.postgres.volumeSize
     label: "Volume Size"
     type: string
