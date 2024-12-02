@@ -274,7 +274,6 @@ questions:
   - variable: redis.storageClass
     label: "Storage Class"
     type: storageclass
-    default: "longhorn"
     show_if: "redis.local_setup=true"
   - variable: redis.volumeSize
     label: "Volume Size"
@@ -320,7 +319,6 @@ questions:
   - variable: postgres.storageClass
     label: "Storage Class"
     type: storageclass
-    default: "longhorn"
     show_if: "postgres.local_setup=true"
   - variable: postgres.volumeSize
     label: "Volume Size"
@@ -391,7 +389,6 @@ questions:
   - variable: rabbitmq.storageClass
     label: "Storage Class"
     type: storageclass
-    default: "longhorn"
     show_if: "rabbitmq.local_setup=true"
   - variable: rabbitmq.volumeSize
     label: "Volume Size"
@@ -450,7 +447,6 @@ questions:
   - variable: minio.storageClass
     label: "Storage Class"
     type: storageclass
-    default: "longhorn"
     show_if: "minio.local_setup=true"
   - variable: minio.volumeSize
     label: "Volume Size"
