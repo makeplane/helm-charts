@@ -514,12 +514,12 @@ questions:
   - variable: ingress.minioHost
     label: "Minio Host"
     type: string
-    default: "plane-minio.example.com"
+    default: ""
     show_if: "minio.local_setup=true"
   - variable: ingress.rabbitmqHost
     label: "Rabbitmq Host"
     type: string
-    default: "plane-rabbitmq.example.com"
+    default: ""
     show_if: "rabbitmq.local_setup=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
