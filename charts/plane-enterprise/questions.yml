@@ -58,7 +58,7 @@ questions:
     description: "Used by API, Worker, Beat-Worker"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
-    type: string
+    type: storageclass
     default: "longhorn"
 
 - variable: license.licenseServer
