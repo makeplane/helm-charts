@@ -528,7 +528,7 @@ questions:
   - variable: ingress.minioHost
     label: "Minio Host"
     type: string
-    default: "plane-minio.example.com"
+    default: ""
     show_if: "services.minio.local_setup=true"
   - variable: ingress.rabbitmqHost
     label: "Rabbitmq Host"
