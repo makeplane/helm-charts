@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.2.0
+  default: v1.5.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -96,164 +96,169 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  - variable: services.space.pullPolicy
-    label: "Space Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "Always"
-    group: "Spaces Setup"
-    subquestions:
-    - variable: services.space.replicas
-      label: "Default Replica Count"
-      type: int
-      default: 1
-    - variable: services.space.memoryLimit
-      label: "Memory Limit"
-      type: string
-      default: 1000Mi
-    - variable: services.space.cpuLimit
-      label: "CPU Limit"
-      type: string
-      default: 500m
-    - variable: services.space.assign_cluster_ip
-      label: "Assign Cluster IP"
-      type: boolean
-      default: false
-  - variable: services.admin.pullPolicy
-    label: "Admin Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "Always"
-    group: "Admin Setup"
-    subquestions:
-    - variable: services.admin.replicas
-      label: "Default Replica Count"
-      type: int
-      default: 1
-    - variable: services.admin.memoryLimit
-      label: "Memory Limit"
-      type: string
-      default: 1000Mi
-    - variable: services.admin.cpuLimit
-      label: "CPU Limit"
-      type: string
-      default: 500m
-    - variable: services.admin.assign_cluster_ip
-      label: "Assign Cluster IP"
-      type: boolean
-      default: false
-  - variable: services.live.pullPolicy
-    label: "Live Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "Always"
-    group: "Live Setup"
-    subquestions:
-    - variable: services.live.replicas
-      label: "Default Replica Count"
-      type: int
-      default: 1
-    - variable: services.live.memoryLimit
-      label: "Memory Limit"
-      type: string
-      default: 1000Mi
-    - variable: services.live.cpuLimit
-      label: "CPU Limit"
-      type: string
-      default: 500m
-    - variable: services.live.assign_cluster_ip
-      label: "Assign Cluster IP"
-      type: boolean
-      default: false
-    - variable: env.live_sentry_dsn
-      label: "Sentry DSN"
-      type: string
-      default: ""
-    - variable: env.live_sentry_environment
-      label: "Sentry Environment"
-      type: string
-      default: "Development"
-    - variable: env.live_sentry_traces_sample_rate
-      label: "Sentry Traces Sample Rate"
-      type: string
-  - variable: services.monitor.pullPolicy
-    label: "Monitor Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "Always"
-    group: "Monitor Setup"
-    subquestions:
-    - variable: services.monitor.memoryLimit
-      label: "Memory Limit"
-      type: string
-      default: 1000Mi
-    - variable: services.monitor.cpuLimit
-      label: "CPU Limit"
-      type: string
-      default: 500m
-    - variable: services.monitor.volumeSize
-      label: "Volume Size"
-      type: string
-      default: "100Mi"
-    - variable: services.monitor.assign_cluster_ip
-      label: "Assign Cluster IP"
-      type: boolean
-      default: false
-  - variable: services.api.pullPolicy
-    label: "API Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "Always"
-    group: "API Setup"
-    subquestions:
-    - variable: services.api.replicas
-      label: "Default Replica Count"
-      type: int
-      default: 1
-    - variable: services.api.memoryLimit
-      label: "Memory Limit"
-      type: string
-      default: 1000Mi
-    - variable: services.api.cpuLimit
-      label: "CPU Limit"
-      type: string
-      default: 500m
-    - variable: services.api.assign_cluster_ip
-      label: "Assign Cluster IP"
-      type: boolean
-      default: false
-    - variable: env.cors_allowed_origins
-      label: "CORS Allowed Origins"
-      type: string
-      default: ""
-    - variable: env.sentry_dsn
-      label: "Sentry DSN"
-      type: string
-      default: ""
-    - variable: env.sentry_environment
-      label: "Sentry Environment"
-      type: string
-      default: "Development"
-    - variable: env.secret_key
-      label: "Random Secret Key"
-      type: string
-      required: true
-      default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+
+- variable: services.space.pullPolicy
+  label: "Space Pull Policy"
+  type: enum
+  options:
+  - "Always"
+  - "IfNotPresent"
+  - "Never"
+  default: "Always"
+  group: "Spaces Setup"
+  subquestions:
+  - variable: services.space.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.space.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.space.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.space.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
+- variable: services.admin.pullPolicy
+  label: "Admin Pull Policy"
+  type: enum
+  options:
+  - "Always"
+  - "IfNotPresent"
+  - "Never"
+  default: "Always"
+  group: "Admin Setup"
+  subquestions:
+  - variable: services.admin.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.admin.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.admin.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.admin.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
+- variable: services.live.pullPolicy
+  label: "Live Pull Policy"
+  type: enum
+  options:
+  - "Always"
+  - "IfNotPresent"
+  - "Never"
+  default: "Always"
+  group: "Live Setup"
+  subquestions:
+  - variable: services.live.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.live.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.live.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.live.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.live_sentry_dsn
+    label: "Sentry DSN"
+    type: string
+    default: ""
+  - variable: env.live_sentry_environment
+    label: "Sentry Environment"
+    type: string
+    default: "Development"
+  - variable: env.live_sentry_traces_sample_rate
+    label: "Sentry Traces Sample Rate"
+    type: string
+
+- variable: services.monitor.pullPolicy
+  label: "Monitor Pull Policy"
+  type: enum
+  options:
+  - "Always"
+  - "IfNotPresent"
+  - "Never"
+  default: "Always"
+  group: "Monitor Setup"
+  subquestions:
+  - variable: services.monitor.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.monitor.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.monitor.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "100Mi"
+  - variable: services.monitor.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
+- variable: services.api.pullPolicy
+  label: "API Pull Policy"
+  type: enum
+  options:
+  - "Always"
+  - "IfNotPresent"
+  - "Never"
+  default: "Always"
+  group: "API Setup"
+  subquestions:
+  - variable: services.api.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.cors_allowed_origins
+    label: "CORS Allowed Origins"
+    type: string
+    default: ""
+  - variable: env.sentry_dsn
+    label: "Sentry DSN"
+    type: string
+    default: ""
+  - variable: env.sentry_environment
+    label: "Sentry Environment"
+    type: string
+    default: "Development"
+  - variable: env.secret_key
+    label: "Random Secret Key"
+    type: string
+    required: true
+    default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
 
 - variable: services.worker.replicas
   label: "Default Replica Count"
