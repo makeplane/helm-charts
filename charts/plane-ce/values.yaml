@@ -38,7 +38,6 @@ postgres:
   local_setup: true
   image: postgres:15.7-alpine
   servicePort: 5432
-  cliConnectPort: ""
   storageClass: longhorn
   volumeSize: 1Gi
   pullPolicy: IfNotPresent

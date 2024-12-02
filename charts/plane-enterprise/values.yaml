@@ -40,7 +40,6 @@ services:
     local_setup: true
     image: registry.plane.tools/plane/postgres:15.7-alpine
     servicePort: 5432
-    cliConnectPort: ''
     volumeSize: 2Gi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false

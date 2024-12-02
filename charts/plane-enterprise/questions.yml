@@ -339,6 +339,11 @@ questions:
   group: "Postgres Setup"
   # show_subquestion_if: true
   subquestions:
+  - variable: services.postgres.image
+    label: "Docker Image"
+    type: string
+    default: "registry.plane.tools/plane/postgres:15.7-alpine"
+    show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.pullPolicy
     label: "Postgres Pull Policy"
     type: enum
@@ -347,20 +352,13 @@ questions:
     - "IfNotPresent"
     - "Never"
     default: "IfNotPresent"
-  - variable: services.postgres.image
-    label: "Docker Image"
-    type: string
-    default: "registry.plane.tools/plane/postgres:15.7-alpine"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.servicePort
     label: Service Port
     type: int
     default: 5432
     show_if: "services.postgres.local_setup=true"
-  - variable: services.postgres.cliConnectPort
-    label: CLI Connect Port
-    type: int
-    show_if: "services.postgres.local_setup=true"
+  
   - variable: services.postgres.volumeSize
     label: "Volume Size"
     type: string

@@ -317,10 +317,6 @@ questions:
     type: int
     default: 5432
     show_if: "postgres.local_setup=true"
-  - variable: postgres.cliConnectPort
-    label: CLI Connect Port
-    type: int
-    show_if: "postgres.local_setup=true"
   - variable: postgres.storageClass
     label: "Storage Class"
     type: string
