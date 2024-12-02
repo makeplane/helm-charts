@@ -9,8 +9,8 @@ dockerRegistry:
 ingress:
   enabled: true
   appHost: "plane.example.com"
-  minioHost: "plane-minio.example.com"
-  rabbitmqHost: "plane-rabbitmq.example.com"
+  minioHost: ""
+  rabbitmqHost: ""
   ingressClass: "nginx"
   ingress_annotations: {
     "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
@@ -38,7 +38,6 @@ postgres:
   local_setup: true
   image: postgres:15.7-alpine
   servicePort: 5432
-  cliConnectPort: ""
   storageClass: longhorn
   volumeSize: 1Gi
   pullPolicy: IfNotPresent

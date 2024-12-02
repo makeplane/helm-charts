@@ -16,6 +16,7 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
+ 
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
@@ -37,7 +38,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: web.replicas
     label: "Default Replica Count"
     type: int
@@ -69,7 +70,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: space.replicas
     label: "Default Replica Count"
     type: int
@@ -101,7 +102,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: admin.replicas
     label: "Default Replica Count"
     type: int
@@ -134,7 +135,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: live.replicas
     label: "Default Replica Count"
     type: int
@@ -151,7 +152,6 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -180,7 +180,7 @@ questions:
     - "Always"
     - "IfNotPresent"
     - "Never"
-    default: "IfNotPresent"
+    default: "Always"
   - variable: api.replicas
     label: "Default Replica Count"
     type: int
@@ -214,8 +214,6 @@ questions:
     type: string
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
-    subquestions:
-
 
 - variable: worker.replicas
   label: "Default Replica Count"
@@ -253,6 +251,14 @@ questions:
   default: true
   group: "Redis Setup"
   subquestions:
+  - variable: redis.pullPolicy
+    label: "Redis Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: redis.image
     label: "Docker Image"
     type: string
@@ -265,8 +271,7 @@ questions:
     show_if: "redis.local_setup=true"
   - variable: redis.storageClass
     label: "Storage Class"
-    type: string
-    default: "longhorn"
+    type: storageclass
     show_if: "redis.local_setup=true"
   - variable: redis.volumeSize
     label: "Volume Size"
@@ -291,6 +296,14 @@ questions:
   group: "Postgres Setup"
   # show_subquestion_if: true
   subquestions:
+  - variable: postgres.pullPolicy
+    label: "Postgres Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: postgres.image
     label: "Docker Image"
     type: string
@@ -301,14 +314,9 @@ questions:
     type: int
     default: 5432
     show_if: "postgres.local_setup=true"
-  - variable: postgres.cliConnectPort
-    label: CLI Connect Port
-    type: int
-    show_if: "postgres.local_setup=true"
   - variable: postgres.storageClass
     label: "Storage Class"
-    type: string
-    default: "longhorn"
+    type: storageclass
     show_if: "postgres.local_setup=true"
   - variable: postgres.volumeSize
     label: "Volume Size"
@@ -378,8 +386,7 @@ questions:
     show_if: "rabbitmq.local_setup=true"
   - variable: rabbitmq.storageClass
     label: "Storage Class"
-    type: string
-    default: "longhorn"
+    type: storageclass
     show_if: "rabbitmq.local_setup=true"
   - variable: rabbitmq.volumeSize
     label: "Volume Size"
@@ -407,6 +414,14 @@ questions:
   default: true
   group: "Storage Setup"
   subquestions:
+  - variable: minio.pullPolicy
+    label: "Minio Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
   - variable: minio.image
     label: "Docker Image"
     type: string
@@ -429,8 +444,7 @@ questions:
     show_if: "minio.local_setup=true"
   - variable: minio.storageClass
     label: "Storage Class"
-    type: string
-    default: "longhorn"
+    type: storageclass
     show_if: "minio.local_setup=true"
   - variable: minio.volumeSize
     label: "Volume Size"
@@ -486,12 +500,12 @@ questions:
   - variable: ingress.minioHost
     label: "Minio Host"
     type: string
-    default: "plane-minio.example.com"
+    default: ""
     show_if: "minio.local_setup=true"
   - variable: ingress.rabbitmqHost
     label: "Rabbitmq Host"
     type: string
-    default: "plane-rabbitmq.example.com"
+    default: ""
     show_if: "rabbitmq.local_setup=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
