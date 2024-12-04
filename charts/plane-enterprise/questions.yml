@@ -58,7 +58,6 @@ questions:
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
-    default: ""
 
 - variable: license.licenseServer
   label: "License Server"

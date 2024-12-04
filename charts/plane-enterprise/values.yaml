@@ -130,7 +130,7 @@ env:
   pgdb_name: plane
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
 
-  storageClass: longhorn
+  storageClass: ''
 
   # NEXT_PUBLIC_DEPLOY_URL:  ''
   # REDIS
