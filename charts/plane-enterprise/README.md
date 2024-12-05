@@ -46,7 +46,7 @@
 
         > This is the basic setup required for Plane-EE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.<br>
 
-        **Using a Custom StorageClass**
+        Using a Custom StorageClass
 
         To specify a custom StorageClass for Plane-Enterprise components, add the following options to the above `helm upgrade --install` command:
         ```bash
@@ -271,7 +271,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| env.storageClass | &lt;default-sc-on-k8s-cluster&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
   
 ## Custom Ingress Routes
