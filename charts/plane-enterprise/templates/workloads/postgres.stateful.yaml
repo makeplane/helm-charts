@@ -19,31 +19,6 @@ spec:
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
 ---
-{{- if and .Values.services.postgres.cliConnectPort .Values.services.postgres.cliConnectPort | int }}
-apiVersion: v1
-kind: Service
-metadata:
-  namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-pgdb-cli-connect
-spec:
-  externalTrafficPolicy: Cluster
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-    - IPv4
-  ipFamilyPolicy: SingleStack
-  ports:
-    - name: pg-{{ .Values.services.postgres.cliConnectPort | default 30000 }}
-      nodePort: {{ .Values.services.postgres.cliConnectPort | default 30000 }}
-      port: 5432
-      protocol: TCP
-      targetPort: 5432
-  selector:
-    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
-  sessionAffinity: None
-  type: NodePort
----
-{{- end }}
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -61,7 +36,7 @@ spec:
     spec:
       containers:
       - image: {{ .Values.services.postgres.image }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.services.postgres.pullPolicy | default "IfNotPresent" }}
         name: {{ .Release.Name }}-pgdb
         stdin: true
         tty: true

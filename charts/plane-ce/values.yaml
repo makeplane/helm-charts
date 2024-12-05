@@ -9,8 +9,8 @@ dockerRegistry:
 ingress:
   enabled: true
   appHost: "plane.example.com"
-  minioHost: "plane-minio.example.com"
-  rabbitmqHost: "plane-rabbitmq.example.com"
+  minioHost: ""
+  rabbitmqHost: ""
   ingressClass: "nginx"
   ingress_annotations: {
     "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
@@ -29,17 +29,16 @@ redis:
   local_setup: true
   image: valkey/valkey:7.2.5-alpine
   servicePort: 6379
-  storageClass: longhorn
+  storageClass: ""
   volumeSize: 100Mi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
 
 postgres:
   local_setup: true
-  image: postgres:15.5-alpine
+  image: postgres:15.7-alpine
   servicePort: 5432
-  cliConnectPort: ""
-  storageClass: longhorn
+  storageClass: ""
   volumeSize: 1Gi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
@@ -50,7 +49,7 @@ rabbitmq:
   pullPolicy: IfNotPresent
   servicePort: 5672
   managementPort: 15672
-  storageClass: longhorn
+  storageClass: ""
   volumeSize: 100Mi
   default_user: plane
   default_password: plane
@@ -59,11 +58,12 @@ rabbitmq:
 
 minio:
   image: minio/minio:latest
+  image_mc: minio/mc:latest
   local_setup: true
   pullPolicy: IfNotPresent
   root_password: password
   root_user: admin
-  storageClass: longhorn
+  storageClass: ""
   volumeSize: 1Gi
   assign_cluster_ip: false
 
