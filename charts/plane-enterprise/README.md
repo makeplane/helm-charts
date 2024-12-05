@@ -26,7 +26,7 @@
   4. Set-up and customization
       - Quick set-up
 
-        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Redis/Valkey, and Minio with a persistent volume claim using the `longhorn` storage class. This also sets up the ingress routes for you using `nginx` ingress class.
+        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class.This also sets up the ingress routes for you using `nginx` ingress class.
         > To customize this, see `Custom ingress routes` below.
 
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
@@ -39,16 +39,21 @@
             --set planeVersion=${PLANE_VERSION} \
             --set ingress.enabled=true \
             --set ingress.ingressClass=nginx \
-            --set env.storageClass=longhorn \
             --timeout 10m \
             --wait \
             --wait-for-jobs
         ```
 
-        > This is the minimum required to set up Plane Enterprise. You can change the default namespace from `plane`, the default appname
-        from `plane-app`, the default storage class from `longhorn`, and the default ingress class from `nginx` to 
-        whatever you would like to.<br> <br>
-        You can also pass other settings referring to `Configuration Settings` section.
+        > This is the basic setup required for Plane-EE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.<br>
+
+        Using a Custom StorageClass
+
+        To specify a custom StorageClass for Plane-Enterprise components, add the following options to the above `helm upgrade --install` command:
+        ```bash
+        --set env.storageClass=<your-storageclass-name>
+        ```
+
+        
 
       - Advance set-up
 
@@ -64,7 +69,7 @@
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `ingress.enabled: <true | false>`
           - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
-          - `env.storageClass: <longhorn or any other storage class configured in your cluster>`
+          - `env.storageClass: <default storage class configured in your cluster>`
 
             > See `Available customizations` for more details.
 
@@ -266,7 +271,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| env.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
   
 ## Custom Ingress Routes

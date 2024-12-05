@@ -15,7 +15,7 @@
   1. Set-up and customization
 
       - Quick set-up<br>
-        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Redis, and Minio with a persistent volume claim using the `longhorn` storage class. This also sets up the ingress routes for you using `nginx` ingress class.
+        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis, and Minio with a persistent volume claim using the default storage class. This also sets up the ingress routes for you using `nginx` ingress class.
         > To customize this, see `Custom ingress routes` below.
 
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
@@ -29,19 +29,22 @@
               --set ingress.minioHost="plane-minio.example.com" \
               --set ingress.rabbitmqHost="plane-mq.example.com" \
               --set ingress.ingressClass=nginx \
-              --set postgres.storageClass=longhorn \
-              --set redis.storageClass=longhorn \
-              --set minio.storageClass=longhorn \
-              --set rabbitmq.storageClass=longhorn \
               --timeout 10m \
               --wait \
               --wait-for-jobs
           ```
 
-        > This is the minimum required to set up Plane-CE. You can change the default namespace from `plane-ce`, the default appname
-        from `plane-app`, the default storage class from `[postgres, redis, minio].storageClass`, and the default ingress class from `ingress.ingressClass` to whatever you would like to.<br> <br>
-        You can also pass other settings referring to `Configuration Settings` section.
+        > This is the basic setup required for Plane-CE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.<br>
 
+        Using a Custom StorageClass
+
+        To specify a custom StorageClass for Plane-CE components, add the following options to the above `helm upgrade --install` command:
+        ```bash
+        --set postgres.storageClass=<your-storageclass-name>
+        --set redis.storageClass=<your-storageclass-name>
+        --set minio.storageClass=<your-storageclass-name>
+        --set rabbitmq.storageClass=<your-storageclass-name>
+        ```
       - Advance set-up<br>
         For more control over your set-up, run the script below to download the `values.yaml` file and and edit using any editor like Vim or Nano. 
 
@@ -85,7 +88,7 @@
 | env.pgdb_password | plane |  | Database credentials are requried to access the hosted stateful deployment of `postgres`.  Use this key to set the password for the stateful deployment. |
 | env.pgdb_name | plane |  |  Database name to be used while setting up stateful deployment of `Postgres`|
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `postgres.local_setup` to `false` and set this key with remote connection url. |
-| postgres.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| postgres.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Redis/Valkey Setup
@@ -98,7 +101,7 @@
 | redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
 | redis.volumeSize | 1Gi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `redis.local_setup` to `false` and set this key with remote connection url. |
-| redis.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| redis.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 
@@ -112,7 +115,7 @@
 | rabbitmq.servicePort | 5672 |  | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`. |
 | rabbitmq.managementPort | 15672 |  | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`. |
 | rabbitmq.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| rabbitmq.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| rabbitmq.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -135,7 +138,7 @@
 | env.aws_secret_access_key |  |  | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | env.aws_region |  |  | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
-| minio.storageClass | longhorn |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
+| minio.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Web Deployment
