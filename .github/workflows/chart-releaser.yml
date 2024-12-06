@@ -99,7 +99,7 @@ jobs:
           echo "PAGES_INDEX_PATH=${flatBranchName}" >> $GITHUB_ENV
 
       - name: Release Charts
-        uses: mguptahub/chart-releaser-action@v1.6.2
+        uses: makeplane/helm-chart-releaser-action@v1.7.0-plane
         with:
           charts_dir: charts
           config: cr.yaml
