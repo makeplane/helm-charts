@@ -97,6 +97,30 @@ questions:
     type: boolean
     default: false
 
+- variable: services.web.hpa.enabled
+  label: "Enable HPA for Web"
+  group: "Web Setup"
+  type: boolean
+  default: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.web.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+  - variable: services.web.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 10
+  - variable: services.web.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+  - variable: services.web.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+
 - variable: services.space.pullPolicy
   label: "Space Pull Policy"
   type: enum
@@ -124,6 +148,30 @@ questions:
     type: boolean
     default: false
 
+- variable: services.space.hpa.enabled
+  label: "Enable HPA for Space"
+  group: "Spaces Setup"
+  type: boolean
+  default: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.space.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+  - variable: services.space.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 10
+  - variable: services.space.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+  - variable: services.space.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+
 - variable: services.admin.pullPolicy
   label: "Admin Pull Policy"
   type: enum
@@ -150,6 +198,30 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+
+- variable: services.admin.hpa.enabled
+  label: "Enable HPA for Admin"
+  group: "Admin Setup"
+  type: boolean
+  default: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.admin.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+  - variable: services.admin.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 10
+  - variable: services.admin.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+  - variable: services.admin.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
 
 - variable: services.live.pullPolicy
   label: "Live Pull Policy"
@@ -189,6 +261,30 @@ questions:
     label: "Sentry Traces Sample Rate"
     type: string
 
+- variable: services.live.hpa.enabled
+  label: "Enable HPA for Live"
+  group: "Live Setup"
+  type: boolean
+  default: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.live.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+  - variable: services.live.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 10
+  - variable: services.live.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+  - variable: services.live.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+
 - variable: services.monitor.pullPolicy
   label: "Monitor Pull Policy"
   type: enum
@@ -215,6 +311,30 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+
+- variable: services.monitor.hpa.enabled
+  label: "Enable HPA for Monitor"
+  group: "Monitor Setup"
+  type: boolean
+  default: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.monitor.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+  - variable: services.monitor.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 10
+  - variable: services.monitor.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+  - variable: services.monitor.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
 
 - variable: services.api.pullPolicy
   label: "API Pull Policy"
