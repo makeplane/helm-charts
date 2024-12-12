@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "planeVersion": {
+      "type": "string",
+      "description": "Version of Plane Enterprise"
+    },
+    "dockerRegistry": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable custom docker registry"
+        },
+        "registry": {
+          "type": "string",
+          "description": "Docker registry host"
+        },
+        "loginid": {
+          "type": "string",
+          "description": "Docker registry login ID"
+        },
+        "password": {
+          "type": "string",
+          "description": "Docker registry password"
+        }
+      }
+    },
+    "license": {
+      "type": "object",
+      "properties": {
+        "licenseServer": {
+          "type": "string",
+          "description": "License server URL"
+        },
+        "licenseDomain": {
+          "type": "string",
+          "description": "Domain for license validation"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable ingress"
+        },
+        "minioHost": {
+          "type": "string",
+          "description": "Minio host for ingress"
+        },
+        "rabbitmqHost": {
+          "type": "string",
+          "description": "RabbitMQ host for ingress"
+        },
+        "ingressClass": {
+          "type": "string",
+          "description": "Ingress class name"
+        },
+        "ingress_annotations": {
+          "type": "object",
+          "description": "Ingress annotations"
+        }
+      }
+    },
+    "ssl": {
+      "type": "object",
+      "properties": {
+        "createIssuer": {
+          "type": "boolean",
+          "description": "Create SSL certificate issuer"
+        },
+        "issuer": {
+          "type": "string",
+          "enum": ["cloudflare", "digitalocean", "http"],
+          "description": "SSL certificate issuer type"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token for SSL certificate issuer"
+        },
+        "server": {
+          "type": "string",
+          "description": "ACME server URL"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email for SSL certificate"
+        },
+        "generateCerts": {
+          "type": "boolean",
+          "description": "Generate SSL certificates"
+        }
+      }
+    },
+    "services": {
+      "type": "object",
+      "properties": {
+        "redis": {
+          "type": "object",
+          "properties": {
+            "local_setup": {
+              "type": "boolean",
+              "description": "Use local Redis setup"
+            },
+            "image": {
+              "type": "string",
+              "description": "Redis image"
+            },
+            "servicePort": {
+              "type": "integer",
+              "description": "Redis service port"
+            },
+            "volumeSize": {
+              "type": "string",
+              "description": "Volume size for Redis PVC"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            },
+            "assign_cluster_ip": {
+              "type": "boolean",
+              "description": "Assign cluster IP to Redis service"
+            }
+          }
+        },
+        "postgres": {
+          "type": "object",
+          "properties": {
+            "local_setup": {
+              "type": "boolean",
+              "description": "Use local PostgreSQL setup"
+            },
+            "image": {
+              "type": "string",
+              "description": "PostgreSQL image"
+            },
+            "servicePort": {
+              "type": "integer",
+              "description": "PostgreSQL service port"
+            },
+            "volumeSize": {
+              "type": "string",
+              "description": "Volume size for PostgreSQL PVC"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            },
+            "assign_cluster_ip": {
+              "type": "boolean",
+              "description": "Assign cluster IP to PostgreSQL service"
+            }
+          }
+        },
+        "rabbitmq": {
+          "type": "object",
+          "properties": {
+            "local_setup": {
+              "type": "boolean",
+              "description": "Use local RabbitMQ setup"
+            },
+            "image": {
+              "type": "string",
+              "description": "RabbitMQ image"
+            },
+            "servicePort": {
+              "type": "integer",
+              "description": "RabbitMQ service port"
+            },
+            "managementPort": {
+              "type": "integer",
+              "description": "RabbitMQ management port"
+            },
+            "volumeSize": {
+              "type": "string",
+              "description": "Volume size for RabbitMQ PVC"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            },
+            "default_user": {
+              "type": "string",
+              "description": "Default RabbitMQ user"
+            },
+            "default_password": {
+              "type": "string",
+              "description": "Default RabbitMQ password"
+            },
+            "external_rabbitmq_url": {
+              "type": "string",
+              "description": "External RabbitMQ URL"
+            },
+            "assign_cluster_ip": {
+              "type": "boolean",
+              "description": "Assign cluster IP to RabbitMQ service"
+            }
+          }
+        },
+        "minio": {
+          "type": "object",
+          "properties": {
+            "local_setup": {
+              "type": "boolean",
+              "description": "Use local MinIO setup"
+            },
+            "image": {
+              "type": "string",
+              "description": "MinIO image"
+            },
+            "image_mc": {
+              "type": "string",
+              "description": "MinIO client image"
+            },
+            "volumeSize": {
+              "type": "string",
+              "description": "Volume size for MinIO PVC"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            },
+            "root_user": {
+              "type": "string",
+              "description": "MinIO root user"
+            },
+            "root_password": {
+              "type": "string",
+              "description": "MinIO root password"
+            },
+            "assign_cluster_ip": {
+              "type": "boolean",
+              "description": "Assign cluster IP to MinIO service"
+            }
+          }
+        },
+        "web": {
+          "type": "object",
+          "properties": {
+            "replicas": {
+              "type": "integer",
+              "description": "Number of web service replicas"
+            },
+            "memoryLimit": {
+              "type": "string",
+              "description": "Memory limit for web service"
+            },
+            "cpuLimit": {
+              "type": "string",
+              "description": "CPU limit for web service"
+            },
+            "image": {
+              "type": "string",
+              "description": "Web service image"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            },
+            "assign_cluster_ip": {
+              "type": "boolean",
+              "description": "Assign cluster IP to web service"
+            },
+            "hpa": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable Horizontal Pod Autoscaling"
+                },
+                "minReplicas": {
+                  "type": "integer",
+                  "description": "Minimum number of replicas"
+                },
+                "maxReplicas": {
+                  "type": "integer",
+                  "description": "Maximum number of replicas"
+                },
+                "targetCPUUtilizationPercentage": {
+                  "type": "integer",
+                  "description": "Target CPU utilization percentage"
+                },
+                "targetMemoryUtilizationPercentage": {
+                  "type": "integer",
+                  "description": "Target memory utilization percentage"
+                }
+              }
+            }
+          }
+        },
+        "monitor": {
+          "type": "object",
+          "properties": {
+            "memoryLimit": {
+              "type": "string",
+              "description": "Memory limit for monitor service"
+            },
+            "cpuLimit": {
+              "type": "string",
+              "description": "CPU limit for monitor service"
+            },
+            "image": {
+              "type": "string",
+              "description": "Monitor service image"
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            },
+            "volumeSize": {
+              "type": "string",
+              "description": "Volume size for monitor service"
+            },
+            "assign_cluster_ip": {
+              "type": "boolean",
+              "description": "Assign cluster IP to monitor service"
+            },
+            "hpa": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Enable Horizontal Pod Autoscaling"
+                },
+                "minReplicas": {
+                  "type": "integer",
+                  "description": "Minimum number of replicas"
+                },
+                "maxReplicas": {
+                  "type": "integer",
+                  "description": "Maximum number of replicas"
+                },
+                "targetCPUUtilizationPercentage": {
+                  "type": "integer",
+                  "description": "Target CPU utilization percentage"
+                },
+                "targetMemoryUtilizationPercentage": {
+                  "type": "integer",
+                  "description": "Target memory utilization percentage"
+                }
+              }
+            }
+          }
+        },
+        "space": {
+          "type": "object",
+          "properties": {
+            "replicas": {
+              "type": "integer",
+              "description": "Number of space service replicas"
+            },
+            "memoryLimit": {
+              "type": "string",
+              "description": "Memory limit for space service"
+            },
+            "cpuLimit": {
+              "type": "string",
+              "description": "CPU limit for space service"
+            },
+            "image": {
+              "type": "string",
+              "description": "Space service image"
+            }
+          }
+        }
+      }
+    }
+  }
+}
