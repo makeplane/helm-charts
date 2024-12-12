@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "dockerRegistry": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "Docker registry host"
+        },
+        "loginid": {
+          "type": "string",
+          "description": "Docker registry login ID"
+        },
+        "password": {
+          "type": "string",
+          "description": "Docker registry password"
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable ingress"
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Ingress annotations"
+        },
+        "ingressClassName": {
+          "type": "string",
+          "description": "Ingress class name"
+        },
+        "host": {
+          "type": "string",
+          "description": "Ingress host"
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable TLS"
+            },
+            "email": {
+              "type": "string",
+              "description": "Email for TLS certificate"
+            },
+            "generateCerts": {
+              "type": "boolean",
+              "description": "Generate TLS certificates"
+            }
+          }
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "properties": {
+        "local_setup": {
+          "type": "boolean",
+          "description": "Use local Redis setup"
+        },
+        "image": {
+          "type": "string",
+          "description": "Redis image"
+        },
+        "servicePort": {
+          "type": "integer",
+          "description": "Redis service port"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Storage class for Redis PVC"
+        },
+        "volumeSize": {
+          "type": "string",
+          "description": "Volume size for Redis PVC"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "assign_cluster_ip": {
+          "type": "boolean",
+          "description": "Assign cluster IP to Redis service"
+        }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "properties": {
+        "local_setup": {
+          "type": "boolean",
+          "description": "Use local PostgreSQL setup"
+        },
+        "image": {
+          "type": "string",
+          "description": "PostgreSQL image"
+        },
+        "servicePort": {
+          "type": "integer",
+          "description": "PostgreSQL service port"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Storage class for PostgreSQL PVC"
+        },
+        "volumeSize": {
+          "type": "string",
+          "description": "Volume size for PostgreSQL PVC"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "assign_cluster_ip": {
+          "type": "boolean",
+          "description": "Assign cluster IP to PostgreSQL service"
+        }
+      }
+    },
+    "rabbitmq": {
+      "type": "object",
+      "properties": {
+        "local_setup": {
+          "type": "boolean",
+          "description": "Use local RabbitMQ setup"
+        },
+        "image": {
+          "type": "string",
+          "description": "RabbitMQ image"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "servicePort": {
+          "type": "integer",
+          "description": "RabbitMQ service port"
+        },
+        "managementPort": {
+          "type": "integer",
+          "description": "RabbitMQ management port"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Storage class for RabbitMQ PVC"
+        },
+        "volumeSize": {
+          "type": "string",
+          "description": "Volume size for RabbitMQ PVC"
+        },
+        "default_user": {
+          "type": "string",
+          "description": "RabbitMQ default user"
+        },
+        "default_password": {
+          "type": "string",
+          "description": "RabbitMQ default password"
+        },
+        "external_rabbitmq_url": {
+          "type": "string",
+          "description": "External RabbitMQ URL"
+        },
+        "assign_cluster_ip": {
+          "type": "boolean",
+          "description": "Assign cluster IP to RabbitMQ service"
+        }
+      }
+    },
+    "minio": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "MinIO image"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "root_password": {
+          "type": "string",
+          "description": "MinIO root password"
+        },
+        "root_user": {
+          "type": "string",
+          "description": "MinIO root user"
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "Storage class for MinIO PVC"
+        },
+        "volumeSize": {
+          "type": "string",
+          "description": "Volume size for MinIO PVC"
+        },
+        "assign_cluster_ip": {
+          "type": "boolean",
+          "description": "Assign cluster IP to MinIO service"
+        }
+      }
+    },
+    "web": {
+      "type": "object",
+      "properties": {
+        "hpa": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable HPA for web"
+            },
+            "minReplicas": {
+              "type": "integer",
+              "description": "Minimum replicas for web"
+            },
+            "maxReplicas": {
+              "type": "integer",
+              "description": "Maximum replicas for web"
+            },
+            "targetCPUUtilizationPercentage": {
+              "type": "integer",
+              "description": "Target CPU utilization percentage"
+            }
+          }
+        },
+        "replicas": {
+          "type": "integer",
+          "description": "Number of web replicas"
+        },
+        "memoryLimit": {
+          "type": "string",
+          "description": "Memory limit for web"
+        },
+        "cpuLimit": {
+          "type": "string",
+          "description": "CPU limit for web"
+        },
+        "image": {
+          "type": "string",
+          "description": "Web image"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "assign_cluster_ip": {
+          "type": "boolean",
+          "description": "Assign cluster IP to web service"
+        }
+      }
+    },
+    "space": {
+      "$ref": "#/properties/web",
+      "description": "Space service configuration"
+    },
+    "admin": {
+      "$ref": "#/properties/web",
+      "description": "Admin service configuration"
+    },
+    "live": {
+      "$ref": "#/properties/web",
+      "description": "Live service configuration"
+    },
+    "api": {
+      "type": "object",
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "description": "Number of API replicas"
+        },
+        "memoryLimit": {
+          "type": "string",
+          "description": "Memory limit for API"
+        },
+        "cpuLimit": {
+          "type": "string",
+          "description": "CPU limit for API"
+        },
+        "image": {
+          "type": "string",
+          "description": "API image"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Image pull policy"
+        },
+        "assign_cluster_ip": {
+          "type": "boolean",
+          "description": "Assign cluster IP to API service"
+        }
+      }
+    },
+    "worker": {
+      "$ref": "#/properties/api",
+      "description": "Worker service configuration"
+    },
+    "beatworker": {
+      "$ref": "#/properties/api",
+      "description": "Beat worker service configuration"
+    },
+    "env": {
+      "type": "object",
+      "properties": {
+        "pgdb_username": {
+          "type": "string",
+          "description": "PostgreSQL database username"
+        }
+      }
+    }
+  }
+}
