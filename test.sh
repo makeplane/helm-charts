@@ -21,6 +21,64 @@ cat <<"EOF"
 EOF
 }
 
+function openFile() {
+    local file_path="${1:-.}"
+    
+    # Function to check process ancestry for editor names
+    check_parent_process() {
+        local pid=$1
+        local count=0
+        while [ $count -lt 10 ]; do  # Check up to 10 levels up
+            local parent_cmd=$(ps -p $pid -o comm=)
+            if echo "$parent_cmd" | grep -qi "cursor"; then
+                echo "cursor"
+                return 0
+            elif echo "$parent_cmd" | grep -qi "windsurf"; then
+                echo "windsurf"
+                return 0
+            elif echo "$parent_cmd" | grep -qi "code"; then
+                echo "code"
+                return 0
+            fi
+            
+            # Get parent PID
+            pid=$(ps -p $pid -o ppid=)
+            if [ $pid -le 1 ]; then
+                break
+            fi
+            ((count++))
+        done
+        echo "unknown"
+    }
+
+    # Get the editor from process tree
+    local current_editor=$(check_parent_process $$)
+    
+    case "$current_editor" in
+        "cursor")
+            cursor "$file_path"
+            ;;
+        "windsurf")
+            windsurf "$file_path"
+            ;;
+        "code")
+            code "$file_path"
+            ;;
+        *)
+            # Fallback to checking installed editors
+            if command -v cursor &> /dev/null; then
+                cursor "$file_path"
+            elif command -v windsurf &> /dev/null; then
+                windsurf "$file_path"
+            elif command -v code &> /dev/null; then
+                code "$file_path"
+            else
+                echo "No compatible text editor found. Please install VS Code, Windsurf, or Cursor."
+                return 1
+            fi
+            ;;
+    esac
+}
 
 HELM_CHART=$(dialog \
     --backtitle "Helm Chart Testing"  \
@@ -37,6 +95,7 @@ if [ "$HELM_CHART" == "1" ]; then
     if [ $? -eq 0 ]; then
         clear
         printSuccess
+        openFile test-ce.yaml
     else
         printFailed
     fi
@@ -45,7 +104,7 @@ elif [ "$HELM_CHART" == "2" ]; then
     if [ $? -eq 0 ]; then
         clear
         printSuccess
-        code test-enterprise.yaml
+        openFile test-enterprise.yaml
     else
         printFailed
     fi
