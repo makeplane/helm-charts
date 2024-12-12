@@ -68,6 +68,12 @@ minio:
   assign_cluster_ip: false
 
 web:
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
@@ -76,6 +82,12 @@ web:
   assign_cluster_ip: false
 
 space:
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
@@ -84,6 +96,12 @@ space:
   assign_cluster_ip: false
 
 admin:
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
@@ -92,6 +110,12 @@ admin:
   assign_cluster_ip: false
 
 live:
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
@@ -153,4 +177,3 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
-

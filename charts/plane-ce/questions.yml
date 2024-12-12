@@ -43,6 +43,30 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
+  - variable: web.hpa.enabled
+    label: "Enable HPA"
+    type: boolean
+    default: true
+  - variable: web.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+    show_if: "web.hpa.enabled=true"
+  - variable: web.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 3
+    show_if: "web.hpa.enabled=true"
+  - variable: web.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+    show_if: "web.hpa.enabled=true"
+  - variable: web.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+    show_if: "web.hpa.enabled=true"
   - variable: web.memoryLimit
     label: "Memory Limit"
     type: string
@@ -75,6 +99,30 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
+  - variable: space.hpa.enabled
+    label: "Enable HPA"
+    type: boolean
+    default: true
+  - variable: space.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+    show_if: "space.hpa.enabled=true"
+  - variable: space.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 3
+    show_if: "space.hpa.enabled=true"
+  - variable: space.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+    show_if: "space.hpa.enabled=true"
+  - variable: space.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+    show_if: "space.hpa.enabled=true"
   - variable: space.memoryLimit
     label: "Memory Limit"
     type: string
@@ -107,6 +155,30 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
+  - variable: admin.hpa.enabled
+    label: "Enable HPA"
+    type: boolean
+    default: true
+  - variable: admin.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+    show_if: "admin.hpa.enabled=true"
+  - variable: admin.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 3
+    show_if: "admin.hpa.enabled=true"
+  - variable: admin.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+    show_if: "admin.hpa.enabled=true"
+  - variable: admin.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+    show_if: "admin.hpa.enabled=true"
   - variable: admin.memoryLimit
     label: "Memory Limit"
     type: string
@@ -140,6 +212,30 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
+  - variable: live.hpa.enabled
+    label: "Enable HPA"
+    type: boolean
+    default: true
+  - variable: live.hpa.minReplicas
+    label: "Minimum Replicas"
+    type: int
+    default: 1
+    show_if: "live.hpa.enabled=true"
+  - variable: live.hpa.maxReplicas
+    label: "Maximum Replicas"
+    type: int
+    default: 3
+    show_if: "live.hpa.enabled=true"
+  - variable: live.hpa.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization"
+    type: int
+    default: 80
+    show_if: "live.hpa.enabled=true"
+  - variable: live.hpa.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization"
+    type: int
+    default: 80
+    show_if: "live.hpa.enabled=true"
   - variable: live.memoryLimit
     label: "Memory Limit"
     type: string
