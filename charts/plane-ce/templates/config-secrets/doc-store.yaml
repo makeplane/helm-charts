@@ -1,4 +1,4 @@
-{{- if empty .Values.external_secrets.doc_store_secrets }}
+{{- if empty .Values.external_secrets.doc_store_existingSecret }}
 apiVersion: v1
 kind: Secret
 type: Opaque

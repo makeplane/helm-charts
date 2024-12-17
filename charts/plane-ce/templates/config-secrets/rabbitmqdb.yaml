@@ -1,4 +1,4 @@
-{{- if and .Values.rabbitmq.local_setup  (empty .Values.external_secrets.rabbitmq_secrets) }}
+{{- if and .Values.rabbitmq.local_setup  (empty .Values.external_secrets.rabbitmq_existingSecret) }}
 
 apiVersion: v1
 kind: Secret

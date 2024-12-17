@@ -52,7 +52,7 @@ spec:
           - :9090
         envFrom:
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.doc_store_secrets) }}{{ .Values.external_secrets.doc_store_secrets }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
         volumeMounts:
         - mountPath: /data
@@ -107,7 +107,7 @@ spec:
               /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
           envFrom:
             - secretRef:
-                name: {{ if not (empty .Values.external_secrets.doc_store_secrets) }}{{ .Values.external_secrets.doc_store_secrets }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+                name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
                 optional: false
           image: minio/mc
           imagePullPolicy: {{ .Values.minio.pullPolicy }}

@@ -70,7 +70,7 @@ spec:
             value: /var/lib/postgresql/data/plane
         envFrom:
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.pgdb_secrets) }}{{ .Values.external_secrets.pgdb_secrets }}{{ else }}{{ .Release.Name }}-pgdb-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.pgdb_existingSecret) }}{{ .Values.external_secrets.pgdb_existingSecret }}{{ else }}{{ .Release.Name }}-pgdb-secrets{{ end }}
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: pvc-{{ .Release.Name }}-pgdb-vol

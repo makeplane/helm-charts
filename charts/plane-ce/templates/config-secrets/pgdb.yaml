@@ -1,4 +1,4 @@
-{{- if and .Values.postgres.local_setup (empty .Values.external_secrets.pgdb_secrets) }}
+{{- if and .Values.postgres.local_setup (empty .Values.external_secrets.pgdb_existingSecret) }}
 
 apiVersion: v1
 kind: Secret

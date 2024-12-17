@@ -1,4 +1,4 @@
-{{- if empty .Values.external_secrets.app_env_secrets}}
+{{- if empty .Values.external_secrets.app_env_existingSecret}}
 apiVersion: v1
 kind: Secret
 type: Opaque

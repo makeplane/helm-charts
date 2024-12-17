@@ -36,10 +36,10 @@ spec:
               name: {{ .Release.Name }}-app-vars
               optional: false
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.app_env_secrets) }}{{ .Values.external_secrets.app_env_secrets }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.doc_store_secrets) }}{{ .Values.external_secrets.doc_store_secrets }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
 
       serviceAccount: {{ .Release.Name }}-srv-account

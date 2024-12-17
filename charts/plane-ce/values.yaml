@@ -120,10 +120,11 @@ beatworker:
   pullPolicy: Always
 
 external_secrets:
-  rabbitmq_secrets: '' 
-  pgdb_secrets: ''
-  doc_store_secrets: ''
-  app_env_secrets: ''
+  # Name of the existing Kubernetes Secret resource; see README for more details
+  rabbitmq_existingSecret: '' 
+  pgdb_existingSecret: ''
+  doc_store_existingSecret: ''
+  app_env_existingSecret: ''
 
 env:
 
@@ -158,4 +159,3 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
-
