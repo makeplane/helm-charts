@@ -82,7 +82,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-minio-bucket
+  name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
