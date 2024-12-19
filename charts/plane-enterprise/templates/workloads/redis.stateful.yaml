@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - image: {{ .Values.services.redis.image }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.services.redis.pullPolicy | default "IfNotPresent" }}
         name: {{ .Release.Name }}-redis
         stdin: true
         tty: true

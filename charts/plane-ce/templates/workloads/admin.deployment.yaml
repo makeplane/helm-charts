@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-admin
-        imagePullPolicy: {{ .Values.admin.pullPolicy | default "IfNotPresent" }}
+        imagePullPolicy: {{ .Values.admin.pullPolicy | default "Always" }}
         image: {{ .Values.admin.image | default "makeplane/plane-frontend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

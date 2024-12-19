@@ -109,7 +109,7 @@ spec:
             - secretRef:
                 name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
                 optional: false
-          image: minio/mc
+          image: {{ .Values.minio.image_mc }}
           imagePullPolicy: {{ .Values.minio.pullPolicy }}
           name: {{ .Release.Name }}-minio-bucket
       serviceAccount: {{ .Release.Name }}-srv-account

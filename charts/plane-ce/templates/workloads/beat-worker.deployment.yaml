@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-beat-worker
-        imagePullPolicy: {{ .Values.beatworker.pullPolicy | default "IfNotPresent" }}
+        imagePullPolicy: {{ .Values.beatworker.pullPolicy | default "Always" }}
         image: {{ .Values.beatworker.image | default "makeplane/plane-backend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-space
-        imagePullPolicy: {{ .Values.space.pullPolicy | default "IfNotPresent" }}
+        imagePullPolicy: {{ .Values.space.pullPolicy | default "Always" }}
         image: {{ .Values.space.images | default "makeplane/plane-space" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

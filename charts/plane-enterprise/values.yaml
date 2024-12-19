@@ -1,4 +1,4 @@
-planeVersion: v1.3.1
+planeVersion: v1.5.1
 
 dockerRegistry:
   enabled: false
@@ -33,14 +33,15 @@ services:
     image: registry.plane.tools/plane/valkey:7.2.5-alpine
     servicePort: 6379
     volumeSize: 500Mi
+    pullPolicy: IfNotPresent
     assign_cluster_ip: false
 
   postgres:
     local_setup: true
-    image: registry.plane.tools/plane/postgres:15.5-alpine
+    image: registry.plane.tools/plane/postgres:15.7-alpine
     servicePort: 5432
-    cliConnectPort: ''
     volumeSize: 2Gi
+    pullPolicy: IfNotPresent
     assign_cluster_ip: false
 
   rabbitmq:
@@ -49,6 +50,7 @@ services:
     servicePort: 5672
     managementPort: 15672
     volumeSize: 100Mi
+    pullPolicy: IfNotPresent
     default_user: plane
     default_password: plane
     external_rabbitmq_url: ''
@@ -57,7 +59,9 @@ services:
   minio:
     local_setup: true
     image: registry.plane.tools/plane/minio:latest
+    image_mc: minio/mc:latest
     volumeSize: 3Gi
+    pullPolicy: IfNotPresent
     root_user: admin
     root_password: password
     assign_cluster_ip: false
@@ -67,12 +71,14 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/web-enterprise
+    pullPolicy: Always
     assign_cluster_ip: false
 
   monitor:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/monitor-enterprise
+    pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
 
@@ -81,6 +87,7 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/space-enterprise
+    pullPolicy: Always
     assign_cluster_ip: false
     
   admin:
@@ -88,6 +95,7 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/admin-enterprise
+    pullPolicy: Always
     assign_cluster_ip: false
 
   live:
@@ -95,6 +103,7 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/live-enterprise
+    pullPolicy: Always
     assign_cluster_ip: false
 
   api:
@@ -102,6 +111,7 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
     image: registry.plane.tools/plane/backend-enterprise
+    pullPolicy: Always
     assign_cluster_ip: false
     
   worker:
@@ -120,7 +130,7 @@ env:
   pgdb_name: plane
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
 
-  storageClass: longhorn
+  storageClass: ''
 
   # NEXT_PUBLIC_DEPLOY_URL:  ''
   # REDIS
