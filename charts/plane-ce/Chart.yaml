@@ -5,8 +5,8 @@ description: Meet Plane. An open-source software development tool to manage issu
 
 type: application
 
-version: 1.0.27
-appVersion: "0.24.0"
+version: 1.0.28
+appVersion: "0.24.1"
 
 home: https://plane.so
 icon: https://plane.so/favicon/favicon-32x32.png
