@@ -33,7 +33,7 @@ HELM_CHART=$(dialog \
 
 
 if [ "$HELM_CHART" == "1" ]; then
-    helm template plane-ce-app-$(date +%s) charts/plane-ce -n myns > test-ce.yaml
+    helm template --debug plane-ce-app-$(date +%s) charts/plane-ce -n myns > test-ce.yaml
     if [ $? -eq 0 ]; then
         clear
         printSuccess
