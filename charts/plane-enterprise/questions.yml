@@ -189,6 +189,110 @@ questions:
     label: "Sentry Traces Sample Rate"
     type: string
 
+- variable: services.silo.enabled
+  label: "Install Silo Service"
+  type: boolean
+  default: true
+  group: "Silo Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.silo.memory_limit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.silo.cpu_limit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: env.silo_envs.mq_prefetch_count
+    label: "MQ Prefetch Count"
+    type: int
+    default: 10
+  - variable: env.silo_envs.batch_size
+    label: "Batch Size"
+    type: int
+    default: 60
+  - variable: env.silo_envs.request_interval
+    label: "Request Interval"
+    type: int
+    default: 400
+  - variable: env.silo_envs.sentry_dsn
+    label: "Silo Sentry DSN"
+    type: string
+    default: ""
+  - variable: env.silo_envs.sentry_environment
+    label: "Silo Sentry Environment"
+    type: string
+    default: "development"
+  - variable: env.silo_envs.sentry_traces_sample_rate
+    label: "Silo Sentry Traces Sample Rate"
+    type: number
+    default: 0.1
+
+- variable: services.silo.connectors.slack.enabled
+  label: "Slack Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.slack.client_id
+    label: "Slack Client ID"
+    type: string
+    default: "--slack-client-id--"
+  - variable: services.silo.connectors.slack.client_secret
+    label: "Slack Client Secret"
+    type: string
+    default: "--slack-client-secret--"
+
+- variable: services.silo.connectors.github.enabled
+  label: "Github App Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.github.client_id
+    label: "Github Client ID"
+    type: string
+    default: "--github-client-id--"
+  - variable: services.silo.connectors.github.client_secret
+    label: "Github Client Secret"
+    type: string
+    default: "--github-client-secret--"
+  - variable: services.silo.connectors.github.app_name
+    label: "Github App Name"
+    type: string
+    default: "--github-app-name--"
+  - variable: services.silo.connectors.github.app_id
+    label: "Github App ID"
+    type: string
+    default: "--github-app-id--"
+  - variable: services.silo.connectors.github.private_key
+    label: "Github Private Key"
+    type: string
+    default: "--github-private-key--"
+
+- variable: services.silo.connectors.gitlab.enabled
+  label: "Gitlab App Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.gitlab.client_id
+    label: "Gitlab Client ID"
+    type: string
+    default: "--gitlab-client-id--"
+  - variable: services.silo.connectors.gitlab.client_secret
+    label: "Gitlab Client Secret"
+    type: string
+    default: "--gitlab-client-secret--"
+
 - variable: services.monitor.pullPolicy
   label: "Monitor Pull Policy"
   type: enum

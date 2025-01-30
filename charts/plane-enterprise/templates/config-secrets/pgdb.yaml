@@ -15,7 +15,18 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-vars
 data:
-  POSTGRES_DB: {{ .Values.env.pgdb_name | default "plane" | quote }}
   POSTGRES_USER: {{ .Values.env.pgdb_username | default "plane" | quote }}
+  init-dbs.sql: |
+    CREATE EXTENSION IF NOT EXISTS dblink;
+
+    SELECT 'CREATE DATABASE {{.Values.services.postgres.pg_plane_db_name}}'
+    WHERE NOT EXISTS (
+        SELECT FROM pg_database WHERE datname = '{{.Values.services.postgres.pg_plane_db_name}}'
+    )\gexec
+    
+    SELECT 'CREATE DATABASE {{.Values.services.postgres.pg_silo_db_name}}'
+    WHERE NOT EXISTS (
+        SELECT FROM pg_database WHERE datname = '{{.Values.services.postgres.pg_silo_db_name}}'
+    )\gexec
 --- 
 {{- end}}

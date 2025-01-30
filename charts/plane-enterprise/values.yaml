@@ -123,12 +123,37 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
+  
+  silo:
+    enabled: true
+    replicas: 1
+    memory_limit: 1000Mi
+    cpu_limit: 500m
+    image: registry.plane.tools/plane/silo-enterprise
+    connectors:
+      slack:
+        enabled: false
+        client_id: '--slack-client-id--'
+        client_secret: '--slack-client-secret--'
+      github:
+        enabled: false
+        client_id: '--github-client-id--'
+        client_secret: '--github-client-secret--'
+        app_name: '--github-app-name--'
+        app_id: '--github-app-id--'
+        private_key: '--github-private-key--'
+      gitlab:
+        enabled: false
+        client_id: '--gitlab-client-id--'
+        client_secret: '--gitlab-client-secret--'
 
 env:
   pgdb_username: plane
   pgdb_password: plane
-  pgdb_name: plane
-  pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
+  pg_plane_db_name: plane
+  pg_silo_db_name: silo
+  pg_plane_db_remote_url: '' # INCASEASE OF REMOTE PG DB URL ONLY
+  pg_silo_db_remote_url: '' # INCASE OF REMOTE PG DB URL ONLY
 
   storageClass: ''
 
@@ -158,4 +183,12 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+
+  silo_envs:
+    sentry_dsn: ''
+    sentry_environment: ''
+    sentry_traces_sample_rate: ''
+    batch_size: 100
+    mq_prefetch_count: 1
+    request_interval: 400
 
