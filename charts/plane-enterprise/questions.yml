@@ -49,6 +49,11 @@ questions:
     type: string
     required: true
     default: "registry.plane.tools/plane/monitor-enterprise"
+  - variable: services.silo.image
+    label: Silo Docker Image
+    type: string
+    required: true
+    default: "registry.plane.tools/plane/silo-enterprise"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
@@ -475,22 +480,31 @@ questions:
     type: password
     default: "plane"
     show_if: "services.postgres.local_setup=true"
-  - variable: env.pgdb_name
-    label: "DB Name"
+  - variable: env.pg_plane_db_name
+    label: "Plane DB Name"
     type: string
     default: "plane"
+    show_if: "services.postgres.local_setup=true"
+  - variable: env.pg_silo_db_name
+    label: "Silo DB Name"
+    type: string
+    default: "silo"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: false
     show_if: "services.postgres.local_setup=true"
-  - variable: env.pgdb_remote_url
-    label: "Remote URL"
+  - variable: env.pg_plane_db_remote_url
+    label: "Plane DB Remote URL"
     type: string
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
-
+  - variable: env.pg_silo_db_remote_url
+    label: "Silo DB Remote URL"
+    type: string
+    default: "postgresql://"
+    show_if: "services.postgres.local_setup=false"
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
   type: boolean
