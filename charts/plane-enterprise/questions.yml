@@ -480,7 +480,7 @@ questions:
     type: password
     default: "plane"
     show_if: "services.postgres.local_setup=true"
-  - variable: env.pg_plane_db_name
+  - variable: env.pg_db_name
     label: "Plane DB Name"
     type: string
     default: "plane"
@@ -490,7 +490,7 @@ questions:
     type: boolean
     default: false
     show_if: "services.postgres.local_setup=true"
-  - variable: env.pg_plane_db_remote_url
+  - variable: env.pg_db_remote_url
     label: "Plane DB Remote URL"
     type: string
     default: "postgresql://"
