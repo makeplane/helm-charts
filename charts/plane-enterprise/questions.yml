@@ -485,11 +485,6 @@ questions:
     type: string
     default: "plane"
     show_if: "services.postgres.local_setup=true"
-  - variable: env.pg_silo_db_name
-    label: "Silo DB Name"
-    type: string
-    default: "silo"
-    show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -500,11 +495,7 @@ questions:
     type: string
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
-  - variable: env.pg_silo_db_remote_url
-    label: "Silo DB Remote URL"
-    type: string
-    default: "postgresql://"
-    show_if: "services.postgres.local_setup=false"
+  
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
   type: boolean

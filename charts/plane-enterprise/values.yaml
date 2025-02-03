@@ -148,19 +148,17 @@ services:
         client_secret: '--gitlab-client-secret--'
 
 env:
+  # POSTGRES DB VALUES
   pgdb_username: plane
   pgdb_password: plane
-  pg_plane_db_name: plane
-  pg_silo_db_name: silo
-  pg_plane_db_remote_url: '' # INCASEASE OF REMOTE PG DB URL ONLY
-  pg_silo_db_remote_url: '' # INCASE OF REMOTE PG DB URL ONLY
+  pg_db_name: plane
+  pg_db_remote_url: '' # INCASEASE OF REMOTE PG DB URL ONLY
 
   storageClass: ''
 
   # NEXT_PUBLIC_DEPLOY_URL:  ''
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
-  # POSTGRES DB VALUES
 
   # DATA STORE
   docstore_bucket: uploads
