@@ -548,7 +548,7 @@ questions:
     type: boolean
     default: false
 
-- variable: external_secrets.
+- variable: external_secrets.rabbitmq_existingSecret
   label: "RabbitMQ Secrets File Name"
   type: string
   default: ""
