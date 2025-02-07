@@ -30,7 +30,7 @@ env:
 jobs:
   setup:
     if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
@@ -134,7 +134,7 @@ jobs:
   publish:
     if: ${{ github.ref_name == 'master' }}
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
