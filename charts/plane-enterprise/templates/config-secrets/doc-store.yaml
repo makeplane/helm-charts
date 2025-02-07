@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-doc-store-secrets
 data:
   FILE_SIZE_LIMIT: {{ .Values.env.file_size_limit | default "5242880" | quote }}
+  AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
   {{- if .Values.services.minio.local_setup }}
   USE_MINIO: "1"
   MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | quote }}
@@ -18,7 +19,6 @@ data:
   USE_MINIO: "0"
   AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | b64enc | quote  }}
-  AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
   AWS_REGION: {{ .Values.env.aws_region | default "" | quote  }}
   AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
   {{- end }}
