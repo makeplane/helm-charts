@@ -273,6 +273,33 @@
 |---|:---:|:---:|---|
 | env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
+
+
+## External Secrets Config
+
+To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
+
+| Secret Name | Env Var Name | Required | Description | Example Value |
+|--- |:---|:---|:---|:---|
+| rabbitmq_existingSecret     | `RABBITMQ_DEFAULT_USER`  | Required if `rabbitmq.local_setup=true` | The default RabbitMQ user                    | `plane`      |
+|                      | `RABBITMQ_DEFAULT_PASS`  | Required if `rabbitmq.local_setup=true` | The default RabbitMQ password                | `plane`      |
+| pgdb_existingSecret         | `POSTGRES_PASSWORD`      | Required if `postgres.local_setup=true` | Password for PostgreSQL database             | `plane`   |
+|                      | `POSTGRES_DB`            | Required if `postgres.local_setup=true` | Name of the PostgreSQL database              | `plane`      |
+|                      | `POSTGRES_USER`          | Required if `postgres.local_setup=true` | PostgreSQL user                              | `plane`       |
+|  doc_store_existingSecret                 | `USE_MINIO`              | Yes | Flag to enable MinIO as the storage backend  | `1`         |
+|                      | `MINIO_ROOT_USER`        | Yes | MinIO root user                              | `admin`    |
+|     | `MINIO_ROOT_PASSWORD`    | Yes | MinIO root password                          | `password`    |
+|                      | `AWS_ACCESS_KEY_ID`      | Yes | AWS Access Key ID                            | `your_aws_key`       |
+|                      | `AWS_SECRET_ACCESS_KEY`  | Yes | AWS Secret Access Key                        | `your_aws_secret`    |
+|                      | `AWS_S3_BUCKET_NAME`     | Yes | AWS S3 Bucket Name                           | `your_bucket_name`   |
+|                      | `AWS_S3_ENDPOINT_URL`    | Yes | Endpoint URL for AWS S3 or MinIO             | `http://plane-minio.plane-ns.svc.cluster.local:9000`  |
+|                      | `AWS_REGION`             | Optional | AWS region where your S3 bucket is located   | `your_aws_region`    |
+|                      | `FILE_SIZE_LIMIT`        | Yes | Limit for file uploads in your system        | `5MB`               |
+| app_env_existingSecret      | `SECRET_KEY`             | Yes | Random secret key                            | `60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5`  |
+|                      | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+|                      | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
+|                      | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
+| live_env_existingSecret    | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
   
 ## Custom Ingress Routes
 

@@ -15,9 +15,7 @@ ingress:
   minioHost: ''
   rabbitmqHost: ''
   ingressClass: 'nginx'
-  ingress_annotations: {
-    "nginx.ingress.kubernetes.io/proxy-body-size": "5m",
-  }
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 ssl:
   createIssuer: false
@@ -124,18 +122,25 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
 
+external_secrets:
+  # Name of the existing Kubernetes Secret resource; see README for more details
+  rabbitmq_existingSecret: '' 
+  pgdb_existingSecret: ''
+  doc_store_existingSecret: ''
+  app_env_existingSecret: ''
+  live_env_existingSecret: ''
+
 env:
+  storageClass: ''
+
+  # REDIS
+  remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
+
+  # POSTGRES DB VALUES
   pgdb_username: plane
   pgdb_password: plane
   pgdb_name: plane
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
-
-  storageClass: ''
-
-  # NEXT_PUBLIC_DEPLOY_URL:  ''
-  # REDIS
-  remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
-  # POSTGRES DB VALUES
 
   # DATA STORE
   docstore_bucket: uploads
