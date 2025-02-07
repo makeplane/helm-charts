@@ -59,6 +59,9 @@ spec:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
               optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
+              optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 

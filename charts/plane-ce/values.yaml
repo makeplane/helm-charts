@@ -125,6 +125,7 @@ external_secrets:
   pgdb_existingSecret: ''
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
+  live_env_existingSecret: ''
 
 env:
 

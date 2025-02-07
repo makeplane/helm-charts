@@ -28,9 +28,9 @@ stringData:
   {{- else }}
   AMQP_URL: ""
   {{ end }}
+---
 {{- end }}
 
----
 
 apiVersion: v1
 kind: ConfigMap
