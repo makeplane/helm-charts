@@ -5,8 +5,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-secrets
-data:
-  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | b64enc | quote }}
+stringData: 
+  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
 
   {{- if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
