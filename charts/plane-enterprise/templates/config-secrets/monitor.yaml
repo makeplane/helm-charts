@@ -9,4 +9,4 @@ data:
     APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
     APP_VERSION: {{ .Values.planeVersion | quote }}
     DEPLOY_PLATFORM: "KUBERNETES"
-    API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+    API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"

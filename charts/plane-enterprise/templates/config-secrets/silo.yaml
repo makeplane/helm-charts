@@ -13,31 +13,31 @@ data:
   SILO_BASE_PATH: "/silo"
 
   APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
-  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
   SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
 
-  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
 
   {{- if .Values.services.rabbitmq.local_setup }}
-  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:5672/"
-  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:5672/"
+  {{- else if .Values.env }}
   AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
   {{- else }}
   AMQP_URL: ""
   {{- end }}
 
   {{- if .Values.services.postgres.local_setup }}
-  DB_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pg_silo_db_name }}"
-  {{- else if .Values.services.postgres.pg_silo_db_remote_url }}
-  DB_URL: {{ .Values.env.pg_silo_db_remote_url}}
+  DB_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
+  {{- else if .Values.env.pgdb_remote_url }}
+  DB_URL: {{ .Values.env.pgdb_remote_url}}
   {{- else }}
   DB_URL: ""
   {{- end }}
 
   {{- if .Values.services.redis.local_setup }}
-  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
-  {{- else }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
+  {{- else if .Values.env.remote_redis_url }}
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 

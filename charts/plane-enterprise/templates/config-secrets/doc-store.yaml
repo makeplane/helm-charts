@@ -14,7 +14,7 @@ data:
   MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | b64enc | quote}}
   AWS_ACCESS_KEY_ID: {{ .Values.services.minio.root_user | default "admin" | quote }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.services.minio.root_password | default "password" | b64enc | quote  }}
-  AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:9000
+  AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000
   {{- else }}
   USE_MINIO: "0"
   AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}

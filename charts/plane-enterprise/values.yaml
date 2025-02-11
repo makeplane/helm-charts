@@ -122,6 +122,31 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
 
+  silo:
+    enabled: true
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    image: registry.plane.tools/plane/silo-enterprise
+    pullPolicy: Always
+    assign_cluster_ip: false
+    connectors:
+      slack:
+        enabled: false
+        client_id: '--slack-client-id--'
+        client_secret: '--slack-client-secret--'
+      github:
+        enabled: false
+        client_id: '--github-client-id--'
+        client_secret: '--github-client-secret--'
+        app_name: '--github-app-name--'
+        app_id: '--github-app-id--'
+        private_key: '--github-private-key--'
+      gitlab:
+        enabled: false
+        client_id: '--gitlab-client-id--'
+        client_secret: '--gitlab-client-secret--'
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -132,7 +157,7 @@ external_secrets:
 
 env:
   storageClass: ''
-
+  default_cluster_domain: cluster.local
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
 
