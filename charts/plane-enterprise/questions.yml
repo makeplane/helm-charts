@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.5.1
+  default: v1.7.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -28,7 +28,7 @@ questions:
     label: Frontend Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/web-enterprise"    
+    default: "registry.plane.tools/plane/web-enterprise"
   - variable: services.space.image
     label: Space Docker Image
     type: string
@@ -682,3 +682,29 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
+
+- variable: external_secrets.rabbitmq_existingSecret
+  label: "RabbitMQ Secrets File Name"
+  type: string
+  default: ""
+  group: "Secrets Name"
+- variable: external_secrets.pgdb_existingSecret
+  label: "Postgres Secrets File Name"
+  type: string
+  default: ""
+  group: "Secrets Name"
+- variable: external_secrets.doc_store_existingSecret
+  label: "Doc Store and Minio Secrets File Name"
+  type: string
+  default: ""
+  group: "Secrets Name"
+- variable: external_secrets.app_env_existingSecret
+  label: "App Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "Secrets Name"
+- variable: external_secrets.live_env_existingSecret
+  label: "Live Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "Secrets Name"

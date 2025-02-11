@@ -1,14 +1,13 @@
-{{- if .Values.services.rabbitmq.local_setup }}
-
+{{- if and .Values.services.rabbitmq.local_setup  (empty .Values.external_secrets.rabbitmq_existingSecret) }}
 apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-secrets
-data:
-  RABBITMQ_DEFAULT_USER: {{ .Values.services.rabbitmq.default_user | default "plane" | b64enc | quote }}
-  RABBITMQ_DEFAULT_PASS: {{ .Values.services.rabbitmq.default_password | default "plane" | b64enc |quote }}
+stringData:
+  RABBITMQ_DEFAULT_USER: {{ .Values.services.rabbitmq.default_user | default "plane" | quote }}
+  RABBITMQ_DEFAULT_PASS: {{ .Values.services.rabbitmq.default_password | default "plane" |quote }}
 ---
 
 {{- end }}
