@@ -56,6 +56,9 @@ spec:
               echo "Skipping wait, using external RabbitMQ"; 
             fi;
         envFrom:
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
+              optional: false
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
               optional: false

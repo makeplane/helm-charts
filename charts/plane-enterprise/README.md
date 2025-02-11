@@ -222,6 +222,36 @@
 | services.monitor.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.monitor.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
+### Silo Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.silo.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
+| services.silo.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.silo.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.silo.image| registry.plane.tools/plane/silo-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
+| services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service | 
+| services.silo.connectors.slack.enabled | false |  | Slack Integration |
+| services.silo.connectors.slack.client_id | --slack-client-id-- | Yes | Slack Client ID |
+| services.silo.connectors.slack.client_secret | --slack-client-secret-- | Yes | Slack Client Secret |
+| services.silo.connectors.github.enabled | false |  | Github App Integration |
+| services.silo.connectors.github.client_id | --github-client-id-- | Yes | Github Client ID |
+| services.silo.connectors.github.client_secret | --github-client-secret-- | Yes | Github Client Secret |
+| services.silo.connectors.github.app_name | --github-app-name-- | Yes | Github App Name |
+| services.silo.connectors.github.app_id | --github-app-id-- | Yes | Github App ID |
+| services.silo.connectors.github.private_key | --github-private-key-- | Yes | Github Private Key |
+| services.silo.connectors.gitlab.enabled | false |  | Gitlab App Integration |
+| services.silo.connectors.gitlab.client_id | --gitlab-client-id-- | Yes | Gitlab Client ID |
+| services.silo.connectors.gitlab.client_secret | --gitlab-client-secret-- | Yes | Gitlab Client Secret |
+| env.silo_envs.mq_prefetch_count | 10 |  | Prefetch count for RabbitMQ |
+| env.silo_envs.batch_size | 60 |  | Batch size for Silo |
+| env.silo_envs.request_interval | 400 |  | Request interval for Silo |
+| env.silo_envs.sentry_dsn |  |  | Sentry DSN |
+| env.silo_envs.sentry_environment |  |  | Sentry Environment |
+| env.silo_envs.sentry_traces_sample_rate |  |  | Sentry Traces Sample Rate |  
+
+
 ### API Deployment
 
 | Setting | Default | Required | Description |
@@ -300,6 +330,9 @@ To configure the external secrets for your application, you need to define speci
 |                      | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                      | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
 | live_env_existingSecret    | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+| silo_env_existingSecret    | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+|     | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
+|     | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
   
 ## Custom Ingress Routes
 

@@ -154,6 +154,7 @@ external_secrets:
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
   live_env_existingSecret: ''
+  silo_env_existingSecret: ''
 
 env:
   storageClass: ''

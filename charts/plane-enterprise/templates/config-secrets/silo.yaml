@@ -1,5 +1,37 @@
 {{- if .Values.services.silo.enabled }}
 
+{{-  if empty .Values.external_secrets.silo_env_existingSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-silo-secrets
+type: Opaque
+stringData:
+  {{- if .Values.services.redis.local_setup }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
+  {{- else if .Values.env.remote_redis_url }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+
+  {{- if .Values.services.postgres.local_setup }}
+  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
+  {{- else if .Values.env.pgdb_remote_url }}
+  DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+  {{ else }}
+  DATABASE_URL: ""
+  {{ end }}
+
+  {{- if .Values.services.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
+  {{- else }}
+  AMQP_URL: ""
+  {{ end }}
+{{- end }}
+---
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,28 +50,6 @@ data:
 
   PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
-
-  {{- if .Values.services.rabbitmq.local_setup }}
-  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:5672/"
-  {{- else if .Values.env }}
-  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
-  {{- else }}
-  AMQP_URL: ""
-  {{- end }}
-
-  {{- if .Values.services.postgres.local_setup }}
-  DB_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
-  {{- else if .Values.env.pgdb_remote_url }}
-  DB_URL: {{ .Values.env.pgdb_remote_url}}
-  {{- else }}
-  DB_URL: ""
-  {{- end }}
-
-  {{- if .Values.services.redis.local_setup }}
-  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
-  {{- else if .Values.env.remote_redis_url }}
-  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
-  {{- end }}
 
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}
