@@ -66,6 +66,13 @@ spec:
                 name: {{ .Release.Name }}-api
             path: /graphql/
             pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-silo
+            path: /silo/
+            pathType: Prefix
           {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
           - backend:
               service:
