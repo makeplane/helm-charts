@@ -41,19 +41,20 @@ spec:
       - name: wait-for-rabbitmq
         image: busybox
         command:
-          - sh
-          - -c
-          - |
-            if echo "$AMQP_URL" | grep -q "rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"; then
-              echo "Waiting for local RabbitMQ..."
-              until nslookup {{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/; do
-                echo "RabbitMQ not ready..."
-                sleep 5
-              done
-              echo "RabbitMQ is up!"
-            else
-              echo "Skipping wait, using external RabbitMQ"
-            fi
+          - /bin/sh
+        args:
+          - '-c'
+          - >-
+            if echo "$AMQP_URL" | grep -q "rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"; then 
+              echo "Waiting for local RabbitMQ..."; 
+              until nslookup {{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }} > /dev/null 2>&1; do
+                echo "RabbitMQ not ready..."; 
+                sleep 5; 
+              done; 
+              echo "RabbitMQ is up!"; 
+            else 
+              echo "Skipping wait, using external RabbitMQ"; 
+            fi;
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
