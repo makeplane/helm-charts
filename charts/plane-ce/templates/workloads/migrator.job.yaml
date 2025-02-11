@@ -24,13 +24,10 @@ spec:
               name: {{ .Release.Name }}-app-vars
               optional: false
           - secretRef:
-              name: {{ .Release.Name }}-app-secrets
-              optional: false
-          - configMapRef:
-              name: {{ .Release.Name }}-doc-store-vars
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
           - secretRef:
-              name: {{ .Release.Name }}-doc-store-secrets
+              name:  {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
       restartPolicy: OnFailure
       serviceAccount: {{ .Release.Name }}-srv-account
