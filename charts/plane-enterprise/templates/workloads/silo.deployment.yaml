@@ -1,0 +1,86 @@
+{{- if .Values.services.silo.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-silo
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+spec:
+  clusterIP: None
+  ports:
+  - name: silo-3000
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-silo-wl
+spec:
+  replicas: {{ .Values.services.silo.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      initContainers:
+      - name: wait-for-rabbitmq
+        image: busybox
+        command:
+          - /bin/sh
+        args:
+          - '-c'
+          - >-
+            if echo "$AMQP_URL" | grep -q "rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"; then 
+              echo "Waiting for local RabbitMQ..."; 
+              until nslookup {{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }} > /dev/null 2>&1; do
+                echo "RabbitMQ not ready..."; 
+                sleep 5; 
+              done; 
+              echo "RabbitMQ is up!"; 
+            else 
+              echo "Skipping wait, using external RabbitMQ"; 
+            fi;
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-silo-vars
+              optional: false
+      containers:
+      - name: {{ .Release.Name }}-silo
+        imagePullPolicy: Always
+        image: {{ .Values.services.silo.image | default "registry.plane.tools/plane/silo-enterprise" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu: "50m"
+          limits:
+            memory: {{ .Values.services.silo.memory_limit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.silo.cpu_limit | default "500m" | quote}}
+        command:
+          - node
+        args:
+          - silo/start.cjs
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-silo-vars
+              optional: false
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- end }}
