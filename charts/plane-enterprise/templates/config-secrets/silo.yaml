@@ -28,7 +28,7 @@ stringData:
   AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
   {{- else }}
   AMQP_URL: ""
-  {{ end }}
+  {{- end }}
 {{- end }}
 ---
 
@@ -43,6 +43,15 @@ data:
   MQ_PREFETCH_COUNT: {{ .Values.env.silo_envs.mq_prefetch_count | quote }}
   REQUEST_INTERVAL: {{ .Values.env.silo_envs.request_interval | default 400 | quote }}
   SILO_BASE_PATH: "/silo"
+  SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "sZn5v00MzI40" | quote }}
+
+  {{- if eq .Values.env.silo_envs.cors_allowed_origins "*"}}
+  CORS_ALLOWED_ORIGINS: "*"
+  {{- else if .Values.env.silo_envs.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.silo_envs.cors_allowed_origins }}"
+  {{- else}}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+  {{- end }} 
 
   APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"

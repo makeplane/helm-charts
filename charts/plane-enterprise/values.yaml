@@ -197,4 +197,6 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
+    hmac_secret_key: 'sZn5v00MzI40'
+    cors_allowed_origins: ''
 
