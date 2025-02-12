@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.5.1
+  default: v1.8.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -28,7 +28,7 @@ questions:
     label: Frontend Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/web-enterprise"    
+    default: "registry.plane.tools/plane/web-enterprise"
   - variable: services.space.image
     label: Space Docker Image
     type: string
