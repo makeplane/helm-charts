@@ -32,7 +32,7 @@
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
 
         ```bash
-        helm install plane-app plane/plane-enterprise \
+        helm upgrade --install plane-app plane/plane-enterprise \
             --create-namespace \
             --namespace plane \
             --set license.licenseDomain=${DOMAIN_NAME} \
@@ -76,7 +76,7 @@
           After saving the `values.yaml` file, continue to be on the same Terminal window as on the previous steps, copy the code below, and paste it on your Terminal screen.
 
           ```bash
-          helm install plane-app plane/plane-enterprise \
+          helm upgrade --install plane-app plane/plane-enterprise \
               --create-namespace \
               --namespace plane \
               -f values.yaml \
