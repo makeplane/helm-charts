@@ -256,11 +256,11 @@ questions:
   - variable: services.silo.connectors.slack.client_id
     label: "Slack Client ID"
     type: string
-    default: "--slack-client-id--"
+    default: ""
   - variable: services.silo.connectors.slack.client_secret
     label: "Slack Client Secret"
     type: string
-    default: "--slack-client-secret--"
+    default: ""
 
 - variable: services.silo.connectors.github.enabled
   label: "Github App Integration"
@@ -272,23 +272,23 @@ questions:
   - variable: services.silo.connectors.github.client_id
     label: "Github Client ID"
     type: string
-    default: "--github-client-id--"
+    default: ""
   - variable: services.silo.connectors.github.client_secret
     label: "Github Client Secret"
     type: string
-    default: "--github-client-secret--"
+    default: ""
   - variable: services.silo.connectors.github.app_name
     label: "Github App Name"
     type: string
-    default: "--github-app-name--"
+    default: ""
   - variable: services.silo.connectors.github.app_id
     label: "Github App ID"
     type: string
-    default: "--github-app-id--"
+    default: ""
   - variable: services.silo.connectors.github.private_key
     label: "Github Private Key"
     type: string
-    default: "--github-private-key--"
+    default: ""
 
 - variable: services.silo.connectors.gitlab.enabled
   label: "Gitlab App Integration"
@@ -300,11 +300,11 @@ questions:
   - variable: services.silo.connectors.gitlab.client_id
     label: "Gitlab Client ID"
     type: string
-    default: "--gitlab-client-id--"
+    default: ""
   - variable: services.silo.connectors.gitlab.client_secret
     label: "Gitlab Client Secret"
     type: string
-    default: "--gitlab-client-secret--"
+    default: ""
 
 - variable: services.monitor.pullPolicy
   label: "Monitor Pull Policy"

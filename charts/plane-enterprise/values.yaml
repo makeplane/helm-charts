@@ -133,19 +133,19 @@ services:
     connectors:
       slack:
         enabled: false
-        client_id: '--slack-client-id--'
-        client_secret: '--slack-client-secret--'
+        client_id: ''
+        client_secret: ''
       github:
         enabled: false
-        client_id: '--github-client-id--'
-        client_secret: '--github-client-secret--'
-        app_name: '--github-app-name--'
-        app_id: '--github-app-id--'
-        private_key: '--github-private-key--'
+        client_id: ''
+        client_secret: ''
+        app_name: ''
+        app_id: ''
+        private_key: ''
       gitlab:
         enabled: false
-        client_id: '--gitlab-client-id--'
-        client_secret: '--gitlab-client-secret--'
+        client_id: ''
+        client_secret: ''
 
 env:
   pgdb_username: plane
@@ -189,5 +189,5 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
-    hmac_secret_key: 'sZn5v00MzI40'
+    hmac_secret_key: ''
     cors_allowed_origins: ''

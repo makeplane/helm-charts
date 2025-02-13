@@ -246,17 +246,17 @@
 | services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
 | services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service | 
 | services.silo.connectors.slack.enabled | false |  | Slack Integration |
-| services.silo.connectors.slack.client_id | --slack-client-id-- | Yes | Slack Client ID |
-| services.silo.connectors.slack.client_secret | --slack-client-secret-- | Yes | Slack Client Secret |
+| services.silo.connectors.slack.client_id |  | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client ID |
+| services.silo.connectors.slack.client_secret |  | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client Secret |
 | services.silo.connectors.github.enabled | false |  | Github App Integration |
-| services.silo.connectors.github.client_id | --github-client-id-- | Yes | Github Client ID |
-| services.silo.connectors.github.client_secret | --github-client-secret-- | Yes | Github Client Secret |
-| services.silo.connectors.github.app_name | --github-app-name-- | Yes | Github App Name |
-| services.silo.connectors.github.app_id | --github-app-id-- | Yes | Github App ID |
-| services.silo.connectors.github.private_key | --github-private-key-- | Yes | Github Private Key |
+| services.silo.connectors.github.client_id |  | required if `services.silo.connectors.github.enabled` is `true` | Github Client ID |
+| services.silo.connectors.github.client_secret | --github-client-secret-- | required if `services.silo.connectors.github.enabled` is `true` | Github Client Secret |
+| services.silo.connectors.github.app_name | --github-app-name-- | required if `services.silo.connectors.github.enabled` is `true` | Github App Name |
+| services.silo.connectors.github.app_id | --github-app-id-- | required if `services.silo.connectors.github.enabled` is `true` | Github App ID |
+| services.silo.connectors.github.private_key | --github-private-key-- | required if `services.silo.connectors.github.enabled` is `true` | Github Private Key |
 | services.silo.connectors.gitlab.enabled | false |  | Gitlab App Integration |
-| services.silo.connectors.gitlab.client_id | --gitlab-client-id-- | Yes | Gitlab Client ID |
-| services.silo.connectors.gitlab.client_secret | --gitlab-client-secret-- | Yes | Gitlab Client Secret |
+| services.silo.connectors.gitlab.client_id | --gitlab-client-id-- | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client ID |
+| services.silo.connectors.gitlab.client_secret | --gitlab-client-secret-- | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client Secret |
 | env.silo_envs.mq_prefetch_count | 10 |  | Prefetch count for RabbitMQ |
 | env.silo_envs.batch_size | 60 |  | Batch size for Silo |
 | env.silo_envs.request_interval | 400 |  | Request interval for Silo |
