@@ -262,7 +262,8 @@
 | env.silo_envs.request_interval | 400 |  | Request interval for Silo |
 | env.silo_envs.sentry_dsn |  |  | Sentry DSN |
 | env.silo_envs.sentry_environment |  |  | Sentry Environment |
-| env.silo_envs.sentry_traces_sample_rate |  |  | Sentry Traces Sample Rate |  
+| env.silo_envs.sentry_traces_sample_rate |  |  | Sentry Traces Sample Rate | 
+| env.silo_envs.hmac_secret_key |  &lt;random-32-bit-string&gt; |  | HMAC Secret Key |
 
   
 ### Worker Deployment
