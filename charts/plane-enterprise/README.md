@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=v1.5.1 # or the last released version
+      PLANE_VERSION=v1.8.0 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -32,7 +32,7 @@
         Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
 
         ```bash
-        helm install plane-app plane/plane-enterprise \
+        helm upgrade --install plane-app plane/plane-enterprise \
             --create-namespace \
             --namespace plane \
             --set license.licenseDomain=${DOMAIN_NAME} \
@@ -65,7 +65,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: v1.5.1 <or the last released version>`
+          - `planeVersion: v1.8.0 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `ingress.enabled: <true | false>`
           - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
@@ -76,7 +76,7 @@
           After saving the `values.yaml` file, continue to be on the same Terminal window as on the previous steps, copy the code below, and paste it on your Terminal screen.
 
           ```bash
-          helm install plane-app plane/plane-enterprise \
+          helm upgrade --install plane-app plane/plane-enterprise \
               --create-namespace \
               --namespace plane \
               -f values.yaml \
@@ -100,7 +100,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.5.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.8.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
@@ -234,6 +234,37 @@
 | env.sentry_dsn |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+
+### Silo Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.silo.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
+| services.silo.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.silo.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.silo.image| registry.plane.tools/plane/silo-enterprise |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
+| services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service | 
+| services.silo.connectors.slack.enabled | false |  | Slack Integration |
+| services.silo.connectors.slack.client_id | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client ID |
+| services.silo.connectors.slack.client_secret | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client Secret |
+| services.silo.connectors.github.enabled | false |  | Github App Integration |
+| services.silo.connectors.github.client_id | "" | required if `services.silo.connectors.github.enabled` is `true` | Github Client ID |
+| services.silo.connectors.github.client_secret | "" | required if `services.silo.connectors.github.enabled` is `true` | Github Client Secret |
+| services.silo.connectors.github.app_name | "" | required if `services.silo.connectors.github.enabled` is `true` | Github App Name |
+| services.silo.connectors.github.app_id | "" | required if `services.silo.connectors.github.enabled` is `true` | Github App ID |
+| services.silo.connectors.github.private_key | "" | required if `services.silo.connectors.github.enabled` is `true` | Github Private Key |
+| services.silo.connectors.gitlab.enabled | false |  | Gitlab App Integration |
+| services.silo.connectors.gitlab.client_id | "" | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client ID |
+| services.silo.connectors.gitlab.client_secret | "" | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client Secret |
+| env.silo_envs.mq_prefetch_count | 10 |  | Prefetch count for RabbitMQ |
+| env.silo_envs.batch_size | 60 |  | Batch size for Silo |
+| env.silo_envs.request_interval | 400 |  | Request interval for Silo |
+| env.silo_envs.sentry_dsn |  |  | Sentry DSN |
+| env.silo_envs.sentry_environment |  |  | Sentry Environment |
+| env.silo_envs.sentry_traces_sample_rate |  |  | Sentry Traces Sample Rate | 
+| env.silo_envs.hmac_secret_key |  &lt;random-32-bit-string&gt; |  | HMAC Secret Key |
+
   
 ### Worker Deployment
 

@@ -52,6 +52,13 @@ spec:
         - mountPath: /var/lib/rabbitmq
           name: pvc-{{ .Release.Name }}-rabbitmq-vol
           subPath: ''
+        readinessProbe:
+          exec:
+            command: ["rabbitmq-diagnostics", "check_port_connectivity"]
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 30
+          failureThreshold: 50
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
