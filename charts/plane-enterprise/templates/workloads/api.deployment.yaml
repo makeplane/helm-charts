@@ -72,6 +72,9 @@ spec:
             path: /
             port: 8000
             scheme: HTTP
+            httpHeaders:
+            - name: Host
+              value: localhost
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1

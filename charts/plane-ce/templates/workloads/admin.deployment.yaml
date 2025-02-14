@@ -56,6 +56,18 @@ spec:
         args:
           - admin/server.js
           - admin
+        readinessProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /
+            port: 3000
+            scheme: HTTP
+            httpHeaders:
+            - name: Host
+              value: localhost
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 
