@@ -1,4 +1,4 @@
-planeVersion: v1.7.0
+planeVersion: v1.8.0
 
 dockerRegistry:
   enabled: false
@@ -122,6 +122,31 @@ services:
     memoryLimit: 1000Mi
     cpuLimit: 500m
 
+  silo:
+    enabled: true
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    image: registry.plane.tools/plane/silo-enterprise
+    pullPolicy: Always
+    assign_cluster_ip: false
+    connectors:
+      slack:
+        enabled: false
+        client_id: ''
+        client_secret: ''
+      github:
+        enabled: false
+        client_id: ''
+        client_secret: ''
+        app_name: ''
+        app_id: ''
+        private_key: ''
+      gitlab:
+        enabled: false
+        client_id: ''
+        client_secret: ''
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -163,3 +188,13 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+
+  silo_envs:
+    sentry_dsn: ''
+    sentry_environment: ''
+    sentry_traces_sample_rate: ''
+    batch_size: 100
+    mq_prefetch_count: 1
+    request_interval: 400
+    hmac_secret_key: ''
+    cors_allowed_origins: ''
