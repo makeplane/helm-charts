@@ -41,6 +41,11 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+          {{- if .Values.services.silo.enabled }}
+          - secretRef:
+              name: {{ .Release.Name }}-silo-secrets
+              optional: false
+          {{- end }}
 
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
