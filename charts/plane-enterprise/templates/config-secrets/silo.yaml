@@ -1,6 +1,21 @@
 {{- if .Values.services.silo.enabled }}
 
 apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-silo-secrets
+stringData:
+  {{- if .Values.env.silo_envs.hmac_secret_key }}
+  SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | quote }}
+  {{- else if (lookup "v1" "Secret" .Release.Namespace (printf "%s-silo-secrets" .Release.Name)) }}
+  SILO_HMAC_SECRET_KEY: {{ (lookup "v1" "Secret" .Release.Namespace (printf "%s-silo-secrets" .Release.Name)).data.SILO_HMAC_SECRET_KEY | default (randAlphaNum 32) | quote }}
+  {{- else }}
+  SILO_HMAC_SECRET_KEY: {{ randAlphaNum 32 | quote }}
+  {{- end }}
+---
+
+apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}

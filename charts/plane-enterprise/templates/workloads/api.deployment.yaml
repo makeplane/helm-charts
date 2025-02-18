@@ -66,6 +66,11 @@ spec:
           - secretRef:
               name: {{ .Release.Name }}-doc-store-secrets
               optional: false
+          {{- if .Values.services.silo.enabled }}
+          - secretRef:
+              name: {{ .Release.Name }}-silo-secrets
+              optional: false
+          {{- end }}
         readinessProbe:
           failureThreshold: 30
           httpGet:

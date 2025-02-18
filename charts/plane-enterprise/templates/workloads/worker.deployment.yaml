@@ -44,6 +44,11 @@ spec:
           - secretRef:
               name: {{ .Release.Name }}-doc-store-secrets
               optional: false
+          {{- if .Values.services.silo.enabled }}
+          - secretRef:
+              name: {{ .Release.Name }}-silo-secrets
+              optional: false
+          {{- end }}
 
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
