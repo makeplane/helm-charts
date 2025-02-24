@@ -331,6 +331,14 @@ To configure the external secrets for your application, you need to define speci
 |                      | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                      | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
 | live_env_existingSecret    | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+| silo_env_existingSecret    | `SILO_HMAC_SECRET_KEY`       | Yes | Silo HMAC secret Key                             | `random_generated_secret`|
+|     | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+|                            | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane`|
+|                            | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  |
+|                             | `GITHUB_CLIENT_SECRET` | required if `services.silo.connectors.github.enabled` is `true` | GitHub client secret key                     | `your_github_client_secret_key`|
+|                              | `GITHUB_PRIVATE_KEY`     | required if `services.silo.connectors.github.enabled` is `true` | GitHub private key                           | `your_github_private_key`|
+|                              | `SLACK_CLIENT_SECRET` | required if `services.silo.connectors.slack.enabled` is `true` | Slack client secret key                      | `your_slack_client_secret_key`|
+|                              | `GITLAB_CLIENT_SECRET` | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client secret key                     | `your_gitlab_client_secret_key`|
   
 ## Custom Ingress Routes
 

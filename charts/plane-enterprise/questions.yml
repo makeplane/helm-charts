@@ -716,3 +716,8 @@ questions:
   type: string
   default: ""
   group: "Secrets Name"
+- variable: external_secrets.silo_env_existingSecret
+  label: "Silo Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "Secrets Name"
