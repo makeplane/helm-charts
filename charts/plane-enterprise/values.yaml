@@ -123,7 +123,7 @@ services:
     cpuLimit: 500m
 
   silo:
-    enabled: false
+    enabled: true
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
