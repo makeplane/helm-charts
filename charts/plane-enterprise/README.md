@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=v1.8.0 # or the last released version
+      PLANE_VERSION=v1.8.1 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -65,7 +65,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: v1.8.0 <or the last released version>`
+          - `planeVersion: v1.8.1 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `ingress.enabled: <true | false>`
           - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
@@ -100,7 +100,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.8.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.8.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
@@ -331,6 +331,19 @@ To configure the external secrets for your application, you need to define speci
 |                      | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                      | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
 | live_env_existingSecret    | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+| silo_env_existingSecret    | `SILO_HMAC_SECRET_KEY`       | Yes | Silo HMAC secret Key                             | `<random-32-bit-string>`|
+|     | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
+|                            | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    |  **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane`|
+|                            | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`  |
+|                            | `GITHUB_APP_NAME`        | required if `services.silo.connectors.github.enabled` is `true` | GitHub app name                              | `your_github_app_name`|
+|                            | `GITHUB_APP_ID`          | required if `services.silo.connectors.github.enabled` is `true` | GitHub app ID                                | `your_github_app_id`|
+|                            | `GITHUB_CLIENT_ID`       | required if `services.silo.connectors.github.enabled` is `true` | GitHub client ID                             | `your_github_client_id`|
+|                            | `GITHUB_CLIENT_SECRET` | required if `services.silo.connectors.github.enabled` is `true` | GitHub client secret key                     | `your_github_client_secret_key`|
+|                            | `GITHUB_PRIVATE_KEY`     | required if `services.silo.connectors.github.enabled` is `true` | GitHub private key                           | `your_github_private_key`|
+|                            | `SLACK_CLIENT_ID`        | required if `services.silo.connectors.slack.enabled` is `true` | Slack client ID                              | `your_slack_client_id`|
+|                            | `SLACK_CLIENT_SECRET` | required if `services.silo.connectors.slack.enabled` is `true` | Slack client secret key                      | `your_slack_client_secret_key`|
+|                            | `GITLAB_CLIENT_ID`      | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client ID                             | `your_gitlab_client_id`|
+|                            | `GITLAB_CLIENT_SECRET` | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client secret key                     | `your_gitlab_client_secret_key`|
   
 ## Custom Ingress Routes
 

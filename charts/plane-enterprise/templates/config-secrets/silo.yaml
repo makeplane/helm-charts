@@ -1,7 +1,8 @@
-{{- if .Values.services.silo.enabled }}
+{{- if and .Values.services.silo.enabled (empty .Values.external_secrets.silo_env_existingSecret)}}
 
 apiVersion: v1
 kind: Secret
+type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-secrets
@@ -13,50 +14,6 @@ stringData:
   {{- else }}
   SILO_HMAC_SECRET_KEY: {{ randAlphaNum 32 | quote }}
   {{- end }}
----
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-silo-vars
-data:
-  PORT: "3000"
-  BATCH_SIZE: {{ .Values.env.silo_envs.batch_size | default 100 | quote }}
-  MQ_PREFETCH_COUNT: {{ .Values.env.silo_envs.mq_prefetch_count | default 1 | quote }}
-  REQUEST_INTERVAL: {{ .Values.env.silo_envs.request_interval | default 400 | quote }}
-  SILO_BASE_PATH: "/silo"
-
-  {{- if .Values.env.silo_envs.hmac_secret_key }}
-  SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | quote }}
-  {{- else if (lookup "v1" "ConfigMap" .Release.Namespace (printf "%s-silo-vars" .Release.Name)) }}
-  SILO_HMAC_SECRET_KEY: {{ (lookup "v1" "ConfigMap" .Release.Namespace (printf "%s-silo-vars" .Release.Name)).data.SILO_HMAC_SECRET_KEY | default (randAlphaNum 32) | quote }}
-  {{- else }}
-  SILO_HMAC_SECRET_KEY: {{ randAlphaNum 32 | quote }}
-  {{- end }}
-
-  {{- if eq .Values.env.silo_envs.cors_allowed_origins "*"}}
-  CORS_ALLOWED_ORIGINS: "*"
-  {{- else if .Values.env.silo_envs.cors_allowed_origins }}
-  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.silo_envs.cors_allowed_origins }}"
-  {{- else}}
-  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
-  {{- end }} 
-
-  APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
-  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
-  SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
-
-  {{- if .Values.services.rabbitmq.local_setup }}
-  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
-  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
-  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
-  {{- else }}
-  AMQP_URL: ""
-  {{- end }}
-
-  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
 
   {{- if .Values.services.postgres.local_setup }}
   DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
@@ -72,30 +29,62 @@ data:
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 
+  {{- if .Values.services.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
+  {{- else }}
+  AMQP_URL: ""
+  {{- end }}
+
+  {{- if .Values.services.silo.connectors.slack.enabled }}
+  SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
+  SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
+  {{- end }}
+  {{- if .Values.services.silo.connectors.github.enabled }}
+  GITHUB_CLIENT_SECRET: {{ .Values.services.silo.connectors.github.client_secret | default "" | quote }}
+  GITHUB_PRIVATE_KEY: {{ .Values.services.silo.connectors.github.private_key | default "" | quote }}
+  GITHUB_CLIENT_ID: {{ .Values.services.silo.connectors.github.client_id | default "" | quote }}
+  GITHUB_APP_NAME: {{ .Values.services.silo.connectors.github.app_name | default "" | quote }}
+  GITHUB_APP_ID: {{ .Values.services.silo.connectors.github.app_id | default "" | quote }}
+  {{- end }}
+  {{- if .Values.services.silo.connectors.gitlab.enabled }}
+  GITLAB_CLIENT_SECRET: {{ .Values.services.silo.connectors.gitlab.client_secret | default "" | quote }}
+  GITLAB_CLIENT_ID: {{ .Values.services.silo.connectors.gitlab.client_id | default "" | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.services.silo.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-silo-vars
+data:
+  PORT: "3000"
+  BATCH_SIZE: {{ .Values.env.silo_envs.batch_size | default 100 | quote }}
+  MQ_PREFETCH_COUNT: {{ .Values.env.silo_envs.mq_prefetch_count | default 1 | quote }}
+  REQUEST_INTERVAL: {{ .Values.env.silo_envs.request_interval | default 400 | quote }}
+  SILO_BASE_PATH: "/silo"
+
+  {{- if eq .Values.env.silo_envs.cors_allowed_origins "*"}}
+  CORS_ALLOWED_ORIGINS: "*"
+  {{- else if .Values.env.silo_envs.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.silo_envs.cors_allowed_origins }}"
+  {{- else}}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+  {{- end }} 
+
+  APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
+  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
+  SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
+
+  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
 
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}
   SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.silo_envs.sentry_traces_sample_rate | default "0.1" | quote }}
 
-  # Secrets for Slack Integration 
-  {{- if .Values.services.silo.connectors.slack.enabled }}
-  SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
-  SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
-  {{- end}}
-
-  # Secrets for Github Integration
-  {{- if .Values.services.silo.connectors.github.enabled }}
-  GITHUB_CLIENT_ID: {{ .Values.services.silo.connectors.github.client_id | default "" | quote }}
-  GITHUB_CLIENT_SECRET: {{ .Values.services.silo.connectors.github.client_secret | default "" | quote }}
-  GITHUB_APP_NAME: {{ .Values.services.silo.connectors.github.app_name | default "" | quote }}
-  GITHUB_APP_ID: {{ .Values.services.silo.connectors.github.app_id | default "" | quote }}
-  GITHUB_PRIVATE_KEY: {{ .Values.services.silo.connectors.github.private_key | default "" | quote }}
-  {{- end}}
-
-  # Secrets for Gitlab Integration
-  {{- if .Values.services.silo.connectors.gitlab.enabled }}
-  GITLAB_CLIENT_ID: {{ .Values.services.silo.connectors.gitlab.client_id | default "" | quote }}
-  GITLAB_CLIENT_SECRET: {{ .Values.services.silo.connectors.gitlab.client_secret | default "" | quote }}
-  {{- end}}
----
 {{- end }}
+---

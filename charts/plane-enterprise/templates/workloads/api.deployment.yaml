@@ -65,7 +65,7 @@ spec:
               optional: false
           {{- if .Values.services.silo.enabled }}
           - secretRef:
-              name: {{ .Release.Name }}-silo-secrets
+              name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
           {{- end }}
         readinessProbe:

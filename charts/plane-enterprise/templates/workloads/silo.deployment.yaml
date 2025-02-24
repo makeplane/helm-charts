@@ -81,7 +81,7 @@ spec:
               name: {{ .Release.Name }}-silo-vars
               optional: false
           - secretRef:
-              name: {{ .Release.Name }}-silo-secrets
+              name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
