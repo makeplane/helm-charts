@@ -199,3 +199,5 @@ env:
     request_interval: 400
     hmac_secret_key: ''
     cors_allowed_origins: ''
+
+podAnnotations: {}

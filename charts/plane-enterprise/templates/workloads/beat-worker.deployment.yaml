@@ -15,6 +15,9 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-beat-worker
       annotations:
         timestamp: {{ now | quote }}
+        {{- if .Values.podAnnotations }}
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-beat-worker
