@@ -160,3 +160,5 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+
+podAnnotations: {}

@@ -34,6 +34,9 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
       annotations:
         timestamp: {{ now | quote }}
+        {{- if .Values.podAnnotations }}
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - image: {{ .Values.services.monitor.image | default "registry.plane.tools/plane/monitor-enterprise" }}:{{ .Values.planeVersion }}

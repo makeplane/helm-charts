@@ -721,3 +721,10 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+- variable: podAnnotations
+  label: "Pod Annotations"
+  group: "Pod Configuration"
+  type: dict
+  description: "Add custom annotations to pods. Will be merged with existing annotations."
+  default: {}
+  required: false
