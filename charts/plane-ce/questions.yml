@@ -552,19 +552,19 @@ questions:
   label: "RabbitMQ Secrets File Name"
   type: string
   default: ""
-  group: "Secrets Name"
+  group: "External Secrets"
 - variable: external_secrets.pgdb_existingSecret
   label: "Postgres Secrets File Name"
   type: string
   default: ""
-  group: "Secrets Name"
+  group: "External Secrets"
 - variable: external_secrets.doc_store_existingSecret
   label: "Doc Store and Minio Secrets File Name"
   type: string
   default: ""
-  group: "Secrets Name"
+  group: "External Secrets"
 - variable: external_secrets.app_env_existingSecret
   label: "App Envs Secrets File Name"
   type: string
   default: ""
-  group: "Secrets Name"
+  group: "External Secrets"
