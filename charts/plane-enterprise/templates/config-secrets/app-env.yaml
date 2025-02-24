@@ -1,12 +1,35 @@
+{{- if empty .Values.external_secrets.app_env_existingSecret}}
 apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-secrets
-data:
-  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | b64enc | quote }}
+stringData:
+  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
 
+  {{- if .Values.services.redis.local_setup }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  {{- else }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+
+  {{ if .Values.services.postgres.local_setup }}
+  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
+  {{ else if .Values.env.pgdb_remote_url }}
+  DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+  {{ else }}
+  DATABASE_URL: ""
+  {{ end }}
+
+  {{- if .Values.services.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
+  {{- else }}
+  AMQP_URL: ""
+  {{ end }}
+{{- end }}
 ---
 
 apiVersion: v1
@@ -15,47 +38,25 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-vars
 data:
-    PRIME_HOST: {{ .Values.license.licenseServer | quote }}
-    MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
-    APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
-    APP_VERSION: {{ .Values.planeVersion | quote }}
-    PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
-    FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  PRIME_HOST: {{ .Values.license.licenseServer | quote }}
+  MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
+  APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
+  APP_VERSION: {{ .Values.planeVersion | quote }}
+  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
 
-    SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
-    SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
-    DEBUG: "0"
-    DOCKERIZED: "1"
-    GUNICORN_WORKERS: "1"
+  SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
+  SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
+  DEBUG: "0"
+  DOCKERIZED: "1"
+  GUNICORN_WORKERS: "1"
 
-    WEB_URL: "http://{{ .Values.license.licenseDomain }}"
+  WEB_URL: "http://{{ .Values.license.licenseDomain }}"
 
-    {{- if eq .Values.env.cors_allowed_origins "*"}}
-    CORS_ALLOWED_ORIGINS: "*"
-    {{- else if .Values.env.cors_allowed_origins }}
-    CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
-    {{- else}}
-    CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
-    {{- end }}
-    
-    {{- if .Values.services.redis.local_setup }}
-    REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
-    {{- else }}
-    REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
-    {{- end }}
-
-    {{ if .Values.services.postgres.local_setup }}
-    DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
-    {{ else if .Values.env.pgdb_remote_url }}
-    DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
-    {{ else }}
-    DATABASE_URL: ""
-    {{ end }}
-
-    {{- if .Values.services.rabbitmq.local_setup }}
-    AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
-    {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
-    AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
-    {{- else }}
-    AMQP_URL: ""
-    {{ end }}
+  {{- if eq .Values.env.cors_allowed_origins "*"}}
+  CORS_ALLOWED_ORIGINS: "*"
+  {{- else if .Values.env.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
+  {{- else}}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+  {{- end }} 

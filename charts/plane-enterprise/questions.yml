@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.8.0
+  default: v1.8.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -690,3 +690,34 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
+
+- variable: external_secrets.rabbitmq_existingSecret
+  label: "RabbitMQ Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.pgdb_existingSecret
+  label: "Postgres Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.doc_store_existingSecret
+  label: "Doc Store and Minio Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.app_env_existingSecret
+  label: "App Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.live_env_existingSecret
+  label: "Live Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.silo_env_existingSecret
+  label: "Silo Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
