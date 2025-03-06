@@ -41,7 +41,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-space
         imagePullPolicy: {{ .Values.services.space.pullPolicy | default "Always" }}
-        image: {{ .Values.services.space.image | default "registry.plane.tools/plane/space-enterprise" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.space.image | default "makeplane/space-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

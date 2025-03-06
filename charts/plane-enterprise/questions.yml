@@ -28,37 +28,37 @@ questions:
     label: Frontend Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/web-enterprise"
+    default: "makeplane/web-commercial"
   - variable: services.space.image
     label: Space Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/space-enterprise"
+    default: "makeplane/space-commercial"
   - variable: services.admin.image
     label: Admin Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/admin-enterprise"
+    default: "makeplane/admin-commercial"
   - variable: services.live.image
     label: Live Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/live-enterprise"
+    default: "makeplane/live-commercial"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/monitor-enterprise"
+    default: "makeplane/monitor-commercial"
   - variable: services.silo.image
     label: Silo Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/silo-enterprise"
+    default: "makeplane/silo-commercial"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/backend-enterprise"
+    default: "makeplane/backend-commercial"
     description: "Used by API, Worker, Beat-Worker"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
@@ -416,7 +416,7 @@ questions:
   - variable: services.redis.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/valkey:7.2.5-alpine"
+    default: "valkey/valkey:7.2.5-alpine"
     show_if: "services.redis.local_setup=true"
   - variable: services.redis.pullPolicy
     label: "Redis Pull Policy"
@@ -457,7 +457,7 @@ questions:
   - variable: services.postgres.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/postgres:15.7-alpine"
+    default: "postgres:15.7-alpine"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.pullPolicy
     label: "Postgres Pull Policy"
@@ -567,7 +567,7 @@ questions:
   - variable: services.minio.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/minio:latest"
+    default: "minio/minio:latest"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.pullPolicy
     label: "Minio Pull Policy"
