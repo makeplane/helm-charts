@@ -7,7 +7,7 @@ questions:
   group: "Docker Registry"
   show_subquestion_if: true
   subquestions:
-  - variable: dockerRegistry.loginid
+  - variable: dockerRegistry.host
     label: "Registry Host"
     type: string
   - variable: dockerRegistry.loginid
