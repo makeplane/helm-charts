@@ -43,7 +43,7 @@ data:
     DEBUG: "0"
     DOCKERIZED: "1"
     GUNICORN_WORKERS: "1"
-    FORCE_HTTPS: {{ .Values.env.force_https | default "" | quote }}
+    MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
 
     {{- if .Values.ingress.appHost }}
     WEB_URL: "http://{{ .Values.ingress.appHost }}"
