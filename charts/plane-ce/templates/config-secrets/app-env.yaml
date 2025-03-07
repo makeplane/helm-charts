@@ -43,7 +43,7 @@ data:
     DEBUG: "0"
     DOCKERIZED: "1"
     GUNICORN_WORKERS: "1"
-    FORCE_HTTPS: {{ .Values.env.force_https | default false | ternary "1" "0" | quote }}
+    FORCE_HTTPS: {{ .Values.env.force_https | default "" | quote }}
 
     {{- if .Values.ingress.appHost }}
     WEB_URL: "http://{{ .Values.ingress.appHost }}"

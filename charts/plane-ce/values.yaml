@@ -150,7 +150,7 @@ env:
   aws_s3_endpoint_url: ""
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
-  force_https: false
+  force_https: ""
 
   sentry_dsn: ""
   sentry_environment: ""
