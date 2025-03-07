@@ -214,6 +214,10 @@ questions:
     type: string
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  - variable: env.force_https
+    label: "Force HTTPS"
+    type: boolean
+    default: false
 
 - variable: worker.replicas
   label: "Default Replica Count"
