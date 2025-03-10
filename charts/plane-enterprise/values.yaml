@@ -63,6 +63,8 @@ services:
     root_user: admin
     root_password: password
     assign_cluster_ip: false
+    env:
+      minio_endpoint_ssl: false
 
   web:
     replicas: 1

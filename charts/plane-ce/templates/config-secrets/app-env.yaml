@@ -38,28 +38,28 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-vars
 data:
-    SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
-    SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
-    DEBUG: "0"
-    DOCKERIZED: "1"
-    GUNICORN_WORKERS: "1"
-    MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
+  SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
+  SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
+  DEBUG: "0"
+  DOCKERIZED: "1"
+  GUNICORN_WORKERS: "1"
+  MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
 
-    {{- if .Values.ingress.appHost }}
-    WEB_URL: "http://{{ .Values.ingress.appHost }}"
-    {{- else }}
-    WEB_URL: ""
-    {{- end }}
+  {{- if .Values.ingress.appHost }}
+  WEB_URL: "http://{{ .Values.ingress.appHost }}"
+  {{- else }}
+  WEB_URL: ""
+  {{- end }}
 
 
-    {{- if eq .Values.env.cors_allowed_origins "*"}}
-    CORS_ALLOWED_ORIGINS: "*"
-    {{- else if and .Values.ingress.appHost .Values.env.cors_allowed_origins }}
-    CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }},{{ .Values.env.cors_allowed_origins }}"
-    {{- else if .Values.env.cors_allowed_origins }}
-    CORS_ALLOWED_ORIGINS: "{{ .Values.env.cors_allowed_origins }}"
-    {{- else if .Values.ingress.appHost}}
-    CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }}"
-    {{- else }}
-    CORS_ALLOWED_ORIGINS: ""
-    {{- end }}
+  {{- if eq .Values.env.cors_allowed_origins "*"}}
+  CORS_ALLOWED_ORIGINS: "*"
+  {{- else if and .Values.ingress.appHost .Values.env.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }},{{ .Values.env.cors_allowed_origins }}"
+  {{- else if .Values.env.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "{{ .Values.env.cors_allowed_origins }}"
+  {{- else if .Values.ingress.appHost}}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }}"
+  {{- else }}
+  CORS_ALLOWED_ORIGINS: ""
+  {{- end }}
