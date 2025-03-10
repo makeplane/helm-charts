@@ -162,3 +162,5 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+
+  api_key_rate_limit: "60/minute"

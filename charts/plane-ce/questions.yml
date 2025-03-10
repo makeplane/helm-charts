@@ -218,6 +218,10 @@ questions:
     label: "Minio Endpoint SSL"
     type: boolean
     default: false
+  - variable: env.api_key_rate_limit
+    label: "API Key Rate Limit"
+    type: string
+    default: "60/minute"
 - variable: worker.replicas
   label: "Default Replica Count"
   type: int
