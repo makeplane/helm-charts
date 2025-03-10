@@ -44,6 +44,7 @@ data:
   APP_VERSION: {{ .Values.planeVersion | quote }}
   PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
   SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
   DEBUG: "0"
