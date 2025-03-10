@@ -3,7 +3,7 @@ planeVersion: stable
 dockerRegistry:
   enabled: false
   host: "index.docker.io/v1/"
-  loginid: makeplane
+  loginid: ""
   password: ""
 
 ingress:
