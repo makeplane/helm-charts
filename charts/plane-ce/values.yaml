@@ -3,7 +3,7 @@ planeVersion: stable
 dockerRegistry:
   enabled: false
   host: "index.docker.io/v1/"
-  loginid: makeplane
+  loginid: ""
   password: ""
 
 ingress:
@@ -64,6 +64,8 @@ minio:
   storageClass: ""
   volumeSize: 1Gi
   assign_cluster_ip: false
+  env:
+   minio_endpoint_ssl: false
 
 web:
   replicas: 1
@@ -160,3 +162,5 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+
+  api_key_rate_limit: "60/minute"
