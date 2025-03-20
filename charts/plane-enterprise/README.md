@@ -156,6 +156,7 @@
 | services.minio.volumeSize | 3Gi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.minio.root_user | admin |  |  Storage credentials are requried to access the hosted stateful deployment of `minio`.  Use this key to set the username for the stateful deployment. |
 | services.minio.root_password | password |  | Storage credentials are requried to access the hosted stateful deployment of `minio`.  Use this key to set the password for the stateful deployment. |
+| services.minio.env.minio_endpoint_ssl | false |  | (Optional) Env to enforce HTTPS when connecting to minio uploads bucket  |
 | env.docstore_bucket | uploads | Yes | Storage bucket name is required as part of configuration. This is where files will be uploaded irrespective of if you are using `Minio` or external `S3` (or compatible) storage service |
 | env.doc_upload_size_limit | 5242880 | Yes | Document Upload Size Limit (default to 5Mb) |
 | services.minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -233,6 +234,7 @@
 | services.api.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `api`. |
 | env.sentry_dsn |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
+| env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
 | services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Silo Deployment
