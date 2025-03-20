@@ -1,0 +1,19 @@
+apiVersion: v1
+entries:
+  plane-enterprise-add-minio-envs:
+  - apiVersion: v2
+    appVersion: 1.8.3
+    created: "2025-03-20T06:25:35.427118018Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 901e23b2d819e601656f667704d3e65feeb21fbc022ae5993d9b9797f4966707
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise-add-minio-envs
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-add-minio-envs-1.1.7/plane-enterprise-add-minio-envs-1.1.7.tgz
+    version: 1.1.7
+generated: "2025-03-20T06:25:35.427128457Z"
