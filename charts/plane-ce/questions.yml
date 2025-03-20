@@ -214,14 +214,11 @@ questions:
     type: string
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
-  - variable: minio.env.minio_endpoint_ssl
-    label: "Minio Endpoint SSL"
-    type: boolean
-    default: false
   - variable: env.api_key_rate_limit
     label: "API Key Rate Limit"
     type: string
     default: "60/minute"
+
 - variable: worker.replicas
   label: "Default Replica Count"
   type: int
@@ -491,6 +488,10 @@ questions:
     label: "FIle Upload Size Limit"
     type: string
     default: "5242880"
+  - variable: minio.env.minio_endpoint_ssl
+    label: "Minio Endpoint SSL"
+    type: boolean
+    default: false
 
 - variable: ingress.enabled
   label: "Install Ingress"
