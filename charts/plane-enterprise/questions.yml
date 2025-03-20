@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.8.1
+  default: v1.8.3
   required: true
   group: "Docker Registry"
   subquestions:
@@ -376,6 +376,10 @@ questions:
     type: string
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  - variable: env.api_key_rate_limit
+    label: "API Key Rate Limit"
+    type: string
+    default: "60/minute"
 
 - variable: services.worker.replicas
   label: "Default Replica Count"
@@ -630,6 +634,11 @@ questions:
     label: "File Upload Size Limit"
     type: string
     default: "5242880"
+  - variable: services.minio.env.minio_endpoint_ssl
+    label: "Minio Endpoint SSL"
+    type: boolean
+    default: false
+    show_if: "services.minio.local_setup=true"
 
 - variable: ingress.enabled
   label: "Enable Ingress"
