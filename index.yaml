@@ -4,6 +4,23 @@ entries:
   - annotations:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
+    appVersion: 0.25.3
+    created: "2025-03-27T12:36:19.025967857Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 271c11c6cb4a8be6699946b0c7aa89ee56756e42ce8bce11389cc5f198f8ea1f
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.1.0/plane-ce-1.1.0.tgz
+    version: 1.1.0
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
     appVersion: 0.25.2
     created: "2025-03-11T12:58:25.701379911Z"
     description: Meet Plane. An open-source software development tool to manage issues,
@@ -276,6 +293,21 @@ entries:
   plane-enterprise:
   - apiVersion: v2
     appVersion: 1.8.3
+    created: "2025-03-27T12:36:19.17707262Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 508bedad34b8a09cf2b3a6641caae32ac3010aab88daa749cb5746a5a669cf5e
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.1.8/plane-enterprise-1.1.8.tgz
+    version: 1.1.8
+  - apiVersion: v2
+    appVersion: 1.8.3
     created: "2025-03-20T07:28:31.507072847Z"
     description: Meet Plane. An Enterprise software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -508,4 +540,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2025-03-20T07:28:31.507221455Z"
+generated: "2025-03-27T12:36:19.177312128Z"
