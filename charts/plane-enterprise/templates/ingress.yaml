@@ -107,7 +107,19 @@ spec:
             path: /
             pathType: Prefix
     {{- end }}
-  {{- if .Values.ssl.generateCerts }}
+
+  {{- if .Values.ssl.tls_secret_name}}
+  tls:
+    - hosts:
+      - {{ .Values.license.licenseDomain | quote }}
+      {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
+      - {{ .Values.ingress.minioHost | quote }}
+      {{ end }}
+      {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+      - {{ .Values.ingress.rabbitmqHost | quote }}
+      {{ end }}
+      secretName: {{ .Values.ssl.tls_secret_name }}
+  {{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
   tls:
     - hosts:
       - {{ .Values.license.licenseDomain | quote }}

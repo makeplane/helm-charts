@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled .Values.ssl.createIssuer }}
+{{- if and .Values.ingress.enabled .Values.ssl.createIssuer (empty .Values.ssl.tls_secret_name) }} 
 
 apiVersion: v1
 kind: Secret

@@ -700,6 +700,13 @@ questions:
     type: boolean
     default: false
 
+- variable: ssl.tls_secret_name
+  label: "Custom TLS Secret Name"
+  type: string
+  default: ""
+  group: "Ingress"  
+  show_if: "ssl.createIssuer=false"
+
 - variable: external_secrets.rabbitmq_existingSecret
   label: "RabbitMQ Secrets File Name"
   type: string

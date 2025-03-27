@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled .Values.ssl.createIssuer .Values.ssl.generateCerts }}
+{{- if and .Values.ingress.enabled .Values.ssl.createIssuer .Values.ssl.generateCerts (empty .Values.ssl.tls_secret_name) }}
 
 apiVersion: cert-manager.io/v1
 kind: Certificate

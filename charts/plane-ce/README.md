@@ -237,6 +237,7 @@
 | ssl.server | <https://acme-v02.api.letsencrypt.org/directory> |  | Issuer creation configuration need the certificate generation authority server url. Default URL is the `Let's Encrypt` server|
 | ssl.email | <plane@example.com> |  | Certificate generation authority needs a valid email id before generating certificate. Required when `ssl.createIssuer=true`  |
 | ssl.generateCerts | false |  | After creating the issuers, user can still not create the certificate untill sure of configuration. Setting this to `true` will try to generate SSL certificate and associate with ingress. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=true` |
+| ssl.tls_secret_name |  |  | If you have a custom TLS secret name, set this to the name of the secret. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=false` |
 
 ### Common Environment Settings
 
