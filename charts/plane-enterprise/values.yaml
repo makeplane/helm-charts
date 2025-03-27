@@ -18,6 +18,8 @@ ingress:
   ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 ssl:
+  tls_secret_name: '' # If you have a custom TLS secret name
+  # If you want to use Let's Encrypt, set createIssuer and generateCerts to true
   createIssuer: false
   issuer: http # Allowed : cloudflare, digitalocean, http
   token: '' # not required for http
