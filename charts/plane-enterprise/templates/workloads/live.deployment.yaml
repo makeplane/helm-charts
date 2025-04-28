@@ -54,7 +54,7 @@ spec:
         command:
           - node
         args:
-          - live/dist/server.js
+          - live/dist/start.js
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
