@@ -1,4 +1,4 @@
-planeVersion: v1.8.1
+planeVersion: v1.8.3
 
 dockerRegistry:
   enabled: false
@@ -18,6 +18,8 @@ ingress:
   ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 ssl:
+  tls_secret_name: '' # If you have a custom TLS secret name
+  # If you want to use Let's Encrypt, set createIssuer and generateCerts to true
   createIssuer: false
   issuer: http # Allowed : cloudflare, digitalocean, http
   token: '' # not required for http
@@ -63,6 +65,8 @@ services:
     root_user: admin
     root_password: password
     assign_cluster_ip: false
+    env:
+      minio_endpoint_ssl: false
 
   web:
     replicas: 1
@@ -179,6 +183,7 @@ env:
   aws_s3_endpoint_url: ''
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  api_key_rate_limit: "60/minute"
 
   sentry_dsn: ''
   sentry_environment: ''

@@ -7,7 +7,7 @@ questions:
   group: "Docker Registry"
   show_subquestion_if: true
   subquestions:
-  - variable: dockerRegistry.loginid
+  - variable: dockerRegistry.host
     label: "Registry Host"
     type: string
   - variable: dockerRegistry.loginid
@@ -214,6 +214,10 @@ questions:
     type: string
     required: true
     default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  - variable: env.api_key_rate_limit
+    label: "API Key Rate Limit"
+    type: string
+    default: "60/minute"
 
 - variable: worker.replicas
   label: "Default Replica Count"
@@ -484,6 +488,10 @@ questions:
     label: "FIle Upload Size Limit"
     type: string
     default: "5242880"
+  - variable: minio.env.minio_endpoint_ssl
+    label: "Minio Endpoint SSL"
+    type: boolean
+    default: false
 
 - variable: ingress.enabled
   label: "Install Ingress"
@@ -547,6 +555,13 @@ questions:
     label: "Enable to generate certificates"
     type: boolean
     default: false
+
+- variable: ssl.tls_secret_name
+  label: "Custom TLS Secret Name"
+  type: string
+  default: ""
+  group: "Ingress"
+  show_if: "ssl.createIssuer=false"
 
 - variable: external_secrets.rabbitmq_existingSecret
   label: "RabbitMQ Secrets File Name"
