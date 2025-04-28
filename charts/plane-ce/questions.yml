@@ -28,7 +28,7 @@ questions:
   label: Frontend Docker Image
   type: string
   required: true
-  default: "makeplane/plane-frontend"
+  default: "artifacts.plane.so/makeplane/plane-frontend"
   group: "Web Setup"
   subquestions:
   - variable: web.pullPolicy
@@ -60,7 +60,7 @@ questions:
   label: Space Docker Image
   type: string
   required: true
-  default: "makeplane/plane-space"
+  default: "artifacts.plane.so/makeplane/plane-space"
   group: "Spaces Setup"
   subquestions:
   - variable: space.pullPolicy
@@ -92,7 +92,7 @@ questions:
   label: Admin Docker Image
   type: string
   required: true
-  default: "makeplane/plane-admin"
+  default: "artifacts.plane.so/makeplane/plane-admin"
   group: "Admin Setup"
   subquestions:
   - variable: admin.pullPolicy
@@ -124,7 +124,7 @@ questions:
   label: Live Docker Image
   type: string
   required: true
-  default: "makeplane/plane-live"
+  default: "artifacts.plane.so/makeplane/plane-live"
   description: "Live Server Setup"
   group: "Live Setup"
   subquestions:
@@ -169,7 +169,7 @@ questions:
   label: Backend Docker Image
   type: string
   required: true
-  default: "makeplane/plane-backend"
+  default: "artifacts.plane.so/makeplane/plane-backend"
   description: "Used by API, Worker, Beat-Worker"
   group: "API Setup"
   subquestions:
