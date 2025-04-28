@@ -41,7 +41,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-live
         imagePullPolicy: {{ .Values.live.pullPolicy | default "Always" }}
-        image: {{ .Values.live.image | default "makeplane/plane-live" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.live.image | default "artifacts.plane.so/makeplane/plane-live" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

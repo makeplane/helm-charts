@@ -62,7 +62,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-silo
         imagePullPolicy: Always
-        image: {{ .Values.services.silo.image | default "makeplane/silo-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.silo.image | default "artifacts.plane.so/makeplane/silo-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

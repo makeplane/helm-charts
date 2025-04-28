@@ -41,7 +41,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-web
         imagePullPolicy: {{ .Values.services.web.pullPolicy | default "Always" }}
-        image: {{ .Values.services.web.image | default "makeplane/web-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.web.image | default "artifacts.plane.so/makeplane/web-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

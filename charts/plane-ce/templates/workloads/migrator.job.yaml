@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-api-migrate
-        image: {{ .Values.api.image | default "makeplane/plane-backend" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.api.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
         command: 
           - ./bin/docker-entrypoint-migrator.sh
         imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}

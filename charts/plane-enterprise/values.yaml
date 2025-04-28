@@ -72,14 +72,14 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/web-commercial
+    image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
   monitor:
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/monitor-commercial
+    image: artifacts.plane.so/makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
@@ -88,7 +88,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/space-commercial
+    image: artifacts.plane.so/makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -96,7 +96,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/admin-commercial
+    image: artifacts.plane.so/makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -104,7 +104,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/live-commercial
+    image: artifacts.plane.so/makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -112,7 +112,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/backend-commercial
+    image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -131,7 +131,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: makeplane/silo-commercial
+    image: artifacts.plane.so/makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     connectors:

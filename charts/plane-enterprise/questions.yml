@@ -28,37 +28,37 @@ questions:
     label: Frontend Docker Image
     type: string
     required: true
-    default: "makeplane/web-commercial"
+    default: "artifacts.plane.so/makeplane/web-commercial"
   - variable: services.space.image
     label: Space Docker Image
     type: string
     required: true
-    default: "makeplane/space-commercial"
+    default: "artifacts.plane.so/makeplane/space-commercial"
   - variable: services.admin.image
     label: Admin Docker Image
     type: string
     required: true
-    default: "makeplane/admin-commercial"
+    default: "artifacts.plane.so/makeplane/admin-commercial"
   - variable: services.live.image
     label: Live Docker Image
     type: string
     required: true
-    default: "makeplane/live-commercial"
+    default: "artifacts.plane.so/makeplane/live-commercial"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
     required: true
-    default: "makeplane/monitor-commercial"
+    default: "artifacts.plane.so/makeplane/monitor-commercial"
   - variable: services.silo.image
     label: Silo Docker Image
     type: string
     required: true
-    default: "makeplane/silo-commercial"
+    default: "artifacts.plane.so/makeplane/silo-commercial"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
     required: true
-    default: "makeplane/backend-commercial"
+    default: "artifacts.plane.so/makeplane/backend-commercial"
     description: "Used by API, Worker, Beat-Worker"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
