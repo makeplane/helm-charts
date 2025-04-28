@@ -19,7 +19,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-worker
         imagePullPolicy: {{ .Values.worker.pullPolicy | default "Always" }}
-        image: {{ .Values.worker.image | default "makeplane/plane-backend" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.worker.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
