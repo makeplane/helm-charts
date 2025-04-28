@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-app-secrets
 stringData:
   SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
+  LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
 
   {{- if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"

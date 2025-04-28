@@ -193,6 +193,10 @@ questions:
   - variable: env.live_sentry_traces_sample_rate
     label: "Sentry Traces Sample Rate"
     type: string
+  - variable: env.live_server_secret_key
+    label: "Live Server Secret Key"
+    type: string
+    default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
 - variable: services.silo.enabled
   label: "Install Silo Service"

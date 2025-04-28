@@ -194,6 +194,7 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
   silo_envs:
     sentry_dsn: ''
