@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.8.3
+  default: v1.9.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -704,7 +704,7 @@ questions:
   label: "Custom TLS Secret Name"
   type: string
   default: ""
-  group: "Ingress"  
+  group: "Ingress"
   show_if: "ssl.createIssuer=false"
 
 - variable: external_secrets.rabbitmq_existingSecret
