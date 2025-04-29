@@ -41,7 +41,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-live
         imagePullPolicy: {{ .Values.services.live.pullPolicy | default "Always" }}
-        image: {{ .Values.services.live.image | default "makeplane/live-enterprise" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.live.image | default "artifacts.plane.so/makeplane/live-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
@@ -54,7 +54,7 @@ spec:
         command:
           - node
         args:
-          - live/dist/server.js
+          - live/dist/start.js
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars

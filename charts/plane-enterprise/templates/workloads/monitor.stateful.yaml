@@ -36,7 +36,7 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       containers:
-      - image: {{ .Values.services.monitor.image | default "registry.plane.tools/plane/monitor-enterprise" }}:{{ .Values.planeVersion }}
+      - image: {{ .Values.services.monitor.image | default "artifacts.plane.so/makeplane/monitor-commercial" }}:{{ .Values.planeVersion }}
         imagePullPolicy: {{ .Values.services.monitor.pullPolicy | default "Always" }}
         name: {{ .Release.Name }}-monitor
         stdin: true

@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.8.3
+  default: v1.9.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -28,37 +28,37 @@ questions:
     label: Frontend Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/web-enterprise"
+    default: "artifacts.plane.so/makeplane/web-commercial"
   - variable: services.space.image
     label: Space Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/space-enterprise"
+    default: "artifacts.plane.so/makeplane/space-commercial"
   - variable: services.admin.image
     label: Admin Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/admin-enterprise"
+    default: "artifacts.plane.so/makeplane/admin-commercial"
   - variable: services.live.image
     label: Live Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/live-enterprise"
+    default: "artifacts.plane.so/makeplane/live-commercial"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/monitor-enterprise"
+    default: "artifacts.plane.so/makeplane/monitor-commercial"
   - variable: services.silo.image
     label: Silo Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/silo-enterprise"
+    default: "artifacts.plane.so/makeplane/silo-commercial"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
     required: true
-    default: "registry.plane.tools/plane/backend-enterprise"
+    default: "artifacts.plane.so/makeplane/backend-commercial"
     description: "Used by API, Worker, Beat-Worker"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
@@ -193,6 +193,10 @@ questions:
   - variable: env.live_sentry_traces_sample_rate
     label: "Sentry Traces Sample Rate"
     type: string
+  - variable: env.live_server_secret_key
+    label: "Live Server Secret Key"
+    type: string
+    default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
 - variable: services.silo.enabled
   label: "Install Silo Service"
@@ -420,7 +424,7 @@ questions:
   - variable: services.redis.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/valkey:7.2.5-alpine"
+    default: "valkey/valkey:7.2.5-alpine"
     show_if: "services.redis.local_setup=true"
   - variable: services.redis.pullPolicy
     label: "Redis Pull Policy"
@@ -461,7 +465,7 @@ questions:
   - variable: services.postgres.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/postgres:15.7-alpine"
+    default: "postgres:15.7-alpine"
     show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.pullPolicy
     label: "Postgres Pull Policy"
@@ -571,7 +575,7 @@ questions:
   - variable: services.minio.image
     label: "Docker Image"
     type: string
-    default: "registry.plane.tools/plane/minio:latest"
+    default: "minio/minio:latest"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.pullPolicy
     label: "Minio Pull Policy"
@@ -704,7 +708,7 @@ questions:
   label: "Custom TLS Secret Name"
   type: string
   default: ""
-  group: "Ingress"  
+  group: "Ingress"
   show_if: "ssl.createIssuer=false"
 
 - variable: external_secrets.rabbitmq_existingSecret

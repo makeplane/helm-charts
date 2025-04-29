@@ -41,7 +41,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-admin
         imagePullPolicy: {{ .Values.services.admin.pullPolicy | default "Always" }}
-        image: {{ .Values.services.admin.image | default "registry.plane.tools/plane/admin-enterprise" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.admin.image | default "artifacts.plane.so/makeplane/admin-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
