@@ -1,8 +1,8 @@
-planeVersion: v1.8.3
+planeVersion: v1.9.0
 
 dockerRegistry:
   enabled: false
-  registry: registry.plane.tools
+  registry: 'index.docker.io/v1/'
   loginid: ''
   password: ''
 
@@ -30,7 +30,7 @@ ssl:
 services:
   redis:
     local_setup: true
-    image: registry.plane.tools/plane/valkey:7.2.5-alpine
+    image: valkey/valkey:7.2.5-alpine
     servicePort: 6379
     volumeSize: 500Mi
     pullPolicy: IfNotPresent
@@ -38,7 +38,7 @@ services:
 
   postgres:
     local_setup: true
-    image: registry.plane.tools/plane/postgres:15.7-alpine
+    image: postgres:15.7-alpine
     servicePort: 5432
     volumeSize: 2Gi
     pullPolicy: IfNotPresent
@@ -58,7 +58,7 @@ services:
 
   minio:
     local_setup: true
-    image: registry.plane.tools/plane/minio:latest
+    image: minio/minio:latest
     image_mc: minio/mc:latest
     volumeSize: 3Gi
     pullPolicy: IfNotPresent
@@ -72,14 +72,14 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/web-enterprise
+    image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
   monitor:
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/monitor-enterprise
+    image: artifacts.plane.so/makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
@@ -88,7 +88,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/space-enterprise
+    image: artifacts.plane.so/makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -96,7 +96,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/admin-enterprise
+    image: artifacts.plane.so/makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -104,7 +104,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/live-enterprise
+    image: artifacts.plane.so/makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -112,7 +112,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/backend-enterprise
+    image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -131,7 +131,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    image: registry.plane.tools/plane/silo-enterprise
+    image: artifacts.plane.so/makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     connectors:
@@ -194,6 +194,7 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
   silo_envs:
     sentry_dsn: ''
