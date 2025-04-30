@@ -60,9 +60,15 @@ questions:
     required: true
     default: "artifacts.plane.so/makeplane/backend-commercial"
     description: "Used by API, Worker, Beat-Worker"
+  - variable: services.email_service.image
+    label: Email Service Docker Image
+    type: string
+    required: true
+    default: "makeplane/email-service-cloud"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
+  
 
 - variable: license.licenseServer
   label: "License Server"
@@ -414,6 +420,56 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+
+- variable: services.email_service.enabled
+  label: "Enable Email Service"
+  type: boolean
+  default: false
+  group: "Email Service Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.email_service.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.email_service.memory_limit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.email_service.cpu_limit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: env.email_service_envs.webhook_url
+    label: "Email Save Endpoint"
+    type: string
+    default: ""
+  - variable: env.email_service_envs.smtp_domain
+    label: "SMTP Domain"
+    type: string
+    default: ""
+  - variable: ssl.issuer
+    label: "SSL Issuer"
+    type: enum
+    options:
+    - "http"
+    - "cloudflare"
+    - "digitalocean"
+    default: "http"
+  - variable: ssl.server
+    label: "Let's Encrypt Server URL"
+    type: string
+    default: "https://acme-v02.services.api.letsencrypt.org/directory"
+  - variable: ssl.email
+    label: "Let's Encrypt Reg. Email"
+    type: string
+    default: "plane@example.com"
+  - variable: ssl.token
+    label: "Provider API Token"
+    type: password
+    default: ""
+    description: "Not required for 'http' issuer"
+    show_if: "ssl.issuer=cloudflare || ssl.issuer=digitalocean"
 
 - variable: services.redis.local_setup
   label: "Install Redis"
