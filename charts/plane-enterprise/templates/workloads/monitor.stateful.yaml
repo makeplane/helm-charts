@@ -6,6 +6,7 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
 spec:
+  type: ClusterIP
   {{- if not .Values.services.monitor.assign_cluster_ip }}
   clusterIP: None
   {{- end }}

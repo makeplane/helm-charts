@@ -8,6 +8,7 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
 spec:
+  type: ClusterIP
   {{- if not .Values.services.minio.assign_cluster_ip }}
   clusterIP: None
   {{- end }}
