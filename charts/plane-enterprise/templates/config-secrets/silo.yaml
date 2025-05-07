@@ -17,8 +17,8 @@ stringData:
 
   {{- if .Values.services.postgres.local_setup }}
   DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
-  {{- else if .Values.env.pgdb_remote_url }}
-  DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+  {{- else if .Values.env.pg_silo_db_remote_url }}
+  DATABASE_URL: {{ .Values.env.pg_silo_db_remote_url}}
   {{ else }}
   DATABASE_URL: ""
   {{ end }}

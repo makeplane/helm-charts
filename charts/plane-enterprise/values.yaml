@@ -171,6 +171,7 @@ env:
   pgdb_password: plane
   pgdb_name: plane
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
+  pg_silo_db_remote_url: '' #INCASE OF REMOTE PG SILO DB URL ONLY
 
   # DATA STORE
   docstore_bucket: uploads

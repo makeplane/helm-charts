@@ -515,6 +515,11 @@ questions:
     type: string
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
+  - variable: env.pg_silo_db_remote_url
+    label: "Remote PG Silo DB URL(SSL Mode: no-verify)"
+    type: string
+    default: "postgresql://"
+    show_if: "services.postgres.local_setup=false"
 
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
