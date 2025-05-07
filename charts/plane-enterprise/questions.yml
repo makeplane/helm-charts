@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.9.0
+  default: v1.9.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -217,6 +217,10 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.silo.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
   - variable: env.silo_envs.mq_prefetch_count
     label: "MQ Prefetch Count"
     type: int
