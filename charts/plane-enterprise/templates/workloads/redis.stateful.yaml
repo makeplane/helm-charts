@@ -8,6 +8,7 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
 spec:
+  type: ClusterIP
   {{- if not .Values.services.redis.assign_cluster_ip }}
   clusterIP: None
   {{- end }}
