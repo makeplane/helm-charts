@@ -1,0 +1,36 @@
+{{- if .Values.services.email_service.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-email-secrets
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+stringData:
+
+  {{- if .Values.env.email_service_envs.webhook_url }}
+  EMAIL_SAVE_ENDPOINT: {{ .Values.env.email_service_envs.webhook_url | default "" | quote }}
+  WEBHOOK_URL: {{ .Values.env.email_service_envs.webhook_url | default "" | quote }}
+  {{- else}}
+  EMAIL_SAVE_ENDPOINT: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/" 
+  WEBHOOK_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/" 
+  {{- end }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-email-vars
+  namespace: {{ .Release.Namespace }}
+data:
+  SMTP_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
+  domain-blacklist.txt: |
+    10minutemail.com
+    10minutemail.net
+    10minutemail.org
+  spam.txt: |
+    casino
+    lottery
+    jackpot
+---
+{{- end }}

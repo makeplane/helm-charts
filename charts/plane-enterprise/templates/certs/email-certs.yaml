@@ -1,0 +1,15 @@
+{{- if and .Values.services.email_service.enabled .Values.env.email_service_envs.smtp_domain }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Release.Name }}-mail-tls-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  dnsNames:
+  - {{ .Values.env.email_service_envs.smtp_domain | quote }}
+  
+  issuerRef:
+    name: {{ .Release.Name }}-cert-issuer
+  secretName: {{ .Release.Name }}-mail-tls-secret
+--- 
+{{- end }}
