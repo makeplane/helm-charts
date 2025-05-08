@@ -249,6 +249,10 @@ questions:
     label: "Silo HMAC Secret Key"
     type: string
     default: ""
+  - variable: env.silo_envs.aes_secret_key
+    label: "Silo AES Secret Key"
+    type: string
+    default: "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr"
   - variable: env.silo_envs.cors_allowed_origins
     label: "Silo CORS Allowed Origins"
     type: string
