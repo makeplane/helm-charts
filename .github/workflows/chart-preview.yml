@@ -92,6 +92,7 @@ jobs:
           sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" charts/${{env.CHART_REPO}}/Chart.yaml
           sed -i "s/description: .*/description: ${flatBranchName}/g" charts/${{env.CHART_REPO}}/Chart.yaml
           # sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/${{env.CHART_REPO}}/Chart.yaml
+          helm dependency build charts/$CHART_REPO
 
           helm package --sign --key "$CR_KEY" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
           cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
