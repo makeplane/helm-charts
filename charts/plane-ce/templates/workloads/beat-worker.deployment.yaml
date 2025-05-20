@@ -47,3 +47,39 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-beat-worker-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-beat-worker-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-beat-worker-wl
+  minReplicas: {{ .Values.beatworker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.beatworker.autoscaling.maxReplicas }}
+  {{- if or .Values.beatworker.autoscaling.targetCPUUtilizationPercentage .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+---

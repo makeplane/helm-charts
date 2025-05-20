@@ -66,3 +66,39 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-live-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-live-wl
+  minReplicas: {{ .Values.live.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.live.autoscaling.maxReplicas }}
+  {{- if or .Values.live.autoscaling.targetCPUUtilizationPercentage .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.live.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.live.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+---
