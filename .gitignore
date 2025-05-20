@@ -5,4 +5,3 @@ test-helm.yaml
 test.yaml
 test-*.yaml
 charts/plane-ce/charts
-charts/plane-enterprise/charts
