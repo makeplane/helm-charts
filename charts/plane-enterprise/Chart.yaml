@@ -13,3 +13,8 @@ icon: https://plane.so/favicon/favicon-32x32.png
 sources:
   - https://github.com/makeplane/plane-ee
 
+
+dependencies:
+  - name: metrics-server
+    version: 3.12.2
+    repository: https://kubernetes-sigs.github.io/metrics-server/
