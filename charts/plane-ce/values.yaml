@@ -76,6 +76,12 @@ web:
   image: artifacts.plane.so/makeplane/plane-frontend
   pullPolicy: Always
   assign_cluster_ip: false
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80  
+    targetMemoryUtilizationPercentage: 70
 
 space:
   replicas: 1
@@ -84,6 +90,12 @@ space:
   image: artifacts.plane.so/makeplane/plane-space
   pullPolicy: Always
   assign_cluster_ip: false
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 70
 
 admin:
   replicas: 1
@@ -92,6 +104,12 @@ admin:
   image: artifacts.plane.so/makeplane/plane-admin
   pullPolicy: Always
   assign_cluster_ip: false
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 70
 
 live:
   replicas: 1
@@ -100,6 +118,12 @@ live:
   image: artifacts.plane.so/makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 70
 
 api:
   replicas: 1
@@ -108,6 +132,12 @@ api:
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   assign_cluster_ip: false
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 70
 
 worker:
   replicas: 1
@@ -115,6 +145,12 @@ worker:
   cpuLimit: 500m
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 70
 
 beatworker:
   replicas: 1
@@ -122,6 +158,12 @@ beatworker:
   cpuLimit: 500m
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 70
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
@@ -166,9 +208,3 @@ env:
   live_sentry_traces_sample_rate: ""
 
   api_key_rate_limit: "60/minute"
-
-autoscaling:
-  enabled: true
-  minReplicas: 1
-  maxReplicas: 3
-  targetCPUUtilizationPercentage: 80

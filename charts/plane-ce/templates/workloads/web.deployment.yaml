@@ -60,7 +60,8 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
-apiVersion: {{ ternary "autoscaling/v2" "autoscaling/v2beta2" (.Capabilities.APIVersions.Has "autoscaling/v2") }}
+{{- if .Values.web.autoscaling.enabled }}
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Release.Name }}-web-hpa
@@ -72,31 +73,26 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-web-wl
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.web.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.web.autoscaling.maxReplicas }}
+  {{- if or .Values.web.autoscaling.targetCPUUtilizationPercentage .Values.web.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- if .Values.web.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.web.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
-    {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- if .Values.web.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.web.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
-    {{- end }}
+  {{- end }}
+{{- end }}
 ---

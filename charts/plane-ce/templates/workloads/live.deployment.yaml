@@ -66,7 +66,8 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
-apiVersion: {{ ternary "autoscaling/v2" "autoscaling/v2beta2" (.Capabilities.APIVersions.Has "autoscaling/v2") }}
+{{- if .Values.live.autoscaling.enabled }}
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Release.Name }}-live-hpa
@@ -78,31 +79,26 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-live-wl
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.live.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.live.autoscaling.maxReplicas }}
+  {{- if or .Values.live.autoscaling.targetCPUUtilizationPercentage .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- if .Values.live.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.live.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
-    {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- if .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
-    {{- end }}
+  {{- end }}
+{{- end }}
 ---

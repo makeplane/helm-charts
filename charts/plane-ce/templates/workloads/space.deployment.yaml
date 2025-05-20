@@ -60,7 +60,8 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
-apiVersion: {{ ternary "autoscaling/v2" "autoscaling/v2beta2" (.Capabilities.APIVersions.Has "autoscaling/v2") }}
+{{- if .Values.space.autoscaling.enabled }}
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Release.Name }}-space-hpa
@@ -72,31 +73,26 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-space-wl
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.space.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.space.autoscaling.maxReplicas }}
+  {{- if or .Values.space.autoscaling.targetCPUUtilizationPercentage .Values.space.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- if .Values.space.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.space.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
-    {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- if .Values.space.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.space.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
-    {{- end }}
+  {{- end }}
+{{- end }}
 ---

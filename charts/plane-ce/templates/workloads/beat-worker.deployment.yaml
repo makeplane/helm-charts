@@ -47,7 +47,8 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
-apiVersion: {{ ternary "autoscaling/v2" "autoscaling/v2beta2" (.Capabilities.APIVersions.Has "autoscaling/v2") }}
+{{- if .Values.beatworker.autoscaling.enabled }}
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Release.Name }}-beat-worker-hpa
@@ -59,31 +60,26 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-beat-worker-wl
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.beatworker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.beatworker.autoscaling.maxReplicas }}
+  {{- if or .Values.beatworker.autoscaling.targetCPUUtilizationPercentage .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- if .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
     {{- end }}
-    {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- if .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-    {{- if .Capabilities.APIVersions.Has "autoscaling/v2"}}
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
-    {{- end }}
+  {{- end }}
+{{- end }}
 ---
