@@ -166,3 +166,9 @@ env:
   live_sentry_traces_sample_rate: ""
 
   api_key_rate_limit: "60/minute"
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80

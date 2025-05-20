@@ -4,3 +4,5 @@ test-helm.yaml
 */local-values.yaml
 test.yaml
 test-*.yaml
+charts/plane-ce/charts
+charts/plane-enterprise/charts
