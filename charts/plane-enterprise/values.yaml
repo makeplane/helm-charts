@@ -1,4 +1,4 @@
-planeVersion: v1.9.0
+planeVersion: v1.9.2
 
 dockerRegistry:
   enabled: false
@@ -211,6 +211,7 @@ env:
     mq_prefetch_count: 1
     request_interval: 400
     hmac_secret_key: ''
+    aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
 
   email_service_envs:
