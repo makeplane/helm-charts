@@ -156,7 +156,7 @@ services:
     replicas: 1
     memory_limit: 1000Mi
     cpu_limit: 500m
-    image: makeplane/email-cloud
+    image: artifacts.plane.so/makeplane/email-commercial
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details

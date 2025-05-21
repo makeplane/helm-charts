@@ -64,7 +64,7 @@ questions:
     label: Email Service Docker Image
     type: string
     required: true
-    default: "makeplane/email-service-cloud"
+    default: "artifacts.plane.so/makeplane/email-commercial"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass

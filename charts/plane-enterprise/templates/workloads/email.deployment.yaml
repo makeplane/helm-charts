@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-email-app
-        image: {{ .Values.services.email_service.image | default "makeplane/email-enterprise" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.email_service.image | default "artifacts.plane.so/makeplane/email-commercial" }}:{{ .Values.planeVersion }}
         securityContext:
           runAsUser: 100
         stdin: true
