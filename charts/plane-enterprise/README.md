@@ -236,6 +236,7 @@
 | env.sentry_dsn |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
+| env.intake_email_domain |  | Yes | Domain name to be used for email intake functionality. This is required when email service is enabled. |
 | services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Silo Deployment
@@ -323,6 +324,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 |---|:---:|:---:|---|
 | env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
+| env.intake_email_domain |  | Yes | The domain name to be used for email intake functionality. This is required when email service is enabled. |
 
 
 ## External Secrets Config
