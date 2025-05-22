@@ -215,5 +215,4 @@ env:
     cors_allowed_origins: ''
 
   email_service_envs:
-    webhook_url: ''
     smtp_domain: ''

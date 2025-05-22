@@ -448,10 +448,6 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: env.email_service_envs.webhook_url
-    label: "Email Save Endpoint"
-    type: string
-    default: ""
   - variable: env.email_service_envs.smtp_domain
     label: "SMTP Domain"
     type: string

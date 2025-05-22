@@ -52,6 +52,17 @@ spec:
           runAsUser: 100
         stdin: true
         tty: true
+        readinessProbe:
+          exec:
+            command:
+            - nc
+            - -zv
+            - localhost
+            - "10025"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources:
           requests:
             memory: "50Mi"
@@ -62,9 +73,6 @@ spec:
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-email-vars
-              optional: false
-          - secretRef:
-              name: {{ .Release.Name }}-email-secrets
               optional: false
         volumeMounts:
           - name: tls-cert
