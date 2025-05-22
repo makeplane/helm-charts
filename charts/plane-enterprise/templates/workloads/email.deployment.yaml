@@ -47,6 +47,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}-email-app
+        imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
         image: {{ .Values.services.email_service.image | default "artifacts.plane.so/makeplane/email-commercial" }}:{{ .Values.planeVersion }}
         securityContext:
           runAsUser: 100

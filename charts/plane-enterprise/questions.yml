@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.9.2
+  default: v1.9.3
   required: true
   group: "Docker Registry"
   subquestions:
@@ -68,7 +68,6 @@ questions:
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
-  
 
 - variable: license.licenseServer
   label: "License Server"
