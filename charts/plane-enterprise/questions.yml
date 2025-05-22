@@ -397,10 +397,6 @@ questions:
     label: "API Key Rate Limit"
     type: string
     default: "60/minute"
-  - variable: env.intake_email_domain
-    label: "Intake Email Domain"
-    type: string
-    default: "intake.example.com"
 
 - variable: services.worker.replicas
   label: "Default Replica Count"

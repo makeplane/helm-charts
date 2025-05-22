@@ -192,7 +192,6 @@ env:
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
-  intake_email_domain: "intake.example.com" # The domain name to be used for intake email
 
   sentry_dsn: ''
   sentry_environment: ''
