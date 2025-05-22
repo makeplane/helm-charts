@@ -152,7 +152,7 @@ services:
         client_secret: ''
 
   email_service:
-    enabled: true
+    enabled: false
     replicas: 1
     memory_limit: 1000Mi
     cpu_limit: 500m
