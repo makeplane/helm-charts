@@ -324,7 +324,6 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 |---|:---:|:---:|---|
 | env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
-| env.intake_email_domain |  | Yes | The domain name to be used for email intake functionality. This is required when email service is enabled. |
 
 
 ## External Secrets Config

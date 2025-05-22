@@ -49,10 +49,10 @@ data:
 
   API_KEY_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "60/minute" | quote }}
   MINIO_ENDPOINT_SSL: {{ .Values.services.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
-  INTAKE_EMAIL_DOMAIN: {{ .Values.env.intake_email_domain | default "" | quote }}
+  INTAKE_EMAIL_DOMAIN: {{ .Values.env.intake_email_domain | default "intake.example.com" | quote }}
 
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
-  SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "intake.example.com" | quote}}
+  SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
@@ -69,5 +69,3 @@ data:
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
   {{- end }} 
-
-  
