@@ -151,6 +151,13 @@ services:
         client_id: ''
         client_secret: ''
 
+  email_service:
+    enabled: false
+    replicas: 1
+    memory_limit: 1000Mi
+    cpu_limit: 500m
+    image: artifacts.plane.so/makeplane/email-commercial
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -206,3 +213,6 @@ env:
     hmac_secret_key: ''
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
+
+  email_service_envs:
+    smtp_domain: ''
