@@ -1,4 +1,4 @@
-planeVersion: v1.9.2
+planeVersion: v1.10.0
 
 dockerRegistry:
   enabled: false
@@ -157,6 +157,7 @@ services:
     memory_limit: 1000Mi
     cpu_limit: 500m
     image: artifacts.plane.so/makeplane/email-commercial
+    pullPolicy: Always
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
