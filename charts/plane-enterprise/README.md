@@ -296,7 +296,7 @@
 | services.email_service.cpu_limit | 500m |  | CPU limit for the email service deployment |
 | services.email_service.image | artifacts.plane.so/makeplane/email-commercial |  | Docker image for the email service deployment |
 | services.email_service.pullPolicy | Always |  | Image pull policy for the email service deployment |
-| env.email_service_envs.smtp_domain |  | Yes | The domain name to be used for SMTP server |
+| env.email_service_envs.smtp_domain |  | Yes | The SMTP Domain to be used with email service |
 
 Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
 
