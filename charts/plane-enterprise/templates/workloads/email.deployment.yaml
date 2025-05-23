@@ -1,0 +1,103 @@
+{{- if .Values.services.email_service.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-email-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local  # Important for email servers
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
+  ports:
+  - name: smtp
+    port: 25
+    targetPort: 10025
+    protocol: TCP
+  - name: smtps
+    port: 465
+    targetPort: 10465
+    protocol: TCP
+  - name: submission
+    port: 587
+    targetPort: 10587
+    protocol: TCP
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-email-app
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: {{ .Values.services.email_service.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app 
+      annotations:  
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-email-app
+        imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
+        image: {{ .Values.services.email_service.image | default "artifacts.plane.so/makeplane/email-commercial" }}:{{ .Values.planeVersion }}
+        securityContext:
+          runAsUser: 100
+        stdin: true
+        tty: true
+        readinessProbe:
+          exec:
+            command:
+            - nc
+            - -zv
+            - localhost
+            - "10025"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu: "50m"
+          limits:
+            memory: {{ .Values.services.email_service.memory_limit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.email_service.cpu_limit | default "500m" | quote}}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-email-vars
+              optional: false
+        volumeMounts:
+          - name: tls-cert
+            mountPath: /opt/email/keys
+          - name: spam-blacklist
+            mountPath: /opt/email/spam.txt
+            subPath: spam.txt
+          - name: spam-blacklist
+            mountPath: /opt/email/domain-blacklist.txt
+            subPath: domain-blacklist.txt
+      volumes:
+        - name: spam-blacklist
+          configMap:
+            name: {{ .Release.Name }}-email-vars
+        - name: tls-cert
+          secret:
+            secretName: {{ .Release.Name }}-mail-tls-secret
+            items:
+            - key: tls.crt
+              path: cert.pem
+            - key: tls.key
+              path: key.pem
+            optional: false
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- end }}
