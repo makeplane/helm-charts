@@ -72,6 +72,6 @@ spec:
       resources:
         requests:
           storage: {{ .Values.services.monitor.volumeSize | default "100Mi" | quote }}
-      storageClassName: {{ .Values.env.storageClass | quote }}
+      storageClassName: {{ .Values.env.storageClass }}
       volumeMode: Filesystem
       
