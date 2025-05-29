@@ -77,7 +77,8 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
-{{- if .Values.api.autoscaling.enabled }}
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
