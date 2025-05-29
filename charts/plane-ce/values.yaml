@@ -77,6 +77,7 @@ web:
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80  
@@ -90,6 +91,7 @@ space:
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
@@ -103,6 +105,7 @@ admin:
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
@@ -116,6 +119,7 @@ live:
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
@@ -129,6 +133,7 @@ api:
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
@@ -141,6 +146,7 @@ worker:
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
@@ -153,6 +159,7 @@ beatworker:
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   autoscaling:
+    enabled: true
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80

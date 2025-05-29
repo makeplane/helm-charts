@@ -78,6 +78,7 @@ spec:
 
 ---
 {{- if eq (include "enable.hpa" . | trim) "true" }}
+
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
