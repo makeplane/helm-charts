@@ -310,10 +310,10 @@
 |---|:---:|:---:|---|
 | services.email_service.enabled | false |  | Set to `true` to enable the email service deployment |
 | services.email_service.replicas | 1 |  | Number of replicas for the email service deployment |
-| services.email_service.memory_limit | 1000Mi |  | Memory limit for the email service deployment |
-| services.email_service.cpu_limit | 500m |  | CPU limit for the email service deployment |
-| services.email_service.memory_request | 50Mi |  | Memory request for the email service deployment |
-| services.email_service.cpu_request | 50m |  | CPU request for the email service deployment |
+| services.email_service.memoryLimit | 1000Mi |  | Memory limit for the email service deployment |
+| services.email_service.cpuLimit | 500m |  | CPU limit for the email service deployment |
+| services.email_service.memoryRequest | 50Mi |  | Memory request for the email service deployment |
+| services.email_service.cpuRequest | 50m |  | CPU request for the email service deployment |
 | services.email_service.image | artifacts.plane.so/makeplane/email-commercial |  | Docker image for the email service deployment |
 | services.email_service.pullPolicy | Always |  | Image pull policy for the email service deployment |
 | env.email_service_envs.smtp_domain |  | Yes | The SMTP Domain to be used with email service |
