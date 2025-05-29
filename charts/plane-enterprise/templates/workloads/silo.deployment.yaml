@@ -70,8 +70,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: "50Mi"
-            cpu: "50m"
+            memory: {{ .Values.services.silo.memory_request | default "50Mi" | quote }}
+            cpu: {{ .Values.services.silo.cpu_request | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.silo.memory_limit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.silo.cpu_limit | default "500m" | quote}}
