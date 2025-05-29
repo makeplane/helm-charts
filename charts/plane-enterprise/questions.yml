@@ -246,19 +246,19 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.silo.memory_limit
+  - variable: services.silo.memoryLimit
     label: "Memory Limit"
     type: string
     default: 1000Mi
-  - variable: services.silo.cpu_limit
+  - variable: services.silo.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: services.silo.memory_request
+  - variable: services.silo.memoryRequest
     label: "Memory Request"
     type: string
     default: 50Mi
-  - variable: services.silo.cpu_request
+  - variable: services.silo.cpuRequest
     label: "CPU Request"
     type: string
     default: 50m

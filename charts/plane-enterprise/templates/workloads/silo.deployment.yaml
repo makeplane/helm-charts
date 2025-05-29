@@ -70,11 +70,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.silo.memory_request | default "50Mi" | quote }}
-            cpu: {{ .Values.services.silo.cpu_request | default "50m" | quote }}
+            memory: {{ .Values.services.silo.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.silo.cpuRequest | default "50m" | quote }}
           limits:
-            memory: {{ .Values.services.silo.memory_limit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.silo.cpu_limit | default "500m" | quote}}
+            memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
         command:
           - node
         args:
