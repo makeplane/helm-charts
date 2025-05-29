@@ -73,6 +73,8 @@ web:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-frontend
   pullPolicy: Always
   assign_cluster_ip: false
@@ -81,6 +83,8 @@ space:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-space
   pullPolicy: Always
   assign_cluster_ip: false
@@ -89,6 +93,8 @@ admin:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-admin
   pullPolicy: Always
   assign_cluster_ip: false
@@ -97,6 +103,8 @@ live:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
@@ -105,6 +113,8 @@ api:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   assign_cluster_ip: false
@@ -113,6 +123,8 @@ worker:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
 
@@ -120,6 +132,8 @@ beatworker:
   replicas: 1
   memoryLimit: 1000Mi
   cpuLimit: 500m
+  cpuRequest: 50m
+  memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
 
