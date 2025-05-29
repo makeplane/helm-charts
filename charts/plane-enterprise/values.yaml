@@ -170,10 +170,10 @@ services:
   email_service:
     enabled: false
     replicas: 1
-    memory_limit: 1000Mi
-    cpu_limit: 500m
-    memory_request: 50Mi
-    cpu_request: 50m
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
     image: artifacts.plane.so/makeplane/email-commercial
     pullPolicy: Always
 

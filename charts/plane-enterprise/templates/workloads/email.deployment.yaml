@@ -66,11 +66,11 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            memory: {{ .Values.services.email_service.memory_request | default "50Mi" | quote }}
-            cpu: {{ .Values.services.email_service.cpu_request | default "50m" | quote }}
+            memory: {{ .Values.services.email_service.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.email_service.cpuRequest | default "50m" | quote }}
           limits:
-            memory: {{ .Values.services.email_service.memory_limit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.email_service.cpu_limit | default "500m" | quote}}
+            memory: {{ .Values.services.email_service.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.email_service.cpuLimit | default "500m" | quote}}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-email-vars

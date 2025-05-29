@@ -509,11 +509,11 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.email_service.memory_limit
+  - variable: services.email_service.memoryLimit
     label: "Memory Limit"
     type: string
     default: 1000Mi
-  - variable: services.email_service.cpu_limit
+  - variable: services.email_service.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
