@@ -98,12 +98,6 @@ jobs:
           echo "MARK_AS_PRERELASE=true" >> $GITHUB_ENV
           echo "PAGES_INDEX_PATH=${flatBranchName}" >> $GITHUB_ENV
 
-      - name: Build Dependencies
-        run: |
-          if [ "${{ github.event.inputs.plane-ce }}" = "true" ]; then
-            helm dependency build charts/${{ env.CHART_NAME_CE }}
-          fi
-
       - name: Release Charts
         uses: mguptahub/chart-releaser-action@v1.6.2
         with:
@@ -184,4 +178,3 @@ jobs:
             git push
           fi
   
-
