@@ -41,16 +41,16 @@ spec:
       containers:
       - name: {{ .Release.Name }}-space
         imagePullPolicy: {{ .Values.space.pullPolicy | default "Always" }}
-        image: {{ .Values.space.images | default "artifacts.plane.so/makeplane/plane-space" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.space.image | default "artifacts.plane.so/makeplane/plane-space" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
           requests:
-            memory: "50Mi"
-            cpu: "50m"
+            memory: {{ .Values.space.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.space.cpuRequest | default "50m" | quote }}
           limits:
-            memory: {{ .Values.web.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.web.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.space.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.space.cpuLimit | default "500m" | quote}}
         command:
           - node
         args:

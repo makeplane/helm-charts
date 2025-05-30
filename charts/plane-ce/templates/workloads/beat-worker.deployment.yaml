@@ -24,8 +24,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: "50Mi"
-            cpu: "50m"
+            memory: {{ .Values.beatworker.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.beatworker.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.beatworker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.beatworker.cpuLimit | default "500m" | quote}}

@@ -55,6 +55,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: web.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: web.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 
 - variable: space.image
   label: Space Docker Image
@@ -83,6 +91,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: space.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: space.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: space.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -119,7 +135,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: true
-
+  - variable: admin.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: admin.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 - variable: live.image
   label: Live Docker Image
   type: string
@@ -152,6 +175,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: live.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: live.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -197,6 +228,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -233,7 +272,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-
+  - variable: worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 - variable: beatworker.replicas
   label: "Default Replica Count"
   type: int
@@ -248,7 +294,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-
+  - variable: beatworker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: beatworker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m  
 - variable: redis.local_setup
   label: "Install Redis"
   type: boolean
