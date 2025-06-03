@@ -5,6 +5,23 @@ entries:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
     appVersion: 0.26.0
+    created: "2025-06-03T05:41:09.464342738Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 072314723f536868a72ec0b20df5c1caf3734298b151295a51db925640abfee3
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.1.2/plane-ce-1.1.2.tgz
+    version: 1.1.2
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 0.26.0
     created: "2025-04-28T14:05:36.785607387Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -308,6 +325,21 @@ entries:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.13/plane-ce-1.0.13.tgz
     version: 1.0.13
   plane-enterprise:
+  - apiVersion: v2
+    appVersion: 1.10.0
+    created: "2025-06-03T05:41:09.597204129Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 13f3de9d9e2779444b8c77f30ec43d500149985148eca3f9702f5d7227ed6724
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.2.4/plane-enterprise-1.2.4.tgz
+    version: 1.2.4
   - apiVersion: v2
     appVersion: 1.10.0
     created: "2025-05-23T08:02:50.666173696Z"
@@ -632,4 +664,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2025-05-23T08:02:50.666372888Z"
+generated: "2025-06-03T05:41:09.597485626Z"
