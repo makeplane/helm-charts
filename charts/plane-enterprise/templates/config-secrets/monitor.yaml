@@ -10,3 +10,4 @@ data:
   APP_VERSION: {{ .Values.planeVersion | quote }}
   DEPLOY_PLATFORM: "KUBERNETES"
   API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+  API_HOSTNAME: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
