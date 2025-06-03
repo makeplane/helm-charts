@@ -24,8 +24,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: "50Mi"
-            cpu: "50m"
+            memory: {{ .Values.services.worker.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.worker.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.worker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.worker.cpuLimit | default "500m" | quote}}

@@ -102,6 +102,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.web.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.web.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.web.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -129,6 +137,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.space.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.space.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.space.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -156,6 +172,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.admin.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.admin.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.admin.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -183,6 +207,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.live.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.live.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.live.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -214,14 +246,22 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.silo.memory_limit
+  - variable: services.silo.memoryLimit
     label: "Memory Limit"
     type: string
     default: 1000Mi
-  - variable: services.silo.cpu_limit
+  - variable: services.silo.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.silo.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.silo.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.silo.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -341,6 +381,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.monitor.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.monitor.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.monitor.volumeSize
     label: "Volume Size"
     type: string
@@ -372,6 +420,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: services.api.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -412,7 +468,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-
+  - variable: services.worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 - variable: services.beatworker.replicas
   label: "Default Replica Count"
   type: int
@@ -427,7 +490,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
-
+  - variable: services.beatworker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.beatworker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 - variable: services.email_service.enabled
   label: "Enable Email Service"
   type: boolean
@@ -439,14 +509,22 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.email_service.memory_limit
+  - variable: services.email_service.memoryLimit
     label: "Memory Limit"
     type: string
     default: 1000Mi
-  - variable: services.email_service.cpu_limit
+  - variable: services.email_service.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: services.email_service.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.email_service.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: env.email_service_envs.smtp_domain
     label: "SMTP Domain"
     type: string
