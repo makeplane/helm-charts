@@ -64,13 +64,5 @@ spec:
               optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- with .Values.live.nodeSelector }}
-      nodeSelector: {{ toYaml . | nindent 8}}
-      {{- end -}}
-      {{- with .Values.live.tolerations }}
-      tolerations: {{ toYaml . | nindent 8 }}
-      {{- end -}}
-      {{- with .Values.live.affinity }}
-      affinity: {{ toYaml . | nindent 8 }}
-      {{- end -}}
+      {{- template "plane.podScheduling" .Values.live }}
 ---

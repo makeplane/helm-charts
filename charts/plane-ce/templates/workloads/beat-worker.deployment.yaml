@@ -45,13 +45,5 @@ spec:
 
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- with .Values.beatworker.nodeSelector }}
-      nodeSelector: {{ toYaml . | nindent 8}}
-      {{- end -}}
-      {{- with .Values.beatworker.tolerations }}
-      tolerations: {{ toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.beatworker.affinity }}
-      affinity: {{ toYaml . | nindent 8 }}
-      {{- end }}
+      {{- template "plane.podScheduling" .Values.beatworker }}
 ---

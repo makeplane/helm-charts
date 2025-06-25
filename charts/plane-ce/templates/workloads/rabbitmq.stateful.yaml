@@ -54,15 +54,7 @@ spec:
           subPath: ''
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- with .Values.rabbitmq.nodeSelector }}
-      nodeSelector: {{ toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.rabbitmq.tolerations }}
-      tolerations: {{ toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.rabbitmq.affinity }}
-      affinity: {{ toYaml . | nindent 8 }}
-      {{- end }}
+      {{- template "plane.podScheduling" .Values.rabbitmq }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
