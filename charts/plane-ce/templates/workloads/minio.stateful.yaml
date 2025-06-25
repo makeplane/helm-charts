@@ -60,6 +60,15 @@ spec:
           subPath: ''
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+      {{- with .Values.minio.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8}}
+      {{- end -}}
+      {{- with .Values.minio.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.minio.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim

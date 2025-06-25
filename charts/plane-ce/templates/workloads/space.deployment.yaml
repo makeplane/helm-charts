@@ -58,5 +58,13 @@ spec:
           - space
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
+      {{- with .Values.space.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8}}
+      {{- end }}
+      {{- with .Values.space.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.space.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
 ---
