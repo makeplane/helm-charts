@@ -52,10 +52,6 @@ spec:
           limits:
             memory: {{ .Values.services.live.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.live.cpuLimit | default "500m" | quote}}
-        command:
-          - node
-        args:
-          - live/dist/start.js
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
