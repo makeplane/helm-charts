@@ -88,5 +88,43 @@ spec:
               optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-silo-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-silo-wl
+  minReplicas: {{ .Values.services.silo.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.services.silo.autoscaling.maxReplicas }}
+  {{- if or .Values.services.silo.autoscaling.targetCPUUtilizationPercentage .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.services.silo.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.silo.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---
 {{- end }}

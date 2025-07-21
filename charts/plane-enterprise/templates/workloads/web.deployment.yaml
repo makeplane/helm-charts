@@ -61,3 +61,40 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 
 ---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-web-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-web-wl
+  minReplicas: {{ .Values.services.web.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.services.web.autoscaling.maxReplicas }}
+  {{- if or .Values.services.web.autoscaling.targetCPUUtilizationPercentage .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.services.web.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.web.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+---

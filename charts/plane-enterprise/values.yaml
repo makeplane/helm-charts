@@ -77,6 +77,11 @@ services:
     image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
 
   monitor:
     memoryLimit: 1000Mi
@@ -97,6 +102,11 @@ services:
     image: artifacts.plane.so/makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
 
   admin:
     replicas: 1
@@ -107,6 +117,11 @@ services:
     image: artifacts.plane.so/makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
 
   live:
     replicas: 1
@@ -117,6 +132,11 @@ services:
     image: artifacts.plane.so/makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
 
   api:
     replicas: 1
@@ -127,6 +147,11 @@ services:
     image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
 
   worker:
     replicas: 1
@@ -134,12 +159,22 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
   beatworker:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
   silo:
     enabled: true
     replicas: 1
@@ -150,6 +185,11 @@ services:
     image: artifacts.plane.so/makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
     connectors:
       slack:
         enabled: false
@@ -176,7 +216,7 @@ services:
     cpuRequest: 50m
     image: artifacts.plane.so/makeplane/email-commercial
     pullPolicy: Always
-
+    
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
