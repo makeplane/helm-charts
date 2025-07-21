@@ -60,8 +60,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-beat-worker-wl
-  minReplicas: {{ .Values.beatworker.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.beatworker.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.beatworker.autoscaling.minReplicas | default 1 | quote }}
+  maxReplicas: {{ .Values.beatworker.autoscaling.maxReplicas | default 3 | quote }}
   {{- if or .Values.beatworker.autoscaling.targetCPUUtilizationPercentage .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
@@ -70,7 +70,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
     {{- end }}
     {{- if .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -78,7 +78,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}
