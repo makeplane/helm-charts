@@ -104,8 +104,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-silo-wl
-  minReplicas: {{ .Values.services.silo.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.services.silo.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.services.silo.autoscaling.minReplicas | default 1 | quote }}
+  maxReplicas: {{ .Values.services.silo.autoscaling.maxReplicas | default 3 | quote }}
   {{- if or .Values.services.silo.autoscaling.targetCPUUtilizationPercentage .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.silo.autoscaling.targetCPUUtilizationPercentage }}
@@ -114,7 +114,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.silo.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.services.silo.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
     {{- end }}
     {{- if .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -122,7 +122,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

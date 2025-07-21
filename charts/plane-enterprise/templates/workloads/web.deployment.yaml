@@ -75,8 +75,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-web-wl
-  minReplicas: {{ .Values.services.web.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.services.web.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.services.web.autoscaling.minReplicas | default 1 | quote }}
+  maxReplicas: {{ .Values.services.web.autoscaling.maxReplicas | default 3 | quote }}
   {{- if or .Values.services.web.autoscaling.targetCPUUtilizationPercentage .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.web.autoscaling.targetCPUUtilizationPercentage }}
@@ -85,7 +85,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.web.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.services.web.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
     {{- end }}
     {{- if .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -93,7 +93,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.services.web.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

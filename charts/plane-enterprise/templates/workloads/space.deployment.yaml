@@ -75,8 +75,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-space-wl
-  minReplicas: {{ .Values.services.space.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.services.space.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.services.space.autoscaling.minReplicas | default 1 | quote }}
+  maxReplicas: {{ .Values.services.space.autoscaling.maxReplicas | default 3 | quote }}
   {{- if or .Values.services.space.autoscaling.targetCPUUtilizationPercentage .Values.services.space.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.space.autoscaling.targetCPUUtilizationPercentage }}
@@ -85,7 +85,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.space.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ .Values.services.space.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
     {{- end }}
     {{- if .Values.services.space.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -93,7 +93,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.space.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ .Values.services.space.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}
