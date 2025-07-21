@@ -46,8 +46,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: "50Mi"
-            cpu: "50m"
+            memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.api.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}

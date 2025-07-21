@@ -46,8 +46,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: "50Mi"
-            cpu: "50m"
+            memory: {{ .Values.live.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.live.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.live.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.live.cpuLimit | default "500m" | quote}}

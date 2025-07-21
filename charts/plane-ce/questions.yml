@@ -106,6 +106,14 @@ questions:
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: space.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: space.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: space.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -221,6 +229,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: live.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: live.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -289,6 +305,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
