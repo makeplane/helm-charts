@@ -47,11 +47,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.api.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.api.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.api.cpuRequest | default "1000m" | quote }}
+            memory: {{ .Values.services.api.memoryRequest | default "1000Mi" | quote }}
           limits:
-            memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
+            cpu: {{ .Values.services.api.cpuLimit | default "2000m" | quote}}
+            memory: {{ .Values.services.api.memoryLimit  | default "2000Mi" | quote }}
         command:
           - ./bin/docker-entrypoint-api-ee.sh
         envFrom:
@@ -98,7 +98,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-api-wl
   minReplicas: {{ .Values.services.api.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.services.api.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.services.api.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.services.api.autoscaling.targetCPUUtilizationPercentage .Values.services.api.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.api.autoscaling.targetCPUUtilizationPercentage }}
@@ -107,7 +107,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.api.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.services.api.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.services.api.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -115,7 +115,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.api.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.services.api.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

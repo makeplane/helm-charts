@@ -70,24 +70,20 @@ services:
 
   web:
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
 
   monitor:
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
     image: artifacts.plane.so/makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
@@ -95,101 +91,102 @@ services:
 
   space:
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
 
   admin:
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
 
   live:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 500m
+    memoryRequest: 1000Mi
+    cpuLimit: 1000m
+    memoryLimit: 2000Mi
     image: artifacts.plane.so/makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
 
   api:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 1000m
+    memoryRequest: 1000Mi
+    cpuLimit: 2000m
+    memoryLimit: 2000Mi
     image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
 
   worker:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 500m
+    memoryRequest: 2000Mi
+    cpuLimit: 1000m
+    memoryLimit: 4000Mi
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
+
   beatworker:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 500m
+    memoryRequest: 1000Mi
+    cpuLimit: 1000m
+    memoryLimit: 2000Mi
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
   silo:
     enabled: true
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 250m
+    memoryRequest: 1000Mi
+    cpuLimit: 1000m
+    memoryLimit: 2000Mi
     image: artifacts.plane.so/makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     autoscaling:
       minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 70
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     connectors:
       slack:
         enabled: false
@@ -210,13 +207,18 @@ services:
   email_service:
     enabled: false
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/email-commercial
     pullPolicy: Always
-    
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''

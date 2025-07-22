@@ -66,11 +66,11 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            memory: {{ .Values.services.email_service.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.email_service.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.email_service.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.services.email_service.memoryRequest | default "200Mi" | quote }}
           limits:
-            memory: {{ .Values.services.email_service.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.email_service.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.email_service.memoryLimit  | default "1000Mi" | quote }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-email-vars
@@ -99,5 +99,43 @@ spec:
             optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-email-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-email-app
+  minReplicas: {{ .Values.services.email_service.autoscaling.minReplicas | default 1 | quote }}
+  maxReplicas: {{ .Values.services.email_service.autoscaling.maxReplicas | default 5 | quote }}
+  {{- if or .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
+    {{- end }}
+    {{- if .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---
 {{- end }}

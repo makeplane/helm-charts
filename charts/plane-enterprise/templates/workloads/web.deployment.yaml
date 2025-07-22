@@ -47,11 +47,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.web.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.web.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.web.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.services.web.memoryRequest | default "200Mi" | quote }}
           limits:
-            memory: {{ .Values.services.web.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.web.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.web.memoryLimit  | default "1000Mi" | quote }}
         command:
           - node
         args:
@@ -76,7 +76,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-web-wl
   minReplicas: {{ .Values.services.web.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.services.web.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.services.web.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.services.web.autoscaling.targetCPUUtilizationPercentage .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.web.autoscaling.targetCPUUtilizationPercentage }}
@@ -85,7 +85,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.web.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.services.web.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -93,7 +93,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.web.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.services.web.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

@@ -47,11 +47,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.admin.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.admin.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.admin.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.services.admin.memoryRequest | default "200Mi" | quote }}
           limits:
-            memory: {{ .Values.services.admin.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.admin.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.admin.memoryLimit  | default "1000Mi" | quote }}
         command:
           - node
         args:
@@ -76,7 +76,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-admin-wl
   minReplicas: {{ .Values.services.admin.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.services.admin.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.services.admin.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.services.admin.autoscaling.targetCPUUtilizationPercentage .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.admin.autoscaling.targetCPUUtilizationPercentage }}
@@ -85,7 +85,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.admin.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.services.admin.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -93,7 +93,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

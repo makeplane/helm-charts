@@ -70,11 +70,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.silo.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.silo.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.silo.cpuRequest | default "250m" | quote }}
+            memory: {{ .Values.services.silo.memoryRequest | default "1000Mi" | quote }}
           limits:
-            memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
+            cpu: {{ .Values.services.silo.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.services.silo.memoryLimit  | default "2000Mi" | quote }}
         command:
           - node
         args:
@@ -105,7 +105,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-silo-wl
   minReplicas: {{ .Values.services.silo.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.services.silo.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.services.silo.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.services.silo.autoscaling.targetCPUUtilizationPercentage .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.silo.autoscaling.targetCPUUtilizationPercentage }}
@@ -114,7 +114,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.silo.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.services.silo.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -122,7 +122,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.services.silo.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}
