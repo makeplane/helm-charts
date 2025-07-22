@@ -115,8 +115,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ .Release.Name }}-email-app
-  minReplicas: {{ .Values.services.email_service.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.services.email_service.autoscaling.maxReplicas | default 5 | quote }}
+  minReplicas: {{ .Values.services.email_service.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.services.email_service.autoscaling.maxReplicas | default 5 }}
   {{- if or .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage }}
@@ -125,7 +125,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
+          averageUtilization: {{ .Values.services.email_service.autoscaling.targetCPUUtilizationPercentage | default 90 }}
     {{- end }}
     {{- if .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -133,7 +133,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
+          averageUtilization: {{ .Values.services.email_service.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
     {{- end }}
   {{- end }}
 {{- end }}
