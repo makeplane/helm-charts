@@ -94,22 +94,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.web.memoryLimit
-    label: "Memory Limit"
+  - variable: services.web.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: services.web.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: services.web.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: services.web.memoryRequest
-    label: "Memory Request"
+  - variable: services.web.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: services.web.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+    default: 1000Mi
+  - variable: services.web.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.web.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.web.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.web.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: services.web.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -129,22 +145,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.space.memoryLimit
-    label: "Memory Limit"
+  - variable: services.space.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: services.space.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: services.space.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: services.space.memoryRequest
-    label: "Memory Request"
+  - variable: services.space.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: services.space.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+    default: 1000Mi
+  - variable: services.space.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.space.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.space.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.space.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: services.space.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -164,22 +196,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.admin.memoryLimit
-    label: "Memory Limit"
+  - variable: services.admin.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: services.admin.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: services.admin.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: services.admin.memoryRequest
-    label: "Memory Request"
+  - variable: services.admin.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: services.admin.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+    default: 1000Mi
+  - variable: services.admin.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.admin.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.admin.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.admin.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: services.admin.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -199,22 +247,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.live.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.live.cpuLimit
-    label: "CPU Limit"
+  - variable: services.live.cpuRequest
+    label: "CPU Request"
     type: string
     default: 500m
   - variable: services.live.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
-  - variable: services.live.cpuRequest
-    label: "CPU Request"
+    default: 1000Mi
+  - variable: services.live.cpuLimit
+    label: "CPU Limit"
     type: string
-    default: 50m
+    default: 1000m
+  - variable: services.live.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: services.live.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.live.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.live.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.live.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: services.live.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -246,22 +310,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.silo.memoryLimit
-    label: "Memory Limit"
+  - variable: services.silo.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.silo.memoryRequest
+    label: "Memory Request"
     type: string
     default: 1000Mi
   - variable: services.silo.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
-  - variable: services.silo.memoryRequest
-    label: "Memory Request"
+    default: 1000m
+  - variable: services.silo.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: services.silo.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+    default: 2000Mi
+  - variable: services.silo.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.silo.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.silo.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.silo.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: services.silo.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -373,22 +453,6 @@ questions:
   default: "Always"
   group: "Monitor Setup"
   subquestions:
-  - variable: services.monitor.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.monitor.cpuLimit
-    label: "CPU Limit"
-    type: string
-    default: 500m
-  - variable: services.monitor.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: 50Mi
-  - variable: services.monitor.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
   - variable: services.monitor.volumeSize
     label: "Volume Size"
     type: string
@@ -412,22 +476,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.api.memoryLimit
-    label: "Memory Limit"
+  - variable: services.api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 1000m
+  - variable: services.api.memoryRequest
+    label: "Memory Request"
     type: string
     default: 1000Mi
   - variable: services.api.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
-  - variable: services.api.memoryRequest
-    label: "Memory Request"
+    default: 2000m
+  - variable: services.api.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: services.api.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+    default: 2000Mi
+  - variable: services.api.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.api.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.api.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.api.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: services.api.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -460,44 +540,76 @@ questions:
   default: 1
   group: "Worker Setup"
   subquestions:
-  - variable: services.worker.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.worker.cpuLimit
-    label: "CPU Limit"
+  - variable: services.worker.cpuRequest
+    label: "CPU Request"
     type: string
     default: 500m
   - variable: services.worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
-  - variable: services.worker.cpuRequest
-    label: "CPU Request"
+    default: 2000Mi
+  - variable: services.worker.cpuLimit
+    label: "CPU Limit"
     type: string
-    default: 50m
+    default: 1000m
+  - variable: services.worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 4000Mi
+  - variable: services.worker.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.worker.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.worker.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.worker.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
 - variable: services.beatworker.replicas
   label: "Default Replica Count"
   type: int
   default: 1
   group: "Beat Worker Setup"
   subquestions:
-  - variable: services.beatworker.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.beatworker.cpuLimit
-    label: "CPU Limit"
+  - variable: services.beatworker.cpuRequest
+    label: "CPU Request"
     type: string
     default: 500m
   - variable: services.beatworker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
-  - variable: services.beatworker.cpuRequest
-    label: "CPU Request"
+    default: 1000Mi
+  - variable: services.beatworker.cpuLimit
+    label: "CPU Limit"
     type: string
-    default: 50m
+    default: 1000m
+  - variable: services.beatworker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: services.beatworker.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.beatworker.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.beatworker.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.beatworker.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
 - variable: services.email_service.enabled
   label: "Enable Email Service"
   type: boolean
@@ -509,22 +621,38 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: services.email_service.memoryLimit
-    label: "Memory Limit"
+  - variable: services.email_service.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: services.email_service.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: services.email_service.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: services.email_service.memoryRequest
-    label: "Memory Request"
+  - variable: services.email_service.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: services.email_service.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+    default: 1000Mi
+  - variable: services.email_service.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: services.email_service.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: services.email_service.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: services.email_service.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: env.email_service_envs.smtp_domain
     label: "SMTP Domain"
     type: string
