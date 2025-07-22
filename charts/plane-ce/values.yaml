@@ -71,106 +71,106 @@ minio:
 
 web:
   replicas: 1
-  memoryLimit: 1000Mi
+  cpuRequest: 100m
+  memoryRequest: 200Mi
   cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  memoryLimit: 1000Mi
   image: artifacts.plane.so/makeplane/plane-frontend
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80  
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90  
+    targetMemoryUtilizationPercentage: 90
 
 space:
   replicas: 1
-  memoryLimit: 1000Mi
+  cpuRequest: 100m
+  memoryRequest: 200Mi
   cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  memoryLimit: 1000Mi
   image: artifacts.plane.so/makeplane/plane-space
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90
+    targetMemoryUtilizationPercentage: 90
 
 admin:
   replicas: 1
-  memoryLimit: 1000Mi
+  cpuRequest: 100m
+  memoryRequest: 200Mi
   cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  memoryLimit: 1000Mi
   image: artifacts.plane.so/makeplane/plane-admin
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90
+    targetMemoryUtilizationPercentage: 90
 
 live:
   replicas: 1
-  memoryLimit: 1000Mi
-  cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  cpuRequest: 500m
+  memoryRequest: 1000Mi
+  cpuLimit: 1000m
+  memoryLimit: 2000Mi
   image: artifacts.plane.so/makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90
+    targetMemoryUtilizationPercentage: 90
 
 api:
   replicas: 1
-  memoryLimit: 1000Mi
-  cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  cpuRequest: 1000m
+  memoryRequest: 10000Mi
+  cpuLimit: 2000m
+  memoryLimit: 2000Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   assign_cluster_ip: false
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90
+    targetMemoryUtilizationPercentage: 90
 
 worker:
   replicas: 1
-  memoryLimit: 1000Mi
-  cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  cpuRequest: 500m
+  memoryRequest: 2000Mi
+  cpuLimit: 1000m
+  memoryLimit: 4000Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90
+    targetMemoryUtilizationPercentage: 90
 
 beatworker:
   replicas: 1
-  memoryLimit: 1000Mi
-  cpuLimit: 500m
-  cpuRequest: 50m
-  memoryRequest: 50Mi
+  cpuRequest: 500m
+  memoryRequest: 1000Mi
+  cpuLimit: 1000m
+  memoryLimit: 2000Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   autoscaling:
     minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 70
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 90
+    targetMemoryUtilizationPercentage: 90
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details

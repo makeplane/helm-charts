@@ -46,11 +46,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.live.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.live.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.live.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.live.memoryRequest | default "1000Mi" | quote }}
           limits:
-            memory: {{ .Values.live.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.live.cpuLimit | default "500m" | quote}}
+            cpu: {{ .Values.live.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.live.memoryLimit  | default "2000Mi" | quote }}
         command:
           - node
         args:
@@ -81,7 +81,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-live-wl
   minReplicas: {{ .Values.live.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.live.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.live.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.live.autoscaling.targetCPUUtilizationPercentage .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.live.autoscaling.targetCPUUtilizationPercentage }}
@@ -90,7 +90,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.live.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.live.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -98,7 +98,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.live.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.live.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

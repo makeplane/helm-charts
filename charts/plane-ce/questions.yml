@@ -43,14 +43,22 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: web.memoryLimit
-    label: "Memory Limit"
+  - variable: web.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: web.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: web.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: web.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
   - variable: web.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -62,15 +70,16 @@ questions:
   - variable: web.autoscaling.maxReplicas
     label: "Maximum Replica Count"
     type: int
-    default: 3
+    default: 5
   - variable: web.autoscaling.targetCPUUtilizationPercentage
     label: "Target CPU Utilization Percentage"
     type: int
-    default: 80
+    default: 90
   - variable: web.autoscaling.targetMemoryUtilizationPercentage
     label: "Target Memory Utilization Percentage"
     type: int
-    default: 70
+    default: 90
+
 - variable: space.image
   label: Space Docker Image
   type: string
@@ -90,26 +99,22 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: space.memoryLimit
-    label: "Memory Limit"
+  - variable: space.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: space.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: space.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
-  - variable: space.memoryRequest
-    label: "Memory Request"
+  - variable: space.memoryLimit
+    label: "Memory Limit"
     type: string
-    default: 50Mi
-  - variable: space.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
-  - variable: space.assign_cluster_ip
-    label: "Assign Cluster IP"
-    type: boolean
-    default: false
+    default: 1000Mi
   - variable: space.autoscaling.minReplicas
     label: "Minimum Replica Count"
     type: int
@@ -117,15 +122,19 @@ questions:
   - variable: space.autoscaling.maxReplicas
     label: "Maximum Replica Count"
     type: int
-    default: 3  
+    default: 5  
   - variable: space.autoscaling.targetCPUUtilizationPercentage
     label: "Target CPU Utilization Percentage"
     type: int
-    default: 80
+    default: 90
   - variable: space.autoscaling.targetMemoryUtilizationPercentage
     label: "Target Memory Utilization Percentage"
     type: int
-    default: 70
+    default: 90
+  - variable: space.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 
 - variable: admin.image
   label: Admin Docker Image
@@ -146,38 +155,43 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: admin.memoryLimit
-    label: "Memory Limit"
+  - variable: admin.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 100m
+  - variable: admin.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 200Mi
   - variable: admin.cpuLimit
     label: "CPU Limit"
     type: string
     default: 500m
+  - variable: admin.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: admin.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1  
+  - variable: admin.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: admin.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: admin.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int
+    default: 90
   - variable: admin.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: true
   
-  - variable: admin.autoscaling.minReplicas
-    label: "Minimum Replica Count"
-    type: int
-    default: 1  
-  
-  - variable: admin.autoscaling.maxReplicas
-    label: "Maximum Replica Count"
-    type: int
-    default: 3
-  
-  - variable: admin.autoscaling.targetCPUUtilizationPercentage
-    label: "Target CPU Utilization Percentage"
-    type: int
-    default: 80
-  
-  - variable: admin.autoscaling.targetMemoryUtilizationPercentage
-    label: "Target Memory Utilization Percentage"
-    type: int
-    default: 70
   
 - variable: live.image
   label: Live Docker Image
@@ -199,26 +213,42 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: live.memoryLimit
-    label: "Memory Limit"
+  - variable: live.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 500m
+  - variable: live.memoryRequest
+    label: "Memory Request"
     type: string
     default: 1000Mi
   - variable: live.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 1000m
+  - variable: live.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: live.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1
+  - variable: live.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5  
+  - variable: live.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int
+    default: 90
+  - variable: live.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int 
+    default: 90
   - variable: live.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  - variable: live.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: 50Mi
-  - variable: live.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -232,25 +262,6 @@ questions:
     type: string
     default: ""
   
-  - variable: live.autoscaling.minReplicas
-    label: "Minimum Replica Count"
-    type: int
-    default: 1
-  
-  - variable: live.autoscaling.maxReplicas
-    label: "Maximum Replica Count"
-    type: int
-    default: 3  
-  
-  - variable: live.autoscaling.targetCPUUtilizationPercentage
-    label: "Target CPU Utilization Percentage"
-    type: int
-    default: 80
-  
-  - variable: live.autoscaling.targetMemoryUtilizationPercentage
-    label: "Target Memory Utilization Percentage"
-    type: int 
-    default: 70
   
 - variable: api.image
   label: Backend Docker Image
@@ -272,26 +283,42 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
-  - variable: api.memoryLimit
-    label: "Memory Limit"
+  - variable: api.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 1000m
+  - variable: api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 10000Mi
   - variable: api.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 2000m
+  - variable: api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: api.autoscaling.minReplicas
+    label: "Minimum Replica Count"
+    type: int
+    default: 1  
+  - variable: api.autoscaling.maxReplicas
+    label: "Maximum Replica Count"
+    type: int
+    default: 5
+  - variable: api.autoscaling.targetCPUUtilizationPercentage
+    label: "Target CPU Utilization Percentage"
+    type: int 
+    default: 90
+  - variable: api.autoscaling.targetMemoryUtilizationPercentage
+    label: "Target Memory Utilization Percentage"
+    type: int 
+    default: 90
   - variable: api.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  - variable: api.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: 50Mi
-  - variable: api.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -314,25 +341,6 @@ questions:
     type: string
     default: "60/minute"
   
-  - variable: api.autoscaling.minReplicas
-    label: "Minimum Replica Count"
-    type: int
-    default: 1  
-  
-  - variable: api.autoscaling.maxReplicas
-    label: "Maximum Replica Count"
-    type: int
-    default: 3
-  
-  - variable: api.autoscaling.targetCPUUtilizationPercentage
-    label: "Target CPU Utilization Percentage"
-    type: int 
-    default: 80
-  
-  - variable: api.autoscaling.targetMemoryUtilizationPercentage
-    label: "Target Memory Utilization Percentage"
-    type: int 
-    default: 70
   
 - variable: worker.replicas
   label: "Default Replica Count"
@@ -340,34 +348,38 @@ questions:
   default: 1
   group: "Worker Setup"
   subquestions:
-  - variable: worker.memoryLimit
-    label: "Memory Limit"
+  - variable: worker.cpuRequest
+    label: "CPU Request"
     type: string
-    default: 1000Mi
+    default: 500m
+  - variable: worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 2000Mi
   - variable: worker.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
-
+    default: 1000m
+  - variable: worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 4000Mi
   - variable: worker.autoscaling.minReplicas
     label: "Minimum Replica Count"
     type: int
     default: 1  
-    
   - variable: worker.autoscaling.maxReplicas
     label: "Maximum Replica Count"
     type: int
-    default: 3
-    
+    default: 5
   - variable: worker.autoscaling.targetCPUUtilizationPercentage
     label: "Target CPU Utilization Percentage"
     type: int
-    default: 80 
-    
+    default: 90 
   - variable: worker.autoscaling.targetMemoryUtilizationPercentage
     label: "Target Memory Utilization Percentage"
     type: int 
-    default: 70
+    default: 90
     
 - variable: beatworker.replicas
   label: "Default Replica Count"
@@ -375,34 +387,38 @@ questions:
   default: 1
   group: "Beat Worker Setup"
   subquestions:
-  - variable: beatworker.memoryLimit
-    label: "Memory Limit"
+  - variable: beatworker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 500m
+  - variable: beatworker.memoryRequest
+    label: "Memory Request"
     type: string
     default: 1000Mi
   - variable: beatworker.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
-  
+    default: 1000m
+  - variable: beatworker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
   - variable: beatworker.autoscaling.minReplicas
     label: "Minimum Replica Count"
     type: int
     default: 1
-    
   - variable: beatworker.autoscaling.maxReplicas
     label: "Maximum Replica Count"
     type: int
-    default: 3  
-    
+    default: 5  
   - variable: beatworker.autoscaling.targetCPUUtilizationPercentage
     label: "Target CPU Utilization Percentage"
     type: int
-    default: 80
-    
+    default: 90
   - variable: beatworker.autoscaling.targetMemoryUtilizationPercentage
     label: "Target Memory Utilization Percentage"
     type: int 
-    default: 70
+    default: 90
       
 - variable: redis.local_setup
   label: "Install Redis"

@@ -24,11 +24,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.worker.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.worker.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.worker.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.worker.memoryRequest | default "2000Mi" | quote }}
           limits:
-            memory: {{ .Values.worker.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.worker.cpuLimit | default "500m" | quote}}
+            cpu: {{ .Values.worker.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.worker.memoryLimit  | default "4000Mi" | quote }}
         command:
           - ./bin/docker-entrypoint-worker.sh
         envFrom:
@@ -60,7 +60,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-worker-wl
   minReplicas: {{ .Values.worker.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.worker.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.worker.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.worker.autoscaling.targetCPUUtilizationPercentage .Values.worker.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.worker.autoscaling.targetCPUUtilizationPercentage }}
@@ -69,7 +69,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.worker.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.worker.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.worker.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -77,7 +77,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.worker.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.worker.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

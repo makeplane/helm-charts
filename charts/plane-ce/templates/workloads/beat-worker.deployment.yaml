@@ -24,11 +24,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.beatworker.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.beatworker.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.beatworker.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.beatworker.memoryRequest | default "1000Mi" | quote }}
           limits:
-            memory: {{ .Values.beatworker.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.beatworker.cpuLimit | default "500m" | quote}}
+            cpu: {{ .Values.beatworker.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.beatworker.memoryLimit  | default "2000Mi" | quote }}
         command:
           - ./bin/docker-entrypoint-beat.sh
         envFrom:
@@ -61,7 +61,7 @@ spec:
     kind: Deployment
     name: {{ .Release.Name }}-beat-worker-wl
   minReplicas: {{ .Values.beatworker.autoscaling.minReplicas | default 1 | quote }}
-  maxReplicas: {{ .Values.beatworker.autoscaling.maxReplicas | default 3 | quote }}
+  maxReplicas: {{ .Values.beatworker.autoscaling.maxReplicas | default 5 | quote }}
   {{- if or .Values.beatworker.autoscaling.targetCPUUtilizationPercentage .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.beatworker.autoscaling.targetCPUUtilizationPercentage }}
@@ -70,7 +70,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.beatworker.autoscaling.targetCPUUtilizationPercentage | default 80 | quote }}
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetCPUUtilizationPercentage | default 90 | quote }}
     {{- end }}
     {{- if .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
@@ -78,7 +78,7 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage | default 70 | quote }}
+          averageUtilization: {{ .Values.beatworker.autoscaling.targetMemoryUtilizationPercentage | default 90 | quote }}
     {{- end }}
   {{- end }}
 {{- end }}
