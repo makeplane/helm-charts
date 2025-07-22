@@ -47,7 +47,7 @@ spec:
         resources:
           requests:
             cpu: {{ .Values.api.cpuRequest | default "1000m" | quote }}
-            memory: {{ .Values.api.memoryRequest | default "10000Mi" | quote }}
+            memory: {{ .Values.api.memoryRequest | default "1000Mi" | quote }}
           limits:
             cpu: {{ .Values.api.cpuLimit | default "2000m" | quote}}
             memory: {{ .Values.api.memoryLimit  | default "2000Mi" | quote }}

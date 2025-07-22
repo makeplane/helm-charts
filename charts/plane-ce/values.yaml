@@ -12,7 +12,7 @@ ingress:
   minioHost: ""
   rabbitmqHost: ""
   ingressClass: "nginx"
-  ingress_annotations: {"nginx.ingress.kubernetes.io/proxy-body-size": "5m"}
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
@@ -67,7 +67,7 @@ minio:
   volumeSize: 1Gi
   assign_cluster_ip: false
   env:
-   minio_endpoint_ssl: false
+    minio_endpoint_ssl: false
 
 web:
   replicas: 1
@@ -81,7 +81,7 @@ web:
   autoscaling:
     minReplicas: 1
     maxReplicas: 5
-    targetCPUUtilizationPercentage: 90  
+    targetCPUUtilizationPercentage: 90
     targetMemoryUtilizationPercentage: 90
 
 space:
@@ -132,7 +132,7 @@ live:
 api:
   replicas: 1
   cpuRequest: 1000m
-  memoryRequest: 10000Mi
+  memoryRequest: 1000Mi
   cpuLimit: 2000m
   memoryLimit: 2000Mi
   image: artifacts.plane.so/makeplane/plane-backend
@@ -174,7 +174,7 @@ beatworker:
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
-  rabbitmq_existingSecret: '' 
+  rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
@@ -185,7 +185,7 @@ env:
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
   remote_redis_url: "" #INCASE OF REMOTE REDIS ONLY
-  
+
   # POSTGRES DB VALUES
   pgdb_username: plane
   pgdb_password: plane
@@ -215,4 +215,3 @@ env:
   live_sentry_traces_sample_rate: ""
 
   api_key_rate_limit: "60/minute"
-
