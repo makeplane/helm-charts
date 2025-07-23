@@ -90,8 +90,6 @@
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `postgres.local_setup` to `false` and set this key with remote connection url. |
 | postgres.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| postgres.labels | {} |  | Custom labels to add to the PostgreSQL statefulset (only when `postgres.local_setup=true`) |
-| postgres.annotations | {} |  | Custom annotations to add to the PostgreSQL statefulset (only when `postgres.local_setup=true`) |
 
 ### Redis/Valkey Setup
 
@@ -105,8 +103,6 @@
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `redis.local_setup` to `false` and set this key with remote connection url. |
 | redis.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| redis.labels | {} |  | Custom labels to add to the Redis statefulset (only when `redis.local_setup=true`) |
-| redis.annotations | {} |  | Custom annotations to add to the Redis statefulset (only when `redis.local_setup=true`) |
 
 
 ### RabbitMQ Setup
@@ -123,8 +119,6 @@
 | rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| rabbitmq.labels | {} |  | Custom labels to add to the RabbitMQ statefulset (only when `rabbitmq.local_setup=true`) |
-| rabbitmq.annotations | {} |  | Custom annotations to add to the RabbitMQ statefulset (only when `rabbitmq.local_setup=true`) |
 | rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `rabbitmq.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
@@ -147,8 +141,8 @@
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | minio.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| minio.labels | {} |  | Custom labels to add to the MinIO statefulset (only when `minio.local_setup=true`) |
-| minio.annotations | {} |  | Custom annotations to add to the MinIO statefulset (only when `minio.local_setup=true`) |
+| minio.labels | {} |  | Custom labels to add to the Minio Job (only when `minio.local_setup=true`) |
+| minio.annotations | {} |  | Custom annotations to add to the Minio Job (only when `minio.local_setup=true`) |
 
 ### Web Deployment
 
