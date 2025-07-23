@@ -32,8 +32,8 @@ spec:
       - name: {{ .Release.Name }}-worker
         imagePullPolicy: {{ .Values.worker.pullPolicy | default "Always" }}
         image: {{ .Values.worker.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
-        command: 
-          - ./bin/docker-entrypoint-worker.sh
+        stdin: true
+        tty: true
         resources:
           requests:
             memory: {{ .Values.worker.memoryRequest | default "50Mi" | quote }}
@@ -41,6 +41,8 @@ spec:
           limits:
             memory: {{ .Values.worker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.worker.cpuLimit | default "500m" | quote}}
+        command:
+          - ./bin/docker-entrypoint-worker.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars

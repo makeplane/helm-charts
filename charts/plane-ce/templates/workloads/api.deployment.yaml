@@ -38,7 +38,7 @@ metadata:
     {{- end }}
   {{- end }}
 spec:
-  replicas: {{ .Values.api.replicas | default 1 }}
+  replicas: {{ .Values.api.replicas | default 1}}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
@@ -54,8 +54,8 @@ spec:
       - name: {{ .Release.Name }}-api
         imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}
         image: {{ .Values.api.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
-        command: 
-          - ./bin/docker-entrypoint-api.sh
+        stdin: true
+        tty: true
         resources:
           requests:
             memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
@@ -63,6 +63,8 @@ spec:
           limits:
             memory: {{ .Values.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}
+        command:
+          - ./bin/docker-entrypoint-api.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
@@ -71,7 +73,7 @@ spec:
               name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
           - secretRef:
-              name:  {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
         readinessProbe:
           failureThreshold: 30

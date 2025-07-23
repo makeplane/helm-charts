@@ -53,7 +53,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-admin
         imagePullPolicy: {{ .Values.admin.pullPolicy | default "Always" }}
-        image: {{ .Values.admin.image | default "artifacts.plane.so/makeplane/plane-admin" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.admin.image | default "artifacts.plane.so/makeplane/plane-frontend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
@@ -66,7 +66,7 @@ spec:
         command:
           - node
         args:
-          - web/server.js
+          - admin/server.js
           - admin
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
