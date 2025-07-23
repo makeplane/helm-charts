@@ -25,17 +25,15 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-wl
-  {{- $labels := include "parseLabels" .Values.live.labels }}
-  {{- if gt (len $labels) 0 }}
+  {{- if gt (len .Values.live.labels) 0 }}
   labels:
-    {{- range $key, $value := $labels }}
+    {{- range $key, $value := .Values.live.labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- $annotations := include "parseAnnotations" .Values.live.annotations }}
-  {{- if gt (len $annotations) 0 }}
+  {{- if gt (len .Values.live.annotations) 0 }}
   annotations:
-    {{- range $key, $value := $annotations }}
+    {{- range $key, $value := .Values.live.annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
