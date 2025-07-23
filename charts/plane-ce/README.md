@@ -90,6 +90,8 @@
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `postgres.local_setup` to `false` and set this key with remote connection url. |
 | postgres.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| postgres.labels | {} |  | Custom labels to add to the PostgreSQL statefulset (only when `postgres.local_setup=true`) |
+| postgres.annotations | {} |  | Custom annotations to add to the PostgreSQL statefulset (only when `postgres.local_setup=true`) |
 
 ### Redis/Valkey Setup
 
@@ -103,6 +105,8 @@
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `redis.local_setup` to `false` and set this key with remote connection url. |
 | redis.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| redis.labels | {} |  | Custom labels to add to the Redis statefulset (only when `redis.local_setup=true`) |
+| redis.annotations | {} |  | Custom annotations to add to the Redis statefulset (only when `redis.local_setup=true`) |
 
 
 ### RabbitMQ Setup
@@ -119,6 +123,8 @@
 | rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| rabbitmq.labels | {} |  | Custom labels to add to the RabbitMQ statefulset (only when `rabbitmq.local_setup=true`) |
+| rabbitmq.annotations | {} |  | Custom annotations to add to the RabbitMQ statefulset (only when `rabbitmq.local_setup=true`) |
 | rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `rabbitmq.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
@@ -141,6 +147,8 @@
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | minio.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| minio.labels | {} |  | Custom labels to add to the MinIO statefulset (only when `minio.local_setup=true`) |
+| minio.annotations | {} |  | Custom annotations to add to the MinIO statefulset (only when `minio.local_setup=true`) |
 
 ### Web Deployment
 
@@ -154,6 +162,8 @@
 | web.image| artifacts.plane.so/makeplane/plane-frontend |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | web.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `web`. |  
 | web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| web.labels | {} |  | Custom labels to add to the web deployment |
+| web.annotations | {} |  | Custom annotations to add to the web deployment |
 
 ### Space Deployment
 
@@ -167,6 +177,8 @@
 | space.image| artifacts.plane.so/makeplane/plane-space|  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | space.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `space`. |
 | space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| space.labels | {} |  | Custom labels to add to the space deployment |
+| space.annotations | {} |  | Custom annotations to add to the space deployment |
 
 ### Admin Deployment
 
@@ -180,6 +192,8 @@
 | admin.image| artifacts.plane.so/makeplane/plane-admin |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | admin.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `admin`. |
 | admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| admin.labels | {} |  | Custom labels to add to the admin deployment |
+| admin.annotations | {} |  | Custom annotations to add to the admin deployment |
 
 ### Live Service Deployment
 
@@ -196,6 +210,8 @@
 | env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| live.labels | {} |  | Custom labels to add to the live deployment |
+| live.annotations | {} |  | Custom annotations to add to the live deployment |
 
 ### API Deployment
 
@@ -212,6 +228,8 @@
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
 | api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| api.labels | {} |  | Custom labels to add to the API deployment |
+| api.annotations | {} |  | Custom annotations to add to the API deployment |
 
 ### Worker Deployment
 
@@ -223,6 +241,8 @@
 | worker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | worker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
 | worker.image| artifacts.plane.so/makeplane/plane-backend |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| worker.labels | {} |  | Custom labels to add to the worker deployment |
+| worker.annotations | {} |  | Custom annotations to add to the worker deployment |
 
 ### Beat-Worker deployment
 
@@ -234,6 +254,15 @@
 | beatworker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | beatworker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
 | beatworker.image| artifacts.plane.so/makeplane/plane-backend |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| beatworker.labels | {} |  | Custom labels to add to the beat-worker deployment |
+| beatworker.annotations | {} |  | Custom annotations to add to the beat-worker deployment |
+
+### Migrator Job
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| migrator.labels | {} |  | Custom labels to add to the migrator job |
+| migrator.annotations | {} |  | Custom annotations to add to the migrator job |
 
 ### Ingress and SSL Setup
 

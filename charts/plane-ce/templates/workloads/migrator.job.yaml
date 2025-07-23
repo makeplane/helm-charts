@@ -4,6 +4,18 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
+  {{- if gt (len .Values.migrator.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.migrator.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.migrator.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.migrator.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   backoffLimit: 3
   template:
@@ -32,4 +44,5 @@ spec:
       restartPolicy: OnFailure
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+
 ---

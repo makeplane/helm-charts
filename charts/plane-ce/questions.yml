@@ -16,7 +16,7 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
- 
+
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
@@ -63,6 +63,14 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
+  - variable: web.labels
+    label: "Web Labels"
+    type: string
+    default: "{}"
+  - variable: web.annotations
+    label: "Web Annotations"
+    type: string
+    default: "{}"
 
 - variable: space.image
   label: Space Docker Image
@@ -103,6 +111,14 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: space.labels
+    label: "Space Labels"
+    type: string
+    default: "{}"
+  - variable: space.annotations
+    label: "Space Annotations"
+    type: string
+    default: "{}"
 
 - variable: admin.image
   label: Admin Docker Image
@@ -143,6 +159,14 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
+  - variable: admin.labels
+    label: "Admin Labels"
+    type: string
+    default: "{}"
+  - variable: admin.annotations
+    label: "Admin Annotations"
+    type: string
+    default: "{}"
 - variable: live.image
   label: Live Docker Image
   type: string
@@ -183,6 +207,14 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
+  - variable: live.labels
+    label: "Live Labels"
+    type: string
+    default: "{}"
+  - variable: live.annotations
+    label: "Live Annotations"
+    type: string
+    default: "{}"
   - variable: env.live_sentry_dsn
     label: "Live Sentry DSN"
     type: string
@@ -236,6 +268,14 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
+  - variable: api.labels
+    label: "API Labels"
+    type: string
+    default: "{}"
+  - variable: api.annotations
+    label: "API Annotations"
+    type: string
+    default: "{}"
   - variable: env.cors_allowed_origins
     label: "CORS Allowed Origins"
     type: string
@@ -280,6 +320,14 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
+  - variable: worker.labels
+    label: "Worker Labels"
+    type: string
+    default: "{}"
+  - variable: worker.annotations
+    label: "Worker Annotations"
+    type: string
+    default: "{}"
 - variable: beatworker.replicas
   label: "Default Replica Count"
   type: int
@@ -301,7 +349,15 @@ questions:
   - variable: beatworker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m  
+    default: 50m
+  - variable: beatworker.labels
+    label: "Beat Worker Labels"
+    type: string
+    default: "{}"
+  - variable: beatworker.annotations
+    label: "Beat Worker Annotations"
+    type: string
+    default: "{}"
 - variable: redis.local_setup
   label: "Install Redis"
   type: boolean
@@ -339,6 +395,16 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+    show_if: "redis.local_setup=true"
+  - variable: redis.labels
+    label: "Redis Labels"
+    type: string
+    default: "{}"
+    show_if: "redis.local_setup=true"
+  - variable: redis.annotations
+    label: "Redis Annotations"
+    type: string
+    default: "{}"
     show_if: "redis.local_setup=true"
   - variable: env.remote_redis_url
     label: "Remote Redis URL"
@@ -400,6 +466,16 @@ questions:
     type: boolean
     default: false
     show_if: "postgres.local_setup=true"
+  - variable: postgres.labels
+    label: "Postgres Labels"
+    type: string
+    default: "{}"
+    show_if: "postgres.local_setup=true"
+  - variable: postgres.annotations
+    label: "Postgres Annotations"
+    type: string
+    default: "{}"
+    show_if: "postgres.local_setup=true"
   - variable: env.pgdb_remote_url
     label: "Remote URL"
     type: string
@@ -460,6 +536,16 @@ questions:
     type: password
     default: "plane"
     show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.labels
+    label: "RabbitMQ Labels"
+    type: string
+    default: "{}"
+    show_if: "rabbitmq.local_setup=true"
+  - variable: rabbitmq.annotations
+    label: "RabbitMQ Annotations"
+    type: string
+    default: "{}"
+    show_if: "rabbitmq.local_setup=true"
   - variable: rabbitmq.external_rabbitmq_url
     label: "Remote URL"
     type: string
@@ -513,6 +599,16 @@ questions:
     type: boolean
     default: false
     show_if: "minio.local_setup=true"
+  - variable: minio.labels
+    label: "MinIO Labels"
+    type: string
+    default: "{}"
+    show_if: "minio.local_setup=true"
+  - variable: minio.annotations
+    label: "MinIO Annotations"
+    type: string
+    default: "{}"
+    show_if: "minio.local_setup=true"
   - variable: env.aws_access_key
     label: "AWS Access Key"
     type: string
@@ -545,6 +641,17 @@ questions:
     label: "Minio Endpoint SSL"
     type: boolean
     default: false
+
+- variable: migrator.labels
+  label: "Migrator Labels"
+  type: string
+  default: "{}"
+  group: "Migrator Setup"
+  subquestions:
+  - variable: migrator.annotations
+    label: "Migrator Annotations"
+    type: string
+    default: "{}"
 
 - variable: ingress.enabled
   label: "Install Ingress"

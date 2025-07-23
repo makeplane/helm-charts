@@ -23,11 +23,24 @@ spec:
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
+  {{- if gt (len .Values.rabbitmq.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.rabbitmq.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.rabbitmq.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.rabbitmq.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     matchLabels:
