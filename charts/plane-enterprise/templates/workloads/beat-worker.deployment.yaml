@@ -3,6 +3,18 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
+  {{- if gt (len .Values.services.beatworker.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.services.beatworker.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.services.beatworker.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.services.beatworker.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   replicas: {{ .Values.services.beatworker.replicas | default 1 }}
   selector:

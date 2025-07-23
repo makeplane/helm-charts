@@ -26,6 +26,18 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-space-wl
+  {{- if gt (len .Values.services.space.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.services.space.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.services.space.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.services.space.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   replicas: {{ .Values.services.space.replicas | default 1 }}
   selector:

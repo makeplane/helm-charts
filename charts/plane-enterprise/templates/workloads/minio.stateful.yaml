@@ -84,6 +84,18 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
+  {{- if gt (len .Values.services.minio.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.services.minio.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.services.minio.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.services.minio.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed

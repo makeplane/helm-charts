@@ -26,6 +26,18 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-web-wl
+  {{- if gt (len .Values.services.web.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.services.web.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.services.web.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.services.web.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   replicas: {{ .Values.services.web.replicas | default 1 }}
   selector:

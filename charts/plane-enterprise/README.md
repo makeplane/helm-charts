@@ -177,6 +177,8 @@
 | services.web.image| artifacts.plane.so/makeplane/web-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.web.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `web`. |
 | services.web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.web.labels | {} |  | Custom labels to add to the web deployment |
+| services.web.annotations | {} |  | Custom annotations to add to the web deployment |
 
 ### Space Deployment
 
@@ -190,6 +192,8 @@
 | services.space.image| artifacts.plane.so/makeplane/space-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.space.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `space`. |
 | services.space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.space.labels | {} |  | Custom labels to add to the space deployment |
+| services.space.annotations | {} |  | Custom annotations to add to the space deployment |
 
 ### Admin Deployment
 
@@ -203,6 +207,8 @@
 | services.admin.image| artifacts.plane.so/makeplane/admin-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `admin`. |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.admin.labels | {} |  | Custom labels to add to the admin deployment |
+| services.admin.annotations | {} |  | Custom annotations to add to the admin deployment |
 
 ### Live Service Deployment
 
@@ -220,6 +226,8 @@
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | env.live_server_secret_key | htbqvBJAgpm9bzvf3r4urJer0ENReatceh |  | Live Server Secret Key |
 | services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.live.labels | {} |  | Custom labels to add to the live deployment |
+| services.live.annotations | {} |  | Custom annotations to add to the live deployment |
 
 ### Monitor Deployment
 
@@ -233,6 +241,8 @@
 | services.monitor.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `monitor`. |
 | services.monitor.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.monitor.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.monitor.labels | {} |  | Custom labels to add to the monitor deployment |
+| services.monitor.annotations | {} |  | Custom annotations to add to the monitor deployment |
 
 ### API Deployment
 
@@ -249,6 +259,8 @@
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
 | services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.api.labels | {} |  | Custom labels to add to the API deployment |
+| services.api.annotations | {} |  | Custom annotations to add to the API deployment |
 
 ### Silo Deployment
 
@@ -261,7 +273,9 @@
 | services.silo.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
 | services.silo.image| artifacts.plane.so/makeplane/silo-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
-| services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service | 
+| services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.silo.labels | {} |  | Custom labels to add to the silo deployment |
+| services.silo.annotations | {} |  | Custom annotations to add to the silo deployment | 
 | services.silo.connectors.slack.enabled | false |  | Slack Integration |
 | services.silo.connectors.slack.client_id | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client ID |
 | services.silo.connectors.slack.client_secret | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client Secret |
@@ -293,6 +307,8 @@
 | services.worker.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.worker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.worker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.worker.labels | {} |  | Custom labels to add to the worker deployment |
+| services.worker.annotations | {} |  | Custom annotations to add to the worker deployment |
 
 ### Beat-Worker deployment
 
@@ -303,6 +319,8 @@
 | services.beatworker.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.beatworker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.beatworker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.beatworker.labels | {} |  | Custom labels to add to the beat-worker deployment |
+| services.beatworker.annotations | {} |  | Custom annotations to add to the beat-worker deployment |
 
 ### Email Service Deployment
 
@@ -316,9 +334,18 @@
 | services.email_service.cpuRequest | 50m |  | CPU request for the email service deployment |
 | services.email_service.image | artifacts.plane.so/makeplane/email-commercial |  | Docker image for the email service deployment |
 | services.email_service.pullPolicy | Always |  | Image pull policy for the email service deployment |
+| services.email_service.labels | {} |  | Custom labels to add to the email service deployment |
+| services.email_service.annotations | {} |  | Custom annotations to add to the email service deployment |
 | env.email_service_envs.smtp_domain |  | Yes | The SMTP Domain to be used with email service |
 
 Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
+
+### Migrator Job
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.migrator.labels | {} |  | Custom labels to add to the migrator job |
+| services.migrator.annotations | {} |  | Custom annotations to add to the migrator job |
 
 ### Ingress and SSL Setup
 
