@@ -4,15 +4,17 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
-  {{- if gt (len .Values.migrator.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.migrator.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.migrator.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.migrator.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.migrator.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.migrator.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}

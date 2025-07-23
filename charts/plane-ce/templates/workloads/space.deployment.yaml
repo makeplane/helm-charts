@@ -25,15 +25,17 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-space-wl
-  {{- if gt (len .Values.space.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.space.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.space.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.space.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.space.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.space.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
@@ -66,7 +68,7 @@ spec:
         command:
           - node
         args:
-          - space/server.js
+          - web/server.js
           - space
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account

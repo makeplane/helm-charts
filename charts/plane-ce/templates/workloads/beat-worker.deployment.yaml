@@ -3,15 +3,17 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
-  {{- if gt (len .Values.beatworker.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.beatworker.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.beatworker.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.beatworker.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.beatworker.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.beatworker.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
@@ -32,8 +34,8 @@ spec:
       - name: {{ .Release.Name }}-beat-worker
         imagePullPolicy: {{ .Values.beatworker.pullPolicy | default "Always" }}
         image: {{ .Values.beatworker.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
-        stdin: true
-        tty: true
+        command: 
+          - ./bin/docker-entrypoint-beat.sh
         resources:
           requests:
             memory: {{ .Values.beatworker.memoryRequest | default "50Mi" | quote }}
@@ -41,15 +43,13 @@ spec:
           limits:
             memory: {{ .Values.beatworker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.beatworker.cpuLimit | default "500m" | quote}}
-        command:
-          - ./bin/docker-entrypoint-beat.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
           - secretRef:
-                name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
-                optional: false
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false

@@ -25,15 +25,17 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-web-wl
-  {{- if gt (len .Values.web.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.web.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.web.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.web.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.web.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.web.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}

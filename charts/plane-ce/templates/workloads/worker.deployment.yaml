@@ -3,15 +3,17 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-worker-wl
-  {{- if gt (len .Values.worker.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.worker.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.worker.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.worker.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.worker.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.worker.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
@@ -32,8 +34,8 @@ spec:
       - name: {{ .Release.Name }}-worker
         imagePullPolicy: {{ .Values.worker.pullPolicy | default "Always" }}
         image: {{ .Values.worker.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
-        stdin: true
-        tty: true
+        command: 
+          - ./bin/docker-entrypoint-worker.sh
         resources:
           requests:
             memory: {{ .Values.worker.memoryRequest | default "50Mi" | quote }}
@@ -41,8 +43,6 @@ spec:
           limits:
             memory: {{ .Values.worker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.worker.cpuLimit | default "500m" | quote}}
-        command:
-          - ./bin/docker-entrypoint-worker.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars

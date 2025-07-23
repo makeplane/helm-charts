@@ -25,15 +25,17 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
-  {{- if gt (len .Values.api.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.api.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.api.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.api.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.api.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.api.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
@@ -54,8 +56,8 @@ spec:
       - name: {{ .Release.Name }}-api
         imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}
         image: {{ .Values.api.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
-        stdin: true
-        tty: true
+        command: 
+          - ./bin/docker-entrypoint-api.sh
         resources:
           requests:
             memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
@@ -63,8 +65,6 @@ spec:
           limits:
             memory: {{ .Values.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}
-        command:
-          - ./bin/docker-entrypoint-api.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
@@ -73,7 +73,7 @@ spec:
               name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              name:  {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
         readinessProbe:
           failureThreshold: 30

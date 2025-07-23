@@ -25,15 +25,17 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
-  {{- if gt (len .Values.admin.labels) 0 }}
+  {{- $labels := include "parseLabels" .Values.admin.labels }}
+  {{- if gt (len $labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.admin.labels }}
+    {{- range $key, $value := $labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.admin.annotations) 0 }}
+  {{- $annotations := include "parseAnnotations" .Values.admin.annotations }}
+  {{- if gt (len $annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.admin.annotations }}
+    {{- range $key, $value := $annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
@@ -53,7 +55,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-admin
         imagePullPolicy: {{ .Values.admin.pullPolicy | default "Always" }}
-        image: {{ .Values.admin.image | default "artifacts.plane.so/makeplane/plane-frontend" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.admin.image | default "artifacts.plane.so/makeplane/plane-admin" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
@@ -66,7 +68,7 @@ spec:
         command:
           - node
         args:
-          - admin/server.js
+          - web/server.js
           - admin
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
