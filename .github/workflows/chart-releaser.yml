@@ -115,22 +115,6 @@ jobs:
           CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
           CR_SIGN: true
 
-      - id: publish-plane-enterprise
-        if: ${{ github.ref_name == 'master' && github.event.inputs.plane-ee == 'true' }}
-        name: Harbor Publish Plane-Enterprise
-        env:
-          CHART_REPO: ${{ env.CHART_NAME_ENTERPRISE }}
-          HELM_REPO: plane
-          CR_KEY: ${{ env.GPG_KEY_NAME }}
-          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
-          CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
-        run: |
-          mkdir -p tmp
-          helm registry login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_TOKEN }} ${{ vars.HARBOR_REGISTRY }}
-          helm package --sign --key "$CR_KEY" --keyring "$CR_KEYRING" --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d tmp
-          helm push tmp/${{ env.CHART_REPO }}-*.tgz oci://${{ vars.HARBOR_REGISTRY }}/${{env.HELM_REPO}}
-          rm -rf tmp
-
   publish:
     if: ${{ github.ref_name == 'master' }}
     needs: setup
