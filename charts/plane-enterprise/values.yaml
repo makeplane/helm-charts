@@ -67,6 +67,8 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
+    labels: {}
+    annotations: {}
 
   web:
     replicas: 1
