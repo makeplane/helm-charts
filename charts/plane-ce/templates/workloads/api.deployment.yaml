@@ -51,7 +51,8 @@ spec:
           limits:
             memory: {{ .Values.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}
-
+        command:
+          - ./bin/docker-entrypoint-api.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
