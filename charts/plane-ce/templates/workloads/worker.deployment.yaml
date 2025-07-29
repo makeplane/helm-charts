@@ -23,12 +23,21 @@ spec:
         stdin: true
         tty: true
         resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
           requests:
-            memory: {{ .Values.worker.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.worker.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.worker.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.worker.memoryRequest | default "2000Mi" | quote }}
           limits:
-            memory: {{ .Values.worker.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.worker.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.worker.memoryLimit  | default "4000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.worker.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.worker.memoryRequest | default "50Mi" | quote }}
+          limits:
             cpu: {{ .Values.worker.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.worker.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
         command:
           - ./bin/docker-entrypoint-worker.sh
         envFrom:
@@ -45,4 +54,40 @@ spec:
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-worker-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-worker-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-worker-wl
+  minReplicas: {{ .Values.worker.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.worker.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.worker.autoscaling.targetCPUUtilizationPercentage .Values.worker.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.worker.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.worker.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.worker.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.worker.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---

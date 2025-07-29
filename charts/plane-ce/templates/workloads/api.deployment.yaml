@@ -45,12 +45,21 @@ spec:
         stdin: true
         tty: true
         resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
           requests:
-            memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.api.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.api.cpuRequest | default "1000m" | quote }}
+            memory: {{ .Values.api.memoryRequest | default "1000Mi" | quote }}
           limits:
-            memory: {{ .Values.api.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.api.cpuLimit | default "2000m" | quote}}
+            memory: {{ .Values.api.memoryLimit  | default "2000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.api.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
+          limits:
             cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.api.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
         command:
           - ./bin/docker-entrypoint-api.sh
         envFrom:
@@ -76,4 +85,41 @@ spec:
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-api-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-api-wl
+  minReplicas: {{ .Values.api.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.api.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.api.autoscaling.targetCPUUtilizationPercentage .Values.api.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.api.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.api.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---
