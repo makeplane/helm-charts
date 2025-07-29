@@ -23,12 +23,21 @@ spec:
         stdin: true
         tty: true
         resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
           requests:
             cpu: {{ .Values.worker.cpuRequest | default "500m" | quote }}
             memory: {{ .Values.worker.memoryRequest | default "2000Mi" | quote }}
           limits:
             cpu: {{ .Values.worker.cpuLimit | default "1000m" | quote}}
             memory: {{ .Values.worker.memoryLimit  | default "4000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.worker.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.worker.memoryRequest | default "50Mi" | quote }}
+          limits:
+            cpu: {{ .Values.worker.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.worker.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
         command:
           - ./bin/docker-entrypoint-worker.sh
         envFrom:

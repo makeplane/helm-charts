@@ -45,12 +45,21 @@ spec:
         stdin: true
         tty: true
         resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
           requests:
             cpu: {{ .Values.api.cpuRequest | default "1000m" | quote }}
             memory: {{ .Values.api.memoryRequest | default "1000Mi" | quote }}
           limits:
             cpu: {{ .Values.api.cpuLimit | default "2000m" | quote}}
             memory: {{ .Values.api.memoryLimit  | default "2000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.api.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
+          limits:
+            cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.api.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
         command:
           - ./bin/docker-entrypoint-api.sh
         envFrom:

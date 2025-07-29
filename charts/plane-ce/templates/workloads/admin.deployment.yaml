@@ -44,12 +44,21 @@ spec:
         stdin: true
         tty: true
         resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
           requests:
             cpu: {{ .Values.admin.cpuRequest | default "100m" | quote }}
             memory: {{ .Values.admin.memoryRequest | default "200Mi" | quote }}
           limits:
             cpu: {{ .Values.admin.cpuLimit | default "500m" | quote}}
             memory: {{ .Values.admin.memoryLimit  | default "1000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.admin.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.admin.memoryRequest | default "50Mi" | quote }}
+          limits:
+            cpu: {{ .Values.admin.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.admin.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
         command:
           - node
         args:
