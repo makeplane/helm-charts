@@ -1,0 +1,66 @@
+{{- if empty .Values.external_secrets.app_env_existingSecret}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-secrets
+stringData:
+  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
+  {{- if .Values.redis.local_setup }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
+  {{- else }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+
+  {{- if .Values.postgres.local_setup }}
+  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
+  {{- else if .Values.env.pgdb_remote_url }}
+  DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
+  {{- else }}
+  DATABASE_URL: ""
+  {{ end }}
+
+  {{- if .Values.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.rabbitmq.default_user}}:{{ .Values.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.rabbitmq.external_rabbitmq_url}}
+  {{- else }}
+  AMQP_URL: ""
+  {{ end }}
+---
+{{- end }}
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-vars
+data:
+  SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
+  SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
+  DEBUG: "0"
+  DOCKERIZED: "1"
+  GUNICORN_WORKERS: "1"
+  MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
+  API_KEY_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "60/minute" | quote }}
+
+  {{- if .Values.ingress.appHost }}
+  WEB_URL: "http://{{ .Values.ingress.appHost }}"
+  {{- else }}
+  WEB_URL: ""
+  {{- end }}
+
+
+  {{- if eq .Values.env.cors_allowed_origins "*"}}
+  CORS_ALLOWED_ORIGINS: "*"
+  {{- else if and .Values.ingress.appHost .Values.env.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }},{{ .Values.env.cors_allowed_origins }}"
+  {{- else if .Values.env.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: "{{ .Values.env.cors_allowed_origins }}"
+  {{- else if .Values.ingress.appHost}}
+  CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }}"
+  {{- else }}
+  CORS_ALLOWED_ORIGINS: ""
+  {{- end }}

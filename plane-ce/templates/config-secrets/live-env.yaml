@@ -1,0 +1,28 @@
+{{- if empty .Values.external_secrets.live_env_existingSecret}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-live-secrets
+stringData:
+  {{- if .Values.redis.local_setup }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  {{- else }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+---
+{{- end }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-live-vars
+data:
+  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+  LIVE_SENTRY_DSN: {{ .Values.env.live_sentry_dsn | default "" | quote }}
+  LIVE_SENTRY_ENVIRONMENT: {{ .Values.env.live_sentry_environment | default "" | quote }}
+  LIVE_SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.live_sentry_traces_sample_rate | default "" | quote }}
+  LIVE_BASE_PATH: "/live"
+---

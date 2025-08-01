@@ -1,0 +1,35 @@
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-migrate
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-api-migrate
+        image: {{ .Values.api.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
+        command: 
+          - ./bin/docker-entrypoint-migrator.sh
+        imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name:  {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+      restartPolicy: OnFailure
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---

@@ -1,0 +1,14 @@
+{{- if and .Values.postgres.local_setup (empty .Values.external_secrets.pgdb_existingSecret) }}
+
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pgdb-secrets
+stringData:
+  POSTGRES_PASSWORD: {{ .Values.env.pgdb_password | default "plane" | quote }}
+  POSTGRES_DB: {{ .Values.env.pgdb_name | default "plane" | quote }}
+  POSTGRES_USER: {{ .Values.env.pgdb_username | default "plane" | quote }}
+--- 
+{{- end }}

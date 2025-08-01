@@ -1,0 +1,125 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-api
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+spec:
+  {{- if not .Values.api.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: api-8000
+    port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-api-wl
+spec:
+  replicas: {{ .Values.api.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-api
+        imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}
+        image: {{ .Values.api.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
+          requests:
+            cpu: {{ .Values.api.cpuRequest | default "1000m" | quote }}
+            memory: {{ .Values.api.memoryRequest | default "1000Mi" | quote }}
+          limits:
+            cpu: {{ .Values.api.cpuLimit | default "2000m" | quote}}
+            memory: {{ .Values.api.memoryLimit  | default "2000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.api.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.api.memoryRequest | default "50Mi" | quote }}
+          limits:
+            cpu: {{ .Values.api.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.api.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
+        command:
+          - ./bin/docker-entrypoint-api.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+        readinessProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /
+            port: 8000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-api-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-api-wl
+  minReplicas: {{ .Values.api.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.api.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.api.autoscaling.targetCPUUtilizationPercentage .Values.api.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.api.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.api.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+---

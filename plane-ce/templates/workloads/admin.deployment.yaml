@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-admin
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+spec:
+  {{- if not .Values.admin.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: admin-3000
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-admin-wl
+spec:
+  replicas: {{ .Values.admin.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-admin
+        imagePullPolicy: {{ .Values.admin.pullPolicy | default "Always" }}
+        image: {{ .Values.admin.image | default "artifacts.plane.so/makeplane/plane-frontend" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
+          requests:
+            cpu: {{ .Values.admin.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.admin.memoryRequest | default "200Mi" | quote }}
+          limits:
+            cpu: {{ .Values.admin.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.admin.memoryLimit  | default "1000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.admin.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.admin.memoryRequest | default "50Mi" | quote }}
+          limits:
+            cpu: {{ .Values.admin.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.admin.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
+        command:
+          - node
+        args:
+          - admin/server.js
+          - admin
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-admin-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-admin-wl
+  minReplicas: {{ .Values.admin.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.admin.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.admin.autoscaling.targetCPUUtilizationPercentage .Values.admin.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.admin.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.admin.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.admin.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.admin.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+---

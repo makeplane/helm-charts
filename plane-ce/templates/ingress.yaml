@@ -1,0 +1,121 @@
+{{- if and .Values.ingress.enabled .Values.ingress.appHost }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-ingress
+  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.ingress.ingress_annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass | quote }}
+  rules:
+    - host: {{ .Values.ingress.appHost }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-web
+            path: /
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /api
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /auth
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-live
+            path: /live/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-space
+            path: /spaces
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-admin
+            path: /god-mode
+            pathType: Prefix
+          {{- if and .Values.minio.local_setup .Values.env.docstore_bucket }}
+          - backend:
+              service:
+                port:
+                  number: 9000
+                name: {{ .Release.Name }}-minio
+            path: /{{ .Values.env.docstore_bucket }}
+            pathType: Prefix
+          {{- end }}
+
+    {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+    - host: {{ .Values.ingress.minioHost }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 9090
+                name: {{ .Release.Name }}-minio
+            path: /
+            pathType: Prefix
+    {{- end }}
+    {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+    - host: {{ .Values.ingress.rabbitmqHost }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 15672
+                name: {{ .Release.Name }}-rabbitmq
+            path: /
+            pathType: Prefix
+    {{- end }}
+
+  {{- if .Values.ssl.tls_secret_name }}
+  tls:
+    - hosts:
+      - {{ .Values.ingress.appHost | quote }}
+      {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+      - {{ .Values.ingress.minioHost | quote }}
+      {{- end }}
+      {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+      - {{ .Values.ingress.rabbitmqHost | quote }}
+      {{- end }}
+      secretName: {{ .Values.ssl.tls_secret_name }}
+  {{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
+  tls:
+    - hosts:
+      - {{ .Values.ingress.appHost | quote }}
+      {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+      - {{ .Values.ingress.minioHost | quote }}
+      {{- end }}
+      {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+      - {{ .Values.ingress.rabbitmqHost | quote }}
+      {{- end }}
+      secretName: {{ .Release.Name }}-ssl-cert
+  {{- end }}
+
+{{- end }}

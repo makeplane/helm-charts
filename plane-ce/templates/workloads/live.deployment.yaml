@@ -1,0 +1,114 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-live
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+spec:
+  {{- if not .Values.live.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: live-3000
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-live-wl
+spec:
+  replicas: {{ .Values.live.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-live
+        imagePullPolicy: {{ .Values.live.pullPolicy | default "Always" }}
+        image: {{ .Values.live.image | default "artifacts.plane.so/makeplane/plane-live" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          {{- if eq (include "enable.hpa" . | trim) "true" }}
+          requests:
+            cpu: {{ .Values.live.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.live.memoryRequest | default "1000Mi" | quote }}
+          limits:
+            cpu: {{ .Values.live.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.live.memoryLimit  | default "2000Mi" | quote }}
+          {{- else }}
+          requests:
+            cpu: {{ .Values.live.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.live.memoryRequest | default "50Mi" | quote }}
+          limits:
+            cpu: {{ .Values.live.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.live.memoryLimit | default "1000Mi" | quote }}
+          {{- end }}
+        command:
+          - node
+        args:
+          - live/dist/server.js
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-live-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
+              optional: false
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-live-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-live-wl
+  minReplicas: {{ .Values.live.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.live.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.live.autoscaling.targetCPUUtilizationPercentage .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.live.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.live.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.live.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.live.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+---
