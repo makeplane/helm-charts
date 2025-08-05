@@ -66,8 +66,8 @@ minio:
   storageClass: ""
   volumeSize: 1Gi
   assign_cluster_ip: false
-  labels: {}
-  annotations: {}
+  job_labels: {}
+  job_annotations: {}
   env:
     minio_endpoint_ssl: false
 
