@@ -16,7 +16,7 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
- 
+
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
@@ -301,7 +301,7 @@ questions:
   - variable: beatworker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m  
+    default: 50m
 - variable: redis.local_setup
   label: "Install Redis"
   type: boolean

@@ -12,7 +12,7 @@ ingress:
   minioHost: ""
   rabbitmqHost: ""
   ingressClass: "nginx"
-  ingress_annotations: {"nginx.ingress.kubernetes.io/proxy-body-size": "5m"}
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
@@ -66,8 +66,10 @@ minio:
   storageClass: ""
   volumeSize: 1Gi
   assign_cluster_ip: false
+  job_labels: {}
+  job_annotations: {}
   env:
-   minio_endpoint_ssl: false
+    minio_endpoint_ssl: false
 
 web:
   replicas: 1
@@ -78,6 +80,8 @@ web:
   image: artifacts.plane.so/makeplane/plane-frontend
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 space:
   replicas: 1
@@ -88,6 +92,8 @@ space:
   image: artifacts.plane.so/makeplane/plane-space
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 admin:
   replicas: 1
@@ -98,6 +104,8 @@ admin:
   image: artifacts.plane.so/makeplane/plane-admin
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 live:
   replicas: 1
@@ -108,6 +116,8 @@ live:
   image: artifacts.plane.so/makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 api:
   replicas: 1
@@ -118,6 +128,8 @@ api:
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 worker:
   replicas: 1
@@ -127,6 +139,8 @@ worker:
   memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  labels: {}
+  annotations: {}
 
 beatworker:
   replicas: 1
@@ -136,10 +150,16 @@ beatworker:
   memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  labels: {}
+  annotations: {}
+
+migrator:
+  labels: {}
+  annotations: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
-  rabbitmq_existingSecret: '' 
+  rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
@@ -150,7 +170,7 @@ env:
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
   remote_redis_url: "" #INCASE OF REMOTE REDIS ONLY
-  
+
   # POSTGRES DB VALUES
   pgdb_username: plane
   pgdb_password: plane
