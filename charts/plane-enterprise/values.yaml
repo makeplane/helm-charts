@@ -190,7 +190,7 @@ external_secrets:
   silo_env_existingSecret: ''
 
 env:
-  storageClass: 'gp2'
+  storageClass: ''
 
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
