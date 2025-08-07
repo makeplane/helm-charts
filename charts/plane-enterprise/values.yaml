@@ -1,8 +1,5 @@
 planeVersion: v1.13.0
 
-isAirgapped: 
-  enabled: true
-
 dockerRegistry:
   enabled: false
   registry: 'index.docker.io/v1/'
@@ -12,6 +9,9 @@ dockerRegistry:
 license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
+
+isAirgapped: 
+  enabled: false
 
 ingress:
   enabled: true
