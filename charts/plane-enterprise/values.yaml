@@ -1,5 +1,8 @@
 planeVersion: v1.13.0
 
+isAirgapped: 
+  enabled: true
+
 dockerRegistry:
   enabled: false
   registry: 'index.docker.io/v1/'
@@ -187,7 +190,7 @@ external_secrets:
   silo_env_existingSecret: ''
 
 env:
-  storageClass: ''
+  storageClass: 'gp2'
 
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY

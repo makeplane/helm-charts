@@ -42,6 +42,12 @@ spec:
         name: {{ .Release.Name }}-monitor
         stdin: true
         tty: true
+        {{- if .Values.isAirgapped.enabled }}
+        command:
+          - prime-monitor
+        args:
+          - start-airgapped
+        {{- end }}
         resources:
           requests:
             memory: {{ .Values.services.monitor.memoryRequest | default "50Mi" | quote }}
