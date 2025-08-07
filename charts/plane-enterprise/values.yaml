@@ -10,6 +10,9 @@ license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
 
+airgapped: 
+  enabled: false
+
 ingress:
   enabled: true
   minioHost: ''
