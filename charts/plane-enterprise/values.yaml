@@ -10,7 +10,7 @@ license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
 
-isAirgapped: 
+airgapped: 
   enabled: false
 
 ingress:

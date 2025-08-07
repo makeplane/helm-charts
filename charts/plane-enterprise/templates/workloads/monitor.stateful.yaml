@@ -42,7 +42,7 @@ spec:
         name: {{ .Release.Name }}-monitor
         stdin: true
         tty: true
-        {{- if .Values.isAirgapped.enabled }}
+        {{- if .Values.airgapped.enabled }}
         command:
           - prime-monitor
         args:

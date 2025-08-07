@@ -62,7 +62,7 @@ data:
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"
 
-  {{- if .Values.isAirgapped.enabled }}
+  {{- if .Values.airgapped.enabled }}
   IS_AIRGAPPED: "1"
   {{- end }}
 

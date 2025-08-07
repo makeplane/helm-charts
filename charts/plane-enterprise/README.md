@@ -86,21 +86,13 @@
           ```
 
 ## Available customizations
-
-<!-- ### Docker registry
-
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| dockerRegistry.enabled | false |  | Plane uses a private Docker registry which needs authenticated login. This must be set to `true` to install Plane Enterprise. |
-| dockerRegistry.registry |  registry.plane.tools| Yes | The host that will serve the required Docker images; Don't change this. |
-| dockerRegistry.loginid |  | Yes | Sets the `loginid` for the Docker registry. This is the same as the REG_USER_ID value on prime. plane.so |
-| dockerRegistry.password |  | Yes | Sets the `password` for the Docker registry. This is the same as the REG_PASSWORD value on prime.plane.so|
-   -->
+   
 ### License
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | planeVersion | v1.13.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| airgapped.enabled | false | No |  Specifies the airgapped mode the Plane API runs in. |
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
