@@ -25,6 +25,18 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
+  {{- if gt (len .Values.admin.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.admin.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.admin.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.admin.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   replicas: {{ .Values.admin.replicas | default 1 }}
   selector:

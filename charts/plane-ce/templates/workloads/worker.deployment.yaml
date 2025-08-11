@@ -3,6 +3,18 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-worker-wl
+  {{- if gt (len .Values.worker.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.worker.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.worker.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.worker.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   replicas: {{ .Values.worker.replicas | default 1 }}
   selector:

@@ -23,6 +23,7 @@ spec:
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
