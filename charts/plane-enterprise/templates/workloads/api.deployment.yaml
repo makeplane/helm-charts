@@ -39,6 +39,12 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- if and .Values.customCa.enabled .Values.customCa.applyTo.api }}
+      volumes:
+        - name: custom-ca
+          secret:
+            secretName: {{ if .Values.customCa.secretName }}{{ .Values.customCa.secretName }}{{ else }}{{ .Release.Name }}-custom-ca{{ end }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
@@ -52,8 +58,25 @@ spec:
           limits:
             memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
+        {{- if and .Values.customCa.enabled .Values.customCa.applyTo.api }}
+        volumeMounts:
+          - name: custom-ca
+            mountPath: /custom-ca
+            readOnly: true
+        command: ["/bin/sh","-c"]
+        args:
+          - |
+            set -e
+            if ls /custom-ca/*.crt >/dev/null 2>&1; then
+              mkdir -p /usr/local/share/ca-certificates
+              cp /custom-ca/*.crt /usr/local/share/ca-certificates/ || true
+              update-ca-certificates || true
+            fi
+            exec ./bin/docker-entrypoint-api-ee.sh
+        {{- else }}
         command:
           - ./bin/docker-entrypoint-api-ee.sh
+        {{- end }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars

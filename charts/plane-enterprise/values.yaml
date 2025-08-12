@@ -6,6 +6,22 @@ dockerRegistry:
   loginid: ''
   password: ''
 
+customCa:
+  enabled: false
+  # If you already have a Secret with your custom CAs, set its name here.
+  # When empty and 'certs' has entries, the chart will create a Secret named '<release>-custom-ca'.
+  secretName: ""
+  # Inline certificates to bake into a Secret. Keys are filenames, values are PEM contents.
+  # Example:
+  # certs:
+  #   mycorp-root.crt: |
+  #     -----BEGIN CERTIFICATE-----
+  #     ...
+  #     -----END CERTIFICATE-----
+  certs: {}
+  applyTo:
+    api: true
+
 license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
