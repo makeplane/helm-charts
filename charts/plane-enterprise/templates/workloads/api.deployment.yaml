@@ -39,11 +39,11 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{- if and .Values.customCa.enabled .Values.customCa.applyTo.api }}
+      {{- if and .Values.airgapped.enabled .Values.airgapped.customCa.s3SecretName }}
       volumes:
-        - name: custom-ca
+        - name: s3-custom-ca
           secret:
-            secretName: {{ if .Values.customCa.secretName }}{{ .Values.customCa.secretName }}{{ else }}{{ .Release.Name }}-custom-ca{{ end }}
+            secretName: {{ .Values.airgapped.customCa.s3SecretName }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
