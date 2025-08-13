@@ -58,18 +58,18 @@ spec:
           limits:
             memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
-        {{- if and .Values.customCa.enabled .Values.customCa.applyTo.api }}
+        {{- if and .Values.airgapped.enabled .Values.airgapped.customCa.s3SecretName }}
         volumeMounts:
-          - name: custom-ca
-            mountPath: /custom-ca
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
             readOnly: true
         command: ["/bin/sh","-c"]
         args:
           - |
             set -e
-            if ls /custom-ca/*.crt >/dev/null 2>&1; then
+            if ls /s3-custom-ca/*.crt >/dev/null 2>&1; then
               mkdir -p /usr/local/share/ca-certificates
-              cp /custom-ca/*.crt /usr/local/share/ca-certificates/ || true
+              cp /s3-custom-ca/*.crt /usr/local/share/ca-certificates/ || true
               update-ca-certificates || true
             fi
             exec ./bin/docker-entrypoint-api-ee.sh

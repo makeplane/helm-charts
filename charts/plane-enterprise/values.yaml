@@ -6,28 +6,17 @@ dockerRegistry:
   loginid: ''
   password: ''
 
-customCa:
-  enabled: false
-  # If you already have a Secret with your custom CAs, set its name here.
-  # When empty and 'certs' has entries, the chart will create a Secret named '<release>-custom-ca'.
-  secretName: ""
-  # Inline certificates to bake into a Secret. Keys are filenames, values are PEM contents.
-  # Example:
-  # certs:
-  #   mycorp-root.crt: |
-  #     -----BEGIN CERTIFICATE-----
-  #     ...
-  #     -----END CERTIFICATE-----
-  certs: {}
-  applyTo:
-    api: true
-
 license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
 
 airgapped: 
   enabled: false
+  customCa:
+    # This secret will be mounted as s3-custom-ca in the api pod
+    # The secret should contain *.crt files for the custom CA, these are loaded
+    # into /usr/local/share/ca-certificates
+    s3SecretName: ""
 
 ingress:
   enabled: true

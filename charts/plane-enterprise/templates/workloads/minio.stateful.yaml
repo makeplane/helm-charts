@@ -56,9 +56,6 @@ spec:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
         volumeMounts:
-        - name: minio-ca
-          mountPath: /root/.minio/certs/CAs
-          readOnly: true
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-minio-vol
           subPath: ''
