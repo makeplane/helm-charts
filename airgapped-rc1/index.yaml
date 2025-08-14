@@ -1,0 +1,19 @@
+apiVersion: v1
+entries:
+  plane-enterprise-airgapped-rc1:
+  - apiVersion: v2
+    appVersion: 1.13.0
+    created: "2025-08-14T14:47:31.544315836Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: c04be55da87511fa1c3c1fe0b30b9e62fb5d2ed8ebca6431e9a9cd0fb09c0267
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise-airgapped-rc1
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-airgapped-rc1-1.3.4-rc1/plane-enterprise-airgapped-rc1-1.3.4-rc1.tgz
+    version: 1.3.4-rc1
+generated: "2025-08-14T14:47:31.544325073Z"
