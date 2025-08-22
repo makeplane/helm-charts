@@ -93,6 +93,8 @@
 |---|:---:|:---:|---|
 | planeVersion | v1.14.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | airgapped.enabled | false | No |  Specifies the airgapped mode the Plane API runs in. |
+| airgapped.s3CrtFileLocation | "" | No | If specified, overrides the CA that is used to communicate with S3. Specifies the location in the container where the new .crt file lies |
+| airgapped.s3SecretName | "" | No | Specifies the secret where to copy the overriding .crt file from for use in overriding s3's native CA | 
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
