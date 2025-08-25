@@ -1,0 +1,13 @@
+{{- if .Values.services.automation_consumer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-automation-consumer-vars
+data:
+  AUTOMATION_EVENT_STREAM_QUEUE_NAME: {{ .Values.automation_consumer_envs.event_stream_queue_name | default "plane.event_stream.automations" | quote }}
+  AUTOMATION_EVENT_STREAM_PREFETCH: {{ .Values.automation_consumer_envs.event_stream_prefetch | default 10 | quote }}
+  AUTOMATION_EXCHANGE_NAME: {{ .Values.automation_consumer_envs.exchange_name | default "plane.event_stream" | quote }}
+  AUTOMATION_EVENT_TYPES: {{ .Values.automation_consumer_envs.event_types | default "issue" | quote }}
+---
+{{- end }}

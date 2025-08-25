@@ -552,6 +552,138 @@ questions:
     description: "Not required for 'http' issuer"
     show_if: "ssl.issuer=cloudflare || ssl.issuer=digitalocean"
 
+- variable: services.outbox_poller.enabled
+  label: "Enable Outbox Poller"
+  type: boolean
+  default: false
+  group: "Outbox Poller Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.outbox_poller.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.outbox_poller.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.outbox_poller.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.outbox_poller.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.outbox_poller.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.outbox_poller.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.outbox_poller_envs.memory_limit_mb
+    label: "Memory Limit"
+    type: int
+    default: 400
+  - variable: env.outbox_poller_envs.interval_min
+    label: "Interval Min"
+    type: number
+    default: 0.25
+  - variable: env.outbox_poller_envs.interval_max
+    label: "Interval Max"
+    type: number
+    default: 2
+  - variable: env.outbox_poller_envs.batch_size
+    label: "Batch Size"
+    type: int
+    default: 250
+  - variable: env.outbox_poller_envs.memory_check_interval
+    label: "Memory Check Interval"
+    type: int
+    default: 30
+  - variable: env.outbox_poller_envs.pool.size
+    label: "Pool Size"
+    type: int
+    default: 4
+  - variable: env.outbox_poller_envs.pool.min_size
+    label: "Pool Min Size"
+    type: int
+    default: 2
+  - variable: env.outbox_poller_envs.pool.max_size
+    label: "Pool Max Size"
+    type: int
+    default: 10
+  - variable: env.outbox_poller_envs.pool.timeout
+    label: "Pool Timeout"
+    type: number
+    default: 30.0
+  - variable: env.outbox_poller_envs.pool.max_idle
+    label: "Pool Max Idle"
+    type: number
+    default: 300.0
+  - variable: env.outbox_poller_envs.pool.max_lifetime
+    label: "Pool Max Lifetime"
+    type: number
+    default: 3600.0
+  - variable: env.outbox_poller_envs.pool.reconnect_timeout
+    label: "Pool Reconnect Timeout"
+    type: number
+    default: 5.0
+  - variable: env.outbox_poller_envs.pool.health_check_interval
+    label: "Pool Health Check Interval"
+    type: number
+    default: 60
+
+- variable: services.automation_consumer.enabled
+  label: "Enable Automation Consumer"
+  type: boolean
+  default: false
+  group: "Automation Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.automation_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.automation_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.automation_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.automation_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.automation_consumer.cpuRequest 
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.automation_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.automation_consumer_envs.event_stream_queue_name
+    label: "Event Stream Queue Name"
+    type: string
+    default: "plane.event_stream.automations"
+  - variable: env.automation_consumer_envs.event_stream_prefetch
+    label: "Event Stream Prefetch"
+    type: int
+    default: 10
+  - variable: env.automation_consumer_envs.exchange_name
+    label: "Exchange Name"
+    type: string
+    default: "plane.event_stream"
+  - variable: env.automation_consumer_envs.event_types
+    label: "Event Types"
+    type: string
+    default: "issue"  
+
 - variable: services.redis.local_setup
   label: "Install Redis"
   type: boolean

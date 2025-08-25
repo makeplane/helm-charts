@@ -1,0 +1,56 @@
+{{- if .Values.services.automation_consumer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-automation-consumer-wl
+spec:
+  replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-automation-consumer
+        imagePullPolicy: Always
+        image: {{ .Values.services.automation_consumer.image | default "makeplane/backend-cloud" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.automation_consumer.memory_request  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.automation_consumer.cpu_request | default "500m" | quote}}
+          limits:
+            memory: {{ .Values.services.automation_consumer.memory_limit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.automation_consumer.cpu_limit | default "500m" | quote}}
+        command:
+          - ./bin/docker-entrypoint-automation-consumer.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-automation-consumer-vars
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+          {{- if .Values.services.silo.enabled }}
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
+              optional: false
+          {{- end }}
+
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+{{- end }}

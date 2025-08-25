@@ -1,0 +1,48 @@
+{{- if .Values.services.outbox_poller.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-outbox-poller-wl
+spec:
+  replicas: {{ .Values.services.outbox_poller.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-outbox-poller
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-outbox-poller
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-outbox-poller
+        imagePullPolicy: Always
+        image: {{ .Values.services.api.image | default "makeplane/backend-cloud" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.outbox_poller.memory_request  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.outbox_poller.cpu_request | default "500m" | quote}}
+          limits:
+            memory: {{ .Values.services.outbox_poller.memory_limit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.outbox_poller.cpu_limit | default "500m" | quote}}
+        command:
+          - ./bin/docker-entrypoint-outbox-poller.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-outbox-poller-vars
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+{{- end }}

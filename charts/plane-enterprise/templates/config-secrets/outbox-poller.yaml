@@ -1,0 +1,22 @@
+{{- if .Values.services.outbox_poller.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-outbox-poller-vars
+data:
+  OUTBOX_POLLER_MEMORY_LIMIT_MB: {{ .Values.outbox_poller_envs.memory_limit_mb }}
+  OUTBOX_POLLER_INTERVAL_MIN: {{ .Values.outbox_poller_envs.interval_min }}
+  OUTBOX_POLLER_INTERVAL_MAX: {{ .Values.outbox_poller_envs.interval_max }}
+  OUTBOX_POLLER_BATCH_SIZE: {{ .Values.outbox_poller_envs.batch_size }}
+  OUTBOX_POLLER_MEMORY_CHECK_INTERVAL: {{ .Values.outbox_poller_envs.memory_check_interval }}
+  OUTBOX_POLLER_POOL_SIZE: {{ .Values.outbox_poller_envs.pool.size }}
+  OUTBOX_POLLER_POOL_MIN_SIZE: {{ .Values.outbox_poller_envs.pool.min_size }}
+  OUTBOX_POLLER_POOL_MAX_SIZE: {{ .Values.outbox_poller_envs.pool.max_size }}
+  OUTBOX_POLLER_POOL_TIMEOUT: {{ .Values.outbox_poller_envs.pool.timeout }}
+  OUTBOX_POLLER_POOL_MAX_IDLE: {{ .Values.outbox_poller_envs.pool.max_idle }}
+  OUTBOX_POLLER_POOL_MAX_LIFETIME: {{ .Values.outbox_poller_envs.pool.max_lifetime }}
+  OUTBOX_POLLER_POOL_RECONNECT_TIMEOUT: {{ .Values.outbox_poller_envs.pool.reconnect_timeout }}
+  OUTBOX_POLLER_POOL_HEALTH_CHECK_INTERVAL: {{ .Values.outbox_poller_envs.pool.health_check_interval }}
+---
+{{- end }}
