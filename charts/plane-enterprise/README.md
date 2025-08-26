@@ -312,6 +312,55 @@
 
 Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
 
+
+### Outbox Poller Service Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.outbox_poller.enabled | false |  | Set to `true` to enable the outbox poller service deployment |
+| services.outbox_poller.replicas | 1 |  | Number of replicas for the outbox poller service deployment |
+| services.outbox_poller.memoryLimit | 1000Mi |  | Memory limit for the outbox poller service deployment |
+| services.outbox_poller.cpuLimit | 500m |  | CPU limit for the outbox poller service deployment |
+| services.outbox_poller.memoryRequest | 50Mi |  | Memory request for the outbox poller service deployment |
+| services.outbox_poller.cpuRequest | 50m |  | CPU request for the outbox poller service deployment |
+| services.outbox_poller.image | artifacts.plane.so/makeplane/backend-commercial |  | Docker image for the outbox poller service deployment |
+| services.outbox_poller.pullPolicy | Always |  | Image pull policy for the outbox poller service deployment |
+| services.outbox_poller.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| env.outbox_poller_envs.memory_limit_mb | 400 |  | Memory limit in MB for the outbox poller |
+| env.outbox_poller_envs.interval_min | 0.25 |  | Minimum interval in minutes for polling |
+| env.outbox_poller_envs.interval_max | 2 |  | Maximum interval in minutes for polling |
+| env.outbox_poller_envs.batch_size | 250 |  | Batch size for processing outbox messages |
+| env.outbox_poller_envs.memory_check_interval | 30 |  | Memory check interval in seconds |
+| env.outbox_poller_envs.pool.size | 4 |  | Pool size for database connections |
+| env.outbox_poller_envs.pool.min_size | 2 |  | Minimum pool size for database connections |
+| env.outbox_poller_envs.pool.max_size | 10 |  | Maximum pool size for database connections |
+| env.outbox_poller_envs.pool.timeout | 30.0 |  | Pool timeout in seconds |
+| env.outbox_poller_envs.pool.max_idle | 300.0 |  | Maximum idle time for connections in seconds |
+| env.outbox_poller_envs.pool.max_lifetime | 3600 |  | Maximum lifetime for connections in seconds |
+| env.outbox_poller_envs.pool.reconnect_timeout | 5.0 |  | Reconnect timeout in seconds |
+| env.outbox_poller_envs.pool.health_check_interval | 60 |  | Health check interval in seconds |
+
+### Automation Consumer Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.automation_consumer.enabled | false |  | Set to `true` to enable the automation consumer service deployment |
+| services.automation_consumer.replicas | 1 |  | Number of replicas for the automation consumer service deployment |
+| services.automation_consumer.memoryLimit | 1000Mi |  | Memory limit for the automation consumer service deployment |
+| services.automation_consumer.cpuLimit | 500m |  | CPU limit for the automation consumer service deployment |
+| services.automation_consumer.memoryRequest | 50Mi |  | Memory request for the automation consumer service deployment |
+| services.automation_consumer.cpuRequest | 50m |  | CPU request for the automation consumer service deployment |
+| services.automation_consumer.image | artifacts.plane.so/makeplane/backend-commercial |  | Docker image for the automation consumer service deployment |
+| services.automation_consumer.pullPolicy | Always |  | Image pull policy for the automation consumer service deployment |
+| services.automation_consumer.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |  | Event stream queue name for automations |
+| env.automation_consumer_envs.event_stream_prefetch | 10 |  | Event stream prefetch count |
+| env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
+| env.automation_consumer_envs.event_types | "issue" |  | Event types to process |
+
+
+
+
 ### Ingress and SSL Setup
 
 | Setting | Default | Required | Description |
