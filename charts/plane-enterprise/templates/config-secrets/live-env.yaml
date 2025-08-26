@@ -27,4 +27,10 @@ data:
   LIVE_SENTRY_ENVIRONMENT: {{ .Values.env.live_sentry_environment | default "" | quote }}
   LIVE_SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.live_sentry_traces_sample_rate | default "" | quote }}
   LIVE_BASE_PATH: "/live"
+
+  {{- if .Values.env.live_iframely_url }}
+  IFRAMELY_URL: {{ .Values.env.live_iframely_url | default "" | quote }}
+  {{- else }}
+  IFRAMELY_URL: http://{{ .Release.Name }}-iframely.{{ .Release.Namespace }}.svc.cluster.local:8061/
+  {{- end }}
 ---

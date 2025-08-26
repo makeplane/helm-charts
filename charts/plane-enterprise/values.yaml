@@ -70,6 +70,17 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
+  
+  iframely:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    image: artifacts.plane.so/makeplane/iframely:v1.2.0
+    pullPolicy: Always
+    assign_cluster_ip: false
 
   web:
     replicas: 1
@@ -201,7 +212,7 @@ services:
     image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
-    
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -246,6 +257,7 @@ env:
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  live_iframely_url: ""
 
   silo_envs:
     sentry_dsn: ''
