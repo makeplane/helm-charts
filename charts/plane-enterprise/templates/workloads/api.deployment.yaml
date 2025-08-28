@@ -44,6 +44,9 @@ spec:
         - name: s3-custom-ca
           secret:
             secretName: {{ .Values.airgapped.s3SecretName }}
+            items:
+              - key: {{ (.Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt") | base }}
+                path: {{ (.Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt") | base }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
