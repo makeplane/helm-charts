@@ -76,6 +76,7 @@ services:
     root_user: admin
     root_password: password
     assign_cluster_ip: false
+    use_storage_proxy: false
     env:
       minio_endpoint_ssl: false
 
