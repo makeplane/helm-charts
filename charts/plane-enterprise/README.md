@@ -211,6 +211,7 @@
 | env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | env.live_server_secret_key | htbqvBJAgpm9bzvf3r4urJer0ENReatceh |  | Live Server Secret Key |
+| env.live_iframely_url | "" |  | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL |
 | services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Monitor Deployment
@@ -358,7 +359,19 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
 | env.automation_consumer_envs.event_types | "issue" |  | Event types to process |
 
+### Iframely Deployment
 
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.iframely.enabled | false |  | Set to `true` to enable the Iframely service deployment |
+| services.iframely.replicas | 1 |  | Number of replicas for the Iframely service deployment |
+| services.iframely.memoryLimit | 1000Mi |  | Memory limit for the Iframely service deployment |
+| services.iframely.cpuLimit | 500m |  | CPU limit for the Iframely service deployment |
+| services.iframely.memoryRequest | 50Mi |  | Memory request for the Iframely service deployment |
+| services.iframely.cpuRequest | 50m |  | CPU request for the Iframely service deployment |
+| services.iframely.image | artifacts.plane.so/makeplane/iframely:v1.2.0 |  | Docker image for the Iframely service deployment |
+| services.iframely.pullPolicy | Always |  | Image pull policy for the Iframely service deployment |
+| services.iframely.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 
 ### Ingress and SSL Setup
