@@ -1,4 +1,4 @@
-{{- if and .Values.services.iframely.enabled (not .Values.env.live_iframely_url) }}
+{{- if and .Values.services.iframely.enabled (not .Values.env.external_iframely_url) }}
 apiVersion: v1
 kind: Service
 metadata:

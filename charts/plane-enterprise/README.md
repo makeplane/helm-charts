@@ -211,7 +211,7 @@
 | env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | env.live_server_secret_key | htbqvBJAgpm9bzvf3r4urJer0ENReatceh |  | Live Server Secret Key |
-| env.live_iframely_url | "" |  | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL |
+| env.external_iframely_url | "" |  | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL |
 | services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 
 ### Monitor Deployment
