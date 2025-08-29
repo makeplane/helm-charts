@@ -20,7 +20,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-outbox-poller
         imagePullPolicy: Always
-        image: {{ .Values.services.api.image | default "makeplane/backend-cloud" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
