@@ -148,12 +148,14 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+
   beatworker:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+
   silo:
     enabled: true
     replicas: 1
@@ -198,7 +200,6 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 
@@ -209,7 +210,6 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
 

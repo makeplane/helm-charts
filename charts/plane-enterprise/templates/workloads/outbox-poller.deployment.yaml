@@ -25,11 +25,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.outbox_poller.memory_request  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.outbox_poller.cpu_request | default "500m" | quote}}
+            memory: {{ .Values.services.outbox_poller.memoryRequest  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.outbox_poller.cpuRequest | default "500m" | quote}}
           limits:
-            memory: {{ .Values.services.outbox_poller.memory_limit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.outbox_poller.cpu_limit | default "500m" | quote}}
+            memory: {{ .Values.services.outbox_poller.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.outbox_poller.cpuLimit | default "500m" | quote}}
         command:
           - ./bin/docker-entrypoint-outbox-poller.sh
         envFrom:

@@ -324,7 +324,6 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.outbox_poller.cpuLimit | 500m |  | CPU limit for the outbox poller service deployment |
 | services.outbox_poller.memoryRequest | 50Mi |  | Memory request for the outbox poller service deployment |
 | services.outbox_poller.cpuRequest | 50m |  | CPU request for the outbox poller service deployment |
-| services.outbox_poller.image | artifacts.plane.so/makeplane/backend-commercial |  | Docker image for the outbox poller service deployment |
 | services.outbox_poller.pullPolicy | Always |  | Image pull policy for the outbox poller service deployment |
 | services.outbox_poller.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.outbox_poller_envs.memory_limit_mb | 400 |  | Memory limit in MB for the outbox poller |
@@ -351,7 +350,6 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.automation_consumer.cpuLimit | 500m |  | CPU limit for the automation consumer service deployment |
 | services.automation_consumer.memoryRequest | 50Mi |  | Memory request for the automation consumer service deployment |
 | services.automation_consumer.cpuRequest | 50m |  | CPU request for the automation consumer service deployment |
-| services.automation_consumer.image | artifacts.plane.so/makeplane/backend-commercial |  | Docker image for the automation consumer service deployment |
 | services.automation_consumer.pullPolicy | Always |  | Image pull policy for the automation consumer service deployment |
 | services.automation_consumer.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |  | Event stream queue name for automations |

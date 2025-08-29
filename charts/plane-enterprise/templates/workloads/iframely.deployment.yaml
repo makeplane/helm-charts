@@ -39,16 +39,16 @@ spec:
       containers:
       - name: {{ .Release.Name }}-iframely
         imagePullPolicy: Always
-        image: {{ .Values.services.iframely.image | default "artifacts.plane.so/makeplane/iframely" }}
+        image: {{ .Values.services.iframely.image | default "artifacts.plane.so/makeplane/iframely:v1.2.0" }}
         stdin: true
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.iframely.memory_request | default "50Mi" | quote }}
-            cpu: {{ .Values.services.iframely.cpu_request | default "50m" | quote }}
+            memory: {{ .Values.services.iframely.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.iframely.cpuRequest | default "50m" | quote }}
           limits:
-            memory: {{ .Values.services.iframely.memory_limit | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.iframely.cpu_limit | default "500m" | quote }}
+            memory: {{ .Values.services.iframely.memoryLimit | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.iframely.cpuLimit | default "500m" | quote }}
         command:
           - node
         args:
