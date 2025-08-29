@@ -684,6 +684,50 @@ questions:
     type: string
     default: "issue"  
 
+- variable: services.iframely.enabled
+  label: "Enable Iframely"
+  type: boolean
+  default: false
+  group: "Iframely Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.iframely.image
+    label: "Docker Image"
+    type: string
+    default: "artifacts.plane.so/makeplane/iframely:v1.2.0"
+  - variable: services.iframely.pullPolicy
+    label: "Iframely Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
+  - variable: services.iframely.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.iframely.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.iframely.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.iframely.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.iframely.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.iframely.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  
 - variable: services.redis.local_setup
   label: "Install Redis"
   type: boolean
