@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.13.0
+  default: v1.14.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -659,7 +659,7 @@ questions:
     label: "Memory Request"
     type: string
     default: 50Mi
-  - variable: services.automation_consumer.cpuRequest 
+  - variable: services.automation_consumer.cpuRequest
     label: "CPU Request"
     type: string
     default: 50m
@@ -682,7 +682,7 @@ questions:
   - variable: env.automation_consumer_envs.event_types
     label: "Event Types"
     type: string
-    default: "issue"  
+    default: "issue"
 
 - variable: services.iframely.enabled
   label: "Enable Iframely"
@@ -727,7 +727,7 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  
+
 - variable: services.redis.local_setup
   label: "Install Redis"
   type: boolean

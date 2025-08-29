@@ -1,4 +1,4 @@
-planeVersion: v1.13.0
+planeVersion: v1.14.0
 
 dockerRegistry:
   enabled: false
@@ -10,7 +10,7 @@ license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
 
-airgapped: 
+airgapped:
   enabled: false
 
 ingress:
@@ -70,7 +70,7 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
-  
+
   iframely:
     enabled: false
     replicas: 1
@@ -190,7 +190,7 @@ services:
     cpuRequest: 50m
     image: artifacts.plane.so/makeplane/email-commercial
     pullPolicy: Always
-  
+
   outbox_poller:
     enabled: false
     replicas: 1
