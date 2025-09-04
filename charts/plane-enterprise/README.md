@@ -93,8 +93,8 @@
 |---|:---:|:---:|---|
 | planeVersion | v1.14.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | airgapped.enabled | false | No |  Specifies the airgapped mode the Plane API runs in. |
-| airgapped.s3CrtFileLocation | "/s3-custom-ca/s3-custom-ca.crt" | No | Path inside the container to the CA certificate file used for S3 (Boto). Effective when `airgapped.enabled=true` and `airgapped.s3SecretName` is set. |
-| airgapped.s3SecretName | "" | No | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3CrtFileLocation` (default: `s3-custom-ca.crt`). Used to override S3’s CA when `airgapped.enabled=true`. | 
+| airgapped.s3CrtFileLocation | "/s3-custom-ca/s3-custom-ca.crt" | No | Path inside the container to the CA certificate file used for S3 (Boto). Effective when `airgapped.enabled=true` and `airgapped.s3SecretName` is set. This certificate is used to connect to S3 solely and will disregard other Amazon CAs. |
+| airgapped.s3SecretName | "" | No | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3CrtFileLocation` (default: `s3-custom-ca.crt`). Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` | 
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Postgres
