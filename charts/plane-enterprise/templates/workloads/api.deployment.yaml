@@ -39,8 +39,8 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
       volumes:
+      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
         - name: s3-custom-ca
           secret:
             secretName: {{ .Values.airgapped.s3SecretName }}
@@ -48,6 +48,55 @@ spec:
               - key: {{ (.Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt") | base }}
                 path: {{ (.Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt") | base }}
       {{- end }}
+        - name: ca-certificates
+          emptyDir: {}
+      initContainers:
+      - name: install-ca-certs
+        image: ubuntu:22.04
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "Installing custom CA certificates..."
+            
+            # Install ca-certificates package and create directories
+            apt-get update && apt-get install -y ca-certificates
+            mkdir -p /shared-certs
+            
+            # Copy existing system CA certificates to shared directory
+            if [ -d /etc/ssl/certs ]; then
+              cp -r /etc/ssl/certs/* /shared-certs/ 2>/dev/null || true
+            fi
+            
+            # Ensure ca-certificates directory exists
+            mkdir -p /usr/local/share/ca-certificates
+            
+            # Install custom S3 CA if available
+            {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
+            S3_CERT_FILE="{{ (.Values.airgapped.s3CrtFileLocation | default "s3-custom-ca.crt") | base }}"
+            if [ -f "/s3-custom-ca/$S3_CERT_FILE" ]; then
+              echo "Installing S3 custom CA certificate..."
+              cp "/s3-custom-ca/$S3_CERT_FILE" /usr/local/share/ca-certificates/s3-custom-ca.crt
+              cp "/s3-custom-ca/$S3_CERT_FILE" /shared-certs/s3-custom-ca.crt
+            fi
+            {{- end }}
+            
+            # Update CA certificates
+            update-ca-certificates
+            
+            # Copy updated system certificates to shared volume
+            cp -r /etc/ssl/certs/* /shared-certs/ 2>/dev/null || true
+            
+            echo "CA certificates installed successfully"
+        volumeMounts:
+        {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
+            readOnly: true
+        {{- end }}
+          - name: ca-certificates
+            mountPath: /shared-certs
       containers:
       - name: {{ .Release.Name }}-api
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
@@ -61,11 +110,20 @@ spec:
           limits:
             memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
-        {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
         volumeMounts:
-          - name: s3-custom-ca
-            mountPath: /s3-custom-ca
+          - name: ca-certificates
+            mountPath: /etc/ssl/certs
             readOnly: true
+        {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
+        env:
+          - name: SSL_CERT_FILE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          - name: SSL_CERT_DIR
+            value: "/etc/ssl/certs"
+          - name: REQUESTS_CA_BUNDLE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          - name: CURL_CA_BUNDLE
+            value: "/etc/ssl/certs/ca-certificates.crt"
         {{- end }}
         command:
           - ./bin/docker-entrypoint-api-ee.sh
