@@ -1,0 +1,30 @@
+{{- if and .Values.services.minio.local_setup .Values.services.minio.tls.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-minio-tls
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio-tls
+type: Opaque
+data:
+  {{- if .Values.services.minio.tls.certData }}
+  public.crt: {{ .Values.services.minio.tls.certData | b64enc }}
+  {{- else if .Files.Get "certs/s3.local.crt" }}
+  public.crt: {{ .Files.Get "certs/s3.local.crt" | b64enc }}
+  {{- else }}
+  public.crt: {{ required "TLS certificate data is required. Either provide services.minio.tls.certData or copy s3.local.crt to charts/plane-enterprise/certs/" .Values.services.minio.tls.certData }}
+  {{- end }}
+  {{- if .Values.services.minio.tls.keyData }}
+  private.key: {{ .Values.services.minio.tls.keyData | b64enc }}
+  {{- else if .Files.Get "certs/s3.local.key" }}
+  private.key: {{ .Files.Get "certs/s3.local.key" | b64enc }}
+  {{- else }}
+  private.key: {{ required "TLS private key data is required. Either provide services.minio.tls.keyData or copy s3.local.key to charts/plane-enterprise/certs/" .Values.services.minio.tls.keyData }}
+  {{- end }}
+  {{- if .Values.services.minio.tls.caData }}
+  ca.crt: {{ .Values.services.minio.tls.caData | b64enc }}
+  {{- else if .Files.Get "certs/mycorp-root.crt" }}
+  ca.crt: {{ .Files.Get "certs/mycorp-root.crt" | b64enc }}
+  {{- end }}
+{{- end }}

@@ -49,8 +49,13 @@ spec:
         args:
           - server
           - /data
+          
           - --console-address 
           - :9090
+          {{- if .Values.services.minio.tls.enabled }}
+          - --certs-dir
+          - /etc/minio/certs
+          {{- end }}
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
@@ -59,6 +64,18 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-minio-vol
           subPath: ''
+        {{- if .Values.services.minio.tls.enabled }}
+        - mountPath: /etc/minio/certs
+          name: minio-tls-certs
+          readOnly: true
+        {{- end }}
+      {{- if .Values.services.minio.tls.enabled }}
+      volumes:
+      - name: minio-tls-certs
+        secret:
+          secretName: {{ .Release.Name }}-minio-tls
+          defaultMode: 0400
+      {{- end }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
@@ -103,7 +120,7 @@ spec:
             - '-c'
             - >-
               /usr/bin/mc config host add plane-app-minio
-              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"; 
+              {{ if .Values.services.minio.tls.enabled }}https{{ else }}http{{ end }}://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" {{ if .Values.services.minio.tls.enabled }}--insecure{{ end }}; 
               /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME; 
               /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
           envFrom:
