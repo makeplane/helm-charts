@@ -15,11 +15,10 @@ airgapped:
   # The boto module used by API does not use the CA bundles in the container, so we need to
   # mount the CA bundle into the API pod by passing it in as an environment
   # variable. Should be the full path to the CA bundle file, e.g.
-  # "/s3-custom-ca/s3-custom-ca.crt"
-  s3CrtFileLocation: "/s3-custom-ca/s3-custom-ca.crt"
-  # The Secret must contain a data key whose name matches the filename in s3CrtFileLocation
+  # 
+  s3SecretName: "s3-custom-ca"
   # (default: "s3-custom-ca.crt").
-  s3SecretName: ""
+  s3SecretKey: "s3-custom-ca.crt"
 
 ingress:
   enabled: true
@@ -76,7 +75,6 @@ services:
     root_user: admin
     root_password: password
     assign_cluster_ip: false
-    use_storage_proxy: false
     env:
       minio_endpoint_ssl: false
 
@@ -252,6 +250,8 @@ env:
   aws_secret_access_key: ''
   aws_region: ''
   aws_s3_endpoint_url: ''
+
+  use_storage_proxy: false
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"

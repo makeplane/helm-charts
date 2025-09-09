@@ -40,13 +40,13 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       volumes:
-      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
+      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
         - name: s3-custom-ca
           secret:
             secretName: {{ .Values.airgapped.s3SecretName }}
             items:
-              - key: {{ (.Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt") | base }}
-                path: {{ (.Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt") | base }}
+              - key: "/s3-custom-ca/{{ .Values.airgapped.s3SecretKey | default "s3-custom-ca.crt" }}"
+                path: "/s3-custom-ca/{{ .Values.airgapped.s3SecretKey | default "s3-custom-ca.crt" }}"
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
@@ -89,10 +89,10 @@ spec:
             mkdir -p /usr/local/share/ca-certificates
             
             # Install custom S3 CA if available
-            S3_CERT_FILE="{{ (.Values.airgapped.s3CrtFileLocation | default "s3-custom-ca.crt") | base }}"
+            S3_CERT_FILE="{{ (.Values.airgapped.s3SecretKey | default "s3-custom-ca.crt") | base }}"
             if [ -f "/s3-custom-ca/$S3_CERT_FILE" ]; then
               echo "Installing S3 custom CA certificate..."
-              cp "/s3-custom-ca/$S3_CERT_FILE" /usr/local/share/ca-certificates/s3-custom-ca.crt
+              cp "/s3-custom-ca/$S3_CERT_FILE" "/usr/local/share/ca-certificates/$S3_CERT_FILE"
               # Update CA certificates
               update-ca-certificates
               echo "CA certificates installed successfully"
