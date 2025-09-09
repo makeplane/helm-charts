@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=v1.14.0 # or the last released version
+      PLANE_VERSION=v1.14.1 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -65,7 +65,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: v1.14.0 <or the last released version>`
+          - `planeVersion: v1.14.1 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `ingress.enabled: <true | false>`
           - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
@@ -91,7 +91,7 @@
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.14.0 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.14.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | airgapped.enabled | false | No |  Specifies the airgapped mode the Plane API runs in. |
 | airgapped.s3CrtFileLocation | "/s3-custom-ca/s3-custom-ca.crt" | No | Path inside the container to the CA certificate file used for S3 (Boto). Effective when `airgapped.enabled=true` and `airgapped.s3SecretName` is set. This certificate is used to connect to S3 solely and will disregard other Amazon CAs. |
 | airgapped.s3SecretName | "" | No | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3CrtFileLocation` (default: `s3-custom-ca.crt`). Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` | 
