@@ -17,7 +17,6 @@ airgapped:
   # variable. Should be the full path to the CA bundle file, e.g.
   # 
   s3SecretName: ""
-  # (default: "s3-custom-ca.crt").
   s3SecretKey: ""
 
 ingress:
