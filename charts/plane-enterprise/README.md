@@ -100,8 +100,8 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | airgapped.enabled | false | No |  Specifies the airgapped mode the Plane API runs in. |
-| airgapped.s3SecretName | "s3-custom-ca" | No | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3SecretKey` (default: `s3-custom-ca.crt`). Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` | 
-| airgapped.s3SecretKey | "s3-custom-ca.crt" | No | Key name of the secret to load the Custom Root CA from `airgapped.s3SecretName` |
+| airgapped.s3SecretName | "" | No | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3SecretKey`. Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` | 
+| airgapped.s3SecretKey | "" | No | Key name of the secret to load the Custom Root CA from `airgapped.s3SecretName` |
 
 ### Postgres
 
