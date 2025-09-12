@@ -80,6 +80,22 @@ questions:
     type: string
     required: true
 
+- variable: airgapped.enabled
+  label: "Airgapped Enabled"
+  type: boolean
+  default: false
+  group: "License Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: airgapped.s3SecretName
+    label: "S3 Secret Name"
+    type: string
+    default: ""
+  - variable: airgapped.s3SecretKey
+    label: "S3 Secret Key"
+    type: string
+    default: ""
+
 - variable: services.web.pullPolicy
   label: "Web Pull Policy"
   type: enum
