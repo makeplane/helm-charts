@@ -319,7 +319,7 @@ questions:
   - variable: redis.image
     label: "Docker Image"
     type: string
-    default: "valkey/valkey:7.2.5-alpine"
+    default: "valkey/valkey:7.2.11-alpine"
     show_if: "redis.local_setup=true"
   - variable: redis.servicePort
     label: Port
