@@ -5,8 +5,8 @@ description: Meet Plane. An Enterprise software development tool to manage issue
 
 type: application
 
-version: 1.2.7
-appVersion: "1.12.1"
+version: 1.4.2
+appVersion: "1.14.1"
 
 home: https://plane.so/
 icon: https://plane.so/favicon/favicon-32x32.png

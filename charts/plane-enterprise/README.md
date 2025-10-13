@@ -11,7 +11,7 @@
       Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
       ```bash
-      PLANE_VERSION=v1.12.1 # or the last released version
+      PLANE_VERSION=v1.14.1 # or the last released version
       DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
       ```
 
@@ -65,7 +65,7 @@
           ```
 
           Make sure you set the minimum required values as below.
-          - `planeVersion: v1.12.1 <or the last released version>`
+          - `planeVersion: v1.14.1 <or the last released version>`
           - `license.licenseDomain: <The domain you have specified to host Plane>`
           - `ingress.enabled: <true | false>`
           - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
@@ -86,22 +86,22 @@
           ```
 
 ## Available customizations
-
-<!-- ### Docker registry
-
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| dockerRegistry.enabled | false |  | Plane uses a private Docker registry which needs authenticated login. This must be set to `true` to install Plane Enterprise. |
-| dockerRegistry.registry |  registry.plane.tools| Yes | The host that will serve the required Docker images; Don't change this. |
-| dockerRegistry.loginid |  | Yes | Sets the `loginid` for the Docker registry. This is the same as the REG_USER_ID value on prime. plane.so |
-| dockerRegistry.password |  | Yes | Sets the `password` for the Docker registry. This is the same as the REG_PASSWORD value on prime.plane.so|
-   -->
+   
 ### License
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| planeVersion | v1.12.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
+| planeVersion | v1.14.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
 | license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
+
+
+### Air-gapped Settings
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| airgapped.enabled | false | No |  Specifies the airgapped mode the Plane API runs in. |
+| airgapped.s3SecretName | "" | No | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3SecretKey`. Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` | 
+| airgapped.s3SecretKey | "" | No | Key name of the secret to load the Custom Root CA from `airgapped.s3SecretName` |
 
 ### Postgres
 
@@ -225,6 +225,7 @@
 | env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | env.live_server_secret_key | htbqvBJAgpm9bzvf3r4urJer0ENReatceh |  | Live Server Secret Key |
+| env.external_iframely_url | "" |  | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL |
 | services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | services.live.labels | {} |  | Custom labels to add to the live deployment |
 | services.live.annotations | {} |  | Custom annotations to add to the live deployment |
@@ -340,12 +341,64 @@
 
 Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
 
-### Migrator Job
+
+### Outbox Poller Service Deployment
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| services.migrator.labels | {} |  | Custom labels to add to the migrator job |
-| services.migrator.annotations | {} |  | Custom annotations to add to the migrator job |
+| services.outbox_poller.enabled | false |  | Set to `true` to enable the outbox poller service deployment |
+| services.outbox_poller.replicas | 1 |  | Number of replicas for the outbox poller service deployment |
+| services.outbox_poller.memoryLimit | 1000Mi |  | Memory limit for the outbox poller service deployment |
+| services.outbox_poller.cpuLimit | 500m |  | CPU limit for the outbox poller service deployment |
+| services.outbox_poller.memoryRequest | 50Mi |  | Memory request for the outbox poller service deployment |
+| services.outbox_poller.cpuRequest | 50m |  | CPU request for the outbox poller service deployment |
+| services.outbox_poller.pullPolicy | Always |  | Image pull policy for the outbox poller service deployment |
+| services.outbox_poller.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| env.outbox_poller_envs.memory_limit_mb | 400 |  | Memory limit in MB for the outbox poller |
+| env.outbox_poller_envs.interval_min | 0.25 |  | Minimum interval in minutes for polling |
+| env.outbox_poller_envs.interval_max | 2 |  | Maximum interval in minutes for polling |
+| env.outbox_poller_envs.batch_size | 250 |  | Batch size for processing outbox messages |
+| env.outbox_poller_envs.memory_check_interval | 30 |  | Memory check interval in seconds |
+| env.outbox_poller_envs.pool.size | 4 |  | Pool size for database connections |
+| env.outbox_poller_envs.pool.min_size | 2 |  | Minimum pool size for database connections |
+| env.outbox_poller_envs.pool.max_size | 10 |  | Maximum pool size for database connections |
+| env.outbox_poller_envs.pool.timeout | 30.0 |  | Pool timeout in seconds |
+| env.outbox_poller_envs.pool.max_idle | 300.0 |  | Maximum idle time for connections in seconds |
+| env.outbox_poller_envs.pool.max_lifetime | 3600 |  | Maximum lifetime for connections in seconds |
+| env.outbox_poller_envs.pool.reconnect_timeout | 5.0 |  | Reconnect timeout in seconds |
+| env.outbox_poller_envs.pool.health_check_interval | 60 |  | Health check interval in seconds |
+
+### Automation Consumer Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.automation_consumer.enabled | false |  | Set to `true` to enable the automation consumer service deployment |
+| services.automation_consumer.replicas | 1 |  | Number of replicas for the automation consumer service deployment |
+| services.automation_consumer.memoryLimit | 1000Mi |  | Memory limit for the automation consumer service deployment |
+| services.automation_consumer.cpuLimit | 500m |  | CPU limit for the automation consumer service deployment |
+| services.automation_consumer.memoryRequest | 50Mi |  | Memory request for the automation consumer service deployment |
+| services.automation_consumer.cpuRequest | 50m |  | CPU request for the automation consumer service deployment |
+| services.automation_consumer.pullPolicy | Always |  | Image pull policy for the automation consumer service deployment |
+| services.automation_consumer.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |  | Event stream queue name for automations |
+| env.automation_consumer_envs.event_stream_prefetch | 10 |  | Event stream prefetch count |
+| env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
+| env.automation_consumer_envs.event_types | "issue" |  | Event types to process |
+
+### Iframely Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.iframely.enabled | false |  | Set to `true` to enable the Iframely service deployment |
+| services.iframely.replicas | 1 |  | Number of replicas for the Iframely service deployment |
+| services.iframely.memoryLimit | 1000Mi |  | Memory limit for the Iframely service deployment |
+| services.iframely.cpuLimit | 500m |  | CPU limit for the Iframely service deployment |
+| services.iframely.memoryRequest | 50Mi |  | Memory request for the Iframely service deployment |
+| services.iframely.cpuRequest | 50m |  | CPU request for the Iframely service deployment |
+| services.iframely.image | artifacts.plane.so/makeplane/iframely:v1.2.0 |  | Docker image for the Iframely service deployment |
+| services.iframely.pullPolicy | Always |  | Image pull policy for the Iframely service deployment |
+| services.iframely.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+
 
 ### Ingress and SSL Setup
 

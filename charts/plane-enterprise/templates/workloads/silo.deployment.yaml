@@ -87,10 +87,6 @@ spec:
           limits:
             memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
-        command:
-          - node
-        args:
-          - silo/start.cjs
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
