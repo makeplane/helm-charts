@@ -247,6 +247,10 @@ services:
     labels: {}
     annotations: {}
 
+  migrator:
+    labels: {}
+    annotations: {}
+
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details

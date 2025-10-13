@@ -389,6 +389,13 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
 | env.automation_consumer_envs.event_types | "issue" |  | Event types to process |
 
+### Migrator Job
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.migrator.labels | {} |  | Custom labels to add to the migrator job |
+| services.migrator.annotations | {} |  | Custom annotations to add to the migrator job |
+
 ### Iframely Deployment
 
 | Setting | Default | Required | Description |
