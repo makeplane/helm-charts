@@ -141,8 +141,8 @@
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | minio.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| minio.labels | {} |  | Custom labels to add to the Minio Job (only when `minio.local_setup=true`) |
-| minio.annotations | {} |  | Custom annotations to add to the Minio Job (only when `minio.local_setup=true`) |
+| minio.job_labels      | {} |  | Custom labels to add to the Minio Job (only when `minio.local_setup=true`) |
+| minio.job_annotations | {} |  | Custom annotations to add to the Minio Job (only when `minio.local_setup=true`) |
 
 ### Web Deployment
 
