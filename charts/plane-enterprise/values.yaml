@@ -1,4 +1,4 @@
-planeVersion: v1.12.1
+planeVersion: v1.14.1
 
 dockerRegistry:
   enabled: false
@@ -9,6 +9,15 @@ dockerRegistry:
 license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
+
+airgapped:
+  enabled: false
+  # The boto module used by API does not use the CA bundles in the container, so we need to
+  # mount the CA bundle into the API pod by passing it in as an environment
+  # variable. Should be the full path to the CA bundle file, e.g.
+  # 
+  s3SecretName: ""
+  s3SecretKey: ""
 
 ingress:
   enabled: true
@@ -69,6 +78,19 @@ services:
       minio_endpoint_ssl: false
     job_labels: {}
     job_annotations: {}
+
+  iframely:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    image: artifacts.plane.so/makeplane/iframely:v1.2.0
+    pullPolicy: Always
+    assign_cluster_ip: false
+    labels: {}
+    annotations: {}
 
   web:
     replicas: 1
@@ -150,6 +172,7 @@ services:
     cpuRequest: 50m
     labels: {}
     annotations: {}
+
   beatworker:
     replicas: 1
     memoryLimit: 1000Mi
@@ -158,6 +181,7 @@ services:
     cpuRequest: 50m
     labels: {}
     annotations: {}
+    
   silo:
     enabled: true
     replicas: 1
@@ -198,6 +222,31 @@ services:
     pullPolicy: Always
     labels: {}
     annotations: {}
+  
+  outbox_poller:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    pullPolicy: Always
+    assign_cluster_ip: false
+    labels: {}
+    annotations: {}
+
+  automation_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    pullPolicy: Always
+    assign_cluster_ip: false
+    labels: {}
+    annotations: {}
+
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
@@ -230,6 +279,8 @@ env:
   aws_region: ''
   aws_s3_endpoint_url: ''
 
+  use_storage_proxy: false
+
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
@@ -243,6 +294,7 @@ env:
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  external_iframely_url: ""
 
   silo_envs:
     sentry_dsn: ''
@@ -257,3 +309,25 @@ env:
 
   email_service_envs:
     smtp_domain: ''
+
+  outbox_poller_envs:
+    memory_limit_mb: 400
+    interval_min: 0.25
+    interval_max: 2
+    batch_size: 250
+    memory_check_interval: 30
+    pool:
+      size: 4
+      min_size: 2
+      max_size: 10
+      timeout: 30.0
+      max_idle: 300.0
+      max_lifetime: 3600
+      reconnect_timeout: 5.0
+      health_check_interval: 60
+
+  automation_consumer_envs:
+    event_stream_queue_name: "plane.event_stream.automations"
+    event_stream_prefetch: 10
+    exchange_name: "plane.event_stream"
+    event_types: "issue"

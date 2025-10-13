@@ -23,6 +23,18 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-iframely-wl
+  {{- if gt (len .Values.services.iframely.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.services.iframely.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.services.iframely.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.services.iframely.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   replicas: {{ .Values.services.iframely.replicas | default 1 }}
   selector:
