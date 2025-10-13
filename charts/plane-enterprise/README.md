@@ -354,6 +354,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.outbox_poller.cpuRequest | 50m |  | CPU request for the outbox poller service deployment |
 | services.outbox_poller.pullPolicy | Always |  | Image pull policy for the outbox poller service deployment |
 | services.outbox_poller.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.outbox_poller.labels | {} |  | Custom labels to add to the outbox poller deployment |
+| services.outbox_poller.annotations | {} |  | Custom annotations to add to the outbox poller deployment |
 | env.outbox_poller_envs.memory_limit_mb | 400 |  | Memory limit in MB for the outbox poller |
 | env.outbox_poller_envs.interval_min | 0.25 |  | Minimum interval in minutes for polling |
 | env.outbox_poller_envs.interval_max | 2 |  | Maximum interval in minutes for polling |
@@ -380,6 +382,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.automation_consumer.cpuRequest | 50m |  | CPU request for the automation consumer service deployment |
 | services.automation_consumer.pullPolicy | Always |  | Image pull policy for the automation consumer service deployment |
 | services.automation_consumer.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.automation_consumer.labels | {} |  | Custom labels to add to the automation consumer deployment |
+| services.automation_consumer.annotations | {} |  | Custom annotations to add to the automation consumer deployment |
 | env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |  | Event stream queue name for automations |
 | env.automation_consumer_envs.event_stream_prefetch | 10 |  | Event stream prefetch count |
 | env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
@@ -398,6 +402,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.iframely.image | artifacts.plane.so/makeplane/iframely:v1.2.0 |  | Docker image for the Iframely service deployment |
 | services.iframely.pullPolicy | Always |  | Image pull policy for the Iframely service deployment |
 | services.iframely.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.iframely.labels | {} |  | Custom labels to add to the iframely deployment |
+| services.iframely.annotations | {} |  | Custom annotations to add to the iframely deployment |
 
 
 ### Ingress and SSL Setup
