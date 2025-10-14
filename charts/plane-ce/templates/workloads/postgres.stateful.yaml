@@ -25,18 +25,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-wl
-  {{- if gt (len .Values.postgres.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.postgres.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.postgres.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.postgres.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.postgres }}
 spec:
   selector:
     matchLabels:

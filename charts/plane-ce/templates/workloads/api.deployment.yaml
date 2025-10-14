@@ -25,18 +25,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
-  {{- if gt (len .Values.api.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.api.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.api.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.api.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.api }}
 spec:
   replicas: {{ .Values.api.replicas | default 1}}
   selector:
