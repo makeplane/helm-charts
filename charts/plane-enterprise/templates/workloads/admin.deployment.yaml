@@ -54,5 +54,5 @@ spec:
             cpu: {{ .Values.services.admin.cpuLimit | default "500m" | quote}}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
+      {{- template "plane.podScheduling" .Values.services.admin }}
 ---

@@ -5,3 +5,15 @@
 {{- define "hashString" -}}
 {{- printf "%s%s%s%s" .Values.license.licenseServer .Values.license.licenseDomain .Release.Namespace .Release.Name | sha256sum  -}}
 {{- end -}}
+
+{{- define "plane.podScheduling" -}}
+  {{- with .nodeSelector }} 
+      nodeSelector: {{ toYaml . | nindent 8 }}
+  {{- end }}
+  {{- with .tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+  {{- end }}
+  {{- with .affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+  {{- end }}
+{{- end }}

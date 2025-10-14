@@ -62,6 +62,7 @@ spec:
           failureThreshold: 50
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+      {{- template "plane.podScheduling" .Values.services.rabbitmq }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
