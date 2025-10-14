@@ -52,6 +52,10 @@ spec:
           limits:
             memory: {{ .Values.services.space.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.space.cpuLimit | default "500m" | quote}}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 

@@ -41,13 +41,16 @@ spec:
         name: {{ .Release.Name }}-pgdb
         stdin: true
         tty: true
-        env:
-          - name: PGDATA
-            value: /var/lib/postgresql/data/plane
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.pgdb_existingSecret) }}{{ .Values.external_secrets.pgdb_existingSecret }}{{ else }}{{ .Release.Name }}-pgdb-secrets{{ end }}
               optional: false
+        env:
+          - name: PGDATA
+            value: /var/lib/postgresql/data/plane
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: pvc-{{ .Release.Name }}-pgdb-vol

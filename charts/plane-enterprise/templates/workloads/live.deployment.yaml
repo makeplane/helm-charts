@@ -59,6 +59,10 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 
