@@ -29,6 +29,18 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-wl
+  {{- if gt (len .Values.minio.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.minio.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.minio.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.minio.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     matchLabels:
@@ -84,15 +96,15 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
-  {{- if gt (len .Values.minio.job_labels) 0 }}
+  {{- if gt (len .Values.minio.labels) 0 }}
   labels:
-    {{- range $key, $value := .Values.minio.job_labels }}
+    {{- range $key, $value := .Values.minio.labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
-  {{- if gt (len .Values.minio.job_annotations) 0 }}
+  {{- if gt (len .Values.minio.annotations) 0 }}
   annotations:
-    {{- range $key, $value := .Values.minio.job_annotations }}
+    {{- range $key, $value := .Values.minio.annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}

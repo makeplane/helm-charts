@@ -90,6 +90,8 @@
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `postgres.local_setup` to `false` and set this key with remote connection url. |
 | postgres.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| postgres.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `postgres`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| postgres.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `postgres`. This is useful for adding metadata or configuration hints to your resources. |
 
 ### Redis/Valkey Setup
 
@@ -103,6 +105,8 @@
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `redis.local_setup` to `false` and set this key with remote connection url. |
 | redis.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| redis.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `redis`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| redis.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `redis`. This is useful for adding metadata or configuration hints to your resources. |
 
 
 ### RabbitMQ Setup
@@ -119,6 +123,8 @@
 | rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| rabbitmq.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `rabbitmq`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| rabbitmq.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `rabbitmq`. This is useful for adding metadata or configuration hints to your resources. |
 | rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `rabbitmq.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
@@ -141,8 +147,8 @@
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | minio.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| minio.job_labels      | {} |  | Custom labels to add to the Minio Job (only when `minio.local_setup=true`) |
-| minio.job_annotations | {} |  | Custom annotations to add to the Minio Job (only when `minio.local_setup=true`) |
+| minio.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `minio`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| minio.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `minio`. This is useful for adding metadata or configuration hints to your resources. |
 
 ### Web Deployment
 

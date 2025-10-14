@@ -33,6 +33,8 @@ redis:
   volumeSize: 100Mi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 postgres:
   local_setup: true
@@ -42,6 +44,8 @@ postgres:
   volumeSize: 1Gi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 rabbitmq:
   local_setup: true
@@ -55,6 +59,8 @@ rabbitmq:
   default_password: plane
   external_rabbitmq_url: ''
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
 
 minio:
   image: minio/minio:latest
@@ -66,8 +72,8 @@ minio:
   storageClass: ""
   volumeSize: 1Gi
   assign_cluster_ip: false
-  job_labels: {}
-  job_annotations: {}
+  labels: {}
+  annotations: {}
   env:
     minio_endpoint_ssl: false
 

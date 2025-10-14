@@ -27,6 +27,18 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis-wl
+  {{- if gt (len .Values.redis.labels) 0 }}
+  labels:
+    {{- range $key, $value := .Values.redis.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .Values.redis.annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .Values.redis.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     matchLabels:
