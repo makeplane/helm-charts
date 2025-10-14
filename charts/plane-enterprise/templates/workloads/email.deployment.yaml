@@ -32,17 +32,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     reloader.stakater.com/auto: "true"
-  {{- if gt (len .Values.services.email_service.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.services.email_service.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.services.email_service.annotations) 0 }}
-  {{- range $key, $value := .Values.services.email_service.annotations }}
-  {{ $key }}: {{ $value | quote }}
-  {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.services.email_service }}
 spec:
   replicas: {{ .Values.services.email_service.replicas | default 1 }}
   selector:

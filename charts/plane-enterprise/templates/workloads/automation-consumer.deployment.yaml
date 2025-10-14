@@ -4,18 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-wl
-  {{- if gt (len .Values.services.automation_consumer.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.services.automation_consumer.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.services.automation_consumer.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.services.automation_consumer.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
   selector:

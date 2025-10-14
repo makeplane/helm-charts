@@ -26,18 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
-  {{- if gt (len .Values.services.admin.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.services.admin.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.services.admin.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.services.admin.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.services.admin }}
 spec:
   replicas: {{ .Values.services.admin.replicas | default 1 }}
   selector:

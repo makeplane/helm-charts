@@ -4,18 +4,7 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
-  {{- if gt (len .Values.services.migrator.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.services.migrator.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.services.migrator.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.services.migrator.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.services.api }}
 spec:
   backoffLimit: 3
   template:

@@ -27,18 +27,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-wl
-  {{- if gt (len .Values.services.silo.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.services.silo.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.services.silo.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.services.silo.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.services.silo }}
 spec:
   replicas: {{ .Values.services.silo.replicas | default 1}}
   selector:

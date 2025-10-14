@@ -116,6 +116,8 @@
 | env.pgdb_password | plane |  | Database credentials are requried to access the hosted stateful deployment of `postgres`.  Use this key to set the password for the stateful deployment. |
 | env.pgdb_name | plane |  |  Database name to be used while setting up stateful deployment of `Postgres`|
 | services.postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.postgres.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `postgres`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| services.postgres.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `postgres`. This is useful for adding metadata or configuration hints to your resources. |
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url. |
 
 ### Redis/Valkey Setup
@@ -128,6 +130,8 @@
 | services.redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
 | services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.redis.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `redis`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| services.redis.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `redis`. This is useful for adding metadata or configuration hints to your resources. |
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url. |
 
 ### RabbitMQ Setup
@@ -143,6 +147,8 @@
 | services.rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
 | services.rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | services.rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.rabbitmq.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `rabbitmq`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| services.rabbitmq.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `rabbitmq`. This is useful for adding metadata or configuration hints to your resources. |
 | services.rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url. |
 
 ### Doc Store (Minio/S3) Setup
@@ -160,6 +166,8 @@
 | env.docstore_bucket | uploads | Yes | Storage bucket name is required as part of configuration. This is where files will be uploaded irrespective of if you are using `Minio` or external `S3` (or compatible) storage service |
 | env.doc_upload_size_limit | 5242880 | Yes | Document Upload Size Limit (default to 5Mb) |
 | services.minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.minio.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `minio`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| services.minio.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `minio`. This is useful for adding metadata or configuration hints to your resources. |
 | env.aws_access_key |  |  | External `S3` (or compatible) storage service provides `access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
 | env.aws_secret_access_key |  |  | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
 | env.aws_region |  |  | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
@@ -388,13 +396,6 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.automation_consumer_envs.event_stream_prefetch | 10 |  | Event stream prefetch count |
 | env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
 | env.automation_consumer_envs.event_types | "issue" |  | Event types to process |
-
-### Migrator Job
-
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| services.migrator.labels | {} |  | Custom labels to add to the migrator job |
-| services.migrator.annotations | {} |  | Custom annotations to add to the migrator job |
 
 ### Iframely Deployment
 

@@ -28,6 +28,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis-wl
+  {{- template "plane.labelsAndAnnotations" .Values.services.redis }}
 spec:
   selector:
     matchLabels:

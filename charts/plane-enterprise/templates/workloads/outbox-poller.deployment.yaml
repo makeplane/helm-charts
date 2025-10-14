@@ -4,18 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-outbox-poller-wl
-  {{- if gt (len .Values.services.outbox_poller.labels) 0 }}
-  labels:
-    {{- range $key, $value := .Values.services.outbox_poller.labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
-  {{- if gt (len .Values.services.outbox_poller.annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.services.outbox_poller.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
-  {{- end }}
+  {{- template "plane.labelsAndAnnotations" .Values.services.outbox_poller }}
 spec:
   replicas: {{ .Values.services.outbox_poller.replicas | default 1}}
   selector:

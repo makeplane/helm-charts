@@ -15,7 +15,7 @@ airgapped:
   # The boto module used by API does not use the CA bundles in the container, so we need to
   # mount the CA bundle into the API pod by passing it in as an environment
   # variable. Should be the full path to the CA bundle file, e.g.
-  # 
+  #
   s3SecretName: ""
   s3SecretKey: ""
 
@@ -44,6 +44,8 @@ services:
     volumeSize: 500Mi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
+    labels: {}
+    annotations: {}
 
   postgres:
     local_setup: true
@@ -52,6 +54,8 @@ services:
     volumeSize: 2Gi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
+    labels: {}
+    annotations: {}
 
   rabbitmq:
     local_setup: true
@@ -64,6 +68,8 @@ services:
     default_password: plane
     external_rabbitmq_url: ''
     assign_cluster_ip: false
+    labels: {}
+    annotations: {}
 
   minio:
     local_setup: true
@@ -76,8 +82,8 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
-    job_labels: {}
-    job_annotations: {}
+    labels: {}
+    annotations: {}
 
   iframely:
     enabled: false
@@ -181,7 +187,7 @@ services:
     cpuRequest: 50m
     labels: {}
     annotations: {}
-    
+
   silo:
     enabled: true
     replicas: 1
@@ -222,7 +228,7 @@ services:
     pullPolicy: Always
     labels: {}
     annotations: {}
-  
+
   outbox_poller:
     enabled: false
     replicas: 1
@@ -244,10 +250,6 @@ services:
     cpuRequest: 50m
     pullPolicy: Always
     assign_cluster_ip: false
-    labels: {}
-    annotations: {}
-
-  migrator:
     labels: {}
     annotations: {}
 
