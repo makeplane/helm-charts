@@ -27,7 +27,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.silo }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.silo }}
 spec:
   replicas: {{ .Values.services.silo.replicas | default 1}}
   selector:

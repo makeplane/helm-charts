@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-worker-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.worker }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.worker }}
 spec:
   replicas: {{ .Values.services.worker.replicas | default 1 }}
   selector:

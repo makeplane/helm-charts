@@ -26,7 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.admin }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.admin }}
 spec:
   replicas: {{ .Values.services.admin.replicas | default 1 }}
   selector:

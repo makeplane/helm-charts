@@ -29,7 +29,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.rabbitmq }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.rabbitmq }}
 spec:
   selector:
     matchLabels:

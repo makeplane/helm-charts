@@ -29,7 +29,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.minio }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.minio }}
 spec:
   selector:
     matchLabels:
@@ -86,7 +86,7 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
-  {{- template "plane.labelsAndAnnotations" .Values.services.minio }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.minio }}
   
 spec:
   backoffLimit: 6

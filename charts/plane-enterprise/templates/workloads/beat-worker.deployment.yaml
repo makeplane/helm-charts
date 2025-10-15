@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.beatworker }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.beatworker }}
 spec:
   replicas: {{ .Values.services.beatworker.replicas | default 1 }}
   selector:

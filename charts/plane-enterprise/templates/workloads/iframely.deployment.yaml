@@ -23,7 +23,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-iframely-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.iframely }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.iframely }}
 spec:
   replicas: {{ .Values.services.iframely.replicas | default 1 }}
   selector:

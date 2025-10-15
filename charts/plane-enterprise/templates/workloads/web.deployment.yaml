@@ -26,7 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-web-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.web }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.web }}
 spec:
   replicas: {{ .Values.services.web.replicas | default 1 }}
   selector:

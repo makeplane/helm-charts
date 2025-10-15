@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-wl
-  {{- template "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
   selector:
