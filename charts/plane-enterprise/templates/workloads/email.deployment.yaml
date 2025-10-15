@@ -32,6 +32,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     reloader.stakater.com/auto: "true"
+  {{- include "plane.labelsAndAnnotations" .Values.services.email_service }}
 spec:
   replicas: {{ .Values.services.email_service.replicas | default 1 }}
   selector:
@@ -97,6 +98,7 @@ spec:
             - key: tls.key
               path: key.pem
             optional: false
+      {{- include "plane.podScheduling" .Values.services.email_service }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

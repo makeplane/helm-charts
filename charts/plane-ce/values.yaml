@@ -33,6 +33,9 @@ redis:
   volumeSize: 100Mi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 postgres:
   local_setup: true
@@ -42,6 +45,9 @@ postgres:
   volumeSize: 1Gi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 rabbitmq:
   local_setup: true
@@ -55,6 +61,9 @@ rabbitmq:
   default_password: plane
   external_rabbitmq_url: ''
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 minio:
   image: minio/minio:latest
@@ -68,6 +77,9 @@ minio:
   assign_cluster_ip: false
   env:
    minio_endpoint_ssl: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 web:
   replicas: 1
@@ -78,6 +90,9 @@ web:
   image: artifacts.plane.so/makeplane/plane-frontend
   pullPolicy: Always
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 space:
   replicas: 1
@@ -88,6 +103,9 @@ space:
   image: artifacts.plane.so/makeplane/plane-space
   pullPolicy: Always
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 admin:
   replicas: 1
@@ -98,6 +116,9 @@ admin:
   image: artifacts.plane.so/makeplane/plane-admin
   pullPolicy: Always
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 live:
   replicas: 1
@@ -108,6 +129,9 @@ live:
   image: artifacts.plane.so/makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 api:
   replicas: 1
@@ -118,6 +142,9 @@ api:
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   assign_cluster_ip: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 worker:
   replicas: 1
@@ -127,6 +154,9 @@ worker:
   memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 beatworker:
   replicas: 1
@@ -136,6 +166,9 @@ beatworker:
   memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details

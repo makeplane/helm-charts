@@ -24,6 +24,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.monitor }}
 spec:
   selector:
     matchLabels:
@@ -63,6 +64,7 @@ spec:
         - mountPath: /app
           name: pvc-{{ .Release.Name }}-monitor-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.services.monitor }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
