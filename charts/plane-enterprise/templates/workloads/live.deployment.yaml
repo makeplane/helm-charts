@@ -26,6 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.live }}
 spec:
   replicas: {{ .Values.services.live.replicas | default 1}}
   selector:
@@ -63,7 +64,7 @@ spec:
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
+      {{- include "plane.podScheduling" .Values.services.live }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
   selector:
@@ -50,6 +51,7 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
 
+      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}

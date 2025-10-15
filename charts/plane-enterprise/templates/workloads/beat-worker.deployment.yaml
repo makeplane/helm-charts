@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.beatworker }}
 spec:
   replicas: {{ .Values.services.beatworker.replicas | default 1 }}
   selector:
@@ -51,7 +52,7 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
 
+      {{- include "plane.podScheduling" .Values.services.beatworker }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

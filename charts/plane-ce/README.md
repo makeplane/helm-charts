@@ -1,3 +1,5 @@
+# Plane-CE Helm Chart
+
 ## Pre-requisite
 
 - A working Kubernetes cluster
@@ -14,7 +16,8 @@
 
   1. Set-up and customization
 
-      - Quick set-up<br>
+      - Quick set-up
+
         This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis, and Minio with a persistent volume claim using the default storage class. This also sets up the ingress routes for you using `nginx` ingress class.
         > To customize this, see `Custom ingress routes` below.
 
@@ -34,19 +37,22 @@
               --wait-for-jobs
           ```
 
-        > This is the basic setup required for Plane-CE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.<br>
+        > This is the basic setup required for Plane-CE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.
 
         Using a Custom StorageClass
 
         To specify a custom StorageClass for Plane-CE components, add the following options to the above `helm upgrade --install` command:
+
         ```bash
         --set postgres.storageClass=<your-storageclass-name>
         --set redis.storageClass=<your-storageclass-name>
         --set minio.storageClass=<your-storageclass-name>
         --set rabbitmq.storageClass=<your-storageclass-name>
         ```
-      - Advance set-up<br>
-        For more control over your set-up, run the script below to download the `values.yaml` file and and edit using any editor like Vim or Nano. 
+
+      - Advance set-up
+
+        For more control over your set-up, run the script below to download the `values.yaml` file and and edit using any editor like Vim or Nano.
 
         ```bash
         helm  show values makeplane/plane-ce > values.yaml
@@ -90,6 +96,9 @@
 | env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `postgres.local_setup` to `false` and set this key with remote connection url. |
 | postgres.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| postgres.nodeSelector | {} |  | This key allows you to set the node selector for the stateful deployment of `postgres`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| postgres.tolerations | [] |  | This key allows you to set the tolerations for the stateful deployment of `postgres`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| postgres.affinity | {} |  | This key allows you to set the affinity rules for the stateful deployment of `postgres`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Redis/Valkey Setup
 
@@ -103,7 +112,9 @@
 | env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `redis.local_setup` to `false` and set this key with remote connection url. |
 | redis.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-
+| redis.nodeSelector | {} |  | This key allows you to set the node selector for the stateful deployment of `redis`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| redis.tolerations | [] |  | This key allows you to set the tolerations for the stateful deployment of `redis`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| redis.affinity | {} |  | This key allows you to set the affinity rules for the stateful deployment of `redis`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### RabbitMQ Setup
 
@@ -120,6 +131,9 @@
 | rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
 | rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `rabbitmq.local_setup` to `false` and set this key with remote connection url. |
+| rabbitmq.nodeSelector | {} |  | This key allows you to set the node selector for the stateful deployment of `rabbitmq`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| rabbitmq.tolerations | [] |  | This key allows you to set the tolerations for the stateful deployment of `rabbitmq`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| rabbitmq.affinity | {} |  | This key allows you to set the affinity rules for the stateful deployment of `rabbitmq`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -141,6 +155,9 @@
 | env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `minio.local_setup=false`  |
 | minio.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| minio.nodeSelector | {} |  | This key allows you to set the node selector for the stateful deployment of `minio`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| minio.tolerations | [] |  | This key allows you to set the tolerations for the stateful deployment of `minio`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| minio.affinity | {} |  | This key allows you to set the affinity rules for the stateful deployment of `minio`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Web Deployment
 
@@ -154,6 +171,9 @@
 | web.image| artifacts.plane.so/makeplane/plane-frontend |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | web.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `web`. |  
 | web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| web.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `web`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| web.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `web`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| web.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `web`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Space Deployment
 
@@ -167,6 +187,9 @@
 | space.image| artifacts.plane.so/makeplane/plane-space|  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | space.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `space`. |
 | space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| space.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `space`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| space.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `space`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| space.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `space`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Admin Deployment
 
@@ -180,6 +203,9 @@
 | admin.image| artifacts.plane.so/makeplane/plane-admin |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | admin.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `admin`. |
 | admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| admin.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `admin`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| admin.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `admin`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| admin.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `admin`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Live Service Deployment
 
@@ -196,6 +222,9 @@
 | env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| live.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `live`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| live.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `live`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| live.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `live`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### API Deployment
 
@@ -212,6 +241,9 @@
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
 | api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| api.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| api.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| api.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `api`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Worker Deployment
 
@@ -223,6 +255,9 @@
 | worker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | worker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
 | worker.image| artifacts.plane.so/makeplane/plane-backend |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| worker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| worker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| worker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Beat-Worker deployment
 
@@ -234,6 +269,9 @@
 | beatworker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | beatworker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
 | beatworker.image| artifacts.plane.so/makeplane/plane-backend |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
+| beatworker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| beatworker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| beatworker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 
 ### Ingress and SSL Setup
 
@@ -260,7 +298,6 @@
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
 | env.default_cluster_domain | cluster.local | Yes | Set this value as configured in your kubernetes cluster. `cluster.local` is usally the default in most cases. |
 
-
 ## External Secrets Config
 
 To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
@@ -286,7 +323,6 @@ To configure the external secrets for your application, you need to define speci
 |                      | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                      | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
 | live_env_existingSecret      | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/` |
-
 
 ## Custom Ingress Routes
 

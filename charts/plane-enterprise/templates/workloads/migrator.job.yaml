@@ -4,6 +4,7 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
+  {{- include "plane.labelsAndAnnotations" .Values.services.api }}
 spec:
   backoffLimit: 3
   template:
@@ -39,6 +40,7 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
       restartPolicy: OnFailure
+      {{- include "plane.podScheduling" .Values.services.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---
