@@ -24,6 +24,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-wl
+  {{- template "plane.labelsAndAnnotations" .Values.services.monitor }}
 spec:
   selector:
     matchLabels:

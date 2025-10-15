@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-outbox-poller-wl
+  {{- template "plane.labelsAndAnnotations" .Values.services.outbox_poller }}
 spec:
   replicas: {{ .Values.services.outbox_poller.replicas | default 1}}
   selector:

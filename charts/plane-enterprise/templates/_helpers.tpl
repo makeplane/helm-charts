@@ -17,3 +17,18 @@
       affinity: {{ toYaml . | nindent 8 }}
   {{- end }}
 {{- end }}
+
+{{- define "plane.labelsAndAnnotations" -}}
+  {{- if gt (len .labels) 0 }}
+  labels:
+    {{- range $key, $value := .labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len .annotations) 0 }}
+  annotations:
+    {{- range $key, $value := .annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+{{- end }}

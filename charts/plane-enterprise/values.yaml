@@ -47,6 +47,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   postgres:
     local_setup: true
@@ -58,6 +60,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   rabbitmq:
     local_setup: true
@@ -73,6 +77,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   minio:
     local_setup: true
@@ -88,6 +94,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   iframely:
     enabled: false
@@ -102,6 +110,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   web:
     replicas: 1
@@ -115,6 +125,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   monitor:
     memoryLimit: 1000Mi
@@ -128,6 +140,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   space:
     replicas: 1
@@ -141,6 +155,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   admin:
     replicas: 1
@@ -154,6 +170,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   live:
     replicas: 1
@@ -167,6 +185,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   api:
     replicas: 1
@@ -180,6 +200,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   worker:
     replicas: 1
@@ -190,6 +212,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   beatworker:
     replicas: 1
@@ -200,6 +224,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   silo:
     enabled: true
@@ -214,6 +240,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
     connectors:
       slack:
         enabled: false
@@ -243,6 +271,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   outbox_poller:
     enabled: false
@@ -256,6 +286,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
   automation_consumer:
     enabled: false
@@ -269,6 +301,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    labels: {}
+    annotations: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
