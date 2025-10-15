@@ -6,6 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-secrets
 stringData:
+  LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
   {{- if .Values.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
   {{- else }}
@@ -21,8 +22,5 @@ metadata:
   name: {{ .Release.Name }}-live-vars
 data:
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
-  LIVE_SENTRY_DSN: {{ .Values.env.live_sentry_dsn | default "" | quote }}
-  LIVE_SENTRY_ENVIRONMENT: {{ .Values.env.live_sentry_environment | default "" | quote }}
-  LIVE_SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.live_sentry_traces_sample_rate | default "" | quote }}
   LIVE_BASE_PATH: "/live"
 ---
