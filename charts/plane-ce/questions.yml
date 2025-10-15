@@ -16,7 +16,7 @@ questions:
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
- 
+
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
@@ -183,18 +183,10 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
-  - variable: env.live_sentry_dsn
-    label: "Live Sentry DSN"
+  - variable: env.live_server_secret_key
+    label: "Live Server Secret Key"
     type: string
-    default: ""
-  - variable: env.live_sentry_environment
-    label: "Live Sentry Environment"
-    type: string
-    default: ""
-  - variable: env.live_sentry_traces_sample_rate
-    label: "Live Sentry Traces Sample Rate"
-    type: string
-    default: ""
+    default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
 - variable: api.image
   label: Backend Docker Image
@@ -301,7 +293,7 @@ questions:
   - variable: beatworker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m  
+    default: 50m
 - variable: redis.local_setup
   label: "Install Redis"
   type: boolean
