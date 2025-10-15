@@ -389,13 +389,11 @@ env:
     event_types: "issue"
 
 # Global extra environment variables that will be applied to all workloads
-# This follows GitLab's extraEnv pattern for maximum flexibility
-# Only set variables that have meaningful values - empty values will be omitted
-extraEnv:
-  - name: HTTP_PROXY
-    value: "http://proxy.example.com:8080"
-  - name: HTTPS_PROXY
-    value: "http://proxy.example.com:8080"
-  - name: NO_PROXY
-    value: "localhost,127.0.0.1,.example.com"
+extraEnv: []
+  # - name: HTTP_PROXY
+  #   value: "http://proxy.example.com:8080"
+  # - name: HTTPS_PROXY
+  #   value: "http://proxy.example.com:8080"
+  # - name: NO_PROXY
+  #   value: "localhost,127.0.0.1,.example.com"
 
