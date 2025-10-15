@@ -12,7 +12,7 @@ ingress:
   minioHost: ""
   rabbitmqHost: ""
   ingressClass: "nginx"
-  ingress_annotations: {"nginx.ingress.kubernetes.io/proxy-body-size": "5m"}
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
@@ -76,7 +76,7 @@ minio:
   volumeSize: 1Gi
   assign_cluster_ip: false
   env:
-   minio_endpoint_ssl: false
+    minio_endpoint_ssl: false
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -172,7 +172,7 @@ beatworker:
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
-  rabbitmq_existingSecret: '' 
+  rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
@@ -183,7 +183,7 @@ env:
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
   remote_redis_url: "" #INCASE OF REMOTE REDIS ONLY
-  
+
   # POSTGRES DB VALUES
   pgdb_username: plane
   pgdb_password: plane
@@ -201,15 +201,12 @@ env:
   aws_s3_endpoint_url: ""
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
   sentry_dsn: ""
   sentry_environment: ""
 
   cors_allowed_origins: ""
   default_cluster_domain: cluster.local
-
-  live_sentry_dsn: ""
-  live_sentry_environment: ""
-  live_sentry_traces_sample_rate: ""
 
   api_key_rate_limit: "60/minute"
