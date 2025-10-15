@@ -63,9 +63,9 @@ spec:
         - mountPath: /app
           name: pvc-{{ .Release.Name }}-monitor-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.services.monitor }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.services.monitor }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim

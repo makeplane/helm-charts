@@ -53,7 +53,7 @@ spec:
           - node
         args:
           - server.js
+      {{- include "plane.podScheduling" .Values.services.iframely }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.services.iframely }}
 {{- end }}

@@ -43,7 +43,7 @@ spec:
               name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
 
+      {{- include "plane.podScheduling" .Values.services.outbox_poller }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.services.outbox_poller }}
 {{- end }}

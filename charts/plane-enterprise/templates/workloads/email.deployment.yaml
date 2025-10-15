@@ -97,8 +97,8 @@ spec:
             - key: tls.key
               path: key.pem
             optional: false
+      {{- include "plane.podScheduling" .Values.services.email_service }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.services.email_service }}
 ---
 {{- end }}

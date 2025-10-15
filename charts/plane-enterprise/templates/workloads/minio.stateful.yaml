@@ -59,9 +59,9 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-minio-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.services.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.services.minio }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
@@ -114,6 +114,7 @@ spec:
           image: {{ .Values.services.minio.image_mc }}
           imagePullPolicy: Always
           name: {{ .Release.Name }}-minio-bucket
+      {{- include "plane.podScheduling" .Values.services.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
       terminationGracePeriodSeconds: 120
