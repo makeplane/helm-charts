@@ -29,6 +29,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.rabbitmq }}
 spec:
   selector:
     matchLabels:
@@ -60,6 +61,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 30
           failureThreshold: 50
+      {{- include "plane.podScheduling" .Values.services.rabbitmq }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

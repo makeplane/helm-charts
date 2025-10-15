@@ -28,6 +28,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.redis }}
 spec:
   selector:
     matchLabels:
@@ -48,6 +49,7 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-redis-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.services.redis }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

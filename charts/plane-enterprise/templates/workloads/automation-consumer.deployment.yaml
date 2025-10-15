@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
   selector:
@@ -46,6 +47,7 @@ spec:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
 
+      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}
