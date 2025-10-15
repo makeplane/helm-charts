@@ -132,3 +132,4 @@ spec:
       {{- include "plane.podScheduling" .Values.services.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+---
