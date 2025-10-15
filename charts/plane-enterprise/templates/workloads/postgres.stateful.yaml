@@ -25,6 +25,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.postgres }}
 spec:
   selector:
     matchLabels:
@@ -52,6 +53,7 @@ spec:
         - mountPath: /var/lib/postgresql/data
           name: pvc-{{ .Release.Name }}-pgdb-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.services.postgres }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
