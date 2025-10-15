@@ -19,16 +19,10 @@
 {{- end }}
 
 {{- define "plane.labelsAndAnnotations" -}}
-  {{- if gt (len .labels) 0 }}
-  labels:
-    {{- range $key, $value := .labels }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
+  {{- with .labels }}
+  labels: {{ toYaml . | nindent 4 }}
   {{- end }}
-  {{- if gt (len .annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
+  {{- with .annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
