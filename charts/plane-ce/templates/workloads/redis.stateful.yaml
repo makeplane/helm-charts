@@ -47,9 +47,9 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-redis-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.redis }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.redis }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
