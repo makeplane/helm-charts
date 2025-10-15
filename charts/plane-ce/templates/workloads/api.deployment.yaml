@@ -73,7 +73,7 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
 
+      {{- include "plane.podScheduling" .Values.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-      {{- template "plane.podScheduling" .Values.api }}
 ---
