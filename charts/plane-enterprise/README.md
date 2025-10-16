@@ -494,7 +494,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| extraEnv | [] | No | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.) without modifying individual service configurations. Useful for proxy settings, custom configurations, or any environment-specific variables. |
+| extraEnv | [] | No | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
 
 ## External Secrets Config
 
