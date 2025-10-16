@@ -27,7 +27,7 @@ ssl:
 
 redis:
   local_setup: true
-  image: valkey/valkey:7.2.5-alpine
+  image: valkey/valkey:7.2.11-alpine
   servicePort: 6379
   storageClass: ""
   volumeSize: 100Mi
@@ -35,6 +35,9 @@ redis:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 postgres:
   local_setup: true
@@ -46,6 +49,9 @@ postgres:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 rabbitmq:
   local_setup: true
@@ -61,6 +67,9 @@ rabbitmq:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 minio:
   image: minio/minio:latest
@@ -76,6 +85,9 @@ minio:
   annotations: {}
   env:
     minio_endpoint_ssl: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 web:
   replicas: 1
@@ -88,6 +100,9 @@ web:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 space:
   replicas: 1
@@ -100,6 +115,9 @@ space:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 admin:
   replicas: 1
@@ -112,6 +130,9 @@ admin:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 live:
   replicas: 1
@@ -124,6 +145,9 @@ live:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 api:
   replicas: 1
@@ -136,6 +160,9 @@ api:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 worker:
   replicas: 1
@@ -147,6 +174,9 @@ worker:
   pullPolicy: Always
   labels: {}
   annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 beatworker:
   replicas: 1
@@ -158,10 +188,9 @@ beatworker:
   pullPolicy: Always
   labels: {}
   annotations: {}
-
-migrator:
-  labels: {}
-  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
@@ -194,15 +223,12 @@ env:
   aws_s3_endpoint_url: ""
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
   sentry_dsn: ""
   sentry_environment: ""
 
   cors_allowed_origins: ""
   default_cluster_domain: cluster.local
-
-  live_sentry_dsn: ""
-  live_sentry_environment: ""
-  live_sentry_traces_sample_rate: ""
 
   api_key_rate_limit: "60/minute"

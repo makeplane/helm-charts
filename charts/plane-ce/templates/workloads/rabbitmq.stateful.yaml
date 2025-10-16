@@ -54,6 +54,7 @@ spec:
         - mountPath: /var/lib/rabbitmq
           name: pvc-{{ .Release.Name }}-rabbitmq-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.rabbitmq }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

@@ -39,11 +39,14 @@ ssl:
 services:
   redis:
     local_setup: true
-    image: valkey/valkey:7.2.5-alpine
+    image: valkey/valkey:7.2.11-alpine
     servicePort: 6379
     volumeSize: 500Mi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
     labels: {}
     annotations: {}
 
@@ -54,6 +57,9 @@ services:
     volumeSize: 2Gi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
     labels: {}
     annotations: {}
 
@@ -68,6 +74,9 @@ services:
     default_password: plane
     external_rabbitmq_url: ''
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
     labels: {}
     annotations: {}
 
@@ -82,6 +91,11 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   iframely:
     enabled: false
@@ -93,6 +107,11 @@ services:
     image: artifacts.plane.so/makeplane/iframely:v1.2.0
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   web:
     replicas: 1
@@ -103,6 +122,11 @@ services:
     image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   monitor:
     memoryLimit: 1000Mi
@@ -113,6 +137,11 @@ services:
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   space:
     replicas: 1
@@ -123,6 +152,11 @@ services:
     image: artifacts.plane.so/makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   admin:
     replicas: 1
@@ -133,6 +167,11 @@ services:
     image: artifacts.plane.so/makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   live:
     replicas: 1
@@ -143,6 +182,11 @@ services:
     image: artifacts.plane.so/makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   api:
     replicas: 1
@@ -153,6 +197,11 @@ services:
     image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   worker:
     replicas: 1
@@ -160,6 +209,11 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   beatworker:
     replicas: 1
@@ -167,6 +221,11 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   silo:
     enabled: true
@@ -178,6 +237,11 @@ services:
     image: artifacts.plane.so/makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
     connectors:
       slack:
         enabled: false
@@ -204,6 +268,11 @@ services:
     cpuRequest: 50m
     image: artifacts.plane.so/makeplane/email-commercial
     pullPolicy: Always
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   outbox_poller:
     enabled: false
@@ -214,6 +283,11 @@ services:
     cpuRequest: 50m
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   automation_consumer:
     enabled: false
@@ -224,6 +298,11 @@ services:
     cpuRequest: 50m
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details

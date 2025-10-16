@@ -753,7 +753,7 @@ questions:
   - variable: services.redis.image
     label: "Docker Image"
     type: string
-    default: "valkey/valkey:7.2.5-alpine"
+    default: "valkey/valkey:7.2.11-alpine"
     show_if: "services.redis.local_setup=true"
   - variable: services.redis.pullPolicy
     label: "Redis Pull Policy"

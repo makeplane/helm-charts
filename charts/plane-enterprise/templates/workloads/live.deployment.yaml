@@ -26,6 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.live }}
 spec:
   replicas: {{ .Values.services.live.replicas | default 1}}
   selector:
@@ -59,7 +60,7 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
+      {{- include "plane.podScheduling" .Values.services.live }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

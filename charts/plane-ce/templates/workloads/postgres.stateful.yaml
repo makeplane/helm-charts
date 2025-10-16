@@ -52,6 +52,7 @@ spec:
         - mountPath: /var/lib/postgresql/data
           name: pvc-{{ .Release.Name }}-pgdb-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.postgres }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
