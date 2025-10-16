@@ -490,6 +490,12 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
 
 
+### Extra Environment Variables
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| extraEnv | [] | No | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.) without modifying individual service configurations. Useful for proxy settings, custom configurations, or any environment-specific variables. |
+
 ## External Secrets Config
 
 To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
