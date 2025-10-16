@@ -87,7 +87,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
   {{- include "plane.labelsAndAnnotations" .Values.services.minio }}
-  
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
@@ -101,7 +100,10 @@ spec:
           image: busybox
           command: ['sh', '-c', "until nslookup  {{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local; do echo waiting for  {{ .Release.Name }}-minio; sleep 2; done"]
       containers:
-        - command:
+        - name: {{ .Release.Name }}-minio-bucket
+          image: {{ .Values.services.minio.image_mc }}
+          imagePullPolicy: Always
+          command:
             - /bin/sh
           args:
             - '-c'
@@ -114,9 +116,10 @@ spec:
             - secretRef:
                 name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
                 optional: false
-          image: {{ .Values.services.minio.image_mc }}
-          imagePullPolicy: Always
-          name: {{ .Release.Name }}-minio-bucket
+          {{- if .Values.extraEnv }}
+          env:
+            {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
       {{- include "plane.podScheduling" .Values.services.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account

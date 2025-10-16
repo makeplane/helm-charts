@@ -60,6 +60,10 @@ spec:
           - configMapRef:
               name: {{ .Release.Name }}-monitor-vars
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
         volumeMounts:
         - mountPath: /app
           name: pvc-{{ .Release.Name }}-monitor-vol

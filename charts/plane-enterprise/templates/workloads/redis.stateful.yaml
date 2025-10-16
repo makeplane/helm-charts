@@ -45,6 +45,10 @@ spec:
         name: {{ .Release.Name }}-redis
         stdin: true
         tty: true
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
         volumeMounts:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-redis-vol

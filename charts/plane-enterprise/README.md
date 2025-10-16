@@ -197,14 +197,11 @@
 | services.web.image| artifacts.plane.so/makeplane/web-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.web.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `web`. |
 | services.web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.web.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `web`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.web.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `web`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.web.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `web`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.web.labels | {} |  | Custom labels to add to the web deployment |
 | services.web.annotations | {} |  | Custom annotations to add to the web deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Space Deployment
 
@@ -218,14 +215,11 @@
 | services.space.image| artifacts.plane.so/makeplane/space-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.space.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `space`. |
 | services.space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.space.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `space`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.space.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `space`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.space.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `space`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.space.labels | {} |  | Custom labels to add to the space deployment |
 | services.space.annotations | {} |  | Custom annotations to add to the space deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Admin Deployment
 
@@ -239,14 +233,11 @@
 | services.admin.image| artifacts.plane.so/makeplane/admin-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `admin`. |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.admin.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `admin`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.admin.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `admin`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.admin.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `admin`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.admin.labels | {} |  | Custom labels to add to the admin deployment |
 | services.admin.annotations | {} |  | Custom annotations to add to the admin deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Live Service Deployment
 
@@ -265,14 +256,11 @@
 | env.live_server_secret_key | htbqvBJAgpm9bzvf3r4urJer0ENReatceh |  | Live Server Secret Key |
 | env.external_iframely_url | "" |  | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL |
 | services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.live.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `live`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.live.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `live`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.live.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `live`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.live.labels | {} |  | Custom labels to add to the live deployment |
 | services.live.annotations | {} |  | Custom annotations to add to the live deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Monitor Deployment
 
@@ -286,14 +274,11 @@
 | services.monitor.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `monitor`. |
 | services.monitor.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.monitor.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.monitor.nodeSelector | {} |  | This key allows you to set the node selector for the stateful deployment of `monitor`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.monitor.tolerations | [] |  | This key allows you to set the tolerations for the stateful deployment of `monitor`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.monitor.affinity | {} |  | This key allows you to set the affinity rules for the stateful deployment of `monitor`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.monitor.labels | {} |  | Custom labels to add to the monitor deployment |
 | services.monitor.annotations | {} |  | Custom annotations to add to the monitor deployment |
->>>>>>> add-labels-annotations-ee
 
 ### API Deployment
 
@@ -310,14 +295,11 @@
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
 | services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.api.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.api.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.api.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `api`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.api.labels | {} |  | Custom labels to add to the API deployment |
 | services.api.annotations | {} |  | Custom annotations to add to the API deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Silo Deployment
 
@@ -331,14 +313,11 @@
 | services.silo.image| artifacts.plane.so/makeplane/silo-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
 | services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.silo.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `silo`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.silo.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `silo`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.silo.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `silo`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. | 
-=======
 | services.silo.labels | {} |  | Custom labels to add to the silo deployment |
 | services.silo.annotations | {} |  | Custom annotations to add to the silo deployment | 
->>>>>>> add-labels-annotations-ee
 | services.silo.connectors.slack.enabled | false |  | Slack Integration |
 | services.silo.connectors.slack.client_id | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client ID |
 | services.silo.connectors.slack.client_secret | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client Secret |
@@ -370,14 +349,11 @@
 | services.worker.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.worker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.worker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
-<<<<<<< HEAD
 | services.worker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.worker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.worker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.worker.labels | {} |  | Custom labels to add to the worker deployment |
 | services.worker.annotations | {} |  | Custom annotations to add to the worker deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Beat-Worker deployment
 
@@ -388,14 +364,11 @@
 | services.beatworker.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
 | services.beatworker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.beatworker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
-<<<<<<< HEAD
 | services.beatworker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.beatworker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.beatworker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.beatworker.labels | {} |  | Custom labels to add to the beat-worker deployment |
 | services.beatworker.annotations | {} |  | Custom annotations to add to the beat-worker deployment |
->>>>>>> add-labels-annotations-ee
 
 ### Email Service Deployment
 
@@ -409,14 +382,11 @@
 | services.email_service.cpuRequest | 50m |  | CPU request for the email service deployment |
 | services.email_service.image | artifacts.plane.so/makeplane/email-commercial |  | Docker image for the email service deployment |
 | services.email_service.pullPolicy | Always |  | Image pull policy for the email service deployment |
-<<<<<<< HEAD
 | services.email_service.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `email_service`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.email_service.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `email_service`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.email_service.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `email_service`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.email_service.labels | {} |  | Custom labels to add to the email service deployment |
 | services.email_service.annotations | {} |  | Custom annotations to add to the email service deployment |
->>>>>>> add-labels-annotations-ee
 | env.email_service_envs.smtp_domain |  | Yes | The SMTP Domain to be used with email service |
 
 Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
@@ -434,14 +404,11 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.outbox_poller.cpuRequest | 50m |  | CPU request for the outbox poller service deployment |
 | services.outbox_poller.pullPolicy | Always |  | Image pull policy for the outbox poller service deployment |
 | services.outbox_poller.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.outbox_poller.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `outbox_poller`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.outbox_poller.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `outbox_poller`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.outbox_poller.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `outbox_poller`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.outbox_poller.labels | {} |  | Custom labels to add to the outbox poller deployment |
 | services.outbox_poller.annotations | {} |  | Custom annotations to add to the outbox poller deployment |
->>>>>>> add-labels-annotations-ee
 | env.outbox_poller_envs.memory_limit_mb | 400 |  | Memory limit in MB for the outbox poller |
 | env.outbox_poller_envs.interval_min | 0.25 |  | Minimum interval in minutes for polling |
 | env.outbox_poller_envs.interval_max | 2 |  | Maximum interval in minutes for polling |
@@ -468,14 +435,11 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.automation_consumer.cpuRequest | 50m |  | CPU request for the automation consumer service deployment |
 | services.automation_consumer.pullPolicy | Always |  | Image pull policy for the automation consumer service deployment |
 | services.automation_consumer.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.automation_consumer.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `automation_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.automation_consumer.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `automation_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.automation_consumer.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `automation_consumer`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.automation_consumer.labels | {} |  | Custom labels to add to the automation consumer deployment |
 | services.automation_consumer.annotations | {} |  | Custom annotations to add to the automation consumer deployment |
->>>>>>> add-labels-annotations-ee
 | env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |  | Event stream queue name for automations |
 | env.automation_consumer_envs.event_stream_prefetch | 10 |  | Event stream prefetch count |
 | env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
@@ -494,14 +458,11 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.iframely.image | artifacts.plane.so/makeplane/iframely:v1.2.0 |  | Docker image for the Iframely service deployment |
 | services.iframely.pullPolicy | Always |  | Image pull policy for the Iframely service deployment |
 | services.iframely.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-<<<<<<< HEAD
 | services.iframely.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `iframely`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.iframely.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `iframely`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.iframely.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `iframely`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-=======
 | services.iframely.labels | {} |  | Custom labels to add to the iframely deployment |
 | services.iframely.annotations | {} |  | Custom annotations to add to the iframely deployment |
->>>>>>> add-labels-annotations-ee
 
 
 ### Ingress and SSL Setup
@@ -528,6 +489,12 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
 | env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
 
+
+### Extra Environment Variables
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| extraEnv | [] | No | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
 
 ## External Secrets Config
 

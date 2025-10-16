@@ -76,6 +76,10 @@ spec:
           - configMapRef:
               name: {{ .Release.Name }}-email-vars
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
         volumeMounts:
           - name: tls-cert
             mountPath: /opt/email/keys

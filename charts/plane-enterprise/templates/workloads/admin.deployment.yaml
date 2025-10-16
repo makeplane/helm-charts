@@ -53,6 +53,10 @@ spec:
           limits:
             memory: {{ .Values.services.admin.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.admin.cpuLimit | default "500m" | quote}}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
       {{- include "plane.podScheduling" .Values.services.admin }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account

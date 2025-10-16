@@ -43,6 +43,10 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
 
       {{- include "plane.podScheduling" .Values.services.outbox_poller }}
       serviceAccount: {{ .Release.Name }}-srv-account
