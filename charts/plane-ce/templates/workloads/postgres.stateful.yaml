@@ -25,6 +25,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-wl
+  {{- template "plane.labelsAndAnnotations" .Values.postgres }}
 spec:
   selector:
     matchLabels:

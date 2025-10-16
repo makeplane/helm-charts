@@ -25,6 +25,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
+  {{- template "plane.labelsAndAnnotations" .Values.api }}
 spec:
   replicas: {{ .Values.api.replicas | default 1}}
   selector:

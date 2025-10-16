@@ -100,6 +100,8 @@
 | postgres.nodeSelector      |                {}                 |          | This key allows you to set the node selector for the stateful deployment of `postgres`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                                                                |
 | postgres.tolerations       |                []                 |          | This key allows you to set the tolerations for the stateful deployment of `postgres`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                                                                      |
 | postgres.affinity          |                {}                 |          | This key allows you to set the affinity rules for the stateful deployment of `postgres`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                                                                            |
+| postgres.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `postgres`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| postgres.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of postgres. This is useful for adding metadata or configuration hints to your resources. |
 
 ### Redis/Valkey Setup
 
@@ -116,6 +118,9 @@
 | redis.nodeSelector      |                {}                 |          | This key allows you to set the node selector for the stateful deployment of `redis`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                                                           |
 | redis.tolerations       |                []                 |          | This key allows you to set the tolerations for the stateful deployment of `redis`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                                                                 |
 | redis.affinity          |                {}                 |          | This key allows you to set the affinity rules for the stateful deployment of `redis`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                                                                       |
+| redis.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `redis`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| redis.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `redis`. This is useful for adding metadata or configuration hints to your resources. |
+
 
 ### RabbitMQ Setup
 
@@ -135,6 +140,8 @@
 | rabbitmq.nodeSelector          |                {}                 |          | This key allows you to set the node selector for the stateful deployment of `rabbitmq`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                   |
 | rabbitmq.tolerations           |                []                 |          | This key allows you to set the tolerations for the stateful deployment of `rabbitmq`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                         |
 | rabbitmq.affinity              |                {}                 |          | This key allows you to set the affinity rules for the stateful deployment of `rabbitmq`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                               |
+| rabbitmq.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `rabbitmq`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| rabbitmq.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `rabbitmq`. This is useful for adding metadata or configuration hints to your resources. |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -142,7 +149,7 @@
 | ---------------------------- | :-------------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | minio.local_setup            |               true                |          | Plane uses `minio` as the default file storage drive. This storage can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws S3 or similar services). Set this to `true` when you choose to setup stateful deployment of `postgres`. Mark it as `false` when using a remotely hosted database |
 | minio.image                  |        minio/minio:latest         |          | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `minio.local_setup=true`)                                                                                                                                                                                                         |
-| minio.image_mc               |          minio/mc:latest          |          | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                              |
+| minio.image_mc               |          minio/mc:latest          |          | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `minio.local_setup=true`)                                                                                                                                                                                              |
 | minio.pullPolicy             |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `minio`. (must be set when `minio.local_setup=true`)                                                                                                                                                                                                                         |
 | minio.volumeSize             |                5Gi                |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                              |
 | minio.root_user              |               admin               |          | Storage credentials are requried to access the hosted stateful deployment of `minio`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                                      |
@@ -159,6 +166,9 @@
 | minio.nodeSelector           |                {}                 |          | This key allows you to set the node selector for the stateful deployment of `minio`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                                    |
 | minio.tolerations            |                []                 |          | This key allows you to set the tolerations for the stateful deployment of `minio`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                                          |
 | minio.affinity               |                {}                 |          | This key allows you to set the affinity rules for the stateful deployment of `minio`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                                                |
+| minio.labels | {} |  | This key allows you to set custom labels for the stateful deployment of `minio`. This is useful for organizing and selecting resources in your Kubernetes cluster. |
+| minio.annotations | {} |  | This key allows you to set custom annotations for the stateful deployment of `minio`. This is useful for adding metadata or configuration hints to your resources. |
+
 
 ### Web Deployment
 
@@ -175,6 +185,8 @@
 | web.nodeSelector      |                     {}                      |          | This key allows you to set the node selector for the deployment of `web`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                      |
 | web.tolerations       |                     []                      |          | This key allows you to set the tolerations for the deployment of `web`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                            |
 | web.affinity          |                     {}                      |          | This key allows you to set the affinity rules for the deployment of `web`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                  |
+| web.labels | {} |  | Custom labels to add to the web deployment |
+| web.annotations | {} |  | Custom annotations to add to the web deployment |
 
 ### Space Deployment
 
@@ -191,6 +203,8 @@
 | space.nodeSelector      |                    {}                    |          | This key allows you to set the node selector for the deployment of `space`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                    |
 | space.tolerations       |                    []                    |          | This key allows you to set the tolerations for the deployment of `space`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                          |
 | space.affinity          |                    {}                    |          | This key allows you to set the affinity rules for the deployment of `space`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                |
+| space.labels | {} |  | Custom labels to add to the space deployment |
+| space.annotations | {} |  | Custom annotations to add to the space deployment |
 
 ### Admin Deployment
 
@@ -207,6 +221,8 @@
 | admin.nodeSelector      |                    {}                    |          | This key allows you to set the node selector for the deployment of `admin`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                    |
 | admin.tolerations       |                    []                    |          | This key allows you to set the tolerations for the deployment of `admin`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                          |
 | admin.affinity          |                    {}                    |          | This key allows you to set the affinity rules for the deployment of `admin`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                |
+| admin.labels | {} |  | Custom labels to add to the admin deployment |
+| admin.annotations | {} |  | Custom annotations to add to the admin deployment |
 
 ### Live Service Deployment
 
@@ -224,6 +240,8 @@
 | live.tolerations       |                   []                    |          | This key allows you to set the tolerations for the deployment of `live`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                           |
 | live.affinity          |                   {}                    |          | This key allows you to set the affinity rules for the deployment of `live`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                 |
 | live_server_secret_key |   htbqvBJAgpm9bzvf3r4urJer0ENReatceh    |   Yes    | This key sets the secret key for the live server. This is required for secure communication and authentication in the live server component.                                                                    |
+| live.labels | {} |  | Custom labels to add to the live deployment |
+| live.annotations | {} |  | Custom annotations to add to the live deployment |
 
 ### API Deployment
 
@@ -243,6 +261,8 @@
 | api.nodeSelector       |                     {}                     |          | This key allows you to set the node selector for the deployment of `api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                      |
 | api.tolerations        |                     []                     |          | This key allows you to set the tolerations for the deployment of `api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                            |
 | api.affinity           |                     {}                     |          | This key allows you to set the affinity rules for the deployment of `api`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                  |
+| api.labels | {} |  | Custom labels to add to the API deployment |
+| api.annotations | {} |  | Custom annotations to add to the API deployment |
 
 ### Worker Deployment
 
@@ -257,6 +277,8 @@
 | worker.nodeSelector  |                     {}                     |          | This key allows you to set the node selector for the deployment of `worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                   |
 | worker.tolerations   |                     []                     |          | This key allows you to set the tolerations for the deployment of `worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                         |
 | worker.affinity      |                     {}                     |          | This key allows you to set the affinity rules for the deployment of `worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                               |
+| worker.labels | {} |  | Custom labels to add to the worker deployment |
+| worker.annotations | {} |  | Custom annotations to add to the worker deployment |
 
 ### Beat-Worker deployment
 
@@ -271,6 +293,8 @@
 | beatworker.nodeSelector  |                     {}                     |          | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                               |
 | beatworker.tolerations   |                     []                     |          | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                     |
 | beatworker.affinity      |                     {}                     |          | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                           |
+| beatworker.labels | {} |  | Custom labels to add to the beat-worker deployment |
+| beatworker.annotations | {} |  | Custom annotations to add to the beat-worker deployment |
 
 ### Ingress and SSL Setup
 

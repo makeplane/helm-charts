@@ -23,11 +23,13 @@ spec:
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
+  {{- template "plane.labelsAndAnnotations" .Values.rabbitmq }}
 spec:
   selector:
     matchLabels:
