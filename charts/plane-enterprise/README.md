@@ -367,7 +367,6 @@
 | services.beatworker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.beatworker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.beatworker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
-
 | services.beatworker.labels | {} |  | Custom labels to add to the beat-worker deployment |
 | services.beatworker.annotations | {} |  | Custom annotations to add to the beat-worker deployment |
 
