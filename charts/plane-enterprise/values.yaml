@@ -1,4 +1,4 @@
-planeVersion: v1.14.1
+planeVersion: v1.15.0
 
 dockerRegistry:
   enabled: false
@@ -396,4 +396,3 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
-
