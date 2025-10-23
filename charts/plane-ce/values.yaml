@@ -1,4 +1,4 @@
-planeVersion: stable
+planeVersion: v1.1.0
 
 dockerRegistry:
   enabled: false

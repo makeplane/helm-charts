@@ -23,4 +23,5 @@ metadata:
 data:
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
   LIVE_BASE_PATH: "/live"
+  
 ---
