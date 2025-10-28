@@ -33,6 +33,8 @@ redis:
   volumeSize: 100Mi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -45,6 +47,8 @@ postgres:
   volumeSize: 1Gi
   pullPolicy: IfNotPresent
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -61,6 +65,8 @@ rabbitmq:
   default_password: plane
   external_rabbitmq_url: ''
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -75,11 +81,13 @@ minio:
   storageClass: ""
   volumeSize: 1Gi
   assign_cluster_ip: false
-  env:
-    minio_endpoint_ssl: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  env:
+    minio_endpoint_ssl: false
 
 web:
   replicas: 1
@@ -90,6 +98,8 @@ web:
   image: artifacts.plane.so/makeplane/plane-frontend
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -103,6 +113,8 @@ space:
   image: artifacts.plane.so/makeplane/plane-space
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -116,6 +128,8 @@ admin:
   image: artifacts.plane.so/makeplane/plane-admin
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -129,6 +143,8 @@ live:
   image: artifacts.plane.so/makeplane/plane-live
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -142,6 +158,8 @@ api:
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
   assign_cluster_ip: false
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -154,6 +172,8 @@ worker:
   memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -166,6 +186,8 @@ beatworker:
   memoryRequest: 50Mi
   image: artifacts.plane.so/makeplane/plane-backend
   pullPolicy: Always
+  labels: {}
+  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}

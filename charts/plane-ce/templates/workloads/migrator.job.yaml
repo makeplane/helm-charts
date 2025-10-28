@@ -4,6 +4,7 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
+  {{- template "plane.labelsAndAnnotations" .Values.api }}
 spec:
   backoffLimit: 3
   template:
