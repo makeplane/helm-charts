@@ -33,5 +33,6 @@ spec:
       restartPolicy: OnFailure
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+      {{- include "plane.podScheduling" .Values.api }}
 
 ---

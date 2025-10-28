@@ -26,6 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.api }}
 spec:
   replicas: {{ .Values.services.api.replicas | default 1}}
   selector:
@@ -66,15 +67,6 @@ spec:
           - name: s3-custom-ca
             mountPath: /s3-custom-ca
             readOnly: true
-        env:
-          - name: SSL_CERT_FILE
-            value: "/etc/ssl/certs/ca-certificates.crt"
-          - name: SSL_CERT_DIR
-            value: "/etc/ssl/certs"
-          - name: REQUESTS_CA_BUNDLE
-            value: "/etc/ssl/certs/ca-certificates.crt"
-          - name: CURL_CA_BUNDLE
-            value: "/etc/ssl/certs/ca-certificates.crt"
         {{- end }}
         command:
           - /bin/bash
@@ -118,6 +110,23 @@ spec:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
           {{- end }}
+
+        {{- if or .Values.extraEnv (and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey) }}
+        env:
+          {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
+          - name: SSL_CERT_FILE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          - name: SSL_CERT_DIR
+            value: "/etc/ssl/certs"
+          - name: REQUESTS_CA_BUNDLE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          - name: CURL_CA_BUNDLE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+        {{- end }}
         readinessProbe:
           failureThreshold: 30
           httpGet:
@@ -128,6 +137,7 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
 
+      {{- include "plane.podScheduling" .Values.services.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

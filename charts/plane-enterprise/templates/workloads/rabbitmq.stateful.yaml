@@ -29,6 +29,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.rabbitmq }}
 spec:
   selector:
     matchLabels:
@@ -49,6 +50,10 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.rabbitmq_existingSecret) }}{{ .Values.external_secrets.rabbitmq_existingSecret }}{{ else }}{{ .Release.Name }}-rabbitmq-secrets{{ end }}
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
         volumeMounts:
         - mountPath: /var/lib/rabbitmq
           name: pvc-{{ .Release.Name }}-rabbitmq-vol
@@ -60,6 +65,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 30
           failureThreshold: 50
+      {{- include "plane.podScheduling" .Values.services.rabbitmq }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

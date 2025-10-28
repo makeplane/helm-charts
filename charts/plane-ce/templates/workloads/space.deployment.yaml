@@ -52,7 +52,7 @@ spec:
           limits:
             memory: {{ .Values.space.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.space.cpuLimit | default "500m" | quote}}
+      {{- include "plane.podScheduling" .Values.space }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

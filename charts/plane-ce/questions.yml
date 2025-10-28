@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: stable
+  default: v1.1.0
   required: true
   group: "Docker Registry"
 
@@ -183,18 +183,10 @@ questions:
     label: "CPU Request"
     type: string
     default: 50m
-  - variable: env.live_sentry_dsn
-    label: "Live Sentry DSN"
+  - variable: env.live_server_secret_key
+    label: "Live Server Secret Key"
     type: string
-    default: ""
-  - variable: env.live_sentry_environment
-    label: "Live Sentry Environment"
-    type: string
-    default: ""
-  - variable: env.live_sentry_traces_sample_rate
-    label: "Live Sentry Traces Sample Rate"
-    type: string
-    default: ""
+    default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
 - variable: api.image
   label: Backend Docker Image
@@ -319,7 +311,7 @@ questions:
   - variable: redis.image
     label: "Docker Image"
     type: string
-    default: "valkey/valkey:7.2.5-alpine"
+    default: "valkey/valkey:7.2.11-alpine"
     show_if: "redis.local_setup=true"
   - variable: redis.servicePort
     label: Port
