@@ -188,10 +188,6 @@ beatworker:
   pullPolicy: Always
   labels: {}
   annotations: {}
-
-migrator:
-  labels: {}
-  annotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
