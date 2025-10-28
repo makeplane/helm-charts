@@ -5,6 +5,23 @@ entries:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
     appVersion: 1.1.0
+    created: "2025-10-28T09:20:13.112809185Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 2cfdae368df209399ea61abc06bf161423277b5b8d9a59812e7e9c26ea35c5d8
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.4.0/plane-ce-1.4.0.tgz
+    version: 1.4.0
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 1.1.0
     created: "2025-10-23T13:48:11.076843201Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -1010,4 +1027,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2025-10-23T13:48:11.07744126Z"
+generated: "2025-10-28T09:20:13.114293634Z"
