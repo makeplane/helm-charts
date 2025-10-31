@@ -57,6 +57,10 @@ data:
   USE_STORAGE_PROXY: {{ .Values.env.use_storage_proxy | default false | ternary "1" "0" | quote }}
   INTAKE_EMAIL_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
 
+  {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName }}
+  AWS_CA_BUNDLE: {{ .Values.airgapped.s3CrtFileLocation | default "/s3-custom-ca/s3-custom-ca.crt" | quote }}
+  {{- end }}
+
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
   SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
   DEBUG: "0"

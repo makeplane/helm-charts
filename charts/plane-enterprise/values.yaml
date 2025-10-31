@@ -16,8 +16,8 @@ airgapped:
   # mount the CA bundle into the API pod by passing it in as an environment
   # variable. Should be the full path to the CA bundle file, e.g.
   #
-  s3SecretName: ""
-  s3SecretKey: ""
+  s3SecretName: "plane-s3-ca"
+  s3SecretKey: "s3-custom-ca.crt"
 
 ingress:
   enabled: true
@@ -89,8 +89,25 @@ services:
     root_user: admin
     root_password: password
     assign_cluster_ip: false
+    use_storage_proxy: false
+    tls:
+      enabled: true
+      # Option 1: Provide the certificate data directly (recommended)
+      # Read your certificate files and paste the content here:
+      # certData: |
+      #   -----BEGIN CERTIFICATE-----
+      #   <your certificate content here>
+      #   -----END CERTIFICATE-----
+      # keyData: |
+      #   -----BEGIN PRIVATE KEY-----
+      #   <your private key content here>
+      #   -----END PRIVATE KEY-----
+      
+      # Option 2: Provide file paths (for reference only - you'll need to copy the file contents)
+      certPath: "/Users/thomastaylor/test/helm-testing/s3.local.crt"
+      keyPath: "/Users/thomastaylor/test/helm-testing/s3.local.key"
     env:
-      minio_endpoint_ssl: false
+      minio_endpoint_ssl: true
     nodeSelector: {}
     tolerations: []
     affinity: {}
