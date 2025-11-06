@@ -396,3 +396,34 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# Metrics collection configuration
+metrics:
+  enabled: true
+  
+  # Installation identification
+  installation:
+    uuid: ""  # Auto-generated if empty
+    type: "kubernetes"
+    cluster_name: "default"
+    plane_version: ""  # Optional
+  
+  # Telemetry server configuration
+  telemetry:
+    http_endpoint: "https://v2.metrics.plane.so/v1/traces"  # Full URL (do not include :443)
+    headers: {}
+  
+  # Agent configuration
+  agent:
+    image: "otel/opentelemetry-collector-contrib"
+    tag: "0.110.0"
+    imagePullPolicy: "IfNotPresent"
+    replicas: 1
+    memoryLimit: "256Mi"
+    cpuLimit: "100m"
+    scrape_interval: "300s"  # 5 minutes
+    batch:
+      timeout: "60s"
+      send_batch_size: 4096
+    debug:
+      enabled: false
