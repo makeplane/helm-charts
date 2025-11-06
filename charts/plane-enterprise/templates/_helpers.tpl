@@ -26,3 +26,11 @@
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+
+{{- define "plane.metrics.installationUUID" -}}
+{{- if .Values.metrics.installation.uuid -}}
+{{- .Values.metrics.installation.uuid -}}
+{{- else -}}
+{{- uuidv4 -}}
+{{- end -}}
+{{- end -}}

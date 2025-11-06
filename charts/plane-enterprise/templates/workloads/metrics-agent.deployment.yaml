@@ -1,0 +1,90 @@
+{{- if .Values.metrics.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-metrics-agent
+  labels:
+    app.kubernetes.io/name: plane-enterprise
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: metrics-agent
+spec:
+  replicas: {{ .Values.metrics.agent.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: plane-enterprise
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: metrics-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plane-enterprise
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: metrics-agent
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config-secrets/metrics-config.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-srv-account
+      containers:
+        - name: otel-agent
+          image: {{ .Values.metrics.agent.image }}:{{ .Values.metrics.agent.tag }}
+          imagePullPolicy: {{ .Values.metrics.agent.imagePullPolicy | default "IfNotPresent" }}
+          args:
+            - --config=/etc/otel-agent/agent-config.yaml
+          ports:
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            limits:
+              memory: {{ .Values.metrics.agent.memoryLimit | default "256Mi" }}
+              cpu: {{ .Values.metrics.agent.cpuLimit | default "100m" }}
+            requests:
+              memory: {{ div (regexReplaceAll "Mi|Gi" (.Values.metrics.agent.memoryLimit | default "256Mi") "") 2 | printf "%dMi" }}
+              cpu: {{ div (regexReplaceAll "m" (.Values.metrics.agent.cpuLimit | default "100m") "") 2 | printf "%dm" }}
+          volumeMounts:
+            - name: agent-config
+              mountPath: /etc/otel-agent
+              readOnly: true
+          env:
+            - name: PLANE_INSTALLATION_UUID
+              value: {{ include "plane.metrics.installationUUID" . | quote }}
+            - name: PLANE_INSTALLATION_TYPE  
+              value: {{ .Values.metrics.installation.type | default "kubernetes" | quote }}
+            - name: KUBERNETES_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: KUBERNETES_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      volumes:
+        - name: agent-config
+          configMap:
+            name: {{ .Release.Name }}-metrics-config
+{{- end }}
+
