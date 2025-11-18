@@ -105,6 +105,21 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
+    image: artifacts.plane.so/makeplane/iframely:v1.2.0
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  web:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
     image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
