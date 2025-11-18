@@ -136,6 +136,10 @@ services:
 
 
   monitor:
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
     image: artifacts.plane.so/makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
