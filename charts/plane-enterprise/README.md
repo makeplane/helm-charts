@@ -191,10 +191,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.web.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.web.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.web.cpuRequest | 100m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.web.memoryRequest | 200Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.web.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.web.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.web.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.web.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.web.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.web.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.web.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.web.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.web.image| artifacts.plane.so/makeplane/web-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.web.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `web`. |
 | services.web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -209,10 +213,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.space.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.space.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.space.cpuRequest | 100m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.space.memoryRequest | 200Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.space.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.space.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.space.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.space.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.space.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.space.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.space.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.space.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.space.image| artifacts.plane.so/makeplane/space-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.space.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `space`. |
 | services.space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -227,10 +235,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.admin.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.admin.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.admin.cpuRequest | 100m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.admin.memoryRequest | 200Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
 | services.admin.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.admin.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.admin.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.admin.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.admin.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.admin.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.admin.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.admin.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.admin.image| artifacts.plane.so/makeplane/admin-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `admin`. |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -245,10 +257,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.live.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.live.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
-| services.live.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.live.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.live.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.live.cpuRequest | 500m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.live.memoryRequest | 1000Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
+| services.live.cpuLimit | 1000m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.live.memoryLimit | 2000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.live.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.live.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.live.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.live.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.live.image| artifacts.plane.so/makeplane/live-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.live.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `live`. |
 | env.live_sentry_dsn |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
@@ -286,10 +302,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.api.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.api.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
-| services.api.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.api.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.api.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.api.cpuRequest | 1000m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.api.memoryRequest | 1000Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
+| services.api.cpuLimit | 2000m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.api.memoryLimit | 2000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.api.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.api.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.api.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.api.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.api.image| artifacts.plane.so/makeplane/backend-commercial |  | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.api.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `api`. |
 | env.sentry_dsn |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.|
@@ -307,10 +327,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.silo.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.silo.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
-| services.silo.cpuLimit | 500m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.silo.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.silo.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.silo.cpuRequest | 250m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.silo.memoryRequest | 1000Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
+| services.silo.cpuLimit | 1000m |  |  Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.silo.memoryLimit | 2000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.silo.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.silo.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.silo.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.silo.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.silo.image| artifacts.plane.so/makeplane/silo-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
 | services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
@@ -340,16 +364,19 @@
 | env.silo_envs.hmac_secret_key |  &lt;random-32-bit-string&gt; |  | HMAC Secret Key |
 | env.silo_envs.aes_secret_key | "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" |  | AES Secret Key |
 
-  
 ### Worker Deployment
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.worker.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.worker.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
-| services.worker.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.worker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.worker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.worker.cpuRequest | 500m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.worker.memoryRequest | 2000Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
+| services.worker.cpuLimit | 1000m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.worker.memoryLimit | 4000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.worker.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.worker.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.worker.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.worker.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.worker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.worker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.worker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
@@ -361,10 +388,14 @@
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
 | services.beatworker.replicas | 1 | Yes | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.beatworker.memoryLimit | 1000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
-| services.beatworker.cpuLimit | 500m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
-| services.beatworker.memoryRequest | 50Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
-| services.beatworker.cpuRequest | 50m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.beatworker.cpuRequest | 500m |  | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.|
+| services.beatworker.memoryRequest | 1000Mi |  | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.|
+| services.beatworker.cpuLimit | 1000m |  | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.|
+| services.beatworker.memoryLimit | 2000Mi |  |  Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.|
+| services.beatworker.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.beatworker.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.beatworker.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.beatworker.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.beatworker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.beatworker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.beatworker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
@@ -377,10 +408,14 @@
 |---|:---:|:---:|---|
 | services.email_service.enabled | false |  | Set to `true` to enable the email service deployment |
 | services.email_service.replicas | 1 |  | Number of replicas for the email service deployment |
-| services.email_service.memoryLimit | 1000Mi |  | Memory limit for the email service deployment |
+| services.email_service.cpuRequest | 100m |  | CPU request for the email service deployment |
+| services.email_service.memoryRequest | 200Mi |  | Memory request for the email service deployment |
 | services.email_service.cpuLimit | 500m |  | CPU limit for the email service deployment |
-| services.email_service.memoryRequest | 50Mi |  | Memory request for the email service deployment |
-| services.email_service.cpuRequest | 50m |  | CPU request for the email service deployment |
+| services.email_service.memoryLimit | 1000Mi |  | Memory limit for the email service deployment |
+| services.email_service.autoscaling.minReplicas | 1 |  | Minimum number of replicas for the Horizontal Pod Autoscaler |
+| services.email_service.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
+| services.email_service.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
+| services.email_service.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.email_service.image | artifacts.plane.so/makeplane/email-commercial |  | Docker image for the email service deployment |
 | services.email_service.pullPolicy | Always |  | Image pull policy for the email service deployment |
 | services.email_service.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `email_service`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |

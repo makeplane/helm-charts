@@ -26,3 +26,12 @@
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+
+{{- define "enable.hpa" -}}
+{{- $metrics := lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "system:metrics-server" }}
+{{- if not $metrics }}
+false
+{{- else }}
+true
+{{- end }}
+{{- end }}

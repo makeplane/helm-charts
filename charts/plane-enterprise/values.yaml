@@ -97,6 +97,7 @@ services:
     labels: {}
     annotations: {}
 
+
   iframely:
     enabled: false
     replicas: 1
@@ -127,6 +128,12 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
+
 
   monitor:
     memoryLimit: 1000Mi
@@ -145,13 +152,18 @@ services:
 
   space:
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -160,13 +172,18 @@ services:
 
   admin:
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -175,13 +192,18 @@ services:
 
   live:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 500m
+    memoryRequest: 1000Mi
+    cpuLimit: 1000m
+    memoryLimit: 2000Mi
     image: artifacts.plane.so/makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -190,13 +212,18 @@ services:
 
   api:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 1000m
+    memoryRequest: 1000Mi
+    cpuLimit: 2000m
+    memoryLimit: 2000Mi
     image: artifacts.plane.so/makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -205,10 +232,16 @@ services:
 
   worker:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 500m
+    memoryRequest: 2000Mi
+    cpuLimit: 1000m
+    memoryLimit: 4000Mi
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
+
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -217,10 +250,15 @@ services:
 
   beatworker:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 500m
+    memoryRequest: 1000Mi
+    cpuLimit: 1000m
+    memoryLimit: 2000Mi
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -230,13 +268,18 @@ services:
   silo:
     enabled: true
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuRequest: 250m
+    memoryRequest: 1000Mi
+    cpuLimit: 1000m
+    memoryLimit: 2000Mi
     image: artifacts.plane.so/makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -262,12 +305,17 @@ services:
   email_service:
     enabled: false
     replicas: 1
-    memoryLimit: 1000Mi
+    cpuRequest: 100m
+    memoryRequest: 200Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 1000Mi
     image: artifacts.plane.so/makeplane/email-commercial
     pullPolicy: Always
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 90
+      targetMemoryUtilizationPercentage: 90
     nodeSelector: {}
     tolerations: []
     affinity: {}

@@ -48,9 +48,10 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.web.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.web.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.web.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.services.web.memoryRequest | default "200Mi" | quote }}
           limits:
+            cpu: {{ .Values.services.web.cpuLimit | default "500m" | quote}}
             memory: {{ .Values.services.web.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.web.cpuLimit | default "500m" | quote}}
         {{- if .Values.extraEnv }}
@@ -60,4 +61,41 @@ spec:
       {{- include "plane.podScheduling" .Values.services.web }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-web-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-web-wl
+  minReplicas: {{ .Values.services.web.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.services.web.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.services.web.autoscaling.targetCPUUtilizationPercentage .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.services.web.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.web.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.services.web.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.web.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---

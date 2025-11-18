@@ -48,11 +48,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.admin.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.admin.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.admin.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.services.admin.memoryRequest | default "200Mi" | quote }}
           limits:
-            memory: {{ .Values.services.admin.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.admin.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.admin.memoryLimit  | default "1000Mi" | quote }}
         {{- if .Values.extraEnv }}
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
@@ -60,4 +60,41 @@ spec:
       {{- include "plane.podScheduling" .Values.services.admin }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-admin-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-admin-wl
+  minReplicas: {{ .Values.services.admin.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.services.admin.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.services.admin.autoscaling.targetCPUUtilizationPercentage .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.services.admin.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.admin.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.admin.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---

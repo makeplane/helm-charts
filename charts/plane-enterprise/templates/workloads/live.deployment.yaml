@@ -48,11 +48,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.live.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.live.cpuRequest | default "50m" | quote }}
+            cpu: {{ .Values.services.live.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.services.live.memoryRequest | default "1000Mi" | quote }}
           limits:
-            memory: {{ .Values.services.live.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.live.cpuLimit | default "500m" | quote}}
+            cpu: {{ .Values.services.live.cpuLimit | default "1000m" | quote}}
+            memory: {{ .Values.services.live.memoryLimit  | default "2000Mi" | quote }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
@@ -67,4 +67,41 @@ spec:
       {{- include "plane.podScheduling" .Values.services.live }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- if eq (include "enable.hpa" . | trim) "true" }}
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-live-hpa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-live-wl
+  minReplicas: {{ .Values.services.live.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.services.live.autoscaling.maxReplicas | default 5 }}
+  {{- if or .Values.services.live.autoscaling.targetCPUUtilizationPercentage .Values.services.live.autoscaling.targetMemoryUtilizationPercentage }}
+  metrics:
+    {{- if .Values.services.live.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.live.autoscaling.targetCPUUtilizationPercentage | default 90 }}
+    {{- end }}
+    {{- if .Values.services.live.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.live.autoscaling.targetMemoryUtilizationPercentage | default 90 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 ---
