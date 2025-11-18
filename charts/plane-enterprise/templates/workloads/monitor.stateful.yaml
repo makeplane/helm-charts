@@ -24,6 +24,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.monitor }}
 spec:
   selector:
     matchLabels:
@@ -42,14 +43,32 @@ spec:
         name: {{ .Release.Name }}-monitor
         stdin: true
         tty: true
+        {{- if .Values.airgapped.enabled }}
+        command:
+          - prime-monitor
+        args:
+          - start-airgapped
+        {{- end }}
+        resources:
+          requests:
+            memory: {{ .Values.services.monitor.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.monitor.cpuRequest | default "50m" | quote }}
+          limits:
+            memory: {{ .Values.services.monitor.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.monitor.cpuLimit | default "500m" | quote}}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-monitor-vars
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
         volumeMounts:
         - mountPath: /app
           name: pvc-{{ .Release.Name }}-monitor-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.services.monitor }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

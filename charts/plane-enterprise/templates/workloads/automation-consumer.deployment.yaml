@@ -1,0 +1,57 @@
+{{- if .Values.services.automation_consumer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-automation-consumer-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
+spec:
+  replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-automation-consumer
+        imagePullPolicy: Always
+        image: {{ .Values.services.api.image | default "artifacts.plane.so/makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.automation_consumer.memoryRequest  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.automation_consumer.cpuRequest | default "500m" | quote}}
+          limits:
+            memory: {{ .Values.services.automation_consumer.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.automation_consumer.cpuLimit | default "500m" | quote}}
+        command:
+          - ./bin/docker-entrypoint-automation-consumer.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-automation-consumer-vars
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+
+      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+{{- end }}

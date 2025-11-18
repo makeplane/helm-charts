@@ -1,0 +1,64 @@
+{{- if and .Values.services.iframely.enabled (not .Values.env.external_iframely_url) }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-iframely
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+spec:
+  clusterIP: None
+  ports:
+  - name: iframely-8061
+    port: 8061
+    protocol: TCP
+    targetPort: 8061
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-iframely-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.iframely }}
+spec:
+  replicas: {{ .Values.services.iframely.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-iframely
+        imagePullPolicy: Always
+        image: {{ .Values.services.iframely.image | default "artifacts.plane.so/makeplane/iframely:v1.2.0" }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.iframely.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.iframely.cpuRequest | default "50m" | quote }}
+          limits:
+            memory: {{ .Values.services.iframely.memoryLimit | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.iframely.cpuLimit | default "500m" | quote }}
+        command:
+          - node
+        args:
+          - server.js
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      {{- include "plane.podScheduling" .Values.services.iframely }}
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+{{- end }}

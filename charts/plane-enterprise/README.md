@@ -5,165 +5,186 @@
 
 ## Installing Plane
 
-  1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
-  2. Set the following environment variables.
-  
-      Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
+1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
+2. Set the following environment variables.
 
-      ```bash
-      PLANE_VERSION=v1.12.1 # or the last released version
-      DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
-      ```
+   Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
-  3. Add Plane helm chart repo
+   ```bash
+   PLANE_VERSION=v1.17.0 # or the last released version
+   DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
+   ```
 
-      Continue to be on the same Terminal window as with the previous steps, copy the code below, paste it on Terminal, and hit ENTER or RETURN.
+3. Add Plane helm chart repo
 
-      ```bash
-      helm repo add plane https://helm.plane.so/
-      ```
+   Continue to be on the same Terminal window as with the previous steps, copy the code below, paste it on Terminal, and hit ENTER or RETURN.
 
-  4. Set-up and customization
-      - Quick set-up
+   ```bash
+   helm repo add plane https://helm.plane.so/
+   ```
 
-        This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class.This also sets up the ingress routes for you using `nginx` ingress class.
-        > To customize this, see `Custom ingress routes` below.
+4. Set-up and customization
 
-        Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
+   - Quick set-up
 
-        ```bash
-        helm upgrade --install plane-app plane/plane-enterprise \
-            --create-namespace \
-            --namespace plane \
-            --set license.licenseDomain=${DOMAIN_NAME} \
-            --set planeVersion=${PLANE_VERSION} \
-            --set ingress.enabled=true \
-            --set ingress.ingressClass=nginx \
-            --timeout 10m \
-            --wait \
-            --wait-for-jobs
-        ```
+     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class.This also sets up the ingress routes for you using `nginx` ingress class.
 
-        > This is the basic setup required for Plane-EE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.<br>
+     > To customize this, see `Custom ingress routes` below.
 
-        Using a Custom StorageClass
+     Continue to be on the same Terminal window as you have so far, copy the code below, and paste it on your Terminal screen.
 
-        To specify a custom StorageClass for Plane-Enterprise components, add the following options to the above `helm upgrade --install` command:
-        ```bash
-        --set env.storageClass=<your-storageclass-name>
-        ```
+     ```bash
+     helm upgrade --install plane-app plane/plane-enterprise \
+         --create-namespace \
+         --namespace plane \
+         --set license.licenseDomain=${DOMAIN_NAME} \
+         --set planeVersion=${PLANE_VERSION} \
+         --set ingress.enabled=true \
+         --set ingress.ingressClass=nginx \
+         --timeout 10m \
+         --wait \
+         --wait-for-jobs
+     ```
 
-        
+     > This is the basic setup required for Plane-EE. You can customize the default values for namespace and appname as needed. Additional settings can be configured by referring to the Configuration Settings section.<br>
 
-      - Advance set-up
+     Using a Custom StorageClass
 
-          For more control over your set-up, run the script below to download the `values.yaml` file and and edit using any editor like Vim or Nano. 
+     To specify a custom StorageClass for Plane-Enterprise components, add the following options to the above `helm upgrade --install` command:
 
-          ```bash
-          helm  show values plane/plane-enterprise > values.yaml
-          vi values.yaml
-          ```
+     ```bash
+     --set env.storageClass=<your-storageclass-name>
+     ```
 
-          Make sure you set the minimum required values as below.
-          - `planeVersion: v1.12.1 <or the last released version>`
-          - `license.licenseDomain: <The domain you have specified to host Plane>`
-          - `ingress.enabled: <true | false>`
-          - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
-          - `env.storageClass: <default storage class configured in your cluster>`
+   - Advance set-up
 
-            > See `Available customizations` for more details.
+     For more control over your set-up, run the script below to download the `values.yaml` file and and edit using any editor like Vim or Nano.
 
-          After saving the `values.yaml` file, continue to be on the same Terminal window as on the previous steps, copy the code below, and paste it on your Terminal screen.
+     ```bash
+     helm  show values plane/plane-enterprise > values.yaml
+     vi values.yaml
+     ```
 
-          ```bash
-          helm upgrade --install plane-app plane/plane-enterprise \
-              --create-namespace \
-              --namespace plane \
-              -f values.yaml \
-              --timeout 10m \
-              --wait \
-              --wait-for-jobs 
-          ```
+     Make sure you set the minimum required values as below.
+
+     - `planeVersion: v1.17.0 <or the last released version>`
+     - `license.licenseDomain: <The domain you have specified to host Plane>`
+     - `ingress.enabled: <true | false>`
+     - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
+     - `env.storageClass: <default storage class configured in your cluster>`
+
+       > See `Available customizations` for more details.
+
+     After saving the `values.yaml` file, continue to be on the same Terminal window as on the previous steps, copy the code below, and paste it on your Terminal screen.
+
+     ```bash
+     helm upgrade --install plane-app plane/plane-enterprise \
+         --create-namespace \
+         --namespace plane \
+         -f values.yaml \
+         --timeout 10m \
+         --wait \
+         --wait-for-jobs
+     ```
 
 ## Available customizations
 
-<!-- ### Docker registry
-
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| dockerRegistry.enabled | false |  | Plane uses a private Docker registry which needs authenticated login. This must be set to `true` to install Plane Enterprise. |
-| dockerRegistry.registry |  registry.plane.tools| Yes | The host that will serve the required Docker images; Don't change this. |
-| dockerRegistry.loginid |  | Yes | Sets the `loginid` for the Docker registry. This is the same as the REG_USER_ID value on prime. plane.so |
-| dockerRegistry.password |  | Yes | Sets the `password` for the Docker registry. This is the same as the REG_PASSWORD value on prime.plane.so|
-   -->
 ### License
 
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| planeVersion | v1.12.1 | Yes |  Specifies the version of Plane to be deployed. Copy this from prime.plane.so. |
-| license.licenseDomain | plane.example.com | Yes | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
+| Setting               |      Default      | Required | Description                                                                                                                                                                          |
+| --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| planeVersion          |      v1.17.0      |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
+
+### Air-gapped Settings
+
+| Setting                | Default | Required | Description                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | :-----: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| airgapped.enabled      |  false  |    No    | Specifies the airgapped mode the Plane API runs in.                                                                                                                                                                                                                                                                                                              |
+| airgapped.s3SecretName |   ""    |    No    | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3SecretKey`. Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` |
+| airgapped.s3SecretKey  |   ""    |    No    | Key name of the secret to load the Custom Root CA from `airgapped.s3SecretName`                                                                                                                                                                                                                                                                                  |
 
 ### Postgres
 
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| services.postgres.local_setup | true |  | Plane uses `postgres` as the primary database to store all the transactional data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `postgres`. Mark it as `false` when using a remotely hosted database |
-| services.postgres.image | postgres:15.7-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `postgres`. (must be set when `services.postgres.local_setup=true`)|
-| services.postgres.pullPolicy | IfNotPresent |  | Using this key, user can set the pull policy for the stateful deployment of `postgres`. (must be set when `services.postgres.local_setup=true`)|
-| services.postgres.servicePort | 5432 |  | This key sets the default port number to be used while setting up stateful deployment of `postgres`. |
-| services.postgres.volumeSize | 2Gi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| env.pgdb_username | plane |  | Database credentials are requried to access the hosted stateful deployment of `postgres`.  Use this key to set the username for the stateful deployment. |
-| env.pgdb_password | plane |  | Database credentials are requried to access the hosted stateful deployment of `postgres`.  Use this key to set the password for the stateful deployment. |
-| env.pgdb_name | plane |  |  Database name to be used while setting up stateful deployment of `Postgres`|
-| services.postgres.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| env.pgdb_remote_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url. |
+| Setting                             |       Default        | Required | Description                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------- | :------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.postgres.local_setup       |         true         |          | Plane uses `postgres` as the primary database to store all the transactional data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to `true` when you choose to setup stateful deployment of `postgres`. Mark it as `false` when using a remotely hosted database |
+| services.postgres.image             | postgres:15.7-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `postgres`. (must be set when `services.postgres.local_setup=true`)                                                                                                                                                                                                                         |
+| services.postgres.pullPolicy        |     IfNotPresent     |          | Using this key, user can set the pull policy for the stateful deployment of `postgres`. (must be set when `services.postgres.local_setup=true`)                                                                                                                                                                                                                                         |
+| services.postgres.servicePort       |         5432         |          | This key sets the default port number to be used while setting up stateful deployment of `postgres`.                                                                                                                                                                                                                                                                                    |
+| services.postgres.volumeSize        |         2Gi          |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                                                             |
+| env.pgdb_username                   |        plane         |          | Database credentials are requried to access the hosted stateful deployment of `postgres`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                                                                 |
+| env.pgdb_password                   |        plane         |          | Database credentials are requried to access the hosted stateful deployment of `postgres`. Use this key to set the password for the stateful deployment.                                                                                                                                                                                                                                 |
+| env.pgdb_name                       |        plane         |          | Database name to be used while setting up stateful deployment of `Postgres`                                                                                                                                                                                                                                                                                                             |
+| services.postgres.assign_cluster_ip |        false         |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                                                                                                                                                                       |
+| services.postgres.nodeSelector      |          {}          |          | This key allows you to set the node selector for the stateful deployment of `postgres`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                                                                |
+| services.postgres.tolerations       |          []          |          | This key allows you to set the tolerations for the stateful deployment of `postgres`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                                                                      |
+| services.postgres.affinity          |          {}          |          | This key allows you to set the affinity rules for the stateful deployment of `postgres`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                                                                            |
+| services.postgres.labels            |          {}          |          | This key allows you to set custom labels for the stateful deployment of `postgres`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                                                                   |
+| services.postgres.annotations       |          {}          |          | This key allows you to set custom annotations for the stateful deployment of `postgres`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                                                                   |
+| env.pgdb_remote_url                 |                      |          | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url.                                                                                                                                                                          |
 
 ### Redis/Valkey Setup
 
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| services.redis.local_setup | true |  | Plane uses `valkey` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to  `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
-| services.redis.image | valkey/valkey:7.2.5-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
-| services.redis.pullPolicy | IfNotPresent |  | Using this key, user can set the pull policy for the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)|
-| services.redis.servicePort | 6379 |  | This key sets the default port number to be used while setting up stateful deployment of `redis`. |
-| services.redis.volumeSize | 500Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| services.redis.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| env.remote_redis_url |  |  | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url. |
+| Setting                          |           Default           | Required | Description                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | :-------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.redis.local_setup       |            true             |          | Plane uses `valkey` to cache the session authentication and other static data. This database can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws rds or similar services). Set this to `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
+| services.redis.image             | valkey/valkey:7.2.11-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)                                                                                                                                                                                                                        |
+| services.redis.pullPolicy        |        IfNotPresent         |          | Using this key, user can set the pull policy for the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)                                                                                                                                                                                                                                        |
+| services.redis.servicePort       |            6379             |          | This key sets the default port number to be used while setting up stateful deployment of `redis`.                                                                                                                                                                                                                                                                                |
+| services.redis.volumeSize        |            500Mi            |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                                                      |
+| services.redis.assign_cluster_ip |            false            |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                                                                                                                                                                |
+| services.redis.nodeSelector      |             {}              |          | This key allows you to set the node selector for the stateful deployment of `redis`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                                                            |
+| services.redis.tolerations       |             []              |          | This key allows you to set the tolerations for the stateful deployment of `redis`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                                                                  |
+| services.redis.affinity          |             {}              |          | This key allows you to set the affinity rules for the stateful deployment of `redis`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                                                                        |
+| services.redis.labels            |             {}              |          | This key allows you to set custom labels for the stateful deployment of `redis`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                                                               |
+| services.redis.annotations       |             {}              |          | This key allows you to set custom annotations for the stateful deployment of `redis`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                                                               |
+| env.remote_redis_url             |                             |          | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url.                                                                                                                                                                      |
 
 ### RabbitMQ Setup
 
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| services.rabbitmq.local_setup | true |  | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to  `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
-| services.rabbitmq.image | rabbitmq:3.13.6-management-alpine |  | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)|
-| services.rabbitmq.pullPolicy | IfNotPresent |  | Using this key, user can set the pull policy for the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)|
-| services.rabbitmq.servicePort | 5672 |  | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`. |
-| services.rabbitmq.managementPort | 15672 |  | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`. |
-| services.rabbitmq.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| services.rabbitmq.default_user | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the username for the stateful deployment. |
-| services.rabbitmq.default_password | plane |  | Credentials are requried to access the hosted stateful deployment of `rabbitmq`.  Use this key to set the password for the stateful deployment. |
-| services.rabbitmq.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| services.rabbitmq.external_rabbitmq_url |  |  | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url. |
+| Setting                                 |              Default              | Required | Description                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------- | :-------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| services.rabbitmq.local_setup           |               true                |          | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
+| services.rabbitmq.image                 | rabbitmq:3.13.6-management-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                            |
+| services.rabbitmq.pullPolicy            |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                                            |
+| services.rabbitmq.servicePort           |               5672                |          | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                                       |
+| services.rabbitmq.managementPort        |               15672               |          | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                            |
+| services.rabbitmq.volumeSize            |               100Mi               |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                |
+| services.rabbitmq.default_user          |               plane               |          | Credentials are requried to access the hosted stateful deployment of `rabbitmq`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                             |
+| services.rabbitmq.default_password      |               plane               |          | Credentials are requried to access the hosted stateful deployment of `rabbitmq`. Use this key to set the password for the stateful deployment.                                                                                                                                                                                             |
+| services.rabbitmq.assign_cluster_ip     |               false               |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                                                                                                                          |
+| services.rabbitmq.nodeSelector          |                {}                 |          | This key allows you to set the node selector for the stateful deployment of `rabbitmq`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                   |
+| services.rabbitmq.tolerations           |                []                 |          | This key allows you to set the tolerations for the stateful deployment of `rabbitmq`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                         |
+| services.rabbitmq.affinity              |                {}                 |          | This key allows you to set the affinity rules for the stateful deployment of `rabbitmq`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                               |
+| services.rabbitmq.labels                |                {}                 |          | This key allows you to set custom labels for the stateful deployment of `rabbitmq`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                      |
+| services.rabbitmq.annotations           |                {}                 |          | This key allows you to set custom annotations for the stateful deployment of `rabbitmq`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                      |
+| services.rabbitmq.external_rabbitmq_url |                                   |          | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url.                                                                                                                              |
 
 ### Doc Store (Minio/S3) Setup
 
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| services.minio.local_setup | true |  | Plane uses `minio` as the default file storage drive. This storage can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws S3 or similar services). Set this to  `true` when you choose to setup stateful deployment of `minio`. Mark it as `false` when using a remotely hosted database |
-| services.minio.image | minio/minio:latest |  | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)|
-| services.minio.image_mc | minio/mc:latest |  | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `services.minio.local_setup=true`)|
-| services.minio.pullPolicy | IfNotPresent |  | Using this key, user can set the pull policy for the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)|
-| services.minio.volumeSize | 3Gi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| services.minio.root_user | admin |  |  Storage credentials are requried to access the hosted stateful deployment of `minio`.  Use this key to set the username for the stateful deployment. |
-| services.minio.root_password | password |  | Storage credentials are requried to access the hosted stateful deployment of `minio`.  Use this key to set the password for the stateful deployment. |
-| services.minio.env.minio_endpoint_ssl | false |  | (Optional) Env to enforce HTTPS when connecting to minio uploads bucket  |
-| env.docstore_bucket | uploads | Yes | Storage bucket name is required as part of configuration. This is where files will be uploaded irrespective of if you are using `Minio` or external `S3` (or compatible) storage service |
-| env.doc_upload_size_limit | 5242880 | Yes | Document Upload Size Limit (default to 5Mb) |
-| services.minio.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
-| env.aws_access_key |  |  | External `S3` (or compatible) storage service provides `access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
-| env.aws_secret_access_key |  |  | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
-| env.aws_region |  |  | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
-| env.aws_s3_endpoint_url |  |  | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`  |
+| Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------- | :----------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.minio.local_setup            |        true        |          | Plane uses `minio` as the default file storage drive. This storage can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws S3 or similar services). Set this to `true` when you choose to setup stateful deployment of `minio`. Mark it as `false` when using a remotely hosted database |
+| services.minio.image                  | minio/minio:latest |          | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                             |
+| services.minio.image_mc               |  minio/mc:latest   |          | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                           |
+| services.minio.pullPolicy             |    IfNotPresent    |          | Using this key, user can set the pull policy for the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                                             |
+| services.minio.volumeSize             |        3Gi         |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                           |
+| services.minio.root_user              |       admin        |          | Storage credentials are requried to access the hosted stateful deployment of `minio`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                                   |
+| services.minio.root_password          |      password      |          | Storage credentials are requried to access the hosted stateful deployment of `minio`. Use this key to set the password for the stateful deployment.                                                                                                                                                                                                   |
+| services.minio.env.minio_endpoint_ssl |       false        |          | (Optional) Env to enforce HTTPS when connecting to minio uploads bucket                                                                                                                                                                                                                                                                               |
+| env.docstore_bucket                   |      uploads       |   Yes    | Storage bucket name is required as part of configuration. This is where files will be uploaded irrespective of if you are using `Minio` or external `S3` (or compatible) storage service                                                                                                                                                              |
+| env.doc_upload_size_limit             |      5242880       |   Yes    | Document Upload Size Limit (default to 5Mb)                                                                                                                                                                                                                                                                                                           |
+| services.minio.assign_cluster_ip      |       false        |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                                                                                                                                     |
+| services.minio.nodeSelector           |         {}         |          | This key allows you to set the node selector for the stateful deployment of `minio`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                                                                                                                                 |
+| services.minio.tolerations            |         []         |          | This key allows you to set the tolerations for the stateful deployment of `minio`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                                                                                                                                       |
+| services.minio.affinity               |         {}         |          | This key allows you to set the affinity rules for the stateful deployment of `minio`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                                             |
+| services.minio.labels                 |         {}         |          | This key allows you to set custom labels for the stateful deployment of `minio`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                                    |
+| services.minio.annotations            |         {}         |          | This key allows you to set custom annotations for the stateful deployment of `minio`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                                    |
+| env.aws_access_key                    |                    |          | External `S3` (or compatible) storage service provides `access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                                                            |
+| env.aws_secret_access_key             |                    |          | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                                                     |
+| env.aws_region                        |                    |          | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                             |
+| env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                    |
 
 ### Web Deployment
 
@@ -181,6 +202,11 @@
 | services.web.image| artifacts.plane.so/makeplane/web-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.web.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `web`. |
 | services.web.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.web.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `web`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.web.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `web`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.web.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `web`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.web.labels | {} |  | Custom labels to add to the web deployment |
+| services.web.annotations | {} |  | Custom annotations to add to the web deployment |
 
 ### Space Deployment
 
@@ -198,6 +224,11 @@
 | services.space.image| artifacts.plane.so/makeplane/space-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.space.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `space`. |
 | services.space.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.space.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `space`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.space.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `space`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.space.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `space`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.space.labels | {} |  | Custom labels to add to the space deployment |
+| services.space.annotations | {} |  | Custom annotations to add to the space deployment |
 
 ### Admin Deployment
 
@@ -215,6 +246,11 @@
 | services.admin.image| artifacts.plane.so/makeplane/admin-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.admin.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `admin`. |
 | services.admin.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.admin.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `admin`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.admin.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `admin`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.admin.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `admin`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.admin.labels | {} |  | Custom labels to add to the admin deployment |
+| services.admin.annotations | {} |  | Custom annotations to add to the admin deployment |
 
 ### Live Service Deployment
 
@@ -235,7 +271,13 @@
 | env.live_sentry_environment |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.live_sentry_traces_sample_rate |  |  | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.|
 | env.live_server_secret_key | htbqvBJAgpm9bzvf3r4urJer0ENReatceh |  | Live Server Secret Key |
+| env.external_iframely_url | "" |  | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL |
 | services.live.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.live.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `live`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.live.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `live`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.live.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `live`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.live.labels | {} |  | Custom labels to add to the live deployment |
+| services.live.annotations | {} |  | Custom annotations to add to the live deployment |
 
 ### Monitor Deployment
 
@@ -249,6 +291,11 @@
 | services.monitor.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `monitor`. |
 | services.monitor.volumeSize | 100Mi |  | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.monitor.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.monitor.nodeSelector | {} |  | This key allows you to set the node selector for the stateful deployment of `monitor`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.monitor.tolerations | [] |  | This key allows you to set the tolerations for the stateful deployment of `monitor`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.monitor.affinity | {} |  | This key allows you to set the affinity rules for the stateful deployment of `monitor`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.monitor.labels | {} |  | Custom labels to add to the monitor deployment |
+| services.monitor.annotations | {} |  | Custom annotations to add to the monitor deployment |
 
 ### API Deployment
 
@@ -269,6 +316,11 @@
 | env.sentry_environment |  |  | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.|
 | env.api_key_rate_limit | 60/minute |  | (optional) User can set the maximum number of requests the API can handle in a given time frame.|
 | services.api.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.api.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.api.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.api.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `api`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.api.labels | {} |  | Custom labels to add to the API deployment |
+| services.api.annotations | {} |  | Custom annotations to add to the API deployment |
 
 ### Silo Deployment
 
@@ -285,7 +337,12 @@
 | services.silo.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.silo.image| artifacts.plane.so/makeplane/silo-commercial |  |  This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment |
 | services.silo.pullPolicy | Always |  | Using this key, user can set the pull policy for the deployment of `silo`. |
-| services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service | 
+| services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.silo.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `silo`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.silo.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `silo`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.silo.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `silo`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. | 
+| services.silo.labels | {} |  | Custom labels to add to the silo deployment |
+| services.silo.annotations | {} |  | Custom annotations to add to the silo deployment | 
 | services.silo.connectors.slack.enabled | false |  | Slack Integration |
 | services.silo.connectors.slack.client_id | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client ID |
 | services.silo.connectors.slack.client_secret | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client Secret |
@@ -320,6 +377,11 @@
 | services.worker.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
 | services.worker.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
 | services.worker.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
+| services.worker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.worker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.worker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.worker.labels | {} |  | Custom labels to add to the worker deployment |
+| services.worker.annotations | {} |  | Custom annotations to add to the worker deployment |
 
 ### Beat-Worker deployment
 
@@ -334,6 +396,11 @@
 | services.beatworker.autoscaling.maxReplicas | 5 |  | Maximum number of replicas for the Horizontal Pod Autoscaler |
 | services.beatworker.autoscaling.targetCPUUtilizationPercentage | 90 |  | Target CPU utilization percentage for the Horizontal Pod Autoscaler |
 | services.beatworker.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
+| services.beatworker.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.beatworker.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.beatworker.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.beatworker.labels | {} |  | Custom labels to add to the beat-worker deployment |
+| services.beatworker.annotations | {} |  | Custom annotations to add to the beat-worker deployment |
 
 ### Email Service Deployment
 
@@ -351,86 +418,169 @@
 | services.email_service.autoscaling.targetMemoryUtilizationPercentage | 90 |  | Target memory utilization percentage for the Horizontal Pod Autoscaler |
 | services.email_service.image | artifacts.plane.so/makeplane/email-commercial |  | Docker image for the email service deployment |
 | services.email_service.pullPolicy | Always |  | Image pull policy for the email service deployment |
+| services.email_service.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `email_service`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.email_service.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `email_service`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.email_service.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `email_service`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.email_service.labels | {} |  | Custom labels to add to the email service deployment |
+| services.email_service.annotations | {} |  | Custom annotations to add to the email service deployment |
 | env.email_service_envs.smtp_domain |  | Yes | The SMTP Domain to be used with email service |
 
 Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
 
-### Ingress and SSL Setup
+### Outbox Poller Service Deployment
 
 | Setting | Default | Required | Description |
 |---|:---:|:---:|---|
-| ingress.enabled | true |  | Ingress setup in kubernetes is a common practice to expose application to the intended audience.  Set it to `false` if you are using external ingress providers like `Cloudflare` |
-| ingress.minioHost |  |  | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface. |
-| ingress.rabbitmqHost |  |  | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface. |
-| ingress.ingressClass | nginx | Yes | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.|
-| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |  | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required. |
-| ssl.createIssuer | false |  | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true`|
-| ssl.issuer | http |  | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`|
-| ssl.token |  |  | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare` or `digitalocean`(not required for http) |
-| ssl.server | <https://acme-v02.api.letsencrypt.org/directory> |  | Issuer creation configuration need the certificate generation authority server url. Default URL is the `Let's Encrypt` server|
-| ssl.email | <plane@example.com> |  | Certificate generation authority needs a valid email id before generating certificate. Required when `ssl.createIssuer=true`  |
-| ssl.generateCerts | false |  | After creating the issuers, user can still not create the certificate untill sure of configuration. Setting this to `true` will try to generate SSL certificate and associate with ingress. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=true` |
-| ssl.tls_secret_name |  |  | If you have a custom TLS secret name, set this to the name of the secret. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=false` |
+| services.outbox_poller.enabled | false |  | Set to `true` to enable the outbox poller service deployment |
+| services.outbox_poller.replicas | 1 |  | Number of replicas for the outbox poller service deployment |
+| services.outbox_poller.memoryLimit | 1000Mi |  | Memory limit for the outbox poller service deployment |
+| services.outbox_poller.cpuLimit | 500m |  | CPU limit for the outbox poller service deployment |
+| services.outbox_poller.memoryRequest | 50Mi |  | Memory request for the outbox poller service deployment |
+| services.outbox_poller.cpuRequest | 50m |  | CPU request for the outbox poller service deployment |
+| services.outbox_poller.pullPolicy | Always |  | Image pull policy for the outbox poller service deployment |
+| services.outbox_poller.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.outbox_poller.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `outbox_poller`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.outbox_poller.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `outbox_poller`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.outbox_poller.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `outbox_poller`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.outbox_poller.labels | {} |  | Custom labels to add to the outbox poller deployment |
+| services.outbox_poller.annotations | {} |  | Custom annotations to add to the outbox poller deployment |
+| env.outbox_poller_envs.memory_limit_mb | 400 |  | Memory limit in MB for the outbox poller |
+| env.outbox_poller_envs.interval_min | 0.25 |  | Minimum interval in minutes for polling |
+| env.outbox_poller_envs.interval_max | 2 |  | Maximum interval in minutes for polling |
+| env.outbox_poller_envs.batch_size | 250 |  | Batch size for processing outbox messages |
+| env.outbox_poller_envs.memory_check_interval | 30 |  | Memory check interval in seconds |
+| env.outbox_poller_envs.pool.size | 4 |  | Pool size for database connections |
+| env.outbox_poller_envs.pool.min_size | 2 |  | Minimum pool size for database connections |
+| env.outbox_poller_envs.pool.max_size | 10 |  | Maximum pool size for database connections |
+| env.outbox_poller_envs.pool.timeout | 30.0 |  | Pool timeout in seconds |
+| env.outbox_poller_envs.pool.max_idle | 300.0 |  | Maximum idle time for connections in seconds |
+| env.outbox_poller_envs.pool.max_lifetime | 3600 |  | Maximum lifetime for connections in seconds |
+| env.outbox_poller_envs.pool.reconnect_timeout | 5.0 |  | Reconnect timeout in seconds |
+| env.outbox_poller_envs.pool.health_check_interval | 60 |  | Health check interval in seconds |
+
+### Automation Consumer Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.automation_consumer.enabled | false |  | Set to `true` to enable the automation consumer service deployment |
+| services.automation_consumer.replicas | 1 |  | Number of replicas for the automation consumer service deployment |
+| services.automation_consumer.memoryLimit | 1000Mi |  | Memory limit for the automation consumer service deployment |
+| services.automation_consumer.cpuLimit | 500m |  | CPU limit for the automation consumer service deployment |
+| services.automation_consumer.memoryRequest | 50Mi |  | Memory request for the automation consumer service deployment |
+| services.automation_consumer.cpuRequest | 50m |  | CPU request for the automation consumer service deployment |
+| services.automation_consumer.pullPolicy | Always |  | Image pull policy for the automation consumer service deployment |
+| services.automation_consumer.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.automation_consumer.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `automation_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.automation_consumer.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `automation_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.automation_consumer.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `automation_consumer`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.automation_consumer.labels | {} |  | Custom labels to add to the automation consumer deployment |
+| services.automation_consumer.annotations | {} |  | Custom annotations to add to the automation consumer deployment |
+| env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |  | Event stream queue name for automations |
+| env.automation_consumer_envs.event_stream_prefetch | 10 |  | Event stream prefetch count |
+| env.automation_consumer_envs.exchange_name | "plane.event_stream" |  | Exchange name for event stream |
+| env.automation_consumer_envs.event_types | "issue" |  | Event types to process |
+
+### Iframely Deployment
+
+| Setting | Default | Required | Description |
+|---|:---:|:---:|---|
+| services.iframely.enabled | false |  | Set to `true` to enable the Iframely service deployment |
+| services.iframely.replicas | 1 |  | Number of replicas for the Iframely service deployment |
+| services.iframely.memoryLimit | 1000Mi |  | Memory limit for the Iframely service deployment |
+| services.iframely.cpuLimit | 500m |  | CPU limit for the Iframely service deployment |
+| services.iframely.memoryRequest | 50Mi |  | Memory request for the Iframely service deployment |
+| services.iframely.cpuRequest | 50m |  | CPU request for the Iframely service deployment |
+| services.iframely.image | artifacts.plane.so/makeplane/iframely:v1.2.0 |  | Docker image for the Iframely service deployment |
+| services.iframely.pullPolicy | Always |  | Image pull policy for the Iframely service deployment |
+| services.iframely.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.iframely.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `iframely`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
+| services.iframely.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `iframely`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.iframely.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `iframely`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
+| services.iframely.labels | {} |  | Custom labels to add to the iframely deployment |
+| services.iframely.annotations | {} |  | Custom annotations to add to the iframely deployment |
+
+
+### Ingress and SSL Setup
+
+| Setting                     |                          Default                          | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------------- | :-------------------------------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ingress.enabled             |                           true                            |          | Ingress setup in kubernetes is a common practice to expose application to the intended audience. Set it to `false` if you are using external ingress providers like `Cloudflare`                                                                                                                                                                                                                                          |
+| ingress.minioHost           |                                                           |          | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                       |
+| ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
+| ingress.ingressClass        |                           nginx                           |   Yes    | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.                                                                                                                                                                                               |
+| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
+| ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
+| ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
+| ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
+| ssl.server                  |     <https://acme-v02.api.letsencrypt.org/directory>      |          | Issuer creation configuration need the certificate generation authority server url. Default URL is the `Let's Encrypt` server                                                                                                                                                                                                                                                                                             |
+| ssl.email                   |                    <plane@example.com>                    |          | Certificate generation authority needs a valid email id before generating certificate. Required when `ssl.createIssuer=true`                                                                                                                                                                                                                                                                                              |
+| ssl.generateCerts           |                           false                           |          | After creating the issuers, user can still not create the certificate untill sure of configuration. Setting this to `true` will try to generate SSL certificate and associate with ingress. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=true`                                                                                                                                                       |
+| ssl.tls_secret_name         |                                                           |          | If you have a custom TLS secret name, set this to the name of the secret. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=false`                                                                                                                                                                                                                                                                        |
 
 ### Common Environment Settings
 
-| Setting | Default | Required | Description |
-|---|:---:|:---:|---|
-| env.storageClass | &lt;k8s-default-storage-class&gt; |  | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration. |
-| env.secret_key | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 | Yes | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data|
+| Setting          |                      Default                       | Required | Description                                                                                                                                                                      |
+| ---------------- | :------------------------------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| env.storageClass |         &lt;k8s-default-storage-class&gt;          |          | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration.                   |
+| env.secret_key   | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 |   Yes    | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data |
 
+### Extra Environment Variables
+
+| Setting  | Default | Required | Description                                                                                                                                                                                                                                                                                                                       |
+| -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
 
 ## External Secrets Config
 
 To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
 
-| Secret Name | Env Var Name | Required | Description | Example Value |
-|--- |:---|:---|:---|:---|
-| rabbitmq_existingSecret     | `RABBITMQ_DEFAULT_USER`  | Required if `rabbitmq.local_setup=true` | The default RabbitMQ user                    | `plane`      |
-|                      | `RABBITMQ_DEFAULT_PASS`  | Required if `rabbitmq.local_setup=true` | The default RabbitMQ password                | `plane`      |
-| pgdb_existingSecret         | `POSTGRES_PASSWORD`      | Required if `postgres.local_setup=true` | Password for PostgreSQL database             | `plane`   |
-|                      | `POSTGRES_DB`            | Required if `postgres.local_setup=true` | Name of the PostgreSQL database              | `plane`      |
-|                      | `POSTGRES_USER`          | Required if `postgres.local_setup=true` | PostgreSQL user                              | `plane`       |
-|  doc_store_existingSecret                 | `USE_MINIO`              | Yes | Flag to enable MinIO as the storage backend  | `1`         |
-|                      | `MINIO_ROOT_USER`        | Yes | MinIO root user                              | `admin`    |
-|     | `MINIO_ROOT_PASSWORD`    | Yes | MinIO root password                          | `password`    |
-|                      | `AWS_ACCESS_KEY_ID`      | Yes | AWS Access Key ID                            | `your_aws_key`       |
-|                      | `AWS_SECRET_ACCESS_KEY`  | Yes | AWS Secret Access Key                        | `your_aws_secret`    |
-|                      | `AWS_S3_BUCKET_NAME`     | Yes | AWS S3 Bucket Name                           | `your_bucket_name`   |
-|                      | `AWS_S3_ENDPOINT_URL`    | Yes | Endpoint URL for AWS S3 or MinIO             | `http://plane-minio.plane-ns.svc.cluster.local:9000`  |
-|                      | `AWS_REGION`             | Optional | AWS region where your S3 bucket is located   | `your_aws_region`    |
-|                      | `FILE_SIZE_LIMIT`        | Yes | Limit for file uploads in your system        | `5MB`               |
-| app_env_existingSecret      | `SECRET_KEY`             | Yes | Random secret key                            | `60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5`  |
-|                      | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
-|                      | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
-|                      | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/` |
-| live_env_existingSecret    | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
-| silo_env_existingSecret    | `SILO_HMAC_SECRET_KEY`       | Yes | Silo HMAC secret Key                             | `<random-32-bit-string>`|
-|     | `REDIS_URL`              | Yes | Redis URL                                    | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`  |
-|                            | `DATABASE_URL`           | Yes | PostgreSQL connection URL                    |  **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane`|
-|                            | `AMQP_URL`               | Yes | RabbitMQ connection URL                      | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/`  <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`  |
-|                            | `GITHUB_APP_NAME`        | required if `services.silo.connectors.github.enabled` is `true` | GitHub app name                              | `your_github_app_name`|
-|                            | `GITHUB_APP_ID`          | required if `services.silo.connectors.github.enabled` is `true` | GitHub app ID                                | `your_github_app_id`|
-|                            | `GITHUB_CLIENT_ID`       | required if `services.silo.connectors.github.enabled` is `true` | GitHub client ID                             | `your_github_client_id`|
-|                            | `GITHUB_CLIENT_SECRET` | required if `services.silo.connectors.github.enabled` is `true` | GitHub client secret key                     | `your_github_client_secret_key`|
-|                            | `GITHUB_PRIVATE_KEY`     | required if `services.silo.connectors.github.enabled` is `true` | GitHub private key                           | `your_github_private_key`|
-|                            | `SLACK_CLIENT_ID`        | required if `services.silo.connectors.slack.enabled` is `true` | Slack client ID                              | `your_slack_client_id`|
-|                            | `SLACK_CLIENT_SECRET` | required if `services.silo.connectors.slack.enabled` is `true` | Slack client secret key                      | `your_slack_client_secret_key`|
-|                            | `GITLAB_CLIENT_ID`      | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client ID                             | `your_gitlab_client_id`|
-|                            | `GITLAB_CLIENT_SECRET` | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client secret key                     | `your_gitlab_client_secret_key`|
-  
+| Secret Name              | Env Var Name            | Required                                                        | Description                                 | Example Value                                                                                                                                                                                        |
+| ------------------------ | :---------------------- | :-------------------------------------------------------------- | :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rabbitmq_existingSecret  | `RABBITMQ_DEFAULT_USER` | Required if `rabbitmq.local_setup=true`                         | The default RabbitMQ user                   | `plane`                                                                                                                                                                                              |
+|                          | `RABBITMQ_DEFAULT_PASS` | Required if `rabbitmq.local_setup=true`                         | The default RabbitMQ password               | `plane`                                                                                                                                                                                              |
+| pgdb_existingSecret      | `POSTGRES_PASSWORD`     | Required if `postgres.local_setup=true`                         | Password for PostgreSQL database            | `plane`                                                                                                                                                                                              |
+|                          | `POSTGRES_DB`           | Required if `postgres.local_setup=true`                         | Name of the PostgreSQL database             | `plane`                                                                                                                                                                                              |
+|                          | `POSTGRES_USER`         | Required if `postgres.local_setup=true`                         | PostgreSQL user                             | `plane`                                                                                                                                                                                              |
+| doc_store_existingSecret | `USE_MINIO`             | Yes                                                             | Flag to enable MinIO as the storage backend | `1`                                                                                                                                                                                                  |
+|                          | `MINIO_ROOT_USER`       | Yes                                                             | MinIO root user                             | `admin`                                                                                                                                                                                              |
+|                          | `MINIO_ROOT_PASSWORD`   | Yes                                                             | MinIO root password                         | `password`                                                                                                                                                                                           |
+|                          | `AWS_ACCESS_KEY_ID`     | Yes                                                             | AWS Access Key ID                           | `your_aws_key`                                                                                                                                                                                       |
+|                          | `AWS_SECRET_ACCESS_KEY` | Yes                                                             | AWS Secret Access Key                       | `your_aws_secret`                                                                                                                                                                                    |
+|                          | `AWS_S3_BUCKET_NAME`    | Yes                                                             | AWS S3 Bucket Name                          | `your_bucket_name`                                                                                                                                                                                   |
+|                          | `AWS_S3_ENDPOINT_URL`   | Yes                                                             | Endpoint URL for AWS S3 or MinIO            | `http://plane-minio.plane-ns.svc.cluster.local:9000`                                                                                                                                                 |
+|                          | `AWS_REGION`            | Optional                                                        | AWS region where your S3 bucket is located  | `your_aws_region`                                                                                                                                                                                    |
+|                          | `FILE_SIZE_LIMIT`       | Yes                                                             | Limit for file uploads in your system       | `5MB`                                                                                                                                                                                                |
+| app_env_existingSecret   | `SECRET_KEY`            | Yes                                                             | Random secret key                           | `60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5`                                                                                                                                                 |
+|                          | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `DATABASE_URL`          | Yes                                                             | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
+|                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
+| live_env_existingSecret  | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+| silo_env_existingSecret  | `SILO_HMAC_SECRET_KEY`  | Yes                                                             | Silo HMAC secret Key                        | `<random-32-bit-string>`                                                                                                                                                                             |
+|                          | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `DATABASE_URL`          | Yes                                                             | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
+|                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
+|                          | `GITHUB_APP_NAME`       | required if `services.silo.connectors.github.enabled` is `true` | GitHub app name                             | `your_github_app_name`                                                                                                                                                                               |
+|                          | `GITHUB_APP_ID`         | required if `services.silo.connectors.github.enabled` is `true` | GitHub app ID                               | `your_github_app_id`                                                                                                                                                                                 |
+|                          | `GITHUB_CLIENT_ID`      | required if `services.silo.connectors.github.enabled` is `true` | GitHub client ID                            | `your_github_client_id`                                                                                                                                                                              |
+|                          | `GITHUB_CLIENT_SECRET`  | required if `services.silo.connectors.github.enabled` is `true` | GitHub client secret key                    | `your_github_client_secret_key`                                                                                                                                                                      |
+|                          | `GITHUB_PRIVATE_KEY`    | required if `services.silo.connectors.github.enabled` is `true` | GitHub private key                          | `your_github_private_key`                                                                                                                                                                            |
+|                          | `SLACK_CLIENT_ID`       | required if `services.silo.connectors.slack.enabled` is `true`  | Slack client ID                             | `your_slack_client_id`                                                                                                                                                                               |
+|                          | `SLACK_CLIENT_SECRET`   | required if `services.silo.connectors.slack.enabled` is `true`  | Slack client secret key                     | `your_slack_client_secret_key`                                                                                                                                                                       |
+|                          | `GITLAB_CLIENT_ID`      | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client ID                            | `your_gitlab_client_id`                                                                                                                                                                              |
+|                          | `GITLAB_CLIENT_SECRET`  | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client secret key                    | `your_gitlab_client_secret_key`                                                                                                                                                                      |
+
 ## Custom Ingress Routes
 
 If you are planning to use 3rd party ingress providers, here is the available route configuration
 
-| Host | Path | Service | Required |
-|---    |:---:|---|:--- |
-| plane.example.com | /  | <http://plane-app-web.plane:3000> | Yes |
-| plane.example.com | /spaces/*  | <http://plane-app-space.plane:3000> | Yes |
-| plane.example.com | /god-mode/* | <http://plane-app-admin.plane:3000> | Yes |
-| plane.example.com | /live/* | <http://plane-app-live.plane:3000> | Yes |
-| plane.example.com | /api/*  |  <http://plane-app-api.plane:8000> | Yes |
-| plane.example.com | /auth/* | <http://plane-app-api.plane:8000> | Yes |
-| plane.example.com | /uploads/* | <http://plane-app-minio.plane:9000> | Yes (Only if using local setup) |
-| plane-minio.example.com | / | <http://plane-app-minio.plane:9090> | (Optional) if using local setup, this will enable minio console access |
-| plane-mq.example.com | / | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |
+| Host                    |     Path     | Service                                 | Required                                                                    |
+| ----------------------- | :----------: | --------------------------------------- | :-------------------------------------------------------------------------- |
+| plane.example.com       |      /       | <http://plane-app-web.plane:3000>       | Yes                                                                         |
+| plane.example.com       |  /spaces/\*  | <http://plane-app-space.plane:3000>     | Yes                                                                         |
+| plane.example.com       | /god-mode/\* | <http://plane-app-admin.plane:3000>     | Yes                                                                         |
+| plane.example.com       |   /live/\*   | <http://plane-app-live.plane:3000>      | Yes                                                                         |
+| plane.example.com       |   /api/\*    | <http://plane-app-api.plane:8000>       | Yes                                                                         |
+| plane.example.com       |   /auth/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
+| plane.example.com       | /uploads/\*  | <http://plane-app-minio.plane:9000>     | Yes (Only if using local setup)                                             |
+| plane-minio.example.com |      /       | <http://plane-app-minio.plane:9090>     | (Optional) if using local setup, this will enable minio console access      |
+| plane-mq.example.com    |      /       | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |

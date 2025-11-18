@@ -25,8 +25,9 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-wl
+  {{- template "plane.labelsAndAnnotations" .Values.live }}
 spec:
-  replicas: {{ .Values.live.replicas | default 1}}
+  replicas: {{ .Values.live.replicas | default 1 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
@@ -51,10 +52,6 @@ spec:
           limits:
             memory: {{ .Values.live.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.live.cpuLimit | default "500m" | quote}}
-        command:
-          - node
-        args:
-          - live/dist/server.js
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
@@ -62,7 +59,7 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
+      {{- include "plane.podScheduling" .Values.live }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

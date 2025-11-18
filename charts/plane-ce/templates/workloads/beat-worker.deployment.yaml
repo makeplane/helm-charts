@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
+  {{- template "plane.labelsAndAnnotations" .Values.beatworker }}
 spec:
   replicas: {{ .Values.beatworker.replicas | default 1 }}
   selector:
@@ -42,8 +43,7 @@ spec:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
           
-
+      {{- include "plane.podScheduling" .Values.beatworker }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

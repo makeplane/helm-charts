@@ -1,4 +1,4 @@
-planeVersion: v1.12.1
+planeVersion: v1.17.0
 
 dockerRegistry:
   enabled: false
@@ -9,6 +9,15 @@ dockerRegistry:
 license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
+
+airgapped:
+  enabled: false
+  # The boto module used by API does not use the CA bundles in the container, so we need to
+  # mount the CA bundle into the API pod by passing it in as an environment
+  # variable. Should be the full path to the CA bundle file, e.g.
+  #
+  s3SecretName: ""
+  s3SecretKey: ""
 
 ingress:
   enabled: true
@@ -30,11 +39,16 @@ ssl:
 services:
   redis:
     local_setup: true
-    image: valkey/valkey:7.2.5-alpine
+    image: valkey/valkey:7.2.11-alpine
     servicePort: 6379
     volumeSize: 500Mi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   postgres:
     local_setup: true
@@ -43,6 +57,11 @@ services:
     volumeSize: 2Gi
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   rabbitmq:
     local_setup: true
@@ -55,6 +74,11 @@ services:
     default_password: plane
     external_rabbitmq_url: ''
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   minio:
     local_setup: true
@@ -67,27 +91,45 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
-  web:
+
+  iframely:
+    enabled: false
     replicas: 1
-    cpuRequest: 100m
-    memoryRequest: 200Mi
-    cpuLimit: 500m
     memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
     image: artifacts.plane.so/makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
     autoscaling:
       minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
 
+
   monitor:
     image: artifacts.plane.so/makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   space:
     replicas: 1
@@ -103,6 +145,11 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   admin:
     replicas: 1
@@ -118,6 +165,11 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   live:
     replicas: 1
@@ -133,6 +185,11 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   api:
     replicas: 1
@@ -148,6 +205,11 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
   worker:
     replicas: 1
@@ -161,6 +223,12 @@ services:
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
 
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   beatworker:
     replicas: 1
     cpuRequest: 500m
@@ -172,6 +240,12 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   silo:
     enabled: true
     replicas: 1
@@ -187,6 +261,11 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
     connectors:
       slack:
         enabled: false
@@ -218,6 +297,41 @@ services:
       maxReplicas: 5
       targetCPUUtilizationPercentage: 90
       targetMemoryUtilizationPercentage: 90
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  outbox_poller:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  automation_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
@@ -250,6 +364,8 @@ env:
   aws_region: ''
   aws_s3_endpoint_url: ''
 
+  use_storage_proxy: false
+
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
@@ -263,6 +379,7 @@ env:
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  external_iframely_url: ""
 
   silo_envs:
     sentry_dsn: ''
@@ -277,3 +394,34 @@ env:
 
   email_service_envs:
     smtp_domain: ''
+
+  outbox_poller_envs:
+    memory_limit_mb: 400
+    interval_min: 0.25
+    interval_max: 2
+    batch_size: 250
+    memory_check_interval: 30
+    pool:
+      size: 4
+      min_size: 2
+      max_size: 10
+      timeout: 30.0
+      max_idle: 300.0
+      max_lifetime: 3600
+      reconnect_timeout: 5.0
+      health_check_interval: 60
+
+  automation_consumer_envs:
+    event_stream_queue_name: "plane.event_stream.automations"
+    event_stream_prefetch: 10
+    exchange_name: "plane.event_stream"
+    event_types: "issue"
+
+# Global extra environment variables that will be applied to all workloads
+extraEnv: []
+  # - name: HTTP_PROXY
+  #   value: "http://proxy.example.com:8080"
+  # - name: HTTPS_PROXY
+  #   value: "http://proxy.example.com:8080"
+  # - name: NO_PROXY
+  #   value: "localhost,127.0.0.1,.example.com"
