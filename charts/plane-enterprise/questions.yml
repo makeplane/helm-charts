@@ -901,7 +901,7 @@ questions:
   label: "Enable PI Worker"
   type: boolean
   default: false
-  group: "Plane AI Setup"
+  group: "PI Worker Setup"
   show_subquestion_if: true
   subquestions:
   - variable: services.pi_worker.replicas
@@ -929,7 +929,7 @@ questions:
   label: "Enable PI Beat Worker"
   type: boolean
   default: false
-  group: "Plane AI Setup"
+  group: "PI Beat Worker Setup"
   show_subquestion_if: true
   subquestions:
   - variable: services.pi_beat_worker.replicas
@@ -1049,6 +1049,66 @@ questions:
     type: string
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
+
+- variable: services.opensearch.local_setup
+  label: "Install OpenSearch"
+  type: boolean
+  default: true
+  group: "OpenSearch Setup"
+  # show_subquestion_if: true
+  subquestions:
+  - variable: services.opensearch.image
+    label: "Docker Image"
+    type: string
+    default: "opensearchproject/opensearch:2.11.0"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.pullPolicy
+    label: "OpenSearch Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.servicePort
+    label: Service Port
+    type: int
+    default: 9200
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "5Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.username
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.password
+    label: "Password"
+    type: password
+    default: "Secure@Pass#123!$%^&*"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.opensearch.local_setup=true"
+  - variable: env.opensearch_url
+    label: "Remote URL"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_index_prefix
+    label: "Index Prefix"
+    type: string
+    default: "plane_"
+  - variable: env.opensearch_ml_model_id
+    label: "ML Model ID"
+    type: string
+    default: ""
 
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
@@ -1256,6 +1316,11 @@ questions:
   group: "External Secrets"
 - variable: external_secrets.pgdb_existingSecret
   label: "Postgres Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.opensearch_existingSecret
+  label: "OpenSearch Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"
