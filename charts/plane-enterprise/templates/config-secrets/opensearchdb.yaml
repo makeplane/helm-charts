@@ -8,6 +8,7 @@ metadata:
   name: {{ .Release.Name }}-opensearch-secrets
 stringData:
   OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
+  OPENSEARCH_INITIAL_ADMIN_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
 {{- end }}
 ---
 apiVersion: v1
