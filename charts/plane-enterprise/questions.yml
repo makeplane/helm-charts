@@ -744,6 +744,215 @@ questions:
     type: boolean
     default: false
 
+- variable: services.pi.enabled
+  label: "Enable Plane AI (PI) Service"
+  type: boolean
+  default: false
+  group: "Plane AI Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.image
+    label: "PI Docker Image"
+    type: string
+    required: true
+    default: "artifacts.plane.so/makeplane/plane-pi-commercial"
+  - variable: services.pi.pullPolicy
+    label: "PI Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
+  - variable: services.pi.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.pi.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.pi.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.plane_oauth.client_id
+    label: "Plane OAuth Client ID"
+    type: string
+    default: ""
+  - variable: env.pi_envs.plane_oauth.client_secret
+    label: "Plane OAuth Client Secret"
+    type: password
+    default: ""
+  - variable: env.pi_envs.plane_oauth.redirect_uri
+    label: "Plane OAuth Redirect URI"
+    type: string
+    default: ""
+  - variable: env.pi_envs.plane_oauth.state_expiry_seconds
+    label: "Plane OAuth State Expiry Seconds"
+    type: int
+    default: 82800
+  - variable: env.pi_envs.plane_api_host
+    label: "Plane API Host"
+    type: string
+    default: ""
+  - variable: env.pi_envs.cors_allowed_origins
+    label: "CORS Allowed Origins"
+    type: string
+    default: ""
+  - variable: env.pi_envs.celery.vector_sync_enabled
+    label: "Vector Sync Enabled"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.celery.vector_sync_interval
+    label: "Vector Sync Interval"
+    type: int
+    default: 3
+  - variable: env.pi_envs.celery.workspace_plan_sync_enabled
+    label: "Workspace Plan Sync Enabled"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.celery.workspace_plan_sync_interval
+    label: "Workspace Plan Sync Interval"
+    type: int
+    default: 86400
+  - variable: env.pi_envs.celery.docs_sync_enabled
+    label: "Docs Sync Enabled"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.celery.docs_sync_interval
+    label: "Docs Sync Interval"
+    type: int
+    default: 86400
+  - variable: services.pi.ai_providers.openai.enabled
+    label: "Enable OpenAI Provider"
+    type: boolean
+    default: false
+    show_subquestion_if: true
+    subquestions:
+    - variable: services.pi.ai_providers.openai.api_key
+      label: "OpenAI API Key"
+      type: password
+      default: ""
+  - variable: services.pi.ai_providers.claude.enabled
+    label: "Enable Claude Provider"
+    type: boolean
+    default: false
+    show_subquestion_if: true
+    subquestions:
+    - variable: services.pi.ai_providers.claude.api_key
+      label: "Claude API Key"
+      type: password
+      default: ""
+  - variable: services.pi.ai_providers.mistral.enabled
+    label: "Enable Mistral Provider"
+    type: boolean
+    default: false
+    show_subquestion_if: true
+    subquestions:
+    - variable: services.pi.ai_providers.mistral.api_key
+      label: "Mistral API Key"
+      type: password
+      default: ""
+  - variable: services.pi.ai_providers.groq.enabled
+    label: "Enable Groq Provider"
+    type: boolean
+    default: false
+    show_subquestion_if: true
+    subquestions:
+    - variable: services.pi.ai_providers.groq.api_key
+      label: "Groq API Key"
+      type: password
+      default: ""
+  - variable: services.pi.ai_providers.assemblyai.enabled
+    label: "Enable AssemblyAI Provider"
+    type: boolean
+    default: false
+    show_subquestion_if: true
+    subquestions:
+    - variable: services.pi.ai_providers.assemblyai.api_key
+      label: "AssemblyAI API Key"
+      type: password
+      default: ""
+  - variable: services.pi.ai_providers.deepgram.enabled
+    label: "Enable Deepgram Provider"
+    type: boolean
+    default: false
+    show_subquestion_if: true
+    subquestions:
+    - variable: services.pi.ai_providers.deepgram.api_key
+      label: "Deepgram API Key"
+      type: password
+      default: ""
+
+- variable: services.pi_worker.enabled
+  label: "Enable PI Worker"
+  type: boolean
+  default: false
+  group: "Plane AI Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi_worker.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.pi_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+
+- variable: services.pi_beat_worker.enabled
+  label: "Enable PI Beat Worker"
+  type: boolean
+  default: false
+  group: "Plane AI Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi_beat_worker.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.pi_beat_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_beat_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_beat_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi_beat_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+
 - variable: services.redis.local_setup
   label: "Install Redis"
   type: boolean
@@ -1067,6 +1276,16 @@ questions:
   group: "External Secrets"
 - variable: external_secrets.silo_env_existingSecret
   label: "Silo Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.pi_api_env_existingSecret
+  label: "PI API Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.pi_common_env_existingSecret
+  label: "PI Common Envs Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"
