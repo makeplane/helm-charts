@@ -1,0 +1,61 @@
+{{- if .Values.services.pi_worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-worker-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.pi_worker }}
+spec:
+  replicas: {{ .Values.services.pi_worker.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{ include "plane.podScheduling" .Values.services.pi_worker }}
+      containers:
+      - name: {{ .Release.Name }}-pi-worker
+        imagePullPolicy: Always
+        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.pi_worker.memoryRequest | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.pi_worker.cpuRequest | default "500m" | quote }}
+          limits:
+            memory: {{ .Values.services.pi_worker.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.pi_worker.cpuLimit | default "500m" | quote}}
+        command:
+          - ./bin/entrypoint-celery-worker.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-api-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ .Values.external_secrets.pi_api_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-api-secrets{{ end }}
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-common-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_common_env_existingSecret) }}{{ .Values.external_secrets.pi_common_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-common-secrets{{ end }}
+              optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- end }}
+
+
+
+

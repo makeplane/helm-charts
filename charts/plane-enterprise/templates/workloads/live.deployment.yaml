@@ -40,6 +40,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.live }}
       containers:
       - name: {{ .Release.Name }}-live
         imagePullPolicy: {{ .Values.services.live.pullPolicy | default "Always" }}
@@ -64,7 +65,6 @@ spec:
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
-      {{- include "plane.podScheduling" .Values.services.live }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

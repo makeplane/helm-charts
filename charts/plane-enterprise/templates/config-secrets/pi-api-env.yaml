@@ -1,0 +1,84 @@
+{{- if .Values.services.pi.enabled }}
+
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-api-secrets
+stringData:
+  PLANE_OAUTH_CLIENT_SECRET: {{ .Values.env.pi_envs.plane_oauth.client_secret | default "" | quote }}
+  {{- if .Values.services.pi.ai_providers.openai.enabled }}
+  OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
+  {{- end }}
+  {{- if .Values.services.pi.ai_providers.claude.enabled }}
+  CLAUDE_API_KEY: {{ .Values.services.pi.ai_providers.claude.api_key | default "" |  quote }}
+  {{- end }}
+  {{- if .Values.services.pi.ai_providers.mistral.enabled }}
+  MISTRAL_API_KEY: {{ .Values.services.pi.ai_providers.mistral.api_key | default "" |  quote }}
+  {{- end }}
+  {{- if .Values.services.pi.ai_providers.groq.enabled }}
+  GROQ_API_KEY: {{ .Values.services.pi.ai_providers.groq.api_key | default "" |  quote }}
+  {{- end }}
+  {{- if .Values.services.pi.ai_providers.assemblyai.enabled }}
+  ASSEMBLYAI_API_KEY: {{ .Values.services.pi.ai_providers.assemblyai.api_key | default "" |  quote }}
+  {{- end }}
+  {{- if .Values.services.pi.ai_providers.deepgram.enabled }}
+  DEEPGRAM_API_KEY: {{ .Values.services.pi.ai_providers.deepgram.api_key | default "" |  quote }}
+  {{- end }}
+  {{- if .Values.services.postgres.local_setup }}
+  PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pg_pi_db_name }}"
+  {{- else if .Values.env.pg_pi_db_remote_url }}
+  PLANE_PI_DATABASE_URL: {{ .Values.env.pg_pi_db_remote_url}}
+  {{- else }}
+  PLANE_PI_DATABASE_URL: ""
+  {{- end }}
+
+  {{- if .Values.services.rabbitmq.local_setup }}
+  CELERY_BROKER_URL: "pyamqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  CELERY_BROKER_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
+  {{- else }}
+  CELERY_BROKER_URL: ""
+  {{- end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-api-vars
+data:
+  FASTAPI_APP_HOST: "0.0.0.0"
+  FASTAPI_APP_WORKERS: "1"
+  {{- if .Values.ssl.create_issuer }}
+  PLANE_FRONTEND_URL: "https://{{ .Values.license.licenseDomain }}/"
+  {{- else }}
+  PLANE_FRONTEND_URL: "http://{{ .Values.license.licenseDomain }}/"
+  {{- end }}
+  
+  {{- if .Values.env.pi_envs.plane_api_host }}
+  PLANE_API_HOST: {{ .Values.env.pi_envs.plane_api_host | quote }}
+  {{- else }}
+  PLANE_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
+  {{- end }}
+
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  PI_BASE_PATH: "/pi"
+
+  {{- if .Values.env.pi_envs.cors_allowed_origins }}
+  CORS_ALLOWED_ORIGINS: {{ .Values.env.pi_envs.cors_allowed_origins | quote }}
+  {{- else }}
+  CORS_ALLOWED_ORIGINS: ["http://{{ .Values.license.licenseDomain }}/", "https://{{ .Values.license.licenseDomain }}/"]
+  {{- end }}
+  
+  {{- if .Values.env.pi_envs.plane_oauth.redirect_uri }}
+  PLANE_OAUTH_REDIRECT_URI: {{ .Values.env.pi_envs.plane_oauth.redirect_uri | quote }}
+  {{- else }}
+  PLANE_OAUTH_REDIRECT_URI: "http://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
+  {{- end }}
+  PLANE_OAUTH_STATE_EXPIRY_SECONDS: {{ .Values.env.pi_envs.plane_oauth.state_expiry_seconds | default 82800 | quote }}
+  PLANE_OAUTH_CLIENT_ID: {{ .Values.env.pi_envs.plane_oauth.client_id | quote }}
+  
+---
+{{- end }}

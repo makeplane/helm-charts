@@ -40,6 +40,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
     spec:
+      {{- include "plane.podScheduling" .Values.services.rabbitmq }}
       containers:
       - image: {{ .Values.services.rabbitmq.image }}
         imagePullPolicy: {{ .Values.services.rabbitmq.pullPolicy | default "IfNotPresent" }}
@@ -65,7 +66,6 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 30
           failureThreshold: 50
-      {{- include "plane.podScheduling" .Values.services.rabbitmq }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

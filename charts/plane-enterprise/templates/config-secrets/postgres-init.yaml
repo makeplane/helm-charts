@@ -1,0 +1,16 @@
+{{- if .Values.services.postgres.local_setup }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pgdb-init
+data:
+  init-databases.sql: |
+    -- Create plane_pi database for PI service
+    CREATE DATABASE plane_pi;
+    
+    -- Grant privileges to the postgres user
+    GRANT ALL PRIVILEGES ON DATABASE plane_pi TO {{ .Values.env.pgdb_username | default "plane" }};
+---
+{{- end }}
+

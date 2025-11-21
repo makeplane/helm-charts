@@ -1,0 +1,92 @@
+{{- if .Values.services.pi.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-api
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
+spec:
+  type: ClusterIP
+  {{- if not .Values.services.pi.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: pi-api-8000
+    port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-api-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.pi }}
+spec:
+  replicas: {{ .Values.services.pi.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.pi }}
+      containers:
+      - name: {{ .Release.Name }}-pi-api
+        imagePullPolicy: {{ .Values.services.pi.pullPolicy | default "Always" }}
+        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.pi.memoryRequest | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.pi.cpuRequest | default "500m" | quote }}
+          limits:
+            memory: {{ .Values.services.pi.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.pi.cpuLimit | default "500m" | quote}}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-api-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ .Values.external_secrets.pi_api_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-api-secrets{{ end }}
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-common-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_common_env_existingSecret) }}{{ .Values.external_secrets.pi_common_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-common-secrets{{ end }}
+              optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+        readinessProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /
+            port: 8000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+{{- end }}
+
+
+
+
