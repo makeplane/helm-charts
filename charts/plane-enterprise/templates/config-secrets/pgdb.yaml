@@ -4,8 +4,8 @@
 apiVersion: v1
 kind: Secret
 type: Opaque
-  metadata:
-    namespace: {{ .Release.Namespace }}
+metadata:
+  namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-secrets
 stringData:
   POSTGRES_USER: {{ .Values.env.pgdb_username | default "plane" | quote }}

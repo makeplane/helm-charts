@@ -87,7 +87,7 @@ services:
     volumeSize: 5Gi
     pullPolicy: IfNotPresent
     username: plane
-    password: Secure@Pass#123!\$%^&*
+    password: Secure@Pass#123!%^&*
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -405,7 +405,7 @@ env:
   pg_pi_db_name: plane_pi
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
   pg_pi_db_remote_url: '' #INCASE OF REMOTE PI PG DB URL ONLY
-  
+
   # DATA STORE
   docstore_bucket: uploads
   doc_upload_size_limit: '5242880' # 5MB
@@ -491,7 +491,6 @@ env:
       workspace_plan_sync_interval: 86400
       docs_sync_enabled: false
       docs_sync_interval: 86400
-
 
 # Global extra environment variables that will be applied to all workloads
 extraEnv: []

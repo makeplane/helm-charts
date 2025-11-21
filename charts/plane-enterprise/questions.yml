@@ -1089,7 +1089,7 @@ questions:
   - variable: services.opensearch.password
     label: "Password"
     type: password
-    default: "Secure@Pass#123!$%^&*"
+    default: "Secure@Pass#123!%^&*"
     show_if: "services.opensearch.local_setup=true"
   - variable: services.opensearch.assign_cluster_ip
     label: "Assign Cluster IP"
