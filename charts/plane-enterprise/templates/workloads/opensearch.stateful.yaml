@@ -36,10 +36,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
     spec:
-      initContainers:
-      - name: setup-opensearch-user
-        image: {{ .Values.services.opensearch.image }}
-       
+      {{- include "plane.podScheduling" .Values.services.opensearch }}
       containers:
       - image: {{ .Values.services.opensearch.image }}
         imagePullPolicy: {{ .Values.services.opensearch.pullPolicy | default "IfNotPresent" }}
@@ -50,27 +47,37 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-opensearch-vars
+              optional: false
         env:
           - name: discovery.type
             value: "single-node"
           - name: bootstrap.memory_lock
             value: "false"
+          - name: OPENSEARCH_USER
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-opensearch-vars
+                key: OPENSEARCH_USERNAME
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
+        command: ["/bin/bash", "/docker-entrypoint-init.d/create-user.sh"]
         volumeMounts:
         - mountPath: /usr/share/opensearch/data
           name: pvc-{{ .Release.Name }}-opensearch-vol
           subPath: ''
-        - mountPath: /usr/share/opensearch/plugins/opensearch-security/securityconfig
-          name: security-config
+        - mountPath: /docker-entrypoint-init.d
+          name: {{ .Release.Name }}-opensearch-init-script
       volumes:
-      - name: secrets
-        secret:
-          secretName: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
-      - name: security-config
-        emptyDir: {}
-      {{- include "plane.podScheduling" .Values.services.opensearch }}
+      - name: {{ .Release.Name }}-opensearch-init-script
+        configMap:
+          name: {{ .Release.Name }}-opensearch-vars
+          items:
+          - key: create-user.sh
+            path: create-user.sh
+            defaultMode: 0755
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
