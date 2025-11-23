@@ -236,7 +236,7 @@ services:
     memoryRequest: 50Mi
     cpuRequest: 50m
     image: artifacts.plane.so/makeplane/silo-commercial
-    busyboxImage: busybox
+    image_busybox: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}

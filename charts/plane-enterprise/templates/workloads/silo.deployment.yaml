@@ -43,7 +43,7 @@ spec:
     spec:
       initContainers:
       - name: wait-for-rabbitmq
-        image: {{ .Values.services.silo.busyboxImage }}
+        image: {{ .Values.services.silo.image_busybox }}
         command:
           - /bin/sh
         args:
