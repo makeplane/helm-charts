@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-vars
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "monitor" "context" $) | nindent 4 }}
 data:
   PRIME_HOST: {{ .Values.license.licenseServer | quote }}
   MACHINE_SIGNATURE: {{ include "hashString" . | quote }}

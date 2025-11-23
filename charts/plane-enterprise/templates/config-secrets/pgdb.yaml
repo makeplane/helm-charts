@@ -5,6 +5,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-secrets
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "pgdb" "context" $) | nindent 4 }}
 stringData:
   POSTGRES_USER: {{ .Values.env.pgdb_username | default "plane" | quote }}
   POSTGRES_PASSWORD: {{ .Values.env.pgdb_password | default "plane" | quote }}
