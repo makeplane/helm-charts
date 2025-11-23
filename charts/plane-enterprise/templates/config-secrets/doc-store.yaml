@@ -5,6 +5,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-doc-store-secrets
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 stringData:
   FILE_SIZE_LIMIT: {{ .Values.env.file_size_limit | default "5242880" | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}

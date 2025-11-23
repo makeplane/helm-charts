@@ -5,16 +5,20 @@ kind: Secret
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-issuer-api-token-secret
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 type: Opaque
 stringData:
   api-token: {{ .Values.ssl.token | default "default-api-token" | quote }}
-  
+
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-cert-issuer
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 spec:
   acme:
     email: {{ .Values.ssl.email }}
@@ -42,5 +46,5 @@ spec:
           ingressClassName: {{ .Values.ingress.ingressClass }}
     {{- end }}
 
---- 
+---
 {{- end}}

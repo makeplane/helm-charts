@@ -5,6 +5,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-secrets
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 stringData:
   SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
@@ -44,6 +46,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-vars
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 data:
   PRIME_HOST: {{ .Values.license.licenseServer | quote }}
   MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
@@ -78,4 +82,4 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
-  {{- end }} 
+  {{- end }}

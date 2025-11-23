@@ -11,6 +11,8 @@ metadata:
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.ingressClass }}
   rules:
