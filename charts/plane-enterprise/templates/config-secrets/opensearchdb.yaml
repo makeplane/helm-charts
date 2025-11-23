@@ -20,7 +20,6 @@ data:
   OPENSEARCH_USERNAME: {{ .Values.services.opensearch.username | default "plane" | quote }}
   create-user.sh: |
     #!/bin/bash
-    set -e
 
     echo "=== OpenSearch Initialization Script ==="
 
