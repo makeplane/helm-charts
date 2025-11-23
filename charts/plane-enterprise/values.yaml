@@ -16,8 +16,7 @@ airgapped:
   # mount the CA bundle into the API pod by passing it in as an environment
   # variable. Should be the full path to the CA bundle file, e.g.
   #
-  s3SecretName: ""
-  s3SecretKey: ""
+  s3Secrets: []
 
 ingress:
   enabled: true
