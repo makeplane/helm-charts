@@ -3,7 +3,9 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.beatworker }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "beat-worker-wl" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.beatworker }}
 spec:
   replicas: {{ .Values.services.beatworker.replicas | default 1 }}
   selector:
@@ -14,6 +16,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-beat-worker
+        {{- include "plane.component.labels" (dict "componentName" "beat-worker-wl" "context" $) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

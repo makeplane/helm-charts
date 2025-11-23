@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-space
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-space
+    {{- include "plane.component.labels" (dict "componentName" "space" "context" $) | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.space.assign_cluster_ip }}
@@ -26,7 +27,9 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-space-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.space }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "space" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.space }}
 spec:
   replicas: {{ .Values.services.space.replicas | default 1 }}
   selector:
@@ -37,6 +40,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-space
+        {{- include "plane.component.labels" (dict "componentName" "space" "context" $) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

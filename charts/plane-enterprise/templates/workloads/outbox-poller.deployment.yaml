@@ -4,7 +4,9 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-outbox-poller-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.outbox_poller }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "outbox-poller" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.outbox_poller }}
 spec:
   replicas: {{ .Values.services.outbox_poller.replicas | default 1}}
   selector:
@@ -15,6 +17,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-outbox-poller
+        {{- include "plane.component.labels" (dict "componentName" "outbox-poller" "context" $) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
