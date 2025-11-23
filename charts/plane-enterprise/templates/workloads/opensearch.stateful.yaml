@@ -37,7 +37,28 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
     spec:
       {{- include "plane.podScheduling" .Values.services.opensearch }}
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
       initContainers:
+      - name: fix-opensearch-permissions
+        image: busybox:latest
+        command:
+          - /bin/sh
+        args:
+          - '-c'
+          - >-
+            echo "Fixing permissions for OpenSearch data directory...";
+            chown -R 1000:1000 /usr/share/opensearch/data || true;
+            chmod -R 755 /usr/share/opensearch/data || true;
+            echo "Permissions fixed!";
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /usr/share/opensearch/data
+          name: pvc-{{ .Release.Name }}-opensearch-vol
+          subPath: ''
       - name: verify-opensearch-user
         image: curlimages/curl:latest
         command:
@@ -90,6 +111,22 @@ spec:
         name: {{ .Release.Name }}-opensearch
         stdin: true
         tty: true
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}

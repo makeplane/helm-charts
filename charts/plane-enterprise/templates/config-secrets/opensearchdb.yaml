@@ -20,6 +20,9 @@ data:
   OPENSEARCH_USERNAME: {{ .Values.services.opensearch.username | default "plane" | quote }}
   create-user.sh: |
     #!/bin/bash
+    set -e
+
+    echo "=== OpenSearch Initialization Script ==="
 
     echo "Modifying internal_users.yml before starting OpenSearch..."
 
@@ -37,6 +40,9 @@ data:
 
     # Path to internal users file
     INTERNAL_USERS_FILE="/usr/share/opensearch/config/opensearch-security/internal_users.yml"
+
+    # Ensure the directory exists
+    mkdir -p "$(dirname "$INTERNAL_USERS_FILE")"
 
     # Check if user already exists
     if grep -q "^${OPENSEARCH_USER}:" "$INTERNAL_USERS_FILE"; then
