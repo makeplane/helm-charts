@@ -1060,7 +1060,7 @@ questions:
   - variable: services.opensearch.image
     label: "Docker Image"
     type: string
-    default: "opensearchproject/opensearch:2.11.0"
+    default: "opensearchproject/opensearch:3"
     show_if: "services.opensearch.local_setup=true"
   - variable: services.opensearch.pullPolicy
     label: "OpenSearch Pull Policy"

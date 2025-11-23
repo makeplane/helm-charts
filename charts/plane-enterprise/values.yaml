@@ -82,7 +82,7 @@ services:
 
   opensearch:
     local_setup: true
-    image: opensearchproject/opensearch:2.11.0
+    image: opensearchproject/opensearch:3
     servicePort: 9200
     volumeSize: 5Gi
     pullPolicy: IfNotPresent
