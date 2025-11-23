@@ -42,23 +42,6 @@ spec:
         runAsUser: 1000
         runAsNonRoot: true
       initContainers:
-      - name: fix-opensearch-permissions
-        image: busybox:latest
-        command:
-          - /bin/sh
-        args:
-          - '-c'
-          - >-
-            echo "Fixing permissions for OpenSearch data directory...";
-            chown -R 1000:1000 /usr/share/opensearch/data || true;
-            chmod -R 755 /usr/share/opensearch/data || true;
-            echo "Permissions fixed!";
-        securityContext:
-          runAsUser: 0
-        volumeMounts:
-        - mountPath: /usr/share/opensearch/data
-          name: pvc-{{ .Release.Name }}-opensearch-vol
-          subPath: ''
       - name: verify-opensearch-user
         image: curlimages/curl:latest
         command:
