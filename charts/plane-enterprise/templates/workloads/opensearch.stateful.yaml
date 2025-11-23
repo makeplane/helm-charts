@@ -37,6 +37,53 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
     spec:
       {{- include "plane.podScheduling" .Values.services.opensearch }}
+      initContainers:
+      - name: verify-opensearch-user
+        image: curlimages/curl:latest
+        command:
+          - /bin/sh
+        args:
+          - '-c'
+          - >-
+            echo "Waiting for OpenSearch service to be available...";
+            MAX_ATTEMPTS=60;
+            ATTEMPT=0;
+            while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+              if curl -f -s -k -u "${OPENSEARCH_USER}:${OPENSEARCH_PASSWORD}" https://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200 > /dev/null 2>&1 || 
+                 curl -f -s -u "${OPENSEARCH_USER}:${OPENSEARCH_PASSWORD}" http://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200 > /dev/null 2>&1; then
+                echo "OpenSearch service is available!";
+                echo "Testing user authentication for ${OPENSEARCH_USER}...";
+                RESPONSE=$(curl -s -k -u "${OPENSEARCH_USER}:${OPENSEARCH_PASSWORD}" https://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200/_plugins/_security/api/internalusers/${OPENSEARCH_USER} 2>/dev/null || 
+                          curl -s -u "${OPENSEARCH_USER}:${OPENSEARCH_PASSWORD}" http://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200/_plugins/_security/api/internalusers/${OPENSEARCH_USER} 2>/dev/null || 
+                          echo "FAILED");
+                if echo "$RESPONSE" | grep -q "\"${OPENSEARCH_USER}\"" || echo "$RESPONSE" | grep -q "\"admin\"" || echo "$RESPONSE" | grep -q "backend_roles"; then
+                  echo "✓ User ${OPENSEARCH_USER} verified successfully!";
+                  exit 0;
+                else
+                  echo "User verification failed. Response: $RESPONSE";
+                  echo "This might be the first pod - user will be created by main container.";
+                  exit 0;
+                fi;
+              fi;
+              ATTEMPT=$((ATTEMPT + 1));
+              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: OpenSearch not ready yet, waiting 5 seconds...";
+              sleep 5;
+            done;
+            echo "OpenSearch service not available after $MAX_ATTEMPTS attempts. Continuing anyway - this might be the first pod.";
+            exit 0;
+        envFrom:
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-opensearch-vars
+              optional: false
+        env:
+          - name: OPENSEARCH_USER
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-opensearch-vars
+                key: OPENSEARCH_USERNAME
       containers:
       - image: {{ .Values.services.opensearch.image }}
         imagePullPolicy: {{ .Values.services.opensearch.pullPolicy | default "IfNotPresent" }}
@@ -74,10 +121,10 @@ spec:
       - name: {{ .Release.Name }}-opensearch-init-script
         configMap:
           name: {{ .Release.Name }}-opensearch-vars
+          defaultMode: 0755
           items:
           - key: create-user.sh
             path: create-user.sh
-            defaultMode: 0755
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
