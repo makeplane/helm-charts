@@ -46,8 +46,8 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       labels:
-       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
-       {{- include "plane.component.labels" (dict "componentName" "email-service" "context" $) | nindent 8 }}
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
+        {{- include "plane.component.labels" (dict "componentName" "email-service" "context" $) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
