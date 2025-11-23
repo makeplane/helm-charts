@@ -98,11 +98,10 @@
 
 ### Air-gapped Settings
 
-| Setting                | Default | Required | Description                                                                                                                                                                                                                                                                                                                                                      |
-| ---------------------- | :-----: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| airgapped.enabled      |  false  |    No    | Specifies the airgapped mode the Plane API runs in.                                                                                                                                                                                                                                                                                                              |
-| airgapped.s3SecretName |   ""    |    No    | Name of the Secret that contains the CA certificate (.crt). The Secret must include a data key whose filename matches the basename of `airgapped.s3SecretKey`. Used to override S3’s CA when `airgapped.enabled=true`. Applying this secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` |
-| airgapped.s3SecretKey  |   ""    |    No    | Key name of the secret to load the Custom Root CA from `airgapped.s3SecretName`                                                                                                                                                                                                                                                                                  |
+| Setting               | Default | Required | Description                                                                                                                                                                                                                                                                                                          |
+|-----------------------|:-------:| :------: |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| airgapped.enabled     |  false  |    No    | Specifies the airgapped mode the Plane API runs in.                                                                                                                                                                                                                                                                  |
+| airgapped.s3Secrets   |   []    |    No    | List of Kubernetes Secrets containing CA certificates to install. Each item in the list must contain a `name` (the Secret name) and a `key` (the file key inside the Secret). Applying a secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` |
 
 ### Postgres
 
@@ -184,7 +183,7 @@
 | env.aws_access_key                    |                    |          | External `S3` (or compatible) storage service provides `access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                                                            |
 | env.aws_secret_access_key             |                    |          | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                                                     |
 | env.aws_region                        |                    |          | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                             |
-| env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false` |                  
+| env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false` |
 | env.use_storage_proxy                  |      false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`. |
 
 ### Web Deployment
@@ -317,9 +316,9 @@
 | services.silo.assign_cluster_ip | false |  | Set it to `true` if you want to assign `ClusterIP` to the service |
 | services.silo.nodeSelector | {} |  | This key allows you to set the node selector for the deployment of `silo`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster. |
 | services.silo.tolerations | [] |  | This key allows you to set the tolerations for the deployment of `silo`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
-| services.silo.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `silo`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. | 
+| services.silo.affinity | {} |  | This key allows you to set the affinity rules for the deployment of `silo`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster. |
 | services.silo.labels | {} |  | Custom labels to add to the silo deployment |
-| services.silo.annotations | {} |  | Custom annotations to add to the silo deployment | 
+| services.silo.annotations | {} |  | Custom annotations to add to the silo deployment |
 | services.silo.connectors.slack.enabled | false |  | Slack Integration |
 | services.silo.connectors.slack.client_id | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client ID |
 | services.silo.connectors.slack.client_secret | "" | required if `services.silo.connectors.slack.enabled` is `true` | Slack Client Secret |
@@ -337,11 +336,11 @@
 | env.silo_envs.request_interval | 400 |  | Request interval for Silo |
 | env.silo_envs.sentry_dsn |  |  | Sentry DSN |
 | env.silo_envs.sentry_environment |  |  | Sentry Environment |
-| env.silo_envs.sentry_traces_sample_rate |  |  | Sentry Traces Sample Rate | 
+| env.silo_envs.sentry_traces_sample_rate |  |  | Sentry Traces Sample Rate |
 | env.silo_envs.hmac_secret_key |  &lt;random-32-bit-string&gt; |  | HMAC Secret Key |
 | env.silo_envs.aes_secret_key | "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" |  | AES Secret Key |
 
-  
+
 ### Worker Deployment
 
 | Setting | Default | Required | Description |
