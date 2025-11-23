@@ -5,9 +5,11 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-email-vars
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "email-service" "context" $) | nindent 4 }}
 data:
   SMTP_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
-  EMAIL_SAVE_ENDPOINT: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/" 
+  EMAIL_SAVE_ENDPOINT: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/"
   WEBHOOK_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/"
   domain-blacklist.txt: |
     10minutemail.com
@@ -17,6 +19,6 @@ data:
     casino
     lottery
     jackpot
-   
+
 ---
 {{- end }}

@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-redis
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
+    {{- include "plane.component.labels" (dict "componentName" "redis" "context" $) | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.redis.assign_cluster_ip }}
@@ -28,16 +29,19 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.redis }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "redis" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.redis }}
 spec:
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
-  serviceName:  {{ .Release.Name }}-redis
+  serviceName: {{ .Release.Name }}-redis
   template:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
+        {{- include "plane.component.labels" (dict "componentName" "redis" "context" $) | nindent 8 }}
     spec:
       containers:
       - image: {{ .Values.services.redis.image }}
@@ -71,5 +75,5 @@ spec:
           storage: {{ .Values.services.redis.volumeSize | default "1Gi" | quote }}
       storageClassName: {{ .Values.env.storageClass | quote }}
       volumeMode: Filesystem
-      
+
 {{- end }}

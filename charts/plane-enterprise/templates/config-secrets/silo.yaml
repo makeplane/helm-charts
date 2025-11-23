@@ -6,6 +6,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-secrets
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "silo" "context" $) | nindent 4 }}
 stringData:
   {{- if .Values.env.silo_envs.hmac_secret_key }}
   SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | quote }}
@@ -62,6 +64,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-vars
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "silo" "context" $) | nindent 4 }}
 data:
   PORT: "3000"
   BATCH_SIZE: {{ .Values.env.silo_envs.batch_size | default 100 | quote }}
@@ -75,7 +79,7 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.silo_envs.cors_allowed_origins }}"
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
-  {{- end }} 
+  {{- end }}
 
   APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"

@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-rabbitmq
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+    {{- include "plane.component.labels" (dict "componentName" "rabbitmq" "context" $) | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.rabbitmq.assign_cluster_ip }}
@@ -29,7 +30,9 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.rabbitmq }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "rabbitmq" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.rabbitmq }}
 spec:
   selector:
     matchLabels:
@@ -39,6 +42,7 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+        {{- include "plane.component.labels" (dict "componentName" "rabbitmq" "context" $) | nindent 8 }}
     spec:
       containers:
       - image: {{ .Values.services.rabbitmq.image }}
@@ -83,5 +87,5 @@ spec:
           storage: {{ .Values.services.rabbitmq.volumeSize | default "100Mi" | quote }}
       storageClassName: {{ .Values.env.storageClass }}
       volumeMode: Filesystem
-      
+
 {{- end }}

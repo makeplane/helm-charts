@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-silo
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+    {{- include "plane.component.labels" (dict "componentName" "silo" "context" $) | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.silo.assign_cluster_ip }}
@@ -27,7 +28,9 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.silo }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "silo" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.silo }}
 spec:
   replicas: {{ .Values.services.silo.replicas | default 1}}
   selector:
@@ -38,6 +41,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+        {{- include "plane.component.labels" (dict "componentName" "silo" "context" $) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -49,15 +53,15 @@ spec:
         args:
           - '-c'
           - >-
-            if echo "$AMQP_URL" | grep -q "rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"; then 
-              echo "Waiting for local RabbitMQ..."; 
+            if echo "$AMQP_URL" | grep -q "rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"; then
+              echo "Waiting for local RabbitMQ...";
               until nslookup {{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }} > /dev/null 2>&1; do
-                echo "RabbitMQ not ready..."; 
-                sleep 5; 
-              done; 
-              echo "RabbitMQ is up!"; 
-            else 
-              echo "Skipping wait, using external RabbitMQ"; 
+                echo "RabbitMQ not ready...";
+                sleep 5;
+              done;
+              echo "RabbitMQ is up!";
+            else
+              echo "Skipping wait, using external RabbitMQ";
             fi;
         envFrom:
           - configMapRef:

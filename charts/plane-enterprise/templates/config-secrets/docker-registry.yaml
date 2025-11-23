@@ -5,6 +5,8 @@ kind: Secret
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-docker-registry-credentials
+  labels:
+    {{- include "plane.labels" . | nindent 4 }}
 data:
   .dockerconfigjson: {{ include "imagePullSecret" .}}
 type: kubernetes.io/dockerconfigjson

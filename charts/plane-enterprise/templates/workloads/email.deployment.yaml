@@ -5,6 +5,8 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}-email-service
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "email-service" "context" $) | nindent 4 }}
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local  # Important for email servers
@@ -32,7 +34,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     reloader.stakater.com/auto: "true"
-  {{- include "plane.labelsAndAnnotations" .Values.services.email_service }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "email-service" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.email_service }}
 spec:
   replicas: {{ .Values.services.email_service.replicas | default 1 }}
   selector:
@@ -42,8 +46,9 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       labels:
-       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app 
-      annotations:  
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
+        {{- include "plane.component.labels" (dict "componentName" "email-service" "context" $) | nindent 8 }}
+      annotations:
         timestamp: {{ now | quote }}
     spec:
       containers:

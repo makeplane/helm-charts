@@ -5,6 +5,7 @@ metadata:
   name: {{ .Release.Name }}-monitor
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+    {{- include "plane.component.labels" (dict "componentName" "monitor" "context" $) | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.monitor.assign_cluster_ip }}
@@ -24,7 +25,9 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.monitor }}
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "monitor" "context" $) | nindent 4 }}
+    {{- include "plane.labelsAndAnnotations" .Values.services.monitor }}
 spec:
   selector:
     matchLabels:
@@ -34,6 +37,7 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+        {{- include "plane.component.labels" (dict "componentName" "monitor" "context" $) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -86,4 +90,3 @@ spec:
           storage: {{ .Values.services.monitor.volumeSize | default "100Mi" | quote }}
       storageClassName: {{ .Values.env.storageClass | quote }}
       volumeMode: Filesystem
-      

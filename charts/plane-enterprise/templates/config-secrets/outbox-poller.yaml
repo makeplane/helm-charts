@@ -4,6 +4,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-outbox-poller-vars
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "outbox-poller" "context" $) | nindent 4 }}
 data:
   OUTBOX_POLLER_MEMORY_LIMIT_MB: {{ .Values.env.outbox_poller_envs.memory_limit_mb | default 400 | quote }}
   OUTBOX_POLLER_INTERVAL_MIN: {{ .Values.env.outbox_poller_envs.interval_min | default 0.25 | quote }}

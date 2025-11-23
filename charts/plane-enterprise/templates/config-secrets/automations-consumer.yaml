@@ -4,6 +4,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-vars
+  labels:
+    {{- include "plane.component.labels" (dict "componentName" "automation-consumer" "context" $) | nindent 4 }}
 data:
   AUTOMATION_EVENT_STREAM_QUEUE_NAME: {{ .Values.env.automation_consumer_envs.event_stream_queue_name | default "plane.event_stream.automations" | quote }}
   AUTOMATION_EVENT_STREAM_PREFETCH: {{ .Values.env.automation_consumer_envs.event_stream_prefetch | default 10 | quote }}
