@@ -37,12 +37,17 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
     spec:
       {{- include "plane.podScheduling" .Values.services.opensearch }}
+      securityContext:
+        fsGroup: 1000
       containers:
       - image: {{ .Values.services.opensearch.image }}
         imagePullPolicy: {{ .Values.services.opensearch.pullPolicy | default "IfNotPresent" }}
         name: {{ .Release.Name }}-opensearch
         stdin: true
         tty: true
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
@@ -78,11 +83,10 @@ spec:
       - name: {{.Release.Name}}-opensearch-init-script
         configMap:
           name: {{ .Release.Name }}-opensearch-vars
+          defaultMode: 0755
           items:
           - key: create-user.sh
             path: create-user.sh
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
