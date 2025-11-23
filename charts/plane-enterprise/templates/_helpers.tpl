@@ -38,7 +38,7 @@ Create chart name and version as used by the chart label.
 Create a default fully qualified app name.
 */}}
 {{- define "plane.name" -}}
-{{- default .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{- .Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
