@@ -1039,6 +1039,11 @@ questions:
     type: string
     default: "plane"
     show_if: "services.postgres.local_setup=true"
+  - variable: env.pg_pi_db_name
+    label: "PI DB Name"
+    type: string
+    default: "plane_pi"
+    show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -1048,6 +1053,11 @@ questions:
     label: "Remote URL"
     type: string
     default: "postgresql://"
+    show_if: "services.postgres.local_setup=false"
+  - variable: env.pg_pi_db_remote_url
+    label: "PI DB Remote URL"
+    type: string
+    default: ""
     show_if: "services.postgres.local_setup=false"
 
 - variable: services.opensearch.local_setup
