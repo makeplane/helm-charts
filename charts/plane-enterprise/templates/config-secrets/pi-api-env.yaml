@@ -63,7 +63,7 @@ data:
   PLANE_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
   {{- end }}
 
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080"
   PI_BASE_PATH: "/pi"
 
   {{- if .Values.env.pi_envs.cors_allowed_origins }}
