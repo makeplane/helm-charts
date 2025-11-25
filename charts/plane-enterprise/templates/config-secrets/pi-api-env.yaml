@@ -52,11 +52,11 @@ data:
   FASTAPI_APP_HOST: "0.0.0.0"
   FASTAPI_APP_WORKERS: "1"
   {{- if .Values.ssl.create_issuer }}
-  PLANE_FRONTEND_URL: "https://{{ .Values.license.licenseDomain }}/"
+  PLANE_FRONTEND_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
-  PLANE_FRONTEND_URL: "http://{{ .Values.license.licenseDomain }}/"
+  PLANE_FRONTEND_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
-  
+
   {{- if .Values.env.pi_envs.plane_api_host }}
   PLANE_API_HOST: {{ .Values.env.pi_envs.plane_api_host | quote }}
   {{- else }}
@@ -69,7 +69,7 @@ data:
   {{- if .Values.env.pi_envs.cors_allowed_origins }}
   CORS_ALLOWED_ORIGINS: {{ .Values.env.pi_envs.cors_allowed_origins | quote }}
   {{- else }}
-  CORS_ALLOWED_ORIGINS: ["http://{{ .Values.license.licenseDomain }}/", "https://{{ .Values.license.licenseDomain }}/"]
+  CORS_ALLOWED_ORIGINS: ["http://{{ .Values.license.licenseDomain }}", "https://{{ .Values.license.licenseDomain }}"]
   {{- end }}
   
   {{- if .Values.env.pi_envs.plane_oauth.redirect_uri }}
