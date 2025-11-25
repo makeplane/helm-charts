@@ -423,7 +423,7 @@ metrics:
     cpuLimit: "100m"
     scrape_interval: "300s"  # 5 minutes
     batch:
-      timeout: "60s"
+      timeout: "300s"  # Publish every 5 minutes
       send_batch_size: 4096
     debug:
       enabled: false

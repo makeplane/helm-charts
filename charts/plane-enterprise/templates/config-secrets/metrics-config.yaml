@@ -25,6 +25,7 @@ data:
               plane_installation_type: "{{ .Values.metrics.installation.type | default "kubernetes" }}"
               plane_version: "{{ .Values.metrics.installation.plane_version | default .Values.planeVersion }}"
               cluster_name: "{{ .Values.metrics.installation.cluster_name | default "default" }}"
+              license_domain: "{{ .Values.license.licenseDomain }}"
           
           scrape_configs:
             # cAdvisor metrics (container resource usage for this namespace only)
@@ -118,6 +119,7 @@ data:
         endpoint: {{ $endpointWithPort }}
         compression: gzip
         tls:
+          # TODO: Add production TLS configuration
           insecure: true
         retry_on_failure:
           enabled: true
