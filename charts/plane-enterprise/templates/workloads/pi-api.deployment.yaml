@@ -75,7 +75,7 @@ spec:
         readinessProbe:
           failureThreshold: 30
           httpGet:
-            path: /
+            path: /pi/
             port: 8000
             scheme: HTTP
           periodSeconds: 10
