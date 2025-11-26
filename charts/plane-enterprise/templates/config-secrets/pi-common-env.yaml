@@ -14,16 +14,17 @@ stringData:
   {{- else }}
   FOLLOWER_POSTGRES_URI: ""
   {{- end }}
-  {{- if .Values.services.opensearch.local_setup }}
-  OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "" |  quote }}
-  {{- if .Values.env.opensearch_ml_model_id }}
-  OPENSEARCH_ML_MODEL_ID: {{ .Values.env.opensearch_ml_model_id | default "" |  quote }}
-  {{- end }}
-  {{- end }}
   {{- if .Values.services.minio.local_setup }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.services.minio.root_password | default "password" | quote }}
   {{- else }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | quote }}
+  {{- end }}
+  {{- if .Values.services.opensearch.local_setup }}
+  OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
+  {{- else if .Values.env.opensearch_url }}
+  OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "" | quote }}
+  {{- else }}
+  OPENSEARCH_PASSWORD: ""
   {{- end }}
 ---
 
@@ -33,16 +34,21 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-common-vars
 data:
-
   {{- if .Values.services.opensearch.local_setup }}
   OPENSEARCH_URL: "http://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200"
-  {{- else if .Values.env.opensearch_url }}
-  OPENSEARCH_URL: {{ .Values.env.opensearch_url | quote }}
-  {{- else }}
-  OPENSEARCH_URL: ""
-  {{- end }}
   OPENSEARCH_USER: {{ .Values.services.opensearch.username | default "plane" |  quote }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "plane_" |  quote }}
+  {{- else if .Values.env.opensearch_url }}
+  OPENSEARCH_URL: {{ .Values.env.opensearch_url | quote }}
+  OPENSEARCH_USER: {{ .Values.services.opensearch.username | default "" |  quote }}
+  OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" |  quote }}
+  {{- else }}
+  OPENSEARCH_URL: ""
+  OPENSEARCH_USER: ""
+  OPENSEARCH_INDEX_PREFIX: ""
+  {{- end }}
+  OPENSEARCH_ML_MODEL_ID: {{ .Values.env.opensearch_ml_model_id | default "" |  quote }}
+
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
   CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}
   CELERY_WORKSPACE_PLAN_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.workspace_plan_sync_enabled | ternary "1" "0" | quote }}

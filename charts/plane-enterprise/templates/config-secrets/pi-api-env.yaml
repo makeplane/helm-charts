@@ -43,9 +43,9 @@ stringData:
   {{- end }}
 
   {{- if .Values.env.pi_envs.coherence_api_key }}
-  COHERENCE_API_KEY: {{ .Values.env.pi_envs.coherence_api_key | default "" | quote }}
+  COHERE_API_KEY: {{ .Values.env.pi_envs.coherence_api_key | default "" | quote }}
   {{- else }}
-  COHERENCE_API_KEY: ""
+  COHERE_API_KEY: ""
   {{- end }}
 
 ---
