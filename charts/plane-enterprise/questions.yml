@@ -812,6 +812,10 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.pi_envs.coherence_api_key
+    label: "Coherence API Key"
+    type: string
+    default: ""
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean

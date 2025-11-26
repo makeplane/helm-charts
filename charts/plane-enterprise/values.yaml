@@ -483,6 +483,7 @@ env:
       state_expiry_seconds: 82800
     plane_api_host: ''
     cors_allowed_origins: ''
+    coherence_api_key: ''
 
     celery:
       vector_sync_enabled: false

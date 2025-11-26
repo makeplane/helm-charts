@@ -42,6 +42,12 @@ stringData:
   CELERY_BROKER_URL: ""
   {{- end }}
 
+  {{- if .Values.env.pi_envs.coherence_api_key }}
+  COHERENCE_API_KEY: {{ .Values.env.pi_envs.coherence_api_key | default "" | quote }}
+  {{- else }}
+  COHERENCE_API_KEY: ""
+  {{- end }}
+
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -62,6 +68,8 @@ data:
   {{- else }}
   PLANE_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
   {{- end }}
+
+  PLANE_INTERNAL_API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
 
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080"
   PI_BASE_PATH: "/pi"
