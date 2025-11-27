@@ -812,8 +812,8 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
-  - variable: env.pi_envs.coherence_api_key
-    label: "Coherence API Key"
+  - variable: env.pi_envs.cohere_api_key
+    label: "Cohere API Key"
     type: string
     default: ""
   - variable: env.pi_envs.celery.vector_sync_enabled
@@ -900,6 +900,10 @@ questions:
       label: "Deepgram API Key"
       type: password
       default: ""
+  - variable: env.pi_envs.internal_secret
+    label: "PI Internal Secret"
+    type: string
+    default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
 
 - variable: services.pi_worker.enabled
   label: "Enable PI Worker"
