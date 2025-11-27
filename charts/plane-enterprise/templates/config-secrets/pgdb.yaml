@@ -24,14 +24,14 @@ data:
   init-dbs.sql: |
     CREATE EXTENSION IF NOT EXISTS dblink;
 
-    SELECT 'CREATE DATABASE {{.Values.env.pgdb_name}}'
+    SELECT 'CREATE DATABASE "{{.Values.env.pgdb_name}}"'
     WHERE NOT EXISTS (
-        SELECT FROM pg_database WHERE datname = '{{.Values.env.pgdb_name}}'
+        SELECT FROM pg_database WHERE datname = '"{{.Values.env.pgdb_name}}"'
     )\gexec
     
-    SELECT 'CREATE DATABASE {{.Values.env.pg_pi_db_name}}'
+    SELECT 'CREATE DATABASE "{{.Values.env.pg_pi_db_name}}"'
     WHERE NOT EXISTS (
-        SELECT FROM pg_database WHERE datname = '{{.Values.env.pg_pi_db_name}}'
+        SELECT FROM pg_database WHERE datname = '"{{.Values.env.pg_pi_db_name}}"'
     )\gexec
 
 {{- end }}

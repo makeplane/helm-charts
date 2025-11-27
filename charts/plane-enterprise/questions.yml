@@ -1078,7 +1078,7 @@ questions:
   - variable: services.opensearch.image
     label: "Docker Image"
     type: string
-    default: "opensearchproject/opensearch:3"
+    default: "opensearchproject/opensearch:3.3.2"
     show_if: "services.opensearch.local_setup=true"
   - variable: services.opensearch.pullPolicy
     label: "OpenSearch Pull Policy"
@@ -1114,16 +1114,26 @@ questions:
     type: boolean
     default: false
     show_if: "services.opensearch.local_setup=true"
-  - variable: env.opensearch_url
-    label: "Remote URL"
+  - variable: env.opensearch_remote_url
+    label: "OpenSearch Remote URL"
     type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_username
+    label: "OpenSearch Remote Username"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_password
+    label: "OpenSearch Remote Password"
+    type: password
     default: ""
     show_if: "services.opensearch.local_setup=false"
   - variable: env.opensearch_index_prefix
     label: "Index Prefix"
     type: string
     default: ""
-  - variable: env.opensearch_ml_model_id
+  - variable: env.pi_envs.opensearch_ml_model_id
     label: "ML Model ID"
     type: string
     default: ""

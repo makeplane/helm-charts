@@ -55,7 +55,3 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---
 {{- end }}
-
-
-
-
