@@ -420,7 +420,7 @@ env:
 
   #OPENSEARCH ENVS
   opensearch_url: ''
-  opensearch_index_prefix: 'plane_'
+  opensearch_index_prefix: ''
   opensearch_ml_model_id: ''
 
   #API KEYS

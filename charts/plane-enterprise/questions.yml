@@ -1122,7 +1122,7 @@ questions:
   - variable: env.opensearch_index_prefix
     label: "Index Prefix"
     type: string
-    default: "plane_"
+    default: ""
   - variable: env.opensearch_ml_model_id
     label: "ML Model ID"
     type: string
