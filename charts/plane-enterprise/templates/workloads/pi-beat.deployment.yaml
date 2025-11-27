@@ -1,4 +1,4 @@
-{{- if .Values.services.pi_beat_worker.enabled }}
+{{- if .Values.services.pi.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

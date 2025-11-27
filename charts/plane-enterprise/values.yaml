@@ -355,7 +355,6 @@ services:
         api_key: ''
 
   pi_beat_worker:
-    enabled: false
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
@@ -368,7 +367,6 @@ services:
     annotations: {}
 
   pi_worker:
-    enabled: false
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m

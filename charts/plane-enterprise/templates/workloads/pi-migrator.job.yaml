@@ -14,8 +14,8 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      containers:
       {{- include "plane.podScheduling" .Values.services.pi }}
+      containers:
       - name: {{ .Release.Name }}-pi-api-migrate
         image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         imagePullPolicy: Always

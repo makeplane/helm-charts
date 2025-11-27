@@ -65,6 +65,11 @@ questions:
     type: string
     required: true
     default: "artifacts.plane.so/makeplane/email-commercial"
+  - variable: services.pi.image
+    label: PI Docker Image
+    type: string
+    required: true
+    default: "artifacts.plane.so/makeplane/plane-pi-commercial"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
@@ -905,61 +910,59 @@ questions:
     type: string
     default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
 
-- variable: services.pi_worker.enabled
-  label: "Enable PI Worker"
-  type: boolean
-  default: false
-  group: "PI Worker Setup"
-  show_subquestion_if: true
-  subquestions:
-  - variable: services.pi_worker.replicas
-    label: "Default Replica Count"
-    type: int
-    default: 1
-  - variable: services.pi_worker.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.pi_worker.cpuLimit
-    label: "CPU Limit"
-    type: string
-    default: 500m
-  - variable: services.pi_worker.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: 50Mi
-  - variable: services.pi_worker.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
 
-- variable: services.pi_beat_worker.enabled
-  label: "Enable PI Beat Worker"
-  type: boolean
-  default: false
+- variable: services.pi_worker.replicas
+  label: "Default Replica Count"
+  type: int
+  default: 1
+  group: "PI Worker Setup"
+- variable: services.pi_worker.memoryLimit
+  label: "Memory Limit"
+  type: string
+  default: 1000Mi
+  group: "PI Worker Setup"
+- variable: services.pi_worker.cpuLimit
+  label: "CPU Limit"
+  type: string
+  default: 500m
+  group: "PI Worker Setup"
+- variable: services.pi_worker.memoryRequest
+  label: "Memory Request"
+  type: string
+  default: 50Mi
+  group: "PI Worker Setup"
+- variable: services.pi_worker.cpuRequest
+  label: "CPU Request"
+  type: string
+  default: 50m
+  group: "PI Worker Setup"
+
+
+- variable: services.pi_beat_worker.replicas
+  label: "Default Replica Count"
+  type: int
+  default: 1
   group: "PI Beat Worker Setup"
-  show_subquestion_if: true
-  subquestions:
-  - variable: services.pi_beat_worker.replicas
-    label: "Default Replica Count"
-    type: int
-    default: 1
-  - variable: services.pi_beat_worker.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.pi_beat_worker.cpuLimit
-    label: "CPU Limit"
-    type: string
-    default: 500m
-  - variable: services.pi_beat_worker.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: 50Mi
-  - variable: services.pi_beat_worker.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 50m
+- variable: services.pi_beat_worker.memoryLimit
+  label: "Memory Limit"
+  type: string
+  default: 1000Mi
+  group: "PI Beat Worker Setup"
+- variable: services.pi_beat_worker.cpuLimit
+  label: "CPU Limit"
+  type: string
+  default: 500m
+  group: "PI Beat Worker Setup"
+- variable: services.pi_beat_worker.memoryRequest
+  label: "Memory Request"
+  type: string
+  default: 50Mi
+  group: "PI Beat Worker Setup"
+- variable: services.pi_beat_worker.cpuRequest
+  label: "CPU Request"
+  type: string
+  default: 50m
+  group: "PI Beat Worker Setup"
 
 - variable: services.redis.local_setup
   label: "Install Redis"
