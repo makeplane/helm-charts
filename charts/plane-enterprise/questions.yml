@@ -910,59 +910,50 @@ questions:
     type: string
     default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
 
-
 - variable: services.pi_worker.replicas
   label: "Default Replica Count"
   type: int
   default: 1
   group: "PI Worker Setup"
-- variable: services.pi_worker.memoryLimit
-  label: "Memory Limit"
-  type: string
-  default: 1000Mi
-  group: "PI Worker Setup"
-- variable: services.pi_worker.cpuLimit
-  label: "CPU Limit"
-  type: string
-  default: 500m
-  group: "PI Worker Setup"
-- variable: services.pi_worker.memoryRequest
-  label: "Memory Request"
-  type: string
-  default: 50Mi
-  group: "PI Worker Setup"
-- variable: services.pi_worker.cpuRequest
-  label: "CPU Request"
-  type: string
-  default: 50m
-  group: "PI Worker Setup"
-
-
+  subquestions:
+  - variable: services.pi_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 - variable: services.pi_beat_worker.replicas
   label: "Default Replica Count"
   type: int
   default: 1
   group: "PI Beat Worker Setup"
-- variable: services.pi_beat_worker.memoryLimit
-  label: "Memory Limit"
-  type: string
-  default: 1000Mi
-  group: "PI Beat Worker Setup"
-- variable: services.pi_beat_worker.cpuLimit
-  label: "CPU Limit"
-  type: string
-  default: 500m
-  group: "PI Beat Worker Setup"
-- variable: services.pi_beat_worker.memoryRequest
-  label: "Memory Request"
-  type: string
-  default: 50Mi
-  group: "PI Beat Worker Setup"
-- variable: services.pi_beat_worker.cpuRequest
-  label: "CPU Request"
-  type: string
-  default: 50m
-  group: "PI Beat Worker Setup"
+  subquestions:
+  - variable: services.pi_beat_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_beat_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_beat_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi_beat_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 
 - variable: services.redis.local_setup
   label: "Install Redis"
