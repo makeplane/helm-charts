@@ -65,12 +65,14 @@ data:
 
   {{- if .Values.env.pi_envs.plane_api_host }}
   PLANE_API_HOST: {{ .Values.env.pi_envs.plane_api_host | quote }}
+  {{- else if .Values.ssl.create_issuer }}
+  PLANE_API_HOST: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
-  PLANE_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
+  PLANE_API_HOST: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
   PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
-  
+
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080"
   PI_BASE_PATH: "/pi"
 
@@ -82,6 +84,8 @@ data:
   
   {{- if .Values.env.pi_envs.plane_oauth.redirect_uri }}
   PLANE_OAUTH_REDIRECT_URI: {{ .Values.env.pi_envs.plane_oauth.redirect_uri | quote }}
+  {{- else if .Values.ssl.create_issuer }}
+  PLANE_OAUTH_REDIRECT_URI: "https://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
   {{- else }}
   PLANE_OAUTH_REDIRECT_URI: "http://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
   {{- end }}

@@ -817,7 +817,6 @@ questions:
     label: "Workspace Plan Sync Enabled"
     type: boolean
     default: false
-    show_if: "env.pi_envs.celery.workspace_plan_sync_enabled=true"
   - variable: env.pi_envs.celery.workspace_plan_sync_interval
     label: "Workspace Plan Sync Interval"
     type: int
@@ -827,12 +826,22 @@ questions:
     label: "Docs Sync Enabled"
     type: boolean
     default: false
-    show_if: "env.pi_envs.celery.docs_sync_enabled=true"
   - variable: env.pi_envs.celery.docs_sync_interval
     label: "Docs Sync Interval"
     type: int
     default: 86400
     show_if: "env.pi_envs.celery.docs_sync_enabled=true"
+  
+  - variable: env.pi_envs.internal_secret
+    label: "PI Internal Secret"
+    type: string
+    default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
+
+  - variable: env.pi_envs.opensearch_ml_model_id
+    label: "ML Model ID"
+    type: string
+    default: ""
+    
   - variable: services.pi.ai_providers.openai.enabled
     label: "Enable OpenAI Provider"
     type: boolean
@@ -893,11 +902,6 @@ questions:
       label: "Deepgram API Key"
       type: password
       default: ""
-  - variable: env.pi_envs.internal_secret
-    label: "PI Internal Secret"
-    type: string
-    default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
-
 - variable: services.pi_worker.replicas
   label: "Default Replica Count"
   type: int
