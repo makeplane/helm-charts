@@ -756,19 +756,6 @@ questions:
   group: "Plane AI Setup"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.image
-    label: "PI Docker Image"
-    type: string
-    required: true
-    default: "artifacts.plane.so/makeplane/plane-pi-commercial"
-  - variable: services.pi.pullPolicy
-    label: "PI Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "Always"
   - variable: services.pi.replicas
     label: "Default Replica Count"
     type: int
@@ -793,6 +780,10 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: env.pi_envs.cohere_api_key
+    label: "Cohere API Key"
+    type: string
+    default: ""
   - variable: env.pi_envs.plane_oauth.client_id
     label: "Plane OAuth Client ID"
     type: string
@@ -809,16 +800,8 @@ questions:
     label: "Plane OAuth State Expiry Seconds"
     type: int
     default: 82800
-  - variable: env.pi_envs.plane_api_host
-    label: "Plane API Host"
-    type: string
-    default: ""
   - variable: env.pi_envs.cors_allowed_origins
     label: "CORS Allowed Origins"
-    type: string
-    default: ""
-  - variable: env.pi_envs.cohere_api_key
-    label: "Cohere API Key"
     type: string
     default: ""
   - variable: env.pi_envs.celery.vector_sync_enabled
@@ -829,22 +812,27 @@ questions:
     label: "Vector Sync Interval"
     type: int
     default: 3
+    show_if: "env.pi_envs.celery.vector_sync_enabled=true"
   - variable: env.pi_envs.celery.workspace_plan_sync_enabled
     label: "Workspace Plan Sync Enabled"
     type: boolean
     default: false
+    show_if: "env.pi_envs.celery.workspace_plan_sync_enabled=true"
   - variable: env.pi_envs.celery.workspace_plan_sync_interval
     label: "Workspace Plan Sync Interval"
     type: int
     default: 86400
+    show_if: "env.pi_envs.celery.workspace_plan_sync_enabled=true"
   - variable: env.pi_envs.celery.docs_sync_enabled
     label: "Docs Sync Enabled"
     type: boolean
     default: false
+    show_if: "env.pi_envs.celery.docs_sync_enabled=true"
   - variable: env.pi_envs.celery.docs_sync_interval
     label: "Docs Sync Interval"
     type: int
     default: 86400
+    show_if: "env.pi_envs.celery.docs_sync_enabled=true"
   - variable: services.pi.ai_providers.openai.enabled
     label: "Enable OpenAI Provider"
     type: boolean
