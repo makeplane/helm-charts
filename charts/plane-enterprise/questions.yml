@@ -879,6 +879,72 @@ questions:
     type: string
     show_if: "services.rabbitmq.local_setup=false"
 
+- variable: services.opensearch.local_setup
+  label: "Install OpenSearch"
+  type: boolean
+  default: true
+  group: "OpenSearch Setup"
+  # show_subquestion_if: true
+  subquestions:
+  - variable: services.opensearch.image
+    label: "Docker Image"
+    type: string
+    default: "opensearchproject/opensearch:3.3.2"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.pullPolicy
+    label: "OpenSearch Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.servicePort
+    label: Service Port
+    type: int
+    default: 9200
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "5Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.username
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.password
+    label: "Password"
+    type: password
+    default: "Secure@Pass#123!%^&*"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.opensearch.local_setup=true"
+  - variable: env.opensearch_remote_url
+    label: "OpenSearch Remote URL"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_username
+    label: "OpenSearch Remote Username"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_password
+    label: "OpenSearch Remote Password"
+    type: password
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_index_prefix
+    label: "Index Prefix"
+    type: string
+    default: ""
+
 - variable: services.minio.local_setup
   label: "Install Minio"
   type: boolean

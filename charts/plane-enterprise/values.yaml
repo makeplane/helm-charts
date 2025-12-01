@@ -59,6 +59,21 @@ services:
     external_rabbitmq_url: ''
     assign_cluster_ip: false
 
+  opensearch:
+    local_setup: true
+    image: opensearchproject/opensearch:3.3.2
+    servicePort: 9200
+    volumeSize: 5Gi
+    pullPolicy: IfNotPresent
+    username: plane
+    password: Secure@Pass#123!%^&*
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   minio:
     local_setup: true
     image: minio/minio:latest
@@ -217,6 +232,7 @@ external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
+  opensearch_existingSecret: ''
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
   live_env_existingSecret: ''
@@ -246,6 +262,12 @@ env:
 
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
+
+  #OPENSEARCH ENVS
+  opensearch_remote_url: ''
+  opensearch_remote_username: ''
+  opensearch_remote_password: ''
+  opensearch_index_prefix: ''
 
   sentry_dsn: ''
   sentry_environment: ''
