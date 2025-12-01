@@ -78,4 +78,11 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+  {{- end }}
+
+  {{- if .Values.metrics.enabled }}
+  OTLP_ENDPOINT: {{ .Values.metrics.telemetry.http_endpoint | default "" | quote }}
+  {{- if .Values.metrics.telemetry.push_interval_minutes }}
+  METRICS_PUSH_INTERVAL_MINUTES: {{ .Values.metrics.telemetry.push_interval_minutes | quote }}
+  {{- end }}
   {{- end }} 

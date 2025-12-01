@@ -412,6 +412,7 @@ metrics:
   telemetry:
     http_endpoint: "https://v2.metrics.plane.so/v1/traces"  # Full URL (do not include :443)
     headers: {}
+    push_interval_minutes: ""  # Optional interval for testing (e.g., "5")
   
   # Agent configuration
   agent:
