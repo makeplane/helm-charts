@@ -43,7 +43,7 @@ stringData:
   {{- else }}
   OPENSEARCH_PASSWORD: ""
   {{- end }}
-
+{{- end }}
 ---
 
 apiVersion: v1
