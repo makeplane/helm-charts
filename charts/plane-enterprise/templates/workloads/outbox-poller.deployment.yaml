@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-outbox-poller-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.outbox_poller }}
 spec:
   replicas: {{ .Values.services.outbox_poller.replicas | default 1}}
   selector:
@@ -42,7 +43,12 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
               optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
 
+      {{- include "plane.podScheduling" .Values.services.outbox_poller }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}

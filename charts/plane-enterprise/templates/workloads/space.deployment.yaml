@@ -26,6 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-space-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.space }}
 spec:
   replicas: {{ .Values.services.space.replicas | default 1 }}
   selector:
@@ -52,7 +53,11 @@ spec:
           limits:
             memory: {{ .Values.services.space.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.space.cpuLimit | default "500m" | quote}}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      {{- include "plane.podScheduling" .Values.services.space }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

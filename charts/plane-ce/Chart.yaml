@@ -5,13 +5,13 @@ description: Meet Plane. An open-source software development tool to manage issu
 
 type: application
 
-version: 1.2.1
-appVersion: "0.28.0"
+version: 1.4.0
+appVersion: "1.1.0"
 
 home: https://plane.so
 icon: https://plane.so/favicon/favicon-32x32.png
 sources:
-  - https://github.com/makeplane/plane
+- https://github.com/makeplane/plane
 
 annotations:
   artifacthub.io/license: AGPL-3.0

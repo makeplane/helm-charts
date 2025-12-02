@@ -23,6 +23,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-iframely-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.iframely }}
 spec:
   replicas: {{ .Values.services.iframely.replicas | default 1 }}
   selector:
@@ -53,6 +54,11 @@ spec:
           - node
         args:
           - server.js
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      {{- include "plane.podScheduling" .Values.services.iframely }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}

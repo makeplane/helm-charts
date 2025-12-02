@@ -23,11 +23,13 @@ spec:
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-wl
+  {{- template "plane.labelsAndAnnotations" .Values.minio }}
 spec:
   selector:
     matchLabels:
@@ -58,6 +60,7 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-minio-vol
           subPath: ''
+      {{- include "plane.podScheduling" .Values.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
@@ -83,6 +86,7 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
+  {{- template "plane.labelsAndAnnotations" .Values.minio }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
@@ -112,6 +116,7 @@ spec:
           image: {{ .Values.minio.image_mc }}
           imagePullPolicy: {{ .Values.minio.pullPolicy }}
           name: {{ .Release.Name }}-minio-bucket
+      {{- include "plane.podScheduling" .Values.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
       terminationGracePeriodSeconds: 120

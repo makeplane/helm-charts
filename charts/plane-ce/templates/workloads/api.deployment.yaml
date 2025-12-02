@@ -25,6 +25,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
+  {{- template "plane.labelsAndAnnotations" .Values.api }}
 spec:
   replicas: {{ .Values.api.replicas | default 1}}
   selector:
@@ -73,7 +74,7 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
 
+      {{- include "plane.podScheduling" .Values.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

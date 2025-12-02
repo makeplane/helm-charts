@@ -25,6 +25,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
+  {{- template "plane.labelsAndAnnotations" .Values.admin }}
 spec:
   replicas: {{ .Values.admin.replicas | default 1 }}
   selector:
@@ -51,7 +52,7 @@ spec:
           limits:
             memory: {{ .Values.admin.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.admin.cpuLimit | default "500m" | quote}}
+      {{- include "plane.podScheduling" .Values.admin }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---

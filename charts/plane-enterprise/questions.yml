@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.14.1
+  default: v1.17.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -79,6 +79,22 @@ questions:
     label: "License Domain"
     type: string
     required: true
+
+- variable: airgapped.enabled
+  label: "Airgapped Enabled"
+  type: boolean
+  default: false
+  group: "License Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: airgapped.s3SecretName
+    label: "S3 Secret Name"
+    type: string
+    default: ""
+  - variable: airgapped.s3SecretKey
+    label: "S3 Secret Key"
+    type: string
+    default: ""
 
 - variable: services.web.pullPolicy
   label: "Web Pull Policy"
@@ -737,7 +753,7 @@ questions:
   - variable: services.redis.image
     label: "Docker Image"
     type: string
-    default: "valkey/valkey:7.2.5-alpine"
+    default: "valkey/valkey:7.2.11-alpine"
     show_if: "services.redis.local_setup=true"
   - variable: services.redis.pullPolicy
     label: "Redis Pull Policy"

@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.beatworker }}
 spec:
   replicas: {{ .Values.services.beatworker.replicas | default 1 }}
   selector:
@@ -46,8 +47,12 @@ spec:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
           {{- end }}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
 
+      {{- include "plane.podScheduling" .Values.services.beatworker }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
-
 ---
