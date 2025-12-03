@@ -413,18 +413,3 @@ metrics:
     http_endpoint: "https://v2.metrics.plane.so/v1/traces"  # Full URL (do not include :443)
     headers: {}
     push_interval_minutes: ""  # Optional interval for testing (e.g., "5")
-  
-  # Agent configuration
-  agent:
-    image: "otel/opentelemetry-collector-contrib"
-    tag: "0.110.0"
-    imagePullPolicy: "IfNotPresent"
-    replicas: 1
-    memoryLimit: "256Mi"
-    cpuLimit: "100m"
-    scrape_interval: "300s"  # 5 minutes
-    batch:
-      timeout: "300s"  # Publish every 5 minutes
-      send_batch_size: 4096
-    debug:
-      enabled: false
