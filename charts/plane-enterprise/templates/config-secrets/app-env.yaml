@@ -75,7 +75,7 @@ data:
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"
-  {{-if .Values.ssl.create_issuer }}
+  {{- if .Values.ssl.create_issuer }}
   PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}/pi"
   {{- else }}
   PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}/pi"
