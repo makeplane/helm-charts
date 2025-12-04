@@ -76,6 +76,9 @@ data:
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"
 
+  PI_BASE_URL: "http://{{ .Release.Name }}-pi-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+  PI_BASE_PATH: "/pi"
+
   {{- if .Values.airgapped.enabled }}
   IS_AIRGAPPED: "1"
   {{- end }}

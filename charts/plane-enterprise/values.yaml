@@ -337,21 +337,19 @@ services:
     ai_providers:
       openai:
         enabled: false
+        base_url: ''
         api_key: ''
       claude:
         enabled: false
-        api_key: ''
-      mistral:
-        enabled: false
+        base_url: ''
         api_key: ''
       groq:
         enabled: false
+        base_url: ''
         api_key: ''
-      assemblyai:
+      cohere:
         enabled: false
-        api_key: ''
-      deepgram:
-        enabled: false
+        base_url: ''
         api_key: ''
 
   pi_beat_worker:
@@ -482,10 +480,8 @@ env:
       state_expiry_seconds: 82800
     plane_api_host: ''
     cors_allowed_origins: ''
-    cohere_api_key: ''
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
     opensearch_ml_model_id: ''
-
 
     celery:
       vector_sync_enabled: false

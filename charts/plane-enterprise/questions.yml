@@ -780,10 +780,6 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  - variable: env.pi_envs.cohere_api_key
-    label: "Cohere API Key"
-    type: string
-    default: ""
   - variable: env.pi_envs.plane_oauth.client_id
     label: "Plane OAuth Client ID"
     type: string
@@ -893,6 +889,10 @@ questions:
   group: "Plane AI Providers"
   show_subquestion_if: true
   subquestions:
+  - variable: services.pi.ai_providers.openai.base_url
+    label: "OpenAI Base URL"
+    type: string
+    default: ""
   - variable: services.pi.ai_providers.openai.api_key
     label: "OpenAI API Key"
     type: password
@@ -904,19 +904,12 @@ questions:
   group: "Plane AI Providers"
   show_subquestion_if: true
   subquestions:
+  - variable: services.pi.ai_providers.claude.base_url
+    label: "Claude Base URL"
+    type: string
+    default: ""
   - variable: services.pi.ai_providers.claude.api_key
     label: "Claude API Key"
-    type: password
-    default: ""
-- variable: services.pi.ai_providers.mistral.enabled
-  label: "Enable Mistral Provider"
-  type: boolean
-  default: false
-  group: "Plane AI Providers"
-  show_subquestion_if: true
-  subquestions:
-  - variable: services.pi.ai_providers.mistral.api_key
-    label: "Mistral API Key"
     type: password
     default: ""
 - variable: services.pi.ai_providers.groq.enabled
@@ -926,30 +919,28 @@ questions:
   group: "Plane AI Providers"
   show_subquestion_if: true
   subquestions:
+  - variable: services.pi.ai_providers.groq.base_url
+    label: "Groq Base URL"
+    type: string
+    default: ""
   - variable: services.pi.ai_providers.groq.api_key
     label: "Groq API Key"
     type: password
     default: ""
-- variable: services.pi.ai_providers.assemblyai.enabled
-  label: "Enable AssemblyAI Provider"
+
+- variable: services.pi.ai_providers.cohere.enabled
+  label: "Enable Cohere Provider"
   type: boolean
   default: false
   group: "Plane AI Providers"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.ai_providers.assemblyai.api_key
-    label: "AssemblyAI API Key"
-    type: password
+  - variable: services.pi.ai_providers.cohere.base_url
+    label: "Cohere Base URL"
+    type: string
     default: ""
-- variable: services.pi.ai_providers.deepgram.enabled
-  label: "Enable Deepgram Provider"
-  type: boolean
-  default: false
-  group: "Plane AI Providers"
-  show_subquestion_if: true
-  subquestions:
-  - variable: services.pi.ai_providers.deepgram.api_key
-    label: "Deepgram API Key"
+  - variable: services.pi.ai_providers.cohere.api_key
+    label: "Cohere API Key"
     type: password
     default: ""
 

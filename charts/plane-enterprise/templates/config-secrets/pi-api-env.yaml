@@ -14,17 +14,8 @@ stringData:
   {{- if .Values.services.pi.ai_providers.claude.enabled }}
   CLAUDE_API_KEY: {{ .Values.services.pi.ai_providers.claude.api_key | default "" |  quote }}
   {{- end }}
-  {{- if .Values.services.pi.ai_providers.mistral.enabled }}
-  MISTRAL_API_KEY: {{ .Values.services.pi.ai_providers.mistral.api_key | default "" |  quote }}
-  {{- end }}
   {{- if .Values.services.pi.ai_providers.groq.enabled }}
   GROQ_API_KEY: {{ .Values.services.pi.ai_providers.groq.api_key | default "" |  quote }}
-  {{- end }}
-  {{- if .Values.services.pi.ai_providers.assemblyai.enabled }}
-  ASSEMBLYAI_API_KEY: {{ .Values.services.pi.ai_providers.assemblyai.api_key | default "" |  quote }}
-  {{- end }}
-  {{- if .Values.services.pi.ai_providers.deepgram.enabled }}
-  DEEPGRAM_API_KEY: {{ .Values.services.pi.ai_providers.deepgram.api_key | default "" |  quote }}
   {{- end }}
   {{- if .Values.services.postgres.local_setup }}
   PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pg_pi_db_name }}"
@@ -42,8 +33,8 @@ stringData:
   CELERY_BROKER_URL: ""
   {{- end }}
 
-  {{- if .Values.env.pi_envs.cohere_api_key }}
-  COHERE_API_KEY: {{ .Values.env.pi_envs.cohere_api_key | default "" | quote }}
+  {{- if .Values.services.pi.ai_providers.cohere.enabled }}
+  COHERE_API_KEY: {{ .Values.services.pi.ai_providers.cohere.api_key | default "" | quote }}
   {{- else }}
   COHERE_API_KEY: ""
   {{- end }}
@@ -91,6 +82,10 @@ data:
   {{- end }}
   PLANE_OAUTH_STATE_EXPIRY_SECONDS: {{ .Values.env.pi_envs.plane_oauth.state_expiry_seconds | default 82800 | quote }}
   PLANE_OAUTH_CLIENT_ID: {{ .Values.env.pi_envs.plane_oauth.client_id | quote }}
-  
+
+  OPENAI_BASE_URL: {{ .Values.services.pi.ai_providers.openai.base_url | default "" | quote }}
+  CLAUDE_BASE_URL: {{ .Values.services.pi.ai_providers.claude.base_url | default "" | quote }}
+  COHERE_BASE_URL: {{ .Values.services.pi.ai_providers.cohere.base_url | default "" | quote }}
+  GROQ_BASE_URL: {{ .Values.services.pi.ai_providers.groq.base_url | default "" | quote }} 
 ---
 {{- end }}
