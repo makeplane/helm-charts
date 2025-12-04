@@ -18,6 +18,15 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.worker }}
+      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
+      volumes:
+        - name: s3-custom-ca
+          secret:
+            secretName: {{ .Values.airgapped.s3SecretName }}
+            items:
+              - key: {{ .Values.airgapped.s3SecretKey }}
+                path: {{ .Values.airgapped.s3SecretKey }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-worker
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
@@ -31,8 +40,39 @@ spec:
           limits:
             memory: {{ .Values.services.worker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.worker.cpuLimit | default "500m" | quote}}
+        {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
+        volumeMounts:
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
+            readOnly: true
+        {{- end }}
         command:
-          - ./bin/docker-entrypoint-worker.sh
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            
+            {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
+            echo "Installing custom CA certificates..."
+            
+            # Ensure ca-certificates directory exists
+            mkdir -p /usr/local/share/ca-certificates
+            
+            # Install custom S3 CA if available
+            S3_CERT_FILE="{{ .Values.airgapped.s3SecretKey }}"
+            if [ -f "/s3-custom-ca/$S3_CERT_FILE" ]; then
+              echo "Installing S3 custom CA certificate..."
+              cp "/s3-custom-ca/$S3_CERT_FILE" "/usr/local/share/ca-certificates/$S3_CERT_FILE"
+              # Update CA certificates
+              update-ca-certificates
+              echo "CA certificates installed successfully"
+            else
+              echo "No custom S3 CA certificate found, skipping..."
+            fi
+            {{- end }}
+            
+            # Start the worker
+            exec ./bin/docker-entrypoint-worker.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
@@ -48,9 +88,22 @@ spec:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
           {{- end }}
-        {{- if .Values.extraEnv }}
+
+        {{- if or .Values.extraEnv (and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey) }}
         env:
+          {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
+          - name: SSL_CERT_FILE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          - name: SSL_CERT_DIR
+            value: "/etc/ssl/certs"
+          - name: REQUESTS_CA_BUNDLE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          - name: CURL_CA_BUNDLE
+            value: "/etc/ssl/certs/ca-certificates.crt"
+          {{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
 
       serviceAccount: {{ .Release.Name }}-srv-account
