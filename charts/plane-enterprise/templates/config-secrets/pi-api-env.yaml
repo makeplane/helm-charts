@@ -39,6 +39,7 @@ stringData:
   COHERE_API_KEY: ""
   {{- end }}
 
+  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap
