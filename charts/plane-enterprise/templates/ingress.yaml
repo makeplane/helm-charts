@@ -55,6 +55,13 @@ spec:
           - backend:
               service:
                 port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /static/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
                   number: 3000
                 name: {{ .Release.Name }}-live
             path: /live/
