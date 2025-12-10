@@ -403,7 +403,11 @@ metrics:
   
   # Installation identification
   installation:
-    uuid: ""  # Auto-generated if empty
+    # Unique identifier for this Plane installation. Used for telemetry correlation.
+    # If empty: A deterministic UUID is generated from the release name/namespace
+    # and persisted in a Secret. This UUID remains stable across helm upgrades.
+    # If provided: Your specified UUID is used (recommended for production).
+    uuid: ""
     type: "kubernetes"
     cluster_name: "default"
     plane_version: ""  # Optional

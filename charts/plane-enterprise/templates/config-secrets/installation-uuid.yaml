@@ -1,0 +1,32 @@
+{{- if .Values.metrics.enabled -}}
+{{/*
+This Secret stores the installation UUID for metrics/telemetry correlation.
+The UUID is either:
+  - Explicitly provided via .Values.metrics.installation.uuid
+  - Retrieved from an existing Secret (persisted across upgrades)
+  - Generated deterministically from release info (for fresh installs)
+
+The deterministic generation ensures the UUID is consistent across all
+template invocations within a single Helm render, while the Secret persists
+the value across upgrades.
+
+Workloads should use secretKeyRef to reference this Secret's "uuid" key
+for environment variables like PLANE_INSTALLATION_UUID.
+*/}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-installation-uuid
+  labels:
+    app.kubernetes.io/name: plane-enterprise
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: metrics
+  annotations:
+    # Preserve the UUID across helm uninstall/install cycles if desired
+    # Remove this annotation if you want a new UUID on reinstall
+    "helm.sh/resource-policy": keep
+data:
+  uuid: {{ include "plane.metrics.installationUUID" . | b64enc | quote }}
+{{- end -}}
