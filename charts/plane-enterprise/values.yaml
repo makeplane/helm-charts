@@ -414,6 +414,9 @@ metrics:
   
   # Telemetry server configuration
   telemetry:
-    http_endpoint: "https://v2.metrics.plane.so/v1/traces"  # Full URL (do not include :443)
+    # Primary telemetry endpoint (OTLP HTTP)
+    http_endpoint: "https://telemetry.plane.so"
+    # V2 telemetry endpoint for enhanced metrics (OTLP HTTP)
+    http_v2_endpoint: "https://v2.telemetry.plane.so"
     headers: {}
     push_interval_minutes: ""  # Optional interval for testing (e.g., "5")
