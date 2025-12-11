@@ -404,8 +404,10 @@ metrics:
   # Telemetry server configuration
   telemetry:
     # Primary telemetry endpoint (OTLP HTTP)
-    http_endpoint: "https://telemetry.plane.so"
+    # Note: Must include full path /v1/metrics for OTLP exporter
+    http_endpoint: "https://telemetry.plane.so/v1/metrics"
     # V2 telemetry endpoint for enhanced metrics (OTLP HTTP)
-    http_v2_endpoint: "https://v2.telemetry.plane.so"
+    # Note: Must include full path /v1/metrics for OTLP exporter
+    http_v2_endpoint: "https://v2.telemetry.plane.so/v1/metrics"
     headers: {}
     push_interval_minutes: ""  # Optional interval for testing (e.g., "5")
