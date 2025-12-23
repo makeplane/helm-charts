@@ -489,6 +489,23 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.storageClass |         &lt;k8s-default-storage-class&gt;          |          | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration.                   |
 | env.secret_key   | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 |   Yes    | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data |
 
+### Metrics and Telemetry Configuration
+
+| Setting                                  |                        Default                        | Required | Description                                                                                                                                                                                                                                                                  |
+| ---------------------------------------- | :---------------------------------------------------: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| metrics.enabled                          |                         true                          |    No    | Enable or disable metrics collection and telemetry. Set to `false` to completely disable all metrics functionality.                                                                                                                                                          |
+| metrics.telemetry.http_endpoint          |    https://telemetry.plane.so/v1/metrics              |    No    | Primary OTLP HTTP endpoint for metrics export. Must include the full path `/v1/metrics` for the OTLP exporter to work correctly. This is used for backward compatibility with v1 telemetry.                                                                                 |
+| metrics.telemetry.http_v2_endpoint       | https://v2.telemetry.plane.so/v1/metrics              |    No    | V2 OTLP HTTP endpoint for enhanced metrics collection. Must include the full path `/v1/metrics`. The API service uses this endpoint to push instance and workspace-level metrics via the OpenTelemetry Protocol.                                                            |
+| metrics.telemetry.push_interval_minutes  |                          ""                           |    No    | Optional interval (in minutes) for pushing metrics. Leave empty for default behavior (every 6 hours). Set to a value like `1` or `5` for testing/development to push metrics more frequently. Only applicable when metrics.enabled is `true`.                               |
+| metrics.telemetry.headers                |                          {}                           |    No    | Optional custom headers to include with telemetry requests. Useful for authentication or routing purposes when using custom telemetry backends.                                                                                                                              |
+
+**Notes:**
+- Metrics are collected by the API service and pushed to the configured OTLP endpoint using the OpenTelemetry Protocol over HTTP
+- The endpoint URLs must include the full path `/v1/metrics` - the OTLP exporter will not automatically append this path
+- Metrics include instance-level data (users, workspaces, projects, issues) and workspace-level data
+- When `metrics.enabled=false`, no metrics collection or export will occur
+- For self-hosted deployments pointing to your own telemetry infrastructure, update the endpoint URLs accordingly
+
 ### Extra Environment Variables
 
 | Setting  | Default | Required | Description                                                                                                                                                                                                                                                                                                                       |

@@ -397,3 +397,18 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# Metrics collection configuration
+metrics:
+  enabled: true
+  
+  # Telemetry server configuration
+  telemetry:
+    # Primary telemetry endpoint (OTLP HTTP)
+    # Note: Must include full path /v1/metrics for OTLP exporter
+    http_endpoint: "https://telemetry.plane.so/v1/metrics"
+    # V2 telemetry endpoint for enhanced metrics (OTLP HTTP)
+    # Note: Must include full path /v1/metrics for OTLP exporter
+    http_v2_endpoint: "https://v2.telemetry.plane.so/v1/metrics"
+    headers: {}
+    push_interval_minutes: ""  # Optional interval for testing (e.g., "5")
