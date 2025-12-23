@@ -473,8 +473,6 @@ questions:
     label: "Web URL"
     type: string
     default: ""
-    description: "Custom Web URL for the application. If not set, it will be auto-generated based on the license domain and SSL settings."
-
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
