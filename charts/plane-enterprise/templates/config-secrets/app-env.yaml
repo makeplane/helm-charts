@@ -64,7 +64,7 @@ data:
   GUNICORN_WORKERS: "1"
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
-  {{- else if or .Values.ssl.createIssuer .Values.ssl.tls_secret_name }}
+  {{- else if or .Values.ssl.tls_secret_name ( and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   WEB_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
