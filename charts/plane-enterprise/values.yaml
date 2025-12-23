@@ -345,6 +345,7 @@ env:
 
   cors_allowed_origins: ''
   instance_admin_email: ''
+  web_url: ''
 
   live_sentry_dsn: ""
   live_sentry_environment: ""

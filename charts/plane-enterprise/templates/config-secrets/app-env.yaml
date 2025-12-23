@@ -62,8 +62,13 @@ data:
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
-
+  {{- if .Values.env.web_url}}
+  WEB_URL: {{ .Values.env.web_url | default "" | quote }}
+  {{- else if or .Values.ssl.tls_secret_name ( and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  WEB_URL: "https://{{ .Values.license.licenseDomain }}"
+  {{- else }}
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
+  {{- end }}
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"

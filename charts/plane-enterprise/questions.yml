@@ -469,7 +469,10 @@ questions:
     label: "API Key Rate Limit"
     type: string
     default: "60/minute"
-
+  - variable: env.web_url
+    label: "Web URL"
+    type: string
+    default: ""
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
