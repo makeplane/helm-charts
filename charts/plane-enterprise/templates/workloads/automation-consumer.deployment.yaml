@@ -18,6 +18,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       containers:
       - name: {{ .Release.Name }}-automation-consumer
         imagePullPolicy: Always
@@ -51,7 +52,6 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
 
-      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}

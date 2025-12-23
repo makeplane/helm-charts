@@ -46,6 +46,7 @@ spec:
       annotations:  
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.email_service }}
       containers:
       - name: {{ .Release.Name }}-email-app
         imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
@@ -102,7 +103,6 @@ spec:
             - key: tls.key
               path: key.pem
             optional: false
-      {{- include "plane.podScheduling" .Values.services.email_service }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

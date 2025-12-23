@@ -14,6 +14,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.api }}
       containers:
       - name: {{ .Release.Name }}-api-migrate
         image: {{ .Values.services.api.image | default "artifacts.plane.so/makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
@@ -40,7 +41,6 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
       restartPolicy: OnFailure
-      {{- include "plane.podScheduling" .Values.services.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---
