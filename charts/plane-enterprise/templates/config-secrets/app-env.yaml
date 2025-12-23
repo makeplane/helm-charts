@@ -63,7 +63,7 @@ data:
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
   {{- if .Values.env.web_url}}
-  WEB_URL: {{ .Values.env.web_url }}
+  WEB_URL: {{ .Values.env.web_url | default "" | quote }}
   {{- else if or .Values.ssl.createIssuer .Values.ssl.tls_secret_name }}
   WEB_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
