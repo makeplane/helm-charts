@@ -93,7 +93,7 @@
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.1.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v2.1.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
