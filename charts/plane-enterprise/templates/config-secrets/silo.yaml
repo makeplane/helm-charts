@@ -8,7 +8,6 @@ metadata:
   name: {{ .Release.Name }}-silo-secrets
 stringData:
   SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "gzb7MRLr0FoN129NyWARZEs84P9LzQ" | quote }}
-
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
 
   {{- if .Values.services.postgres.local_setup }}
