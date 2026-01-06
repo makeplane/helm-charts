@@ -360,7 +360,7 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
-    hmac_secret_key: ''
+    hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
 
