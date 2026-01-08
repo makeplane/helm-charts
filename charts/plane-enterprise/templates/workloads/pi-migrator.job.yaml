@@ -1,0 +1,46 @@
+{{- if .Values.services.pi.enabled }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-api-migrate-{{ .Release.Revision }}
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api-migrate
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.pi }}
+      containers:
+      - name: {{ .Release.Name }}-pi-api-migrate
+        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        imagePullPolicy: Always
+        command:
+          - ./bin/entrypoint-migrator.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-api-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ .Values.external_secrets.pi_api_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-api-secrets{{ end }}
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-common-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_common_env_existingSecret) }}{{ .Values.external_secrets.pi_common_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-common-secrets{{ end }}
+              optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      restartPolicy: OnFailure
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+{{- end }}

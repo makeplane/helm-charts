@@ -37,6 +37,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.iframely }}
       containers:
       - name: {{ .Release.Name }}-iframely
         imagePullPolicy: Always
@@ -58,7 +59,6 @@ spec:
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
-      {{- include "plane.podScheduling" .Values.services.iframely }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}
