@@ -69,6 +69,13 @@ spec:
           - backend:
               service:
                 port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /marketplace/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
                   number: 3000
                 name: {{ .Release.Name }}-silo
             path: /silo/
