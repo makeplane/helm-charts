@@ -544,8 +544,11 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com       |  /spaces/\*  | <http://plane-app-space.plane:3000>     | Yes                                                                         |
 | plane.example.com       | /god-mode/\* | <http://plane-app-admin.plane:3000>     | Yes                                                                         |
 | plane.example.com       |   /live/\*   | <http://plane-app-live.plane:3000>      | Yes                                                                         |
+| plane.example.com       |   /silo/\*   | <http://plane-app-silo.plane:3000>      | Yes                                                                         |
 | plane.example.com       |   /api/\*    | <http://plane-app-api.plane:8000>       | Yes                                                                         |
 | plane.example.com       |   /auth/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
+| plane.example.com       |   /graphql/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
+| plane.example.com       |   /marketplace/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
 | plane.example.com       | /uploads/\*  | <http://plane-app-minio.plane:9000>     | Yes (Only if using local setup)                                             |
 | plane-minio.example.com |      /       | <http://plane-app-minio.plane:9090>     | (Optional) if using local setup, this will enable minio console access      |
 | plane-mq.example.com    |      /       | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |
