@@ -52,9 +52,6 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-          - configMapRef:
-              name: {{ .Release.Name }}-opensearch-vars
-              optional: false
         env:
           - name: discovery.type
             value: "single-node"
@@ -64,8 +61,8 @@ spec:
             value: "-Xms768m -Xmx768m"
           - name: OPENSEARCH_USER
             valueFrom:
-              configMapKeyRef:
-                name: {{ .Release.Name }}-opensearch-vars
+              secretKeyRef:
+                name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
                 key: OPENSEARCH_USERNAME
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
@@ -82,7 +79,7 @@ spec:
       volumes:
       - name: {{.Release.Name}}-opensearch-init-script
         configMap:
-          name: {{ .Release.Name }}-opensearch-vars
+          name: {{ .Release.Name }}-opensearch-init
           defaultMode: 0755
           items:
           - key: create-user.sh
@@ -104,4 +101,3 @@ spec:
       volumeMode: Filesystem
       
 {{- end }}
-
