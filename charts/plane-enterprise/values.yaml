@@ -1,4 +1,4 @@
-planeVersion: v1.17.0
+planeVersion: v2.1.2
 
 dockerRegistry:
   enabled: false
@@ -367,6 +367,7 @@ env:
 
   cors_allowed_origins: ''
   instance_admin_email: ''
+  web_url: ''
 
   live_sentry_dsn: ""
   live_sentry_environment: ""
@@ -381,7 +382,7 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
-    hmac_secret_key: ''
+    hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
 
