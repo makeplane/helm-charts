@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.1.2
+  default: v2.2.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -901,7 +901,7 @@ questions:
 - variable: services.opensearch.local_setup
   label: "Install OpenSearch"
   type: boolean
-  default: true
+  default: false
   group: "OpenSearch Setup"
   subquestions:
   - variable: services.opensearch.image
@@ -938,6 +938,26 @@ questions:
     type: password
     default: "Secure@Pass#123!%^&*"
     show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: "3Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: "750m"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: "2Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: "500m"
+    show_if: "services.opensearch.local_setup=true"
   - variable: services.opensearch.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -961,7 +981,7 @@ questions:
   - variable: env.opensearch_index_prefix
     label: "Index Prefix"
     type: string
-    default: ""
+    default: "plane_"
 
 - variable: services.minio.local_setup
   label: "Install Minio"

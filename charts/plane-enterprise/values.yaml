@@ -1,4 +1,4 @@
-planeVersion: v2.1.2
+planeVersion: v2.2.0
 
 dockerRegistry:
   enabled: false
@@ -81,13 +81,17 @@ services:
     annotations: {}
 
   opensearch:
-    local_setup: true
+    local_setup: false
     image: opensearchproject/opensearch:3.3.2
     servicePort: 9200
     volumeSize: 5Gi
     pullPolicy: IfNotPresent
     username: plane
     password: Secure@Pass#123!%^&*
+    memoryLimit: 3Gi
+    cpuLimit: 750m
+    memoryRequest: 2Gi
+    cpuRequest: 500m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -360,7 +364,7 @@ env:
   opensearch_remote_url: ''
   opensearch_remote_username: ''
   opensearch_remote_password: ''
-  opensearch_index_prefix: ''
+  opensearch_index_prefix: 'plane_'
 
   sentry_dsn: ''
   sentry_environment: ''

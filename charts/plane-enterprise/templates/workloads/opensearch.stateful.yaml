@@ -45,6 +45,13 @@ spec:
         name: {{ .Release.Name }}-opensearch
         stdin: true
         tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.opensearch.memoryRequest | default "2Gi" | quote }}
+            cpu: {{ .Values.services.opensearch.cpuRequest | default "500m" | quote }}
+          limits:
+            memory: {{ .Values.services.opensearch.memoryLimit | default "3Gi" | quote }}
+            cpu: {{ .Values.services.opensearch.cpuLimit | default "750m" | quote }}
         securityContext:
           runAsUser: 1000
           runAsNonRoot: true
