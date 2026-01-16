@@ -903,7 +903,6 @@ questions:
   type: boolean
   default: true
   group: "OpenSearch Setup"
-  # show_subquestion_if: true
   subquestions:
   - variable: services.opensearch.image
     label: "Docker Image"
