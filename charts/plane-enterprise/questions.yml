@@ -1138,6 +1138,11 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+- variable: external_secrets.opensearch_existingSecret
+  label: "OpenSearch Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
 - variable: external_secrets.doc_store_existingSecret
   label: "Doc Store and Minio Secrets File Name"
   type: string
