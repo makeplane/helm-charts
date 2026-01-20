@@ -1,0 +1,84 @@
+{{- if (empty .Values.external_secrets.opensearch_existingSecret) }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-opensearch-secrets
+stringData:
+  {{- if .Values.services.opensearch.local_setup }}
+  OPENSEARCH_ENABLED: "1"
+  OPENSEARCH_URL: "http://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200"
+  OPENSEARCH_USERNAME: {{ .Values.services.opensearch.username | default "plane" | quote }}
+  OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
+  OPENSEARCH_INITIAL_ADMIN_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
+  OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
+  {{- else if .Values.env.opensearch_remote_url }}
+  OPENSEARCH_ENABLED: "1"
+  OPENSEARCH_URL: {{ .Values.env.opensearch_remote_url | quote }}
+  OPENSEARCH_USERNAME: {{ .Values.env.opensearch_remote_username | default "" | quote }}
+  OPENSEARCH_PASSWORD: {{ .Values.env.opensearch_remote_password | default "" | quote }}
+  OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
+  {{- else }}
+  OPENSEARCH_ENABLED: "0"
+  OPENSEARCH_URL: ""
+  OPENSEARCH_USERNAME: ""
+  OPENSEARCH_PASSWORD: ""
+  OPENSEARCH_INDEX_PREFIX: ""
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.services.opensearch.local_setup }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-opensearch-init
+data:
+  create-user.sh: |
+    #!/bin/bash
+
+    echo "=== OpenSearch Initialization Script ==="
+
+    echo "Modifying internal_users.yml before starting OpenSearch..."
+
+    # Hardcoded values
+    export OPENSEARCH_USER=${OPENSEARCH_USER:-"plane"}
+    export OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD:-"Secure@Pass#123!%^&*"}
+
+    echo "=== Configuration ==="
+    echo "USER: ${OPENSEARCH_USER}"
+    echo "PASSWORD: **********"
+    echo ""
+
+    # Run the user creation script before OpenSearch starts
+    export HASHED_PASSWORD=$(bash /usr/share/opensearch/plugins/opensearch-security/tools/hash.sh -p "${OPENSEARCH_PASSWORD}")
+
+    # Path to internal users file
+    INTERNAL_USERS_FILE="/usr/share/opensearch/config/opensearch-security/internal_users.yml"
+
+    # Ensure the directory exists
+    mkdir -p "$(dirname "$INTERNAL_USERS_FILE")"
+
+    # Check if user already exists
+    if grep -q "^${OPENSEARCH_USER}:" "$INTERNAL_USERS_FILE"; then
+        echo "User ${OPENSEARCH_USER} already exists in internal_users.yml"
+    else
+        echo "Adding user ${OPENSEARCH_USER} to internal_users.yml"
+        cat << EOF >> "$INTERNAL_USERS_FILE"
+
+    ${OPENSEARCH_USER}:
+      hash: "${HASHED_PASSWORD}"
+      reserved: false
+      backend_roles:
+      - "admin"
+      description: "User for Plane"
+    EOF
+        echo "User ${OPENSEARCH_USER} added successfully to configuration"
+    fi
+
+    echo "Starting OpenSearch..."
+    # Start OpenSearch with the original entrypoint
+    exec /usr/share/opensearch/opensearch-docker-entrypoint.sh
+
+{{- end }}

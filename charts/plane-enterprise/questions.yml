@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.1.2
+  default: v2.2.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -898,6 +898,91 @@ questions:
     type: string
     show_if: "services.rabbitmq.local_setup=false"
 
+- variable: services.opensearch.local_setup
+  label: "Install OpenSearch"
+  type: boolean
+  default: false
+  group: "OpenSearch Setup"
+  subquestions:
+  - variable: services.opensearch.image
+    label: "Docker Image"
+    type: string
+    default: "opensearchproject/opensearch:3.3.2"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.pullPolicy
+    label: "OpenSearch Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.servicePort
+    label: Service Port
+    type: int
+    default: 9200
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "5Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.username
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.password
+    label: "Password"
+    type: password
+    default: "Secure@Pass#123!%^&*"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: "3Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: "750m"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: "2Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: "500m"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.opensearch.local_setup=true"
+  - variable: env.opensearch_remote_url
+    label: "OpenSearch Remote URL"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_username
+    label: "OpenSearch Remote Username"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_password
+    label: "OpenSearch Remote Password"
+    type: password
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_index_prefix
+    label: "Index Prefix"
+    type: string
+    default: "plane_"
+
 - variable: services.minio.local_setup
   label: "Install Minio"
   type: boolean
@@ -1050,6 +1135,11 @@ questions:
   group: "External Secrets"
 - variable: external_secrets.pgdb_existingSecret
   label: "Postgres Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.opensearch_existingSecret
+  label: "OpenSearch Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"
