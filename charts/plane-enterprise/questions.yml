@@ -17,6 +17,13 @@ questions:
     label: "Password/Token"
     type: password
 
+- variable: dockerRegistry.existingSecret
+  label: "Existing Docker Registry Secret"
+  type: string
+  default: ""
+  group: "Docker Registry"
+  show_if: "dockerRegistry.enabled=false"
+
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string

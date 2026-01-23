@@ -5,6 +5,8 @@ dockerRegistry:
   registry: 'index.docker.io/v1/'
   loginid: ''
   password: ''
+  # Name of an existing Kubernetes secret containing docker registry credentials
+  existingSecret: ''
 
 license:
   licenseServer: https://prime.plane.so
