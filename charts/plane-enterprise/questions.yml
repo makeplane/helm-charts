@@ -7,15 +7,22 @@ questions:
   group: "Docker Registry"
   show_subquestion_if: true
   subquestions:
+  - variable: dockerRegistry.existingSecret
+    label: "Existing Docker Registry Secret"
+    type: string
+    default: ""
   - variable: dockerRegistry.registry
     label: "Docker Registry Url"
     type: string
+    show_if: "dockerRegistry.existingSecret="
   - variable: dockerRegistry.loginid
     label: "Login ID"
     type: string
+    show_if: "dockerRegistry.existingSecret="
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
+    show_if: "dockerRegistry.existingSecret="
 
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
