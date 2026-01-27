@@ -50,7 +50,7 @@ spec:
         args:
           - server
           - /data
-          - --console-address 
+          - --console-address
           - :9090
         envFrom:
           - secretRef:
@@ -97,7 +97,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: init
-          image: busybox
+          image: {{ .Values.services.minio.image_busybox }}
           command: ['sh', '-c', "until nslookup  {{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local; do echo waiting for  {{ .Release.Name }}-minio; sleep 2; done"]
       containers:
         - name: {{ .Release.Name }}-minio-bucket
@@ -109,8 +109,8 @@ spec:
             - '-c'
             - >-
               /usr/bin/mc config host add plane-app-minio
-              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"; 
-              /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME; 
+              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY";
+              /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME;
               /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
           envFrom:
             - secretRef:
