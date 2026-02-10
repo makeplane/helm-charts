@@ -1,4 +1,4 @@
-{{- if .Values.dockerRegistry.enabled }}
+{{- if and .Values.dockerRegistry.enabled (empty .Values.dockerRegistry.existingSecret) }}
 
 apiVersion: v1
 kind: Secret

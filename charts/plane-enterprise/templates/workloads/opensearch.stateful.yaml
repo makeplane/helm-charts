@@ -45,15 +45,19 @@ spec:
         name: {{ .Release.Name }}-opensearch
         stdin: true
         tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.opensearch.memoryRequest | default "2Gi" | quote }}
+            cpu: {{ .Values.services.opensearch.cpuRequest | default "500m" | quote }}
+          limits:
+            memory: {{ .Values.services.opensearch.memoryLimit | default "3Gi" | quote }}
+            cpu: {{ .Values.services.opensearch.cpuLimit | default "750m" | quote }}
         securityContext:
           runAsUser: 1000
           runAsNonRoot: true
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
-              optional: false
-          - configMapRef:
-              name: {{ .Release.Name }}-opensearch-vars
               optional: false
         env:
           - name: discovery.type
@@ -64,8 +68,8 @@ spec:
             value: "-Xms768m -Xmx768m"
           - name: OPENSEARCH_USER
             valueFrom:
-              configMapKeyRef:
-                name: {{ .Release.Name }}-opensearch-vars
+              secretKeyRef:
+                name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
                 key: OPENSEARCH_USERNAME
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
@@ -82,7 +86,7 @@ spec:
       volumes:
       - name: {{.Release.Name}}-opensearch-init-script
         configMap:
-          name: {{ .Release.Name }}-opensearch-vars
+          name: {{ .Release.Name }}-opensearch-init
           defaultMode: 0755
           items:
           - key: create-user.sh
@@ -104,4 +108,3 @@ spec:
       volumeMode: Filesystem
       
 {{- end }}
-

@@ -1,10 +1,12 @@
-planeVersion: v2.0.0
+planeVersion: v2.3.3
 
 dockerRegistry:
   enabled: false
   registry: 'index.docker.io/v1/'
   loginid: ''
   password: ''
+  # Name of an existing Kubernetes secret containing docker registry credentials
+  existingSecret: ''
 
 license:
   licenseServer: https://prime.plane.so
@@ -81,13 +83,17 @@ services:
     annotations: {}
 
   opensearch:
-    local_setup: true
+    local_setup: false
     image: opensearchproject/opensearch:3.3.2
     servicePort: 9200
     volumeSize: 5Gi
     pullPolicy: IfNotPresent
     username: plane
     password: Secure@Pass#123!%^&*
+    memoryLimit: 3Gi
+    cpuLimit: 750m
+    memoryRequest: 2Gi
+    cpuRequest: 500m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -424,11 +430,18 @@ env:
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
+  #OPENSEARCH ENVS
+  opensearch_remote_url: ''
+  opensearch_remote_username: ''
+  opensearch_remote_password: ''
+  opensearch_index_prefix: 'plane_'
+
   sentry_dsn: ''
   sentry_environment: ''
 
   cors_allowed_origins: ''
   instance_admin_email: ''
+  web_url: ''
 
   live_sentry_dsn: ""
   live_sentry_environment: ""
@@ -443,7 +456,7 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
-    hmac_secret_key: ''
+    hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
 
