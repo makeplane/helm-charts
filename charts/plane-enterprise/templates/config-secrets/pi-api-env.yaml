@@ -39,6 +39,14 @@ stringData:
   COHERE_API_KEY: ""
   {{- end }}
 
+  {{- if .Values.services.pi.ai_providers.custom_llm.enabled }}
+  CUSTOM_LLM_API_KEY: {{ .Values.services.pi.ai_providers.custom_llm.api_key | default "" | quote }}
+  AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.custom_llm.aws_session_token | default "" | quote }}
+  {{- else }}
+  CUSTOM_LLM_API_KEY: ""
+  AWS_SESSION_TOKEN: ""
+  {{- end }}
+
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
 ---
 apiVersion: v1
@@ -87,6 +95,24 @@ data:
   OPENAI_BASE_URL: {{ .Values.services.pi.ai_providers.openai.base_url | default "" | quote }}
   CLAUDE_BASE_URL: {{ .Values.services.pi.ai_providers.claude.base_url | default "" | quote }}
   COHERE_BASE_URL: {{ .Values.services.pi.ai_providers.cohere.base_url | default "" | quote }}
-  GROQ_BASE_URL: {{ .Values.services.pi.ai_providers.groq.base_url | default "" | quote }} 
+  GROQ_BASE_URL: {{ .Values.services.pi.ai_providers.groq.base_url | default "" | quote }}
+  
+  {{- if .Values.services.pi.ai_providers.custom_llm.enabled }}
+  CUSTOM_LLM_ENABLED: "true"
+  CUSTOM_LLM_MODEL_KEY: {{ .Values.services.pi.ai_providers.custom_llm.model_key | default "gpt-oss-120b" | quote }}
+  CUSTOM_LLM_BASE_URL: {{ .Values.services.pi.ai_providers.custom_llm.base_url | default "" | quote }}
+  CUSTOM_LLM_NAME: {{ .Values.services.pi.ai_providers.custom_llm.name | default "GPT-OSS-120B" | quote }}
+  CUSTOM_LLM_DESCRIPTION: {{ .Values.services.pi.ai_providers.custom_llm.description | default "A self-hosted OpenAI-compatible model" | quote }}
+  CUSTOM_LLM_MAX_TOKENS: {{ .Values.services.pi.ai_providers.custom_llm.max_tokens | default 128000 | quote }}
+  EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.custom_llm.embedding_model | default "" | quote }}
+  {{- else }}
+  CUSTOM_LLM_ENABLED: "false"
+  CUSTOM_LLM_MODEL_KEY: ""
+  CUSTOM_LLM_BASE_URL: ""
+  CUSTOM_LLM_NAME: ""
+  CUSTOM_LLM_DESCRIPTION: ""
+  CUSTOM_LLM_MAX_TOKENS: ""
+  EMBEDDING_MODEL: ""
+  {{- end }} 
 ---
 {{- end }}

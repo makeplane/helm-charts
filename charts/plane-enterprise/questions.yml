@@ -954,6 +954,46 @@ questions:
     type: password
     default: ""
 
+- variable: services.pi.ai_providers.custom_llm.enabled
+  label: "Enable Custom LLM Provider"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.custom_llm.name
+    label: "Custom LLM Name"
+    type: string
+    default: "GPT-OSS-120B"
+  - variable: services.pi.ai_providers.custom_llm.description
+    label: "Custom LLM Description"
+    type: string
+    default: "A self-hosted OpenAI-compatible model"
+  - variable: services.pi.ai_providers.custom_llm.base_url
+    label: "Custom LLM Base URL"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.api_key
+    label: "Custom LLM API Key"
+    type: password
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.model_key
+    label: "Custom LLM Model Key"
+    type: string
+    default: "gpt-oss-120b"
+  - variable: services.pi.ai_providers.custom_llm.max_tokens
+    label: "Custom LLM Max Tokens"
+    type: int
+    default: 128000
+  - variable: services.pi.ai_providers.custom_llm.embedding_model
+    label: "Custom LLM Embedding Model"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.aws_session_token
+    label: "Custom LLM AWS Session Token"
+    type: password
+    default: ""
+
 - variable: services.redis.local_setup
   label: "Install Redis"
   type: boolean

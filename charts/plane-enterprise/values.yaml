@@ -357,6 +357,16 @@ services:
         enabled: false
         base_url: ''
         api_key: ''
+      custom_llm:
+        enabled: false
+        api_key: ''
+        base_url: ''
+        model_key: 'gpt-oss-120b'
+        name: 'GPT-OSS-120B'
+        description: 'A self-hosted OpenAI-compatible model'
+        max_tokens: 128000
+        embedding_model: ''
+        aws_session_token: ''
 
   pi_beat_worker:
     replicas: 1
