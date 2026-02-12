@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.3.3
+  default: v2.3.4
   required: true
   group: "Docker Registry"
   subquestions:
