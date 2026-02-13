@@ -991,6 +991,10 @@ questions:
     label: "Embedding Model AWS Secret Access Key"
     type: password
     default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_region
+    label: "Embedding Model AWS Region"
+    type: string
+    default: "us-east-1"
   - variable: services.pi.ai_providers.embedding_model.aws_session_token
     label: "Embedding Model AWS Session Token"
     type: password
@@ -1168,7 +1172,7 @@ questions:
     label: "Index Prefix"
     type: string
     default: ""
-    
+
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
   type: boolean

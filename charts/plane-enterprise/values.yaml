@@ -371,6 +371,7 @@ services:
         model_id: ''
         aws_access_key: ''
         aws_secret_access_key: ''
+        aws_region: 'us-east-1'
         aws_session_token: ''
 
   pi_beat_worker:
