@@ -7,7 +7,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-secrets
 stringData:
-  PLANE_OAUTH_CLIENT_SECRET: {{ .Values.env.pi_envs.plane_oauth.client_secret | default "" | quote }}
   {{- if .Values.services.pi.ai_providers.openai.enabled }}
   OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
   {{- end }}
@@ -41,10 +40,13 @@ stringData:
 
   {{- if .Values.services.pi.ai_providers.custom_llm.enabled }}
   CUSTOM_LLM_API_KEY: {{ .Values.services.pi.ai_providers.custom_llm.api_key | default "" | quote }}
-  AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.custom_llm.aws_session_token | default "" | quote }}
   {{- else }}
   CUSTOM_LLM_API_KEY: ""
-  AWS_SESSION_TOKEN: ""
+  {{- end }}
+
+  {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
+  BR_AWS_SECRET_ACCESS_KEY: {{ .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key | default "" | quote }}
+  BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_session_token | default "" | quote }}
   {{- end }}
 
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
@@ -82,15 +84,12 @@ data:
   CORS_ALLOWED_ORIGINS: ["http://{{ .Values.license.licenseDomain }}", "https://{{ .Values.license.licenseDomain }}"]
   {{- end }}
   
-  {{- if .Values.env.pi_envs.plane_oauth.redirect_uri }}
-  PLANE_OAUTH_REDIRECT_URI: {{ .Values.env.pi_envs.plane_oauth.redirect_uri | quote }}
-  {{- else if .Values.ssl.create_issuer }}
+  {{- if and .Values.ssl.create_issuer .Values.ssl.generateCerts }}
   PLANE_OAUTH_REDIRECT_URI: "https://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
   {{- else }}
   PLANE_OAUTH_REDIRECT_URI: "http://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
   {{- end }}
   PLANE_OAUTH_STATE_EXPIRY_SECONDS: {{ .Values.env.pi_envs.plane_oauth.state_expiry_seconds | default 82800 | quote }}
-  PLANE_OAUTH_CLIENT_ID: {{ .Values.env.pi_envs.plane_oauth.client_id | quote }}
 
   OPENAI_BASE_URL: {{ .Values.services.pi.ai_providers.openai.base_url | default "" | quote }}
   CLAUDE_BASE_URL: {{ .Values.services.pi.ai_providers.claude.base_url | default "" | quote }}
@@ -104,7 +103,6 @@ data:
   CUSTOM_LLM_NAME: {{ .Values.services.pi.ai_providers.custom_llm.name | default "GPT-OSS-120B" | quote }}
   CUSTOM_LLM_DESCRIPTION: {{ .Values.services.pi.ai_providers.custom_llm.description | default "A self-hosted OpenAI-compatible model" | quote }}
   CUSTOM_LLM_MAX_TOKENS: {{ .Values.services.pi.ai_providers.custom_llm.max_tokens | default 128000 | quote }}
-  EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.custom_llm.embedding_model | default "" | quote }}
   {{- else }}
   CUSTOM_LLM_ENABLED: "false"
   CUSTOM_LLM_MODEL_KEY: ""
@@ -112,7 +110,13 @@ data:
   CUSTOM_LLM_NAME: ""
   CUSTOM_LLM_DESCRIPTION: ""
   CUSTOM_LLM_MAX_TOKENS: ""
-  EMBEDDING_MODEL: ""
-  {{- end }} 
+  {{- end }}
+
+  {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
+  EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
+  OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" |  quote }}
+  BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
+  {{- end }}
+
 ---
 {{- end }}

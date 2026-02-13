@@ -790,18 +790,6 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
-  - variable: env.pi_envs.plane_oauth.client_id
-    label: "Plane OAuth Client ID"
-    type: string
-    default: ""
-  - variable: env.pi_envs.plane_oauth.client_secret
-    label: "Plane OAuth Client Secret"
-    type: password
-    default: ""
-  - variable: env.pi_envs.plane_oauth.redirect_uri
-    label: "Plane OAuth Redirect URI"
-    type: string
-    default: ""
   - variable: env.pi_envs.plane_oauth.state_expiry_seconds
     label: "Plane OAuth State Expiry Seconds"
     type: int
@@ -838,10 +826,6 @@ questions:
     default: 86400
     show_if: "env.pi_envs.celery.docs_sync_enabled=true"
 
-  - variable: env.pi_envs.opensearch_ml_model_id
-    label: "ML Model ID"
-    type: string
-    default: ""
   - variable: env.pi_envs.internal_secret
     label: "PI Internal Secret"
     type: string
@@ -985,12 +969,30 @@ questions:
     label: "Custom LLM Max Tokens"
     type: int
     default: 128000
-  - variable: services.pi.ai_providers.custom_llm.embedding_model
-    label: "Custom LLM Embedding Model"
+- variable: services.pi.ai_providers.embedding_model.enabled
+  label: "Enable Embedding Model"
+  type: boolean
+  default: false
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.embedding_model.name
+    label: "Embedding Model Name"
     type: string
     default: ""
-  - variable: services.pi.ai_providers.custom_llm.aws_session_token
-    label: "Custom LLM AWS Session Token"
+  - variable: services.pi.ai_providers.embedding_model.model_id
+    label: "Embedding Model ID"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_access_key
+    label: "Embedding Model AWS Access Key"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_secret_access_key
+    label: "Embedding Model AWS Secret Access Key"
+    type: password
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_session_token
+    label: "Embedding Model AWS Session Token"
     type: password
     default: ""
 
@@ -1166,11 +1168,7 @@ questions:
     label: "Index Prefix"
     type: string
     default: ""
-  - variable: env.pi_envs.opensearch_ml_model_id
-    label: "ML Model ID"
-    type: string
-    default: ""
-
+    
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
   type: boolean
@@ -1224,91 +1222,6 @@ questions:
     label: "Remote URL"
     type: string
     show_if: "services.rabbitmq.local_setup=false"
-
-- variable: services.opensearch.local_setup
-  label: "Install OpenSearch"
-  type: boolean
-  default: false
-  group: "OpenSearch Setup"
-  subquestions:
-  - variable: services.opensearch.image
-    label: "Docker Image"
-    type: string
-    default: "opensearchproject/opensearch:3.3.2"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.pullPolicy
-    label: "OpenSearch Pull Policy"
-    type: enum
-    options:
-    - "Always"
-    - "IfNotPresent"
-    - "Never"
-    default: "IfNotPresent"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.servicePort
-    label: Service Port
-    type: int
-    default: 9200
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.volumeSize
-    label: "Volume Size"
-    type: string
-    default: "5Gi"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.username
-    label: "Username"
-    type: string
-    default: "plane"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.password
-    label: "Password"
-    type: password
-    default: "Secure@Pass#123!%^&*"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: "3Gi"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.cpuLimit
-    label: "CPU Limit"
-    type: string
-    default: "750m"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: "2Gi"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: "500m"
-    show_if: "services.opensearch.local_setup=true"
-  - variable: services.opensearch.assign_cluster_ip
-    label: "Assign Cluster IP"
-    type: boolean
-    default: false
-    show_if: "services.opensearch.local_setup=true"
-  - variable: env.opensearch_remote_url
-    label: "OpenSearch Remote URL"
-    type: string
-    default: ""
-    show_if: "services.opensearch.local_setup=false"
-  - variable: env.opensearch_remote_username
-    label: "OpenSearch Remote Username"
-    type: string
-    default: ""
-    show_if: "services.opensearch.local_setup=false"
-  - variable: env.opensearch_remote_password
-    label: "OpenSearch Remote Password"
-    type: password
-    default: ""
-    show_if: "services.opensearch.local_setup=false"
-  - variable: env.opensearch_index_prefix
-    label: "Index Prefix"
-    type: string
-    default: "plane_"
 
 - variable: services.minio.local_setup
   label: "Install Minio"

@@ -47,7 +47,6 @@ data:
   OPENSEARCH_USER: ""
   OPENSEARCH_INDEX_PREFIX: ""
   {{- end }}
-  OPENSEARCH_ML_MODEL_ID: {{ .Values.env.pi_envs.opensearch_ml_model_id | default "" |  quote }}
 
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
   CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}

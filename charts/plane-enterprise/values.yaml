@@ -365,7 +365,12 @@ services:
         name: 'GPT-OSS-120B'
         description: 'A self-hosted OpenAI-compatible model'
         max_tokens: 128000
-        embedding_model: ''
+      embedding_model:
+        enabled: false
+        name: ''
+        model_id: ''
+        aws_access_key: ''
+        aws_secret_access_key: ''
         aws_session_token: ''
 
   pi_beat_worker:
@@ -440,12 +445,6 @@ env:
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
-  #OPENSEARCH ENVS
-  opensearch_remote_url: ''
-  opensearch_remote_username: ''
-  opensearch_remote_password: ''
-  opensearch_index_prefix: 'plane_'
-
   sentry_dsn: ''
   sentry_environment: ''
 
@@ -497,14 +496,10 @@ env:
 
   pi_envs:
     plane_oauth:
-      client_id: ''
-      client_secret: ''
-      redirect_uri: ''
       state_expiry_seconds: 82800
     plane_api_host: ''
     cors_allowed_origins: ''
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
-    opensearch_ml_model_id: ''
 
     celery:
       vector_sync_enabled: false
