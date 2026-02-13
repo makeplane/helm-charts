@@ -969,10 +969,12 @@ questions:
     label: "Custom LLM Max Tokens"
     type: int
     default: 128000
+
 - variable: services.pi.ai_providers.embedding_model.enabled
   label: "Enable Embedding Model"
   type: boolean
   default: false
+  group: "Plane AI Providers"
   show_subquestion_if: true
   subquestions:
   - variable: services.pi.ai_providers.embedding_model.name
