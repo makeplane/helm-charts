@@ -105,6 +105,7 @@ services:
     local_setup: true
     image: minio/minio:latest
     image_mc: minio/mc:latest
+    image_busybox: busybox
     volumeSize: 3Gi
     pullPolicy: IfNotPresent
     root_user: admin
@@ -256,6 +257,7 @@ services:
     memoryRequest: 50Mi
     cpuRequest: 50m
     image: artifacts.plane.so/makeplane/silo-commercial
+    image_busybox: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
