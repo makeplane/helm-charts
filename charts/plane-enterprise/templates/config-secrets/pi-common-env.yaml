@@ -56,11 +56,13 @@ data:
   CELERY_DOCS_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.docs_sync_interval | default 86400 | quote }}
 
   {{- if .Values.services.minio.local_setup }}
+  USE_MINIO: "1"
   AWS_ACCESS_KEY_ID: {{ .Values.services.minio.root_user | default "admin" | quote }}
   AWS_S3_BUCKET: {{ .Values.env.docstore_bucket | default "uploads" | quote }}
   AWS_S3_REGION: {{ .Values.env.aws_region | default "us-east-1" | quote }}
   AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:9000
   {{- else }}
+  USE_MINIO: "0"
   AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}
   AWS_S3_BUCKET: {{ .Values.env.docstore_bucket | default "" | quote }}
   AWS_S3_REGION: {{ .Values.env.aws_region | default "" | quote }}
