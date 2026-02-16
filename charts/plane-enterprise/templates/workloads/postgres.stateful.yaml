@@ -5,8 +5,16 @@ kind: Service
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb
+  {{- if and .Values.monitoring .Values.monitoring.enabled }}
+  annotations:
+    {{- include "plane.prometheusAnnotations" (dict "port" (.Values.services.postgres.servicePort | toString) "root" .) | nindent 4 }}
+  {{- end }}
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
+    app.kubernetes.io/name: plane-postgres
+    app.kubernetes.io/component: postgres
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
 spec:
   type: ClusterIP
   {{- if not .Values.services.postgres.assign_cluster_ip }}
@@ -35,6 +43,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
+        app.kubernetes.io/name: plane-postgres
+        app.kubernetes.io/component: postgres
+        app.kubernetes.io/part-of: plane-enterprise
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Values.planeVersion }}
     spec:
       containers:
       - image: {{ .Values.services.postgres.image }}

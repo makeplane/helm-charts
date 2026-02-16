@@ -1,0 +1,89 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "traefik-external") .Values.license.licenseDomain }}
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: plane-ingress
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
+spec:
+  entryPoints:
+    - websecure
+
+  routes:
+
+  # IMPORTANT: specific paths FIRST
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/spaces/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-space
+        port: 3000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/god-mode/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-admin
+        port: 3000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/api/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/auth/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/graphql/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/marketplace/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/live/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-live
+        port: 3000
+
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/silo/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-silo
+        port: 3000
+
+  {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-minio
+        port: 9000
+  {{- end }}
+
+  # LAST: catch all
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-web
+        port: 3000
+
+  tls:
+    secretName: {{ default (printf "%s-ssl-cert" .Release.Name) .Values.ssl.tls_secret_name }}
+
+{{- end }}

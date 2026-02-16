@@ -5,8 +5,16 @@ kind: Service
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq
+  {{- if and .Values.monitoring .Values.monitoring.enabled }}
+  annotations:
+    {{- include "plane.prometheusAnnotations" (dict "port" (.Values.services.rabbitmq.managementPort | toString) "root" .) | nindent 4 }}
+  {{- end }}
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+    app.kubernetes.io/name: plane-rabbitmq
+    app.kubernetes.io/component: rabbitmq
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
 spec:
   type: ClusterIP
   {{- if not .Values.services.rabbitmq.assign_cluster_ip }}
@@ -39,6 +47,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
+        app.kubernetes.io/name: plane-rabbitmq
+        app.kubernetes.io/component: rabbitmq
+        app.kubernetes.io/part-of: plane-enterprise
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Values.planeVersion }}
     spec:
       containers:
       - image: {{ .Values.services.rabbitmq.image }}
