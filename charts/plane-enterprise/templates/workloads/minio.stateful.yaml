@@ -5,8 +5,16 @@ kind: Service
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio
+  {{- if and .Values.monitoring .Values.monitoring.enabled }}
+  annotations:
+    {{- include "plane.prometheusAnnotations" (dict "port" "9000" "root" .) | nindent 4 }}
+  {{- end }}
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
+    app.kubernetes.io/name: plane-minio
+    app.kubernetes.io/component: minio
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
 spec:
   type: ClusterIP
   {{- if not .Values.services.minio.assign_cluster_ip }}
@@ -39,6 +47,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
+        app.kubernetes.io/name: plane-minio
+        app.kubernetes.io/component: minio
+        app.kubernetes.io/part-of: plane-enterprise
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Values.planeVersion }}
     spec:
       containers:
       - image: {{ .Values.services.minio.image }}

@@ -4,8 +4,16 @@ kind: Service
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin
+  {{- if and .Values.monitoring .Values.monitoring.enabled }}
+  annotations:
+    {{- include "plane.prometheusAnnotations" (dict "port" "3000" "root" .) | nindent 4 }}
+  {{- end }}
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+    app.kubernetes.io/name: plane-admin
+    app.kubernetes.io/component: admin
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
 spec:
   type: ClusterIP
   {{- if not .Values.services.admin.assign_cluster_ip }}
@@ -37,6 +45,11 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+        app.kubernetes.io/name: plane-admin
+        app.kubernetes.io/component: admin
+        app.kubernetes.io/part-of: plane-enterprise
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Values.planeVersion }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

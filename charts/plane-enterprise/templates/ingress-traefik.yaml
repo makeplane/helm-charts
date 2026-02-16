@@ -5,6 +5,11 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-ingress
   namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: plane-ingress
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
 spec:
   entryPoints:
     - websecure

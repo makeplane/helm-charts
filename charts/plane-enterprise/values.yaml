@@ -39,6 +39,13 @@ ssl:
   email: plane@example.com
   generateCerts: false
 
+monitoring:
+  enabled: false
+  prometheus:
+    scrape: true
+    path: "/metrics"
+    scheme: "http"
+
 services:
   redis:
     local_setup: true

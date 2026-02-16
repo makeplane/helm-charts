@@ -26,3 +26,12 @@
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+
+{{- define "plane.prometheusAnnotations" -}}
+{{- if and .root.Values.monitoring .root.Values.monitoring.enabled -}}
+prometheus.io/scrape: {{ .root.Values.monitoring.prometheus.scrape | quote }}
+prometheus.io/port: {{ .port | quote }}
+prometheus.io/path: {{ .root.Values.monitoring.prometheus.path | quote }}
+prometheus.io/scheme: {{ .root.Values.monitoring.prometheus.scheme | quote }}
+{{- end }}
+{{- end }}

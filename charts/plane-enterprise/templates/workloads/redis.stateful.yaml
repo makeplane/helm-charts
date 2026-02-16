@@ -5,8 +5,16 @@ kind: Service
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis
+  {{- if and .Values.monitoring .Values.monitoring.enabled }}
+  annotations:
+    {{- include "plane.prometheusAnnotations" (dict "port" (.Values.services.redis.servicePort | toString) "root" .) | nindent 4 }}
+  {{- end }}
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
+    app.kubernetes.io/name: plane-redis
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/part-of: plane-enterprise
+    app.kubernetes.io/managed-by: helm
 spec:
   type: ClusterIP
   {{- if not .Values.services.redis.assign_cluster_ip }}
@@ -38,6 +46,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
+        app.kubernetes.io/name: plane-redis
+        app.kubernetes.io/component: redis
+        app.kubernetes.io/part-of: plane-enterprise
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ .Values.planeVersion }}
     spec:
       containers:
       - image: {{ .Values.services.redis.image }}
