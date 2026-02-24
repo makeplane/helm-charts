@@ -7,6 +7,30 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-secrets
 stringData:
+  {{- if .Values.services.postgres.local_setup }}
+  PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pg_pi_db_name }}"
+  {{- else if .Values.env.pg_pi_db_remote_url }}
+  PLANE_PI_DATABASE_URL: {{ .Values.env.pg_pi_db_remote_url}}
+  {{- else }}
+  PLANE_PI_DATABASE_URL: ""
+  {{- end }}
+
+  {{- if .Values.services.postgres.local_setup }}
+  FOLLOWER_POSTGRES_URI: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
+  {{- else if .Values.env.pgdb_remote_url }}
+  FOLLOWER_POSTGRES_URI: {{ .Values.env.pgdb_remote_url | quote }}
+  {{- else }}
+  FOLLOWER_POSTGRES_URI: ""
+  {{- end }}
+
+  {{- if .Values.services.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
+  {{- else }}
+  AMQP_URL: ""
+  {{- end }}
+
   {{- if .Values.services.pi.ai_providers.openai.enabled }}
   OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
   {{- end }}
@@ -16,21 +40,7 @@ stringData:
   {{- if .Values.services.pi.ai_providers.groq.enabled }}
   GROQ_API_KEY: {{ .Values.services.pi.ai_providers.groq.api_key | default "" |  quote }}
   {{- end }}
-  {{- if .Values.services.postgres.local_setup }}
-  PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pg_pi_db_name }}"
-  {{- else if .Values.env.pg_pi_db_remote_url }}
-  PLANE_PI_DATABASE_URL: {{ .Values.env.pg_pi_db_remote_url}}
-  {{- else }}
-  PLANE_PI_DATABASE_URL: ""
-  {{- end }}
-
-  {{- if .Values.services.rabbitmq.local_setup }}
-  CELERY_BROKER_URL: "pyamqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local/"
-  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
-  CELERY_BROKER_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
-  {{- else }}
-  CELERY_BROKER_URL: ""
-  {{- end }}
+  
 
   {{- if .Values.services.pi.ai_providers.cohere.enabled }}
   COHERE_API_KEY: {{ .Values.services.pi.ai_providers.cohere.api_key | default "" | quote }}
@@ -57,6 +67,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-vars
 data:
+  DEBUG: {{ if .Values.env.pi_envs.debug | default false }} "1" {{- else -}} "0" {{ end }}
   FASTAPI_APP_HOST: "0.0.0.0"
   FASTAPI_APP_WORKERS: "1"
   {{- if .Values.ssl.create_issuer }}
@@ -118,6 +129,13 @@ data:
   BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}
+
+  CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
+  CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}
+  CELERY_WORKSPACE_PLAN_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.workspace_plan_sync_enabled | ternary "1" "0" | quote }}
+  CELERY_WORKSPACE_PLAN_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.workspace_plan_sync_interval | default 86400 | quote }}
+  CELERY_DOCS_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.docs_sync_enabled | ternary "1" "0" | quote }}
+  CELERY_DOCS_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.docs_sync_interval | default 86400 | quote }}
 
 ---
 {{- end }}

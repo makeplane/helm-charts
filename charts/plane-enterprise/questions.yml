@@ -1414,8 +1414,3 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
-- variable: external_secrets.pi_common_env_existingSecret
-  label: "PI Common Envs Secrets File Name"
-  type: string
-  default: ""
-  group: "External Secrets"

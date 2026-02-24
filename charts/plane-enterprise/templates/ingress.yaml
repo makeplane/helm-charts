@@ -73,6 +73,7 @@ spec:
                 name: {{ .Release.Name }}-api
             path: /marketplace/
             pathType: Prefix
+          {{- if .Values.services.silo.enabled }}
           - backend:
               service:
                 port:
@@ -80,6 +81,8 @@ spec:
                 name: {{ .Release.Name }}-silo
             path: /silo/
             pathType: Prefix
+          {{- end }}
+          {{- if .Values.services.pi.enabled }}
           - backend:
               service:
                 port:
@@ -87,6 +90,7 @@ spec:
                 name: {{ .Release.Name }}-pi-api
             path: /pi/
             pathType: Prefix
+          {{- end }}
           - backend:
               service:
                 port:

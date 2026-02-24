@@ -41,11 +41,11 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ .Values.external_secrets.pi_api_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-api-secrets{{ end }}
               optional: false
-          - configMapRef:
-              name: {{ .Release.Name }}-pi-common-vars
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.pi_common_env_existingSecret) }}{{ .Values.external_secrets.pi_common_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-common-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
         {{- if .Values.extraEnv }}
         env:

@@ -408,7 +408,6 @@ external_secrets:
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
   pi_api_env_existingSecret: ''
-  pi_common_env_existingSecret: ''
 
 env:
   storageClass: ''
