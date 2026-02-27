@@ -949,10 +949,6 @@ questions:
     label: "Custom LLM Name"
     type: string
     default: "GPT-OSS-120B"
-  - variable: services.pi.ai_providers.custom_llm.description
-    label: "Custom LLM Description"
-    type: string
-    default: "A self-hosted OpenAI-compatible model"
   - variable: services.pi.ai_providers.custom_llm.base_url
     label: "Custom LLM Base URL"
     type: string
@@ -969,6 +965,14 @@ questions:
     label: "Custom LLM Max Tokens"
     type: int
     default: 128000
+  - variable: services.pi.ai_providers.custom_llm.provider
+    label: "Custom LLM Provider"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.aws_region
+    label: "Custom LLM AWS Region"
+    type: string
+    default: ""
 
 - variable: services.pi.ai_providers.embedding_model.enabled
   label: "Enable Embedding Model"

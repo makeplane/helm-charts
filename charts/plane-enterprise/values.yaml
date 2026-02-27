@@ -363,8 +363,9 @@ services:
         base_url: ''
         model_key: 'gpt-oss-120b'
         name: 'GPT-OSS-120B'
-        description: 'A self-hosted OpenAI-compatible model'
         max_tokens: 128000
+        provider: ''
+        aws_region: ''
       embedding_model:
         enabled: false
         name: ''
