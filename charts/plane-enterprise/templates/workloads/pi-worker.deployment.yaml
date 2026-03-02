@@ -18,7 +18,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{ include "plane.podScheduling" .Values.services.pi_worker }}
+      {{- include "plane.podScheduling" .Values.services.pi_worker }}
       containers:
       - name: {{ .Release.Name }}-pi-worker
         imagePullPolicy: Always
@@ -55,7 +55,3 @@ spec:
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---
 {{- end }}
-
-
-
-
