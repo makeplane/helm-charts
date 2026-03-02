@@ -28,7 +28,7 @@
        helm upgrade --install plane-app makeplane/plane-ce \
            --create-namespace \
            --namespace plane-ce \
-           --set planeVersion=v1.1.0 \
+           --set planeVersion=v1.2.0 \
            --set ingress.appHost="plane.example.com" \
            --set ingress.minioHost="plane-minio.example.com" \
            --set ingress.rabbitmqHost="plane-mq.example.com" \
@@ -80,7 +80,7 @@
 
 | Setting      | Default | Required | Description |
 | ------------ | :-----: | :------: | ----------- |
-| planeVersion | v1.1.0  |   Yes    |             |
+| planeVersion | v1.2.0  |   Yes    |             |
 
 ### Postgress DB Setup
 

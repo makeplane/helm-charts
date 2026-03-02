@@ -40,7 +40,8 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{- if and .Values.airgapped.enabled .Values.airgapped.s3Secrets }}
+      {{- include "plane.podScheduling" .Values.services.api }}
+      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
       volumes:
         - name: s3-custom-ca
           projected:
@@ -109,6 +110,9 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
           {{- if .Values.services.silo.enabled }}
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
@@ -141,7 +145,6 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
 
-      {{- include "plane.podScheduling" .Values.services.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

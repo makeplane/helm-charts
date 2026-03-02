@@ -7,20 +7,27 @@ questions:
   group: "Docker Registry"
   show_subquestion_if: true
   subquestions:
+  - variable: dockerRegistry.existingSecret
+    label: "Existing Docker Registry Secret"
+    type: string
+    default: ""
   - variable: dockerRegistry.registry
     label: "Docker Registry Url"
     type: string
+    show_if: "dockerRegistry.existingSecret="
   - variable: dockerRegistry.loginid
     label: "Login ID"
     type: string
+    show_if: "dockerRegistry.existingSecret="
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
+    show_if: "dockerRegistry.existingSecret="
 
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.17.0
+  default: v2.4.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -65,6 +72,11 @@ questions:
     type: string
     required: true
     default: "artifacts.plane.so/makeplane/email-commercial"
+  - variable: services.pi.image
+    label: Plane AI (PI) Docker Image
+    type: string
+    required: true
+    default: "artifacts.plane.so/makeplane/plane-pi-commercial"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
@@ -469,7 +481,10 @@ questions:
     label: "API Key Rate Limit"
     type: string
     default: "60/minute"
-
+  - variable: env.web_url
+    label: "Web URL"
+    type: string
+    default: ""
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
@@ -744,6 +759,253 @@ questions:
     type: boolean
     default: false
 
+- variable: services.pi.enabled
+  label: "Enable Plane AI (PI) Service"
+  type: boolean
+  default: false
+  group: "Plane AI Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.pi.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.pi.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.plane_oauth.state_expiry_seconds
+    label: "Plane OAuth State Expiry Seconds"
+    type: int
+    default: 82800
+  - variable: env.pi_envs.cors_allowed_origins
+    label: "CORS Allowed Origins"
+    type: string
+    default: ""
+  - variable: env.pi_envs.celery.vector_sync_enabled
+    label: "Vector Sync Enabled"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.celery.vector_sync_interval
+    label: "Vector Sync Interval"
+    type: int
+    default: 3
+    show_if: "env.pi_envs.celery.vector_sync_enabled=true"
+  - variable: env.pi_envs.celery.workspace_plan_sync_enabled
+    label: "Workspace Plan Sync Enabled"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.celery.workspace_plan_sync_interval
+    label: "Workspace Plan Sync Interval"
+    type: int
+    default: 86400
+    show_if: "env.pi_envs.celery.workspace_plan_sync_enabled=true"
+  - variable: env.pi_envs.celery.docs_sync_enabled
+    label: "Docs Sync Enabled"
+    type: boolean
+    default: false
+  - variable: env.pi_envs.celery.docs_sync_interval
+    label: "Docs Sync Interval"
+    type: int
+    default: 86400
+    show_if: "env.pi_envs.celery.docs_sync_enabled=true"
+
+  - variable: env.pi_envs.internal_secret
+    label: "Plane AI (PI) Internal Secret"
+    type: string
+    default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
+
+- variable: services.pi_worker.replicas
+  label: "Default Replica Count"
+  type: int
+  default: 1
+  group: "Plane AI Worker Setup"
+  subquestions:
+  - variable: services.pi_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+- variable: services.pi_beat_worker.replicas
+  label: "Default Replica Count"
+  type: int
+  default: 1
+  group: "Plane AI Beat Worker Setup"
+  subquestions:
+  - variable: services.pi_beat_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_beat_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_beat_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.pi_beat_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+
+- variable: services.pi.ai_providers.openai.enabled
+  label: "Enable OpenAI Provider"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.openai.base_url
+    label: "OpenAI Base URL"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.openai.api_key
+    label: "OpenAI API Key"
+    type: password
+    default: ""
+- variable: services.pi.ai_providers.claude.enabled
+  label: "Enable Claude Provider"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.claude.base_url
+    label: "Claude Base URL"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.claude.api_key
+    label: "Claude API Key"
+    type: password
+    default: ""
+- variable: services.pi.ai_providers.groq.enabled
+  label: "Enable Groq Provider"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.groq.base_url
+    label: "Groq Base URL"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.groq.api_key
+    label: "Groq API Key"
+    type: password
+    default: ""
+
+- variable: services.pi.ai_providers.cohere.enabled
+  label: "Enable Cohere Provider"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.cohere.base_url
+    label: "Cohere Base URL"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.cohere.api_key
+    label: "Cohere API Key"
+    type: password
+    default: ""
+
+- variable: services.pi.ai_providers.custom_llm.enabled
+  label: "Enable Custom LLM Provider"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.custom_llm.name
+    label: "Custom LLM Name"
+    type: string
+    default: "GPT-OSS-120B"
+  - variable: services.pi.ai_providers.custom_llm.base_url
+    label: "Custom LLM Base URL"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.api_key
+    label: "Custom LLM API Key"
+    type: password
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.model_key
+    label: "Custom LLM Model Key"
+    type: string
+    default: "gpt-oss-120b"
+  - variable: services.pi.ai_providers.custom_llm.max_tokens
+    label: "Custom LLM Max Tokens"
+    type: int
+    default: 128000
+  - variable: services.pi.ai_providers.custom_llm.provider
+    label: "Custom LLM Provider"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.custom_llm.aws_region
+    label: "Custom LLM AWS Region"
+    type: string
+    default: ""
+
+- variable: services.pi.ai_providers.embedding_model.enabled
+  label: "Enable Embedding Model"
+  type: boolean
+  default: false
+  group: "Plane AI Providers"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.embedding_model.name
+    label: "Embedding Model Name"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.model_id
+    label: "Embedding Model ID"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_access_key
+    label: "Embedding Model AWS Access Key"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_secret_access_key
+    label: "Embedding Model AWS Secret Access Key"
+    type: password
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_region
+    label: "Embedding Model AWS Region"
+    type: string
+    default: "us-east-1"
+  - variable: services.pi.ai_providers.embedding_model.aws_session_token
+    label: "Embedding Model AWS Session Token"
+    type: password
+    default: ""
+
 - variable: services.redis.local_setup
   label: "Install Redis"
   type: boolean
@@ -830,6 +1092,11 @@ questions:
     type: string
     default: "plane"
     show_if: "services.postgres.local_setup=true"
+  - variable: env.pg_pi_db_name
+    label: "Plane AI (PI) DB Name"
+    type: string
+    default: "plane_pi"
+    show_if: "services.postgres.local_setup=true"
   - variable: services.postgres.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -840,6 +1107,77 @@ questions:
     type: string
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
+  - variable: env.pg_pi_db_remote_url
+    label: "Plane AI (PI) DB Remote URL"
+    type: string
+    default: ""
+    show_if: "services.postgres.local_setup=false"
+
+- variable: services.opensearch.local_setup
+  label: "Install OpenSearch"
+  type: boolean
+  default: true
+  group: "OpenSearch Setup"
+  # show_subquestion_if: true
+  subquestions:
+  - variable: services.opensearch.image
+    label: "Docker Image"
+    type: string
+    default: "opensearchproject/opensearch:3.3.2"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.pullPolicy
+    label: "OpenSearch Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.servicePort
+    label: Service Port
+    type: int
+    default: 9200
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.volumeSize
+    label: "Volume Size"
+    type: string
+    default: "5Gi"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.username
+    label: "Username"
+    type: string
+    default: "plane"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.password
+    label: "Password"
+    type: password
+    default: "Secure@Pass#123!%^&*"
+    show_if: "services.opensearch.local_setup=true"
+  - variable: services.opensearch.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.opensearch.local_setup=true"
+  - variable: env.opensearch_remote_url
+    label: "OpenSearch Remote URL"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_username
+    label: "OpenSearch Remote Username"
+    type: string
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_remote_password
+    label: "OpenSearch Remote Password"
+    type: password
+    default: ""
+    show_if: "services.opensearch.local_setup=false"
+  - variable: env.opensearch_index_prefix
+    label: "Index Prefix"
+    type: string
+    default: ""
 
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
@@ -1050,6 +1388,11 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+- variable: external_secrets.opensearch_existingSecret
+  label: "OpenSearch Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
 - variable: external_secrets.doc_store_existingSecret
   label: "Doc Store and Minio Secrets File Name"
   type: string
@@ -1067,6 +1410,11 @@ questions:
   group: "External Secrets"
 - variable: external_secrets.silo_env_existingSecret
   label: "Silo Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.pi_api_env_existingSecret
+  label: "Plane AI (PI) API Envs Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"

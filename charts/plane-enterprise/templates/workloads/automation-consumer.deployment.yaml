@@ -18,6 +18,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       containers:
       - name: {{ .Release.Name }}-automation-consumer
         imagePullPolicy: Always
@@ -46,12 +47,14 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
         {{- if .Values.extraEnv }}
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
 
-      {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 {{- end }}

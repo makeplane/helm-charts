@@ -40,6 +40,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
     spec:
+      {{- include "plane.podScheduling" .Values.services.minio }}
       containers:
       - image: {{ .Values.services.minio.image }}
         imagePullPolicy: {{ .Values.services.minio.pullPolicy | default "IfNotPresent" }}
@@ -60,7 +61,6 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-minio-vol
           subPath: ''
-      {{- include "plane.podScheduling" .Values.services.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:
@@ -94,6 +94,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.minio }}
       restartPolicy: OnFailure
       initContainers:
         - name: init
@@ -120,7 +121,6 @@ spec:
           env:
             {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
-      {{- include "plane.podScheduling" .Values.services.minio }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
       terminationGracePeriodSeconds: 120

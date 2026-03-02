@@ -14,6 +14,7 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.api }}
       containers:
       - name: {{ .Release.Name }}-api-migrate
         image: {{ .Values.services.api.image | default "artifacts.plane.so/makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
@@ -30,6 +31,9 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
           {{- if .Values.services.silo.enabled }}
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
@@ -40,7 +44,6 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
       restartPolicy: OnFailure
-      {{- include "plane.podScheduling" .Values.services.api }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

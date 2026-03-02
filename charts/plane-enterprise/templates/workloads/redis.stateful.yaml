@@ -39,6 +39,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
     spec:
+      {{- include "plane.podScheduling" .Values.services.redis }}
       containers:
       - image: {{ .Values.services.redis.image }}
         imagePullPolicy: {{ .Values.services.redis.pullPolicy | default "IfNotPresent" }}
@@ -53,7 +54,6 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-redis-vol
           subPath: ''
-      {{- include "plane.podScheduling" .Values.services.redis }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
   volumeClaimTemplates:

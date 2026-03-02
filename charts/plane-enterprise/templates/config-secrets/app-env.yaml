@@ -9,6 +9,7 @@ stringData:
   SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
   LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
+  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
 
   {{- if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
@@ -35,7 +36,6 @@ stringData:
   {{- if and .Values.airgapped.enabled .Values.airgapped.s3Secrets }}
   AWS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
   {{- end }}
-
 {{- end }}
 ---
 
@@ -62,11 +62,22 @@ data:
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
-
+  {{- if .Values.env.web_url}}
+  WEB_URL: {{ .Values.env.web_url | default "" | quote }}
+  {{- else if or .Values.ssl.tls_secret_name ( and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  WEB_URL: "https://{{ .Values.license.licenseDomain }}"
+  {{- else }}
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
+  {{- end }}
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"
+  {{- if .Values.ssl.create_issuer }}
+  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}/pi"
+  {{- else }}
+  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}/pi"
+  {{- end }}
+  PI_BASE_PATH: "/pi"
 
   {{- if .Values.airgapped.enabled }}
   IS_AIRGAPPED: "1"
