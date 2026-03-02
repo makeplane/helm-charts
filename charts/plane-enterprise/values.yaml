@@ -1,4 +1,4 @@
-planeVersion: v2.3.4
+planeVersion: v2.4.0
 
 dockerRegistry:
   enabled: false
@@ -325,6 +325,80 @@ services:
     labels: {}
     annotations: {}
 
+  pi:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    image: artifacts.plane.so/makeplane/plane-pi-commercial
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+    ai_providers:
+      openai:
+        enabled: false
+        base_url: ''
+        api_key: ''
+      claude:
+        enabled: false
+        base_url: ''
+        api_key: ''
+      groq:
+        enabled: false
+        base_url: ''
+        api_key: ''
+      cohere:
+        enabled: false
+        base_url: ''
+        api_key: ''
+      custom_llm:
+        enabled: false
+        api_key: ''
+        base_url: ''
+        model_key: 'gpt-oss-120b'
+        name: 'GPT-OSS-120B'
+        max_tokens: 128000
+        provider: ''
+        aws_region: ''
+      embedding_model:
+        enabled: false
+        name: ''
+        model_id: ''
+        aws_access_key: ''
+        aws_secret_access_key: ''
+        aws_region: 'us-east-1'
+        aws_session_token: ''
+
+  pi_beat_worker:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  pi_worker:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -334,6 +408,7 @@ external_secrets:
   app_env_existingSecret: ''
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
+  pi_api_env_existingSecret: ''
 
 env:
   storageClass: ''
@@ -345,7 +420,9 @@ env:
   pgdb_username: plane
   pgdb_password: plane
   pgdb_name: plane
+  pg_pi_db_name: plane_pi
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
+  pg_pi_db_remote_url: '' #INCASE OF REMOTE Plane AI (PI) PG DB URL ONLY
 
   # DATA STORE
   docstore_bucket: uploads
@@ -359,14 +436,15 @@ env:
 
   use_storage_proxy: false
 
-  secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
-  api_key_rate_limit: "60/minute"
-
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
   opensearch_remote_username: ''
   opensearch_remote_password: ''
-  opensearch_index_prefix: 'plane_'
+  opensearch_index_prefix: ''
+
+  #API KEYS
+  secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  api_key_rate_limit: "60/minute"
 
   sentry_dsn: ''
   sentry_environment: ''
@@ -416,6 +494,21 @@ env:
     event_stream_prefetch: 10
     exchange_name: "plane.event_stream"
     event_types: "issue"
+
+  pi_envs:
+    plane_oauth:
+      state_expiry_seconds: 82800
+    plane_api_host: ''
+    cors_allowed_origins: ''
+    internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
+
+    celery:
+      vector_sync_enabled: false
+      vector_sync_interval: 3
+      workspace_plan_sync_enabled: false
+      workspace_plan_sync_interval: 86400
+      docs_sync_enabled: false
+      docs_sync_interval: 86400
 
 # Global extra environment variables that will be applied to all workloads
 extraEnv: []
