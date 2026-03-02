@@ -73,7 +73,7 @@ questions:
     required: true
     default: "artifacts.plane.so/makeplane/email-commercial"
   - variable: services.pi.image
-    label: PI Docker Image
+    label: Plane AI (PI) Docker Image
     type: string
     required: true
     default: "artifacts.plane.so/makeplane/plane-pi-commercial"
@@ -827,7 +827,7 @@ questions:
     show_if: "env.pi_envs.celery.docs_sync_enabled=true"
 
   - variable: env.pi_envs.internal_secret
-    label: "PI Internal Secret"
+    label: "Plane AI (PI) Internal Secret"
     type: string
     default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
 
@@ -835,7 +835,7 @@ questions:
   label: "Default Replica Count"
   type: int
   default: 1
-  group: "PI Worker Setup"
+  group: "Plane AI (PI) Worker Setup"
   subquestions:
   - variable: services.pi_worker.memoryLimit
     label: "Memory Limit"
@@ -857,7 +857,7 @@ questions:
   label: "Default Replica Count"
   type: int
   default: 1
-  group: "PI Beat Worker Setup"
+  group: "Plane AI (PI) Beat Worker Setup"
   subquestions:
   - variable: services.pi_beat_worker.memoryLimit
     label: "Memory Limit"
@@ -1093,7 +1093,7 @@ questions:
     default: "plane"
     show_if: "services.postgres.local_setup=true"
   - variable: env.pg_pi_db_name
-    label: "PI DB Name"
+    label: "Plane AI (PI) DB Name"
     type: string
     default: "plane_pi"
     show_if: "services.postgres.local_setup=true"
@@ -1108,7 +1108,7 @@ questions:
     default: "postgresql://"
     show_if: "services.postgres.local_setup=false"
   - variable: env.pg_pi_db_remote_url
-    label: "PI DB Remote URL"
+    label: "Plane AI (PI) DB Remote URL"
     type: string
     default: ""
     show_if: "services.postgres.local_setup=false"
@@ -1414,7 +1414,7 @@ questions:
   default: ""
   group: "External Secrets"
 - variable: external_secrets.pi_api_env_existingSecret
-  label: "PI API Envs Secrets File Name"
+  label: "Plane AI (PI) API Envs Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"

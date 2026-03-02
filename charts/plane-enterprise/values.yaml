@@ -422,7 +422,7 @@ env:
   pgdb_name: plane
   pg_pi_db_name: plane_pi
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
-  pg_pi_db_remote_url: '' #INCASE OF REMOTE PI PG DB URL ONLY
+  pg_pi_db_remote_url: '' #INCASE OF REMOTE Plane AI (PI) PG DB URL ONLY
 
   # DATA STORE
   docstore_bucket: uploads
