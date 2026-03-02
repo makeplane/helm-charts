@@ -835,7 +835,7 @@ questions:
   label: "Default Replica Count"
   type: int
   default: 1
-  group: "Plane AI (PI) Worker Setup"
+  group: "Plane AI Worker Setup"
   subquestions:
   - variable: services.pi_worker.memoryLimit
     label: "Memory Limit"
@@ -857,7 +857,7 @@ questions:
   label: "Default Replica Count"
   type: int
   default: 1
-  group: "Plane AI (PI) Beat Worker Setup"
+  group: "Plane AI Beat Worker Setup"
   subquestions:
   - variable: services.pi_beat_worker.memoryLimit
     label: "Memory Limit"

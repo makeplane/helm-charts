@@ -378,7 +378,7 @@
 | env.silo_envs.hmac_secret_key                 |         &lt;random-32-bit-string&gt;         |                                                                 | HMAC Secret Key                                                                                                                                                                                                 |
 | env.silo_envs.aes_secret_key                  |      "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr"      |                                                                 | AES Secret Key                                                                                                                                                                                                  |
 
-### Plane AI Deployment
+### Plane AI (PI) Deployment
 
 | Setting                                |                       Default                        | Required | Description                                                                                                                                                                                                     |
 | -------------------------------------- | :--------------------------------------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
