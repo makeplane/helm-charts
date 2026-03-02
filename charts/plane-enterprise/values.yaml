@@ -18,7 +18,12 @@ airgapped:
   # mount the CA bundle into the API pod by passing it in as an environment
   # variable. Should be the full path to the CA bundle file, e.g.
   #
+  # Preferred: list of Kubernetes Secrets containing CA certificates (supports multiple certs).
   s3Secrets: []
+  # Deprecated (backward compatibility): use a single secret for custom S3 CA.
+  # If set, used when s3Secrets is empty. Prefer migrating to s3Secrets.
+  s3SecretName: ""
+  s3SecretKey: ""
 
 ingress:
   enabled: true

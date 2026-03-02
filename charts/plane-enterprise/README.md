@@ -98,10 +98,30 @@
 
 ### Air-gapped Settings
 
-| Setting               | Default | Required | Description                                                                                                                                                                                                                                                                                                          |
-|-----------------------|:-------:| :------: |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| airgapped.enabled     |  false  |    No    | Specifies the airgapped mode the Plane API runs in.                                                                                                                                                                                                                                                                  |
-| airgapped.s3Secrets   |   []    |    No    | List of Kubernetes Secrets containing CA certificates to install. Each item in the list must contain a `name` (the Secret name) and a `key` (the file key inside the Secret). Applying a secret looks like: `kubectl -n plane create secret generic plane-s3-ca \ --from-file=s3-custom-ca.crt=/path/to/your/ca.crt` |
+| Setting                 | Default | Required | Description                                                                                                                                                                                                                                                                                                          |
+| ----------------------- | :-----: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| airgapped.enabled       |  false  |    No    | Specifies the airgapped mode the Plane API runs in.                                                                                                                                                                                                                                                                  |
+| airgapped.s3Secrets     |   []    |    No    | List of Kubernetes Secrets containing CA certificates to install. Each item must have `name` (Secret name) and `key` (file key in the Secret). Example: `kubectl -n plane create secret generic plane-s3-ca --from-file=s3-custom-ca.crt=/path/to/ca.crt`. Supports multiple certs (e.g. S3 + internal CA).          |
+| airgapped.s3SecretName  |   ""    |    No    | **(Deprecated, backward compatibility)** Name of a single Kubernetes Secret containing the S3 CA cert. Used only when `s3Secrets` is empty. Prefer migrating to `s3Secrets`.                                                                                                                                       |
+| airgapped.s3SecretKey   |   ""    |    No    | **(Deprecated, backward compatibility)** Key (filename) of the cert file inside the Secret. Used only when `s3Secrets` is empty. Set together with `airgapped.s3SecretName`.                                                                                                                                          |
+
+#### Backward compatibility: custom S3 CA (upgrading from older charts)
+
+If you previously used the single-secret custom CA configuration (`airgapped.s3SecretName` and `airgapped.s3SecretKey`), it continues to work. No change is required when upgrading.
+
+- **Old configuration (still supported):** Set `airgapped.s3SecretName` to your Secret name and `airgapped.s3SecretKey` to the key (e.g. `s3-custom-ca.crt`). The chart mounts that single cert, runs `update-ca-certificates`, and sets `AWS_CA_BUNDLE` to the system bundle path.
+- **New configuration (recommended):** Use `airgapped.s3Secrets` with a list of `{ name, key }` entries. This allows multiple CA certificates (e.g. S3 endpoint CA and internal PKI) and matches the same runtime behavior.
+
+**Migration (optional):** To move from the deprecated keys to `s3Secrets`, set for example:
+
+```yaml
+airgapped:
+  enabled: true
+  s3Secrets:
+    - name: plane-s3-ca      # same as your previous s3SecretName
+      key: s3-custom-ca.crt  # same as your previous s3SecretKey
+  # s3SecretName and s3SecretKey can be removed after migration
+```
 
 ### Docker Registry
 

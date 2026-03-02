@@ -41,18 +41,8 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.api }}
-      {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
-      volumes:
-        - name: s3-custom-ca
-          projected:
-            sources:
-            {{- range .Values.airgapped.s3Secrets }}
-            - secret:
-                name: {{ .name }}
-                items:
-                  - key: {{ .key }}
-                    path: {{ .key }}
-            {{- end }}
+      {{- with (include "plane.s3CaVolumes" .) }}
+{{ . | indent 6 }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
@@ -67,35 +57,16 @@ spec:
           limits:
             memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
-        {{- if and .Values.airgapped.enabled .Values.airgapped.s3Secrets }}
-        volumeMounts:
-          - name: s3-custom-ca
-            mountPath: /s3-custom-ca
-            readOnly: true
+        {{- with (include "plane.s3CaVolumeMounts" .) }}
+{{ . | indent 8 }}
         {{- end }}
         command:
           - /bin/bash
           - -c
           - |
             set -e
-
-            {{- if and .Values.airgapped.enabled .Values.airgapped.s3Secrets }}
-            echo "Installing custom CA certificates..."
-
-            # Ensure ca-certificates directory exists
-            mkdir -p /usr/local/share/ca-certificates
-
-            # Install custom S3 CA certs if available
-            if [ "$(ls -A /s3-custom-ca)" ]; then
-              echo "Found certificates in /s3-custom-ca. Installing..."
-              # Copy all files from the mount to the system folder
-              cp /s3-custom-ca/* /usr/local/share/ca-certificates/
-              # Update CA certificates
-              update-ca-certificates
-              echo "CA certificates installed successfully"
-            else
-              echo "No custom S3 CA certificate found, skipping..."
-            fi
+            {{- with (include "plane.s3CaInitScript" .) }}
+{{ . | indent 12 }}
             {{- end }}
 
             # Start the API
@@ -119,17 +90,10 @@ spec:
               optional: false
           {{- end }}
 
-        {{- if or .Values.extraEnv (and .Values.airgapped.enabled .Values.airgapped.s3Secrets) }}
+        {{- if or .Values.extraEnv (include "plane.s3CaEnabled" .) }}
         env:
-          {{- if and .Values.airgapped.enabled .Values.airgapped.s3Secrets }}
-          - name: SSL_CERT_FILE
-            value: "/etc/ssl/certs/ca-certificates.crt"
-          - name: SSL_CERT_DIR
-            value: "/etc/ssl/certs"
-          - name: REQUESTS_CA_BUNDLE
-            value: "/etc/ssl/certs/ca-certificates.crt"
-          - name: CURL_CA_BUNDLE
-            value: "/etc/ssl/certs/ca-certificates.crt"
+          {{- with (include "plane.s3CaEnvVars" .) }}
+{{ . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
