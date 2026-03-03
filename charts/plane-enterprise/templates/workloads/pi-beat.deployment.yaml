@@ -19,6 +19,9 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi_beat_worker }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-pi-beat
         imagePullPolicy: Always
@@ -32,8 +35,19 @@ spec:
           limits:
             memory: {{ .Values.services.pi_beat_worker.memoryLimit | default "1000Mi" | quote }}
             cpu: {{ .Values.services.pi_beat_worker.cpuLimit | default "500m" | quote}}
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
         command:
-          - ./bin/entrypoint-celery-beat.sh
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            {{- with (include "plane.s3CAInitScript" .) }}
+{{ . | indent 12 }}
+            {{- end }}
+
+            exec ./bin/entrypoint-celery-beat.sh
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-pi-api-vars
@@ -47,9 +61,14 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
         env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account

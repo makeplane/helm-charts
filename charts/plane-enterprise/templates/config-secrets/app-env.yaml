@@ -33,8 +33,8 @@ stringData:
   AMQP_URL: ""
   {{ end }}
 
-  {{- if and .Values.airgapped.enabled .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey }}
-  AWS_CA_BUNDLE: "/s3-custom-ca/{{ .Values.airgapped.s3SecretKey }}"
+  {{- if include "plane.s3CAEnabled" . }}
+  AWS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
   {{- end }}
 {{- end }}
 ---
