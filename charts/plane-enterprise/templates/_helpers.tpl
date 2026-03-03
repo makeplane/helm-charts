@@ -32,12 +32,8 @@ Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format
 Returns "true" when airgapped is enabled and at least one CA secret is configured.
 */}}
 {{- define "plane.s3CAEnabled" -}}
-  {{- if .Values.airgapped.enabled -}}
-    {{- if gt (len .Values.airgapped.s3Secrets) 0 -}}
-      true
-    {{- else if and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey -}}
-      true
-    {{- end -}}
+  {{- if and .Values.airgapped.enabled (or (gt (len .Values.airgapped.s3Secrets) 0) (and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey)) -}}
+    true
   {{- end -}}
 {{- end -}}
 
