@@ -121,20 +121,46 @@ Caller must nindent to the correct depth.
 {{- end -}}
 
 {{/*
-Render the shell init script for Node.js containers that lack update-ca-certificates.
-Concatenates all mounted cert files into a single PEM bundle at /tmp/custom-ca-bundle.crt
-which NODE_EXTRA_CA_CERTS then points to.
-Output is raw shell (POSIX /bin/sh); caller embeds it inside the command block.
+Render the volumes block for Node.js services that use the init container CA pattern.
+Includes both the projected CA secret volume and a shared emptyDir for the bundled output.
+Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaNodeInitScript" -}}
+{{- define "plane.s3CaNodeVolumes" -}}
 {{- if include "plane.s3CaEnabled" . -}}
-echo "Combining custom CA certificates for Node.js..."
-if [ "$(ls -A /s3-custom-ca)" ]; then
-  cat /s3-custom-ca/* > /tmp/custom-ca-bundle.crt
-  echo "Custom CA certificates loaded at /tmp/custom-ca-bundle.crt"
-else
-  echo "No custom S3 CA certificate found, skipping..."
-fi
+volumes:
+  - name: s3-custom-ca
+    projected:
+      sources:
+      {{- if gt (len .Values.airgapped.s3Secrets) 0 }}
+      {{- range .Values.airgapped.s3Secrets }}
+      - secret:
+          name: {{ .name }}
+          items:
+            - key: {{ .key }}
+              path: {{ .key }}
+      {{- end }}
+      {{- else }}
+      - secret:
+          name: {{ .Values.airgapped.s3SecretName }}
+          items:
+            - key: {{ .Values.airgapped.s3SecretKey }}
+              path: {{ .Values.airgapped.s3SecretKey }}
+      {{- end }}
+  - name: ca-bundle
+    emptyDir: {}
+{{- end }}
+{{- end -}}
+
+{{/*
+Render the volumeMount for the shared CA bundle emptyDir on the main container.
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.s3CaNodeBundleMount" -}}
+{{- if include "plane.s3CaEnabled" . -}}
+volumeMounts:
+  - name: ca-bundle
+    mountPath: /ca-bundle
+    readOnly: true
 {{- end }}
 {{- end -}}
 
@@ -146,6 +172,6 @@ Caller must nindent to the correct depth.
 {{- define "plane.s3CaNodeEnvVars" -}}
 {{- if include "plane.s3CaEnabled" . -}}
 - name: NODE_EXTRA_CA_CERTS
-  value: "/tmp/custom-ca-bundle.crt"
+  value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
 {{- end -}}

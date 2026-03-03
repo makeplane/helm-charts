@@ -42,7 +42,7 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.silo }}
-      {{- with (include "plane.s3CaVolumes" .) }}
+      {{- with (include "plane.s3CaNodeVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       initContainers:
@@ -67,6 +67,29 @@ spec:
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
               optional: false
+      {{- if include "plane.s3CaEnabled" . }}
+      - name: prepare-ca-bundle
+        image: busybox
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "Preparing custom CA bundle for Node.js..."
+            if [ "$(ls -A /s3-custom-ca)" ]; then
+              cat /s3-custom-ca/* > /ca-bundle/custom-ca-bundle.crt
+              echo "CA bundle created at /ca-bundle/custom-ca-bundle.crt"
+            else
+              echo "No custom CA certificates found, creating empty bundle"
+              touch /ca-bundle/custom-ca-bundle.crt
+            fi
+        volumeMounts:
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
+            readOnly: true
+          - name: ca-bundle
+            mountPath: /ca-bundle
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-silo
         imagePullPolicy: Always
@@ -80,20 +103,8 @@ spec:
           limits:
             memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
-        {{- with (include "plane.s3CaVolumeMounts" .) }}
+        {{- with (include "plane.s3CaNodeBundleMount" .) }}
 {{ . | indent 8 }}
-        {{- end }}
-        {{- if include "plane.s3CaEnabled" . }}
-        command:
-          - /bin/sh
-          - -c
-          - |
-            set -e
-            {{- with (include "plane.s3CaNodeInitScript" .) }}
-{{ . | indent 12 }}
-            {{- end }}
-
-            exec node apps/silo
         {{- end }}
         envFrom:
           - configMapRef:
