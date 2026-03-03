@@ -99,11 +99,11 @@ questions:
   group: "License Setup"
   show_subquestion_if: true
   subquestions:
-  - variable: airgapped.s3Secrets[0].name
+  - variable: airgapped.s3SecretName
     label: "S3 Secret Name"
     type: string
     default: ""
-  - variable: airgapped.s3Secrets[0].key
+  - variable: airgapped.s3SecretKey
     label: "S3 Secret Key"
     type: string
     default: ""
