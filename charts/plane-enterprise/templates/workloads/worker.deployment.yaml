@@ -18,7 +18,7 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.worker }}
-      {{- with (include "plane.s3CaVolumes" .) }}
+      {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
@@ -34,7 +34,7 @@ spec:
           limits:
             memory: {{ .Values.services.worker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.worker.cpuLimit | default "500m" | quote}}
-        {{- with (include "plane.s3CaVolumeMounts" .) }}
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}
         command:
@@ -42,7 +42,7 @@ spec:
           - -c
           - |
             set -e
-            {{- with (include "plane.s3CaInitScript" .) }}
+            {{- with (include "plane.s3CAInitScript" .) }}
 {{ . | indent 12 }}
             {{- end }}
 
@@ -67,9 +67,9 @@ spec:
               optional: false
           {{- end }}
 
-        {{- if or .Values.extraEnv (include "plane.s3CaEnabled" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
         env:
-          {{- with (include "plane.s3CaEnvVars" .) }}
+          {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}

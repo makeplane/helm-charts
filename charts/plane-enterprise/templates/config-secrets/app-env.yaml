@@ -33,7 +33,7 @@ stringData:
   AMQP_URL: ""
   {{ end }}
 
-  {{- if include "plane.s3CaEnabled" . }}
+  {{- if include "plane.s3CAEnabled" . }}
   AWS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
   {{- end }}
 {{- end }}

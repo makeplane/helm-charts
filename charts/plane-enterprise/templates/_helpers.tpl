@@ -31,7 +31,7 @@
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
 Returns "true" when airgapped is enabled and at least one CA secret is configured.
 */}}
-{{- define "plane.s3CaEnabled" -}}
+{{- define "plane.s3CAEnabled" -}}
   {{- if .Values.airgapped.enabled -}}
     {{- if gt (len .Values.airgapped.s3Secrets) 0 -}}
       true
@@ -47,8 +47,8 @@ Always uses a projected volume so both single-secret (legacy) and multi-secret c
 produce the same volume structure.
 Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaVolumes" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CAVolumes" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 volumes:
   - name: s3-custom-ca
     projected:
@@ -75,8 +75,8 @@ volumes:
 Render the volumeMounts block for custom S3 CA certificates.
 Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaVolumeMounts" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CAVolumeMounts" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 volumeMounts:
   - name: s3-custom-ca
     mountPath: /s3-custom-ca
@@ -88,8 +88,8 @@ volumeMounts:
 Render the shell init script that installs custom CA certificates.
 Output is raw shell; caller embeds it inside the command block.
 */}}
-{{- define "plane.s3CaInitScript" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CAInitScript" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 echo "Installing custom CA certificates..."
 mkdir -p /usr/local/share/ca-certificates
 if [ "$(ls -A /s3-custom-ca)" ]; then
@@ -107,8 +107,8 @@ fi
 Render the SSL/TLS env vars needed when custom CA certs are installed.
 Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaEnvVars" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CAEnvVars" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 - name: SSL_CERT_FILE
   value: "/etc/ssl/certs/ca-certificates.crt"
 - name: SSL_CERT_DIR
@@ -125,8 +125,8 @@ Render the volumes block for Node.js services that use the init container CA pat
 Includes both the projected CA secret volume and a shared emptyDir for the bundled output.
 Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaNodeVolumes" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CANodeVolumes" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 volumes:
   - name: s3-custom-ca
     projected:
@@ -155,8 +155,8 @@ volumes:
 Render the volumeMount for the shared CA bundle emptyDir on the main container.
 Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaNodeBundleMount" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CANodeBundleMount" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 volumeMounts:
   - name: ca-bundle
     mountPath: /ca-bundle
@@ -169,8 +169,8 @@ Render env vars for Node.js containers when custom CA certs are installed.
 NODE_EXTRA_CA_CERTS tells Node.js to trust additional CAs on top of its built-in bundle.
 Caller must nindent to the correct depth.
 */}}
-{{- define "plane.s3CaNodeEnvVars" -}}
-{{- if include "plane.s3CaEnabled" . -}}
+{{- define "plane.s3CANodeEnvVars" -}}
+{{- if include "plane.s3CAEnabled" . -}}
 - name: NODE_EXTRA_CA_CERTS
   value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
