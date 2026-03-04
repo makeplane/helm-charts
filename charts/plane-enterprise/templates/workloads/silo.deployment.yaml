@@ -41,6 +41,10 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- include "plane.podScheduling" .Values.services.silo }}
+      {{- with (include "plane.s3CANodeVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
       initContainers:
       - name: wait-for-rabbitmq
         image: busybox
@@ -63,6 +67,29 @@ spec:
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
               optional: false
+      {{- if include "plane.s3CAEnabled" . }}
+      - name: prepare-ca-bundle
+        image: busybox
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "Preparing custom CA bundle for Node.js..."
+            if [ "$(ls -A /s3-custom-ca)" ]; then
+              cat /s3-custom-ca/* > /ca-bundle/custom-ca-bundle.crt
+              echo "CA bundle created at /ca-bundle/custom-ca-bundle.crt"
+            else
+              echo "No custom CA certificates found, creating empty bundle"
+              touch /ca-bundle/custom-ca-bundle.crt
+            fi
+        volumeMounts:
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
+            readOnly: true
+          - name: ca-bundle
+            mountPath: /ca-bundle
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-silo
         imagePullPolicy: Always
@@ -76,6 +103,9 @@ spec:
           limits:
             memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
+        {{- with (include "plane.s3CANodeBundleMount" .) }}
+{{ . | indent 8 }}
+        {{- end }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
@@ -83,11 +113,18 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
         env:
+          {{- with (include "plane.s3CANodeEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
-      {{- include "plane.podScheduling" .Values.services.silo }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---

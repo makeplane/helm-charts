@@ -2,5 +2,6 @@ dist/
 test-helm.yaml
 .DS_Store
 */local-values.yaml
+tests/*
 test.yaml
 test-*.yaml

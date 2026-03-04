@@ -1,0 +1,65 @@
+{{- if .Values.services.pi.enabled }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-pi-api-migrate-{{ .Release.Revision }}
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api-migrate
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.pi }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
+      containers:
+      - name: {{ .Release.Name }}-pi-api-migrate
+        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        imagePullPolicy: Always
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            {{- with (include "plane.s3CAInitScript" .) }}
+{{ . | indent 12 }}
+            {{- end }}
+
+            exec ./bin/entrypoint-migrator.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-pi-api-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ .Values.external_secrets.pi_api_env_existingSecret }}{{ else }}{{ .Release.Name }}-pi-api-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+        {{- end }}
+      restartPolicy: OnFailure
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+
+---
+{{- end }}
