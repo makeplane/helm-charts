@@ -1,4 +1,4 @@
-{{- if .Values.services.pi.enabled }}
+{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret)}}
 
 apiVersion: v1
 kind: Secret
@@ -60,7 +60,10 @@ stringData:
   {{- end }}
 
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+{{- end }}
 ---
+
+{{- if .Values.services.pi.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -70,7 +73,7 @@ data:
   DEBUG: {{ if .Values.env.pi_envs.debug | default false }} "1" {{- else -}} "0" {{ end }}
   FASTAPI_APP_HOST: "0.0.0.0"
   FASTAPI_APP_WORKERS: "1"
-  {{- if .Values.ssl.create_issuer }}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   PLANE_FRONTEND_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   PLANE_FRONTEND_URL: "http://{{ .Values.license.licenseDomain }}"
@@ -78,7 +81,7 @@ data:
 
   {{- if .Values.env.pi_envs.plane_api_host }}
   PLANE_API_HOST: {{ .Values.env.pi_envs.plane_api_host | quote }}
-  {{- else if .Values.ssl.create_issuer }}
+  {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   PLANE_API_HOST: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   PLANE_API_HOST: "http://{{ .Values.license.licenseDomain }}"
@@ -95,7 +98,7 @@ data:
   CORS_ALLOWED_ORIGINS: ["http://{{ .Values.license.licenseDomain }}", "https://{{ .Values.license.licenseDomain }}"]
   {{- end }}
   
-  {{- if and .Values.ssl.create_issuer .Values.ssl.generateCerts }}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   PLANE_OAUTH_REDIRECT_URI: "https://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
   {{- else }}
   PLANE_OAUTH_REDIRECT_URI: "http://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"

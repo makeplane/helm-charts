@@ -70,7 +70,7 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
   {{- end }} 
 
-  {{- if and .Values.ssl.create_issuer .Values.ssl.generateCerts }}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   APP_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
@@ -78,7 +78,7 @@ data:
 
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
   
-  {{- if and .Values.ssl.create_issuer .Values.ssl.generateCerts }}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   SILO_API_BASE_URL: "http://{{ .Values.license.licenseDomain }}"

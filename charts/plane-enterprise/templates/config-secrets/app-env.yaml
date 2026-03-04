@@ -64,7 +64,7 @@ data:
   GUNICORN_WORKERS: "1"
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
-  {{- else if or .Values.ssl.tls_secret_name ( and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   WEB_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
@@ -72,7 +72,7 @@ data:
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"
-  {{- if .Values.ssl.create_issuer }}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}/pi"
   {{- else }}
   PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}/pi"
