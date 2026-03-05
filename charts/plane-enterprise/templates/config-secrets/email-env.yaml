@@ -7,6 +7,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   SMTP_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
+  MAX_ATTACHMENT_SIZE: {{ .Values.env.email_service_envs.max_attachment_size | default "10485760" | quote }}
   EMAIL_SAVE_ENDPOINT: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/" 
   WEBHOOK_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/intake/email/"
   domain-blacklist.txt: |

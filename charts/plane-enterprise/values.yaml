@@ -1,4 +1,4 @@
-planeVersion: v2.4.0
+planeVersion: v2.4.1
 
 dockerRegistry:
   enabled: false
@@ -485,6 +485,7 @@ env:
 
   email_service_envs:
     smtp_domain: ''
+    max_attachment_size: '10485760' # 10MB in bytes
 
   outbox_poller_envs:
     memory_limit_mb: 400
