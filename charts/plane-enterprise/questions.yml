@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.4.0
+  default: v2.4.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -560,6 +560,11 @@ questions:
     label: "SMTP Domain"
     type: string
     default: ""
+  - variable: env.email_service_envs.max_attachment_size
+    label: "Max Attachment Size (bytes)"
+    type: string
+    default: "10485760"
+    description: "Maximum email attachment size in bytes (default 10485760 = 10MB)"
   - variable: ssl.issuer
     label: "SSL Issuer"
     type: enum
