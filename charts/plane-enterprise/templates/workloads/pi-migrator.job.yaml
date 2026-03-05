@@ -4,7 +4,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-pi-api-migrate-{{ .Release.Revision }}
+  name: {{ .Release.Name }}-pi-api-migrate-{{ now | date "20060102-150405" }}
 spec:
   backoffLimit: 3
   template:
