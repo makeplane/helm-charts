@@ -497,6 +497,21 @@ entries:
   plane-enterprise:
   - apiVersion: v2
     appVersion: 2.4.0
+    created: "2026-03-05T07:09:31.742993078Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 014c88da319b2b304e8236b8d5d834006255b0c02fb6fd70811c34897e8ab68b
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-2.2.1/plane-enterprise-2.2.1.tgz
+    version: 2.2.1
+  - apiVersion: v2
+    appVersion: 2.4.0
     created: "2026-03-04T08:56:09.626492055Z"
     description: Meet Plane. An Enterprise software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -1344,4 +1359,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2026-03-04T08:56:09.626774462Z"
+generated: "2026-03-05T07:09:31.743198011Z"
