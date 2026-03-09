@@ -795,6 +795,10 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+  - variable: env.pi_envs.follower_postgres_uri
+    label: "Follower Postgres URI"
+    type: string
+    default: ""
   - variable: env.pi_envs.plane_oauth.state_expiry_seconds
     label: "Plane OAuth State Expiry Seconds"
     type: int
