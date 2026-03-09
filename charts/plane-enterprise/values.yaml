@@ -513,6 +513,7 @@ env:
     plane_oauth:
       state_expiry_seconds: 82800
     plane_api_host: ''
+    follower_postgres_uri: ''
     cors_allowed_origins: ''
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
 

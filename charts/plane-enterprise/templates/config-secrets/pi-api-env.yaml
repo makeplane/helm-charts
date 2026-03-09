@@ -15,11 +15,13 @@ stringData:
   PLANE_PI_DATABASE_URL: ""
   {{- end }}
 
-  {{- if .Values.services.postgres.local_setup }}
+  {{- if .Values.env.pi_envs.follower_postgres_uri }}
+  FOLLOWER_POSTGRES_URI: {{ .Values.env.pi_envs.follower_postgres_uri | quote }}
+  {{- else if .Values.services.postgres.local_setup }}
   FOLLOWER_POSTGRES_URI: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
   {{- else if .Values.env.pgdb_remote_url }}
   FOLLOWER_POSTGRES_URI: {{ .Values.env.pgdb_remote_url | quote }}
-  {{- else }}
+  {{- else }}  
   FOLLOWER_POSTGRES_URI: ""
   {{- end }}
 
