@@ -839,6 +839,10 @@ questions:
     label: "Plane AI (PI) Internal Secret"
     type: string
     default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
+  - variable: env.pi_envs.log_level
+    label: "Log Level"
+    type: string
+    default: "DEBUG"
 
 - variable: services.pi_worker.replicas
   label: "Default Replica Count"
