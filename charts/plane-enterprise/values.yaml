@@ -1,4 +1,4 @@
-planeVersion: v2.4.2
+planeVersion: v2.5.0
 
 dockerRegistry:
   enabled: false
@@ -448,6 +448,7 @@ env:
   aws_s3_endpoint_url: ''
 
   use_storage_proxy: false
+  allow_all_attachment_types: false
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
@@ -516,6 +517,7 @@ env:
     follower_postgres_uri: ''
     cors_allowed_origins: ''
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
+    log_level: 'DEBUG'
 
     celery:
       vector_sync_enabled: false
