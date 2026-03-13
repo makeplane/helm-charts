@@ -448,6 +448,7 @@ env:
   aws_s3_endpoint_url: ''
 
   use_storage_proxy: false
+  allow_all_attachment_types: false
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
