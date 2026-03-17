@@ -11,7 +11,7 @@
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v2.4.2 # or the last released version
+   PLANE_VERSION=v2.5.0 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -67,7 +67,7 @@
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v2.4.2 <or the last released version>`
+     - `planeVersion: v2.5.0 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
@@ -93,7 +93,7 @@
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.4.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v2.5.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -241,6 +241,7 @@ airgapped:
 | env.aws_region                        |                    |          | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                             |
 | env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                    |
 | env.use_storage_proxy                 |       false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`.                                      |
+| env.allow_all_attachment_types       |       false        |          | When set to `true`, allows all file types as attachments. When `false`, only permitted types are allowed. Default is `false`.                                                                                                                                                        |
 
 ### Web Deployment
 
@@ -420,6 +421,7 @@ airgapped:
 | env.pi_envs.internal_secret            |         tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk           |          | Internal secret used by Plane AI (PI) for OAuth and internal APIs.                                                                                                                                                           |
 | env.pi_envs.plane_api_host             |                           ""                         |          | Override for the Plane API host URL used by Plane AI (PI). Defaults to the license domain.                                                                                                                                 |
 | env.pi_envs.cors_allowed_origins       |                           ""                         |          | CORS allowed origins for Plane AI (PI) API. Defaults to the license domain.                                                                                                                                                 |
+| env.pi_envs.log_level                  |                        DEBUG                         |          | Log level for Plane AI (PI) API (e.g. DEBUG, INFO, WARNING, ERROR).                                                                                                                                                        |
 
 ### Plane AI (PI) Worker Deployment
 

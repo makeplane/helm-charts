@@ -73,6 +73,7 @@ metadata:
   name: {{ .Release.Name }}-pi-api-vars
 data:
   DEBUG: {{ if .Values.env.pi_envs.debug | default false }} "1" {{- else -}} "0" {{ end }}
+  LOG_LEVEL: {{ .Values.env.pi_envs.log_level | default "DEBUG" | quote }}
   FASTAPI_APP_HOST: "0.0.0.0"
   FASTAPI_APP_WORKERS: "1"
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
