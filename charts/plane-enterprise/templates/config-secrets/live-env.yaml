@@ -11,6 +11,7 @@ stringData:
   # This value is rendered into `live-secrets` (not `pi-api-vars`/`pi-api-secrets`).
   {{- if and (not (empty .Values.env.apiSecrets.elasticache_secret_arn)) (not (empty .Values.env.redis_auth_token_key)) }}
   ELASTICACHE_SECRET_ARN: {{ .Values.env.apiSecrets.elasticache_secret_arn | quote }}
+  REDIS_AUTH_TOKEN_KEY: {{ .Values.env.redis_auth_token_key | quote }}
   {{- end }}
   {{- if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"

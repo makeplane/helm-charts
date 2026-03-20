@@ -53,6 +53,9 @@ ssl:
 
 services:
   redis:
+    # Set `local_setup=false` when you provide Redis credentials via AWS Secrets Manager ARNs:
+    # - `env.apiSecrets.elasticache_secret_arn` (ARN)
+    # - `env.redis_auth_token_key` (key name mapping)
     local_setup: true
     image: valkey/valkey:7.2.11-alpine
     servicePort: 6379
@@ -66,6 +69,9 @@ services:
     annotations: {}
 
   postgres:
+    # Set `local_setup=false` when you provide PostgreSQL credentials via AWS Secrets Manager ARNs:
+    # - API DB: `env.apiSecrets.rds_secret_arn`
+    # - PI DB / follower DB: `services.pi.apiSecrets.{rds_secret_arn,follower_rds_secret_arn}`
     local_setup: true
     image: postgres:15.7-alpine
     servicePort: 5432
@@ -79,6 +85,9 @@ services:
     annotations: {}
 
   rabbitmq:
+    # Set `local_setup=false` when you provide RabbitMQ credentials via AWS Secrets Manager ARNs:
+    # - `env.apiSecrets.amazonmq_secret_arn` (ARN)
+    # - `env.rabbitmq_user_key` + `env.rabbitmq_password_key` (key name mappings)
     local_setup: true
     image: rabbitmq:3.13.6-management-alpine
     servicePort: 5672

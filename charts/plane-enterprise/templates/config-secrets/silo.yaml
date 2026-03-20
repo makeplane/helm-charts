@@ -10,6 +10,19 @@ stringData:
   SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "gzb7MRLr0FoN129NyWARZEs84P9LzQ" | quote }}
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
 
+  {{- /* AWS Secrets Manager ARN support (credentials-provider mode). */ -}}
+  {{- if and (not (empty .Values.env.apiSecrets.amazonmq_secret_arn)) (not (empty .Values.env.rabbitmq_user_key)) (not (empty .Values.env.rabbitmq_password_key)) }}
+  AMAZONMQ_SECRET_ARN: {{ .Values.env.apiSecrets.amazonmq_secret_arn | quote }}
+  {{- end }}
+
+  {{- if and (not (empty .Values.env.apiSecrets.elasticache_secret_arn)) (not (empty .Values.env.redis_auth_token_key)) }}
+  ELASTICACHE_SECRET_ARN: {{ .Values.env.apiSecrets.elasticache_secret_arn | quote }}
+  {{- end }}
+
+  {{- if and (not (empty .Values.env.apiSecrets.rds_secret_arn)) (not (empty .Values.env.rds_db_host_key)) (not (empty .Values.env.rds_db_name_key)) (not (empty .Values.env.rds_db_password_key)) (not (empty .Values.env.rds_db_port_key)) (not (empty .Values.env.rds_db_username_key)) }}
+  RDS_SECRET_ARN: {{ .Values.env.apiSecrets.rds_secret_arn | quote }}
+  {{- end }}
+
   {{- if .Values.services.postgres.local_setup }}
   DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
   {{- else if .Values.env.pgdb_remote_url }}
@@ -92,6 +105,24 @@ data:
   SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.silo_envs.sentry_traces_sample_rate | default "0.1" | quote }}
 
   AWS_SECRET_CACHE_TTL: {{ .Values.env.aws_secret_cache_ttl | default "300" | quote }}
+
+  {{- /* Key mappings used by the credentials provider (rendered only when ARN is present). */ -}}
+  {{- if and (not (empty .Values.env.apiSecrets.elasticache_secret_arn)) (not (empty .Values.env.redis_auth_token_key)) }}
+  REDIS_AUTH_TOKEN_KEY: {{ .Values.env.redis_auth_token_key | quote }}
+  {{- end }}
+
+  {{- if and (not (empty .Values.env.apiSecrets.amazonmq_secret_arn)) (not (empty .Values.env.rabbitmq_user_key)) (not (empty .Values.env.rabbitmq_password_key)) }}
+  RABBITMQ_USER_KEY: {{ .Values.env.rabbitmq_user_key | quote }}
+  RABBITMQ_PASSWORD_KEY: {{ .Values.env.rabbitmq_password_key | quote }}
+  {{- end }}
+
+  {{- if and (not (empty .Values.env.apiSecrets.rds_secret_arn)) (not (empty .Values.env.rds_db_host_key)) (not (empty .Values.env.rds_db_name_key)) (not (empty .Values.env.rds_db_password_key)) (not (empty .Values.env.rds_db_port_key)) (not (empty .Values.env.rds_db_username_key)) }}
+  RDS_DB_HOST_KEY: {{ .Values.env.rds_db_host_key | quote }}
+  RDS_DB_NAME_KEY: {{ .Values.env.rds_db_name_key | quote }}
+  RDS_DB_PASSWORD_KEY: {{ .Values.env.rds_db_password_key | quote }}
+  RDS_DB_PORT_KEY: {{ .Values.env.rds_db_port_key | quote }}
+  RDS_DB_USERNAME_KEY: {{ .Values.env.rds_db_username_key | quote }}
+  {{- end }}
 
 {{- end }}
 ---
