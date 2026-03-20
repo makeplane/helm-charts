@@ -466,9 +466,9 @@ env:
   apiSecrets:
     # Shared AWS Secrets Manager ARNs used by api/live/pi workloads.
     # Values are expected to be base64-encoded strings (as provided by the user).
-    amazonmq_secret_arn: "arn:aws:secretsmanager:us-east-1:426043895157:secret:gp/api/mq/secrets-GMMWoG"
-    elasticache_secret_arn: "arn:aws:secretsmanager:us-east-1:426043895157:secret:gp/api/redis/secrets-K0zoig"
-    rds_secret_arn: "arn:aws:secretsmanager:us-east-1:426043895157:secret:gp/api/secrets-oFsQ2M"
+    amazonmq_secret_arn: ""
+    elasticache_secret_arn: ""
+    rds_secret_arn: ""
 
   # AWS Secrets Manager key mappings used by the main app (plane-app-vars).
   # The templates render:
