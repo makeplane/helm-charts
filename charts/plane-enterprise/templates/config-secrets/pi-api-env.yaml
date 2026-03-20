@@ -1,3 +1,5 @@
+{{ $resolvedFollowerRdsArn := default .Values.env.apiSecrets.rds_secret_arn .Values.services.pi.apiSecrets.follower_rds_secret_arn }}
+
 {{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret)}}
 
 apiVersion: v1
@@ -56,12 +58,22 @@ stringData:
   CUSTOM_LLM_API_KEY: ""
   {{- end }}
 
-  {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
   BR_AWS_SECRET_ACCESS_KEY: {{ .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key | default "" | quote }}
   BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_session_token | default "" | quote }}
-  {{- end }}
 
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+  {{- if and (not (empty $resolvedFollowerRdsArn)) (not (empty .Values.env.pi_envs.follower_rds_db_host_key)) (not (empty .Values.env.pi_envs.follower_rds_db_name_key)) (not (empty .Values.env.pi_envs.follower_rds_db_password_key)) (not (empty .Values.env.pi_envs.follower_rds_db_port_key)) (not (empty .Values.env.pi_envs.follower_rds_db_username_key)) }}
+  FOLLOWER_RDS_SECRET_ARN: {{ $resolvedFollowerRdsArn | quote }}
+  {{- end }}
+  {{- if and (not (empty .Values.env.apiSecrets.amazonmq_secret_arn)) (not (empty .Values.env.pi_envs.rabbitmq_user_key)) (not (empty .Values.env.pi_envs.rabbitmq_password_key)) }}
+  AMAZONMQ_SECRET_ARN: {{ .Values.env.apiSecrets.amazonmq_secret_arn | quote }}
+  {{- end }}
+  {{- if and (not (empty .Values.services.pi.apiSecrets.rds_secret_arn)) (not (empty .Values.env.pi_envs.rds_db_host_key)) (not (empty .Values.env.pi_envs.rds_db_name_key)) (not (empty .Values.env.pi_envs.rds_db_password_key)) (not (empty .Values.env.pi_envs.rds_db_port_key)) (not (empty .Values.env.pi_envs.rds_db_username_key)) }}
+  RDS_SECRET_ARN: {{ .Values.services.pi.apiSecrets.rds_secret_arn | quote }}
+  {{- end }}
+  {{- if and (not (empty .Values.services.pi.apiSecrets.model_secret_arn)) (not (empty .Values.services.pi.ai_providers.custom_llm.api_key)) }}
+  MODEL_SECRET_ARN: {{ .Values.services.pi.apiSecrets.model_secret_arn | quote }}
+  {{- end }}
 {{- end }}
 ---
 
@@ -91,11 +103,33 @@ data:
   {{- end }}
 
   PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
+  AWS_SECRET_CACHE_TTL: {{ .Values.env.aws_secret_cache_ttl | default "300" | quote }}
 
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080"
   PI_BASE_PATH: "/pi"
 
-  
+  {{- if and (not (empty .Values.env.apiSecrets.amazonmq_secret_arn)) (not (empty .Values.env.pi_envs.rabbitmq_password_key)) (not (empty .Values.env.pi_envs.rabbitmq_user_key)) }}
+  RABBITMQ_PASSWORD_KEY: {{ .Values.env.pi_envs.rabbitmq_password_key | quote }}
+  RABBITMQ_USER_KEY: {{ .Values.env.pi_envs.rabbitmq_user_key | quote }}
+  {{- end }}
+
+  {{- if and (not (empty .Values.services.pi.apiSecrets.rds_secret_arn)) (not (empty .Values.env.pi_envs.rds_db_host_key)) (not (empty .Values.env.pi_envs.rds_db_name_key)) (not (empty .Values.env.pi_envs.rds_db_password_key)) (not (empty .Values.env.pi_envs.rds_db_port_key)) (not (empty .Values.env.pi_envs.rds_db_username_key)) }}
+  RDS_DB_HOST_KEY: {{ .Values.env.pi_envs.rds_db_host_key | quote }}
+  RDS_DB_NAME_KEY: {{ .Values.env.pi_envs.rds_db_name_key | quote }}
+  RDS_DB_PASSWORD_KEY: {{ .Values.env.pi_envs.rds_db_password_key | quote }}
+  RDS_DB_PORT_KEY: {{ .Values.env.pi_envs.rds_db_port_key | quote }}
+  RDS_DB_USERNAME_KEY: {{ .Values.env.pi_envs.rds_db_username_key | quote }}
+  {{ end }}
+
+  {{- if and (not (empty $resolvedFollowerRdsArn)) (not (empty .Values.env.pi_envs.follower_rds_db_host_key)) (not (empty .Values.env.pi_envs.follower_rds_db_name_key)) (not (empty .Values.env.pi_envs.follower_rds_db_password_key)) (not (empty .Values.env.pi_envs.follower_rds_db_port_key)) (not (empty .Values.env.pi_envs.follower_rds_db_username_key)) }}
+  {{- /* Render follower DB key names only when resolved follower secret ARN exists. */ -}}
+  FOLLOWER_RDS_DB_HOST_KEY: {{ .Values.env.pi_envs.follower_rds_db_host_key | quote }}
+  FOLLOWER_RDS_DB_NAME_KEY: {{ .Values.env.pi_envs.follower_rds_db_name_key | quote }}
+  FOLLOWER_RDS_DB_PASSWORD_KEY: {{ .Values.env.pi_envs.follower_rds_db_password_key | quote }}
+  FOLLOWER_RDS_DB_PORT_KEY: {{ .Values.env.pi_envs.follower_rds_db_port_key | quote }}
+  FOLLOWER_RDS_DB_USERNAME_KEY: {{ .Values.env.pi_envs.follower_rds_db_username_key | quote }}
+  {{- end }}
+
   {{- if eq .Values.env.pi_envs.cors_allowed_origins "*"}}
   CORS_ALLOWED_ORIGINS: "*"
   {{- else if .Values.env.pi_envs.cors_allowed_origins }}
@@ -134,12 +168,14 @@ data:
   CUSTOM_LLM_AWS_REGION: ""
   {{- end }}
 
-  {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
+  {{- if and (not (empty .Values.services.pi.apiSecrets.model_secret_arn)) (not (empty .Values.services.pi.ai_providers.custom_llm.api_key)) }}
+  MODEL_CUSTOM_LLM_API_KEY: {{ .Values.services.pi.ai_providers.custom_llm.api_key | quote }}
+  {{- end }}
+
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
   OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" |  quote }}
   BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
-  {{- end }}
 
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
   CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}

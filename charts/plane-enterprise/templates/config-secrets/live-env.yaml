@@ -7,6 +7,11 @@ metadata:
   name: {{ .Release.Name }}-live-secrets
 stringData:
   LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
+  # Used by PI workloads to resolve ElastiCache credentials.
+  # This value is rendered into `live-secrets` (not `pi-api-vars`/`pi-api-secrets`).
+  {{- if and (not (empty .Values.env.apiSecrets.elasticache_secret_arn)) (not (empty .Values.env.redis_auth_token_key)) }}
+  ELASTICACHE_SECRET_ARN: {{ .Values.env.apiSecrets.elasticache_secret_arn | quote }}
+  {{- end }}
   {{- if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
   {{- else }}
@@ -25,6 +30,9 @@ data:
   LIVE_SENTRY_ENVIRONMENT: {{ .Values.env.live_sentry_environment | default "" | quote }}
   LIVE_SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.live_sentry_traces_sample_rate | default "" | quote }}
   LIVE_BASE_PATH: "/live"
+
+  # Secret cache TTL used by the credentials provider in workloads.
+  AWS_SECRET_CACHE_TTL: {{ .Values.env.aws_secret_cache_ttl | default "300" | quote }}
 
   {{- if .Values.env.external_iframely_url }}
   IFRAMELY_URL: {{ .Values.env.external_iframely_url | default "" | quote }}
