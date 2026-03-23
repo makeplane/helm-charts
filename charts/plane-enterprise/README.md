@@ -422,6 +422,7 @@ airgapped:
 | env.pi_envs.plane_api_host             |                           ""                         |          | Override for the Plane API host URL used by Plane AI (PI). Defaults to the license domain.                                                                                                                                 |
 | env.pi_envs.cors_allowed_origins       |                           ""                         |          | CORS allowed origins for Plane AI (PI) API. Defaults to the license domain.                                                                                                                                                 |
 | env.pi_envs.log_level                  |                        DEBUG                         |          | Log level for Plane AI (PI) API (e.g. DEBUG, INFO, WARNING, ERROR).                                                                                                                                                        |
+| services.pi.ai_providers.embedding_model.embedding_dimension |                           ""                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | Vector embedding dimension for OpenSearch (must match the deployed ML model). Exposed as `OPENSEARCH_EMBEDDING_DIMENSION` on the PI API ConfigMap (`*-pi-api-vars`). |
 
 ### Plane AI (PI) Worker Deployment
 
@@ -661,6 +662,8 @@ To configure the external secrets for your application, you need to define speci
 |                          | `CUSTOM_LLM_API_KEY`   | required if `services.pi.ai_providers.custom_llm.enabled` is `true` | Custom LLM API key                       | `your_custom_llm_api_key`                                                                                                                                                                            |
 |                          | `BR_AWS_SECRET_ACCESS_KEY` | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | AWS secret for embedding model      | `your_aws_secret_access_key`                                                                                                                                                                         |
 |                          | `BR_AWS_SESSION_TOKEN` | required if embedding model uses temporary credentials          | AWS session token for embedding model       | `your_aws_session_token`                                                                                                                                                                             |
+
+**Note:** The PI API ConfigMap (`<release>-pi-api-vars`) sets `OPENSEARCH_EMBEDDING_DIMENSION` from `services.pi.ai_providers.embedding_model.embedding_dimension` when the embedding model is enabled (this is not part of `pi_api_env_existingSecret`).
 
 ## Custom Ingress Routes
 
