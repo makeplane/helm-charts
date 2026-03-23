@@ -53,6 +53,9 @@ ssl:
 
 services:
   redis:
+    # Set `local_setup=false` when you provide Redis credentials via AWS Secrets Manager ARNs:
+    # - `env.apiSecrets.elasticache_secret_arn` (ARN)
+    # - `env.redis_auth_token_key` (key name mapping)
     local_setup: true
     image: valkey/valkey:7.2.11-alpine
     servicePort: 6379
@@ -66,6 +69,9 @@ services:
     annotations: {}
 
   postgres:
+    # Set `local_setup=false` when you provide PostgreSQL credentials via AWS Secrets Manager ARNs:
+    # - API DB: `env.apiSecrets.rds_secret_arn`
+    # - PI DB / follower DB: `services.pi.apiSecrets.{rds_secret_arn,follower_rds_secret_arn}`
     local_setup: true
     image: postgres:15.7-alpine
     servicePort: 5432
@@ -79,6 +85,9 @@ services:
     annotations: {}
 
   rabbitmq:
+    # Set `local_setup=false` when you provide RabbitMQ credentials via AWS Secrets Manager ARNs:
+    # - `env.apiSecrets.amazonmq_secret_arn` (ARN)
+    # - `env.rabbitmq_user_key` + `env.rabbitmq_password_key` (key name mappings)
     local_setup: true
     image: rabbitmq:3.13.6-management-alpine
     servicePort: 5672
@@ -388,6 +397,14 @@ services:
         aws_region: 'us-east-1'
         aws_session_token: ''
 
+    apiSecrets:
+      # Used by PI API to look up external secrets/credentials.
+      # Values are expected to be base64-encoded strings (as provided by the user).
+      follower_rds_secret_arn: ''
+      model_secret_arn: ''
+      amazonmq_secret_arn: ''
+      rds_secret_arn: ''
+
   pi_beat_worker:
     replicas: 1
     memoryLimit: 1000Mi
@@ -412,6 +429,32 @@ services:
     labels: {}
     annotations: {}
 
+serviceAccount:
+  # ServiceAccount annotations to apply to the chart's ServiceAccount.
+  # Common use-case: IRSA (IAM Roles for Service Accounts).
+  annotations: {}
+
+irsa:
+  # When set, the chart automatically sets:
+  #   eks.amazonaws.com/role-arn: <roleArn>
+  roleArn: ''
+  # Additional/override IRSA annotations to apply to the ServiceAccount.
+  annotations: {}
+
+podIdentity:
+  # EKS Pod Identity is configured out-of-band (for example with `eksctl`).
+  # This chart only renders install-time guidance; it does not create the
+  # PodIdentityAssociation resource.
+  enabled: false
+  # Cluster name for the `eksctl create podidentityassociation` command.
+  clusterName: ''
+  # Namespace for the ServiceAccount (defaults to the Helm release namespace).
+  namespace: ''
+  # ServiceAccount name (defaults to `<releaseName>-srv-account`).
+  serviceAccountName: ''
+  # IAM role ARN to associate for Pod Identity.
+  roleArn: ''
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -425,6 +468,33 @@ external_secrets:
 
 env:
   storageClass: ''
+
+  # Secrets Manager credential cache TTL (seconds)
+  aws_secret_cache_ttl: "300"
+
+  apiSecrets:
+    # Shared AWS Secrets Manager ARNs used by api/live/pi workloads.
+    # Values are expected to be base64-encoded strings (as provided by the user).
+    amazonmq_secret_arn: ""
+    elasticache_secret_arn: ""
+    rds_secret_arn: ""
+
+  # AWS Secrets Manager key mappings used by the main app (plane-app-vars).
+  # The templates render:
+  # - `REDIS_AUTH_TOKEN_KEY` only when `env.apiSecrets.elasticache_secret_arn` is set
+  # - `RABBITMQ_*_KEY` only when `env.apiSecrets.amazonmq_secret_arn` is set
+  # - `RDS_DB_*_KEY` only when `env.apiSecrets.rds_secret_arn` is set
+  redis_auth_token_key: authToken
+  rabbitmq_user_key: username
+  rabbitmq_password_key: password
+  rds_db_host_key: host
+  rds_db_name_key: dbname
+  rds_db_password_key: password
+  rds_db_port_key: port
+  rds_db_username_key: username
+
+  # Base URL for the automation runner (defaults via template).
+  runner_base_url: ''
 
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
@@ -518,6 +588,25 @@ env:
     cors_allowed_origins: ''
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
     log_level: 'DEBUG'
+
+    # Names/keys that PI API uses to retrieve credentials from external secret managers.
+    # The templates render:
+    # - `RABBITMQ_*_KEY` only when `env.apiSecrets.amazonmq_secret_arn` is set
+    # - `RDS_DB_*_KEY` only when `env.apiSecrets.rds_secret_arn` is set
+    # - `FOLLOWER_RDS_DB_*_KEY` only when `services.pi.apiSecrets.follower_rds_secret_arn` is set
+    # - `MODEL_CUSTOM_LLM_API_KEY` only when `services.pi.apiSecrets.model_secret_arn` is set
+    rabbitmq_password_key: password
+    rabbitmq_user_key: username
+    rds_db_host_key: host
+    rds_db_name_key: dbname
+    rds_db_password_key: password
+    rds_db_port_key: port
+    rds_db_username_key: username
+    follower_rds_db_host_key: host
+    follower_rds_db_name_key: dbname
+    follower_rds_db_password_key: password
+    follower_rds_db_port_key: port
+    follower_rds_db_username_key: username
 
     celery:
       vector_sync_enabled: false

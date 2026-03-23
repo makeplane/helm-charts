@@ -1,0 +1,51 @@
+{{- if .Values.podIdentity.enabled }}
+EKS Pod Identity (out-of-band) configuration
+
+This chart configures the Kubernetes `ServiceAccount` name as:
+  {{ printf "%s-srv-account" .Release.Name }}
+
+1. Ensure the Pod Identity agent addon is installed:
+  eksctl create addon --cluster {{ default "<CLUSTER_NAME>" .Values.podIdentity.clusterName }} --name eks-pod-identity-agent
+
+2. Create the Pod Identity association:
+  eksctl create podidentityassociation \
+    --cluster {{ default "<CLUSTER_NAME>" .Values.podIdentity.clusterName }} \
+    --namespace {{ default .Release.Namespace .Values.podIdentity.namespace }} \
+    --service-account-name {{ default (printf "%s-srv-account" .Release.Name) .Values.podIdentity.serviceAccountName }} \
+    --role-arn {{ default "<ROLE_ARN>" .Values.podIdentity.roleArn }}
+
+   Alternative (AWS CLI):
+   aws eks create-pod-identity-association \
+    --cluster-name {{ default "<CLUSTER_NAME>" .Values.podIdentity.clusterName }} \
+    --namespace {{ default .Release.Namespace .Values.podIdentity.namespace }} \
+    --service-account {{ default (printf "%s-srv-account" .Release.Name) .Values.podIdentity.serviceAccountName }} \
+    --role-arn {{ default "<ROLE_ARN>" .Values.podIdentity.roleArn }}
+
+Important:
+- Pod Identity associations are managed outside of Helm/Kubernetes manifests (for example via `eksctl` / AWS APIs).
+- Pod Identity is not configured purely by ServiceAccount annotations in this setup.
+{{- else }}
+IRSA configuration (IAM Roles for Service Accounts)
+
+To enable AWS permissions for this chart's ServiceAccount:
+  - set `irsa.roleArn`, or
+  - set `serviceAccount.annotations` / `irsa.annotations` with `eks.amazonaws.com/role-arn`.
+
+This chart's ServiceAccount name is:
+  {{ printf "%s-srv-account" .Release.Name }}
+{{- end }}
+
+---
+## Secret ARN driven env wiring
+
+This chart conditionally renders AWS Secrets Manager ARN-related env vars (for example `AMAZONMQ_SECRET_ARN`, `ELASTICACHE_SECRET_ARN`, `RDS_SECRET_ARN`) and the corresponding `*_KEY` mappings only when the ARN values (and the required key-name values) are provided.
+
+To verify what will be rendered for your current values, run:
+
+```sh
+helm template <RELEASE_NAME> ./charts/plane-enterprise \
+  --namespace <NAMESPACE> \
+  -f <YOUR_VALUES_YAML> | \
+  rg -n "AMAZONMQ_SECRET_ARN|ELASTICACHE_SECRET_ARN|RDS_SECRET_ARN|RABBITMQ_(USER_KEY|PASSWORD_KEY)|RDS_DB_(HOST_KEY|NAME_KEY|PASSWORD_KEY|PORT_KEY|USERNAME_KEY)|FOLLOWER_RDS_DB_(HOST_KEY|NAME_KEY|PASSWORD_KEY|PORT_KEY|USERNAME_KEY)|MODEL_CUSTOM_LLM_API_KEY"
+```
+
