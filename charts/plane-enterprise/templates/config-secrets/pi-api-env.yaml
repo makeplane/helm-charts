@@ -1,4 +1,12 @@
 {{ $resolvedFollowerRdsArn := default .Values.env.apiSecrets.rds_secret_arn .Values.services.pi.apiSecrets.follower_rds_secret_arn }}
+{{- /* Resolve the custom-LLM API key mapping name.
+      Prefer `services.pi.ai_providers.custom_llm.api_key` (the documented key),
+      but fall back to `services.pi.apiSecrets.model_custom_llm_api_key` for compatibility
+      with older values files (e.g. `values_secrets.yaml`). */ -}}
+{{- $resolvedModelCustomLlmApiKey := default .Values.services.pi.apiSecrets.model_custom_llm_api_key .Values.services.pi.ai_providers.custom_llm.api_key -}}
+{{- /* Resolve the AmazonMQ secret ARN.
+      Prefer shared `env.apiSecrets.amazonmq_secret_arn`, but allow a PI-specific override. */ -}}
+{{- $resolvedAmazonmqSecretArn := default .Values.env.apiSecrets.amazonmq_secret_arn .Values.services.pi.apiSecrets.amazonmq_secret_arn -}}
 
 {{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret)}}
 
@@ -65,13 +73,13 @@ stringData:
   {{- if and (not (empty $resolvedFollowerRdsArn)) (not (empty .Values.env.pi_envs.follower_rds_db_host_key)) (not (empty .Values.env.pi_envs.follower_rds_db_name_key)) (not (empty .Values.env.pi_envs.follower_rds_db_password_key)) (not (empty .Values.env.pi_envs.follower_rds_db_port_key)) (not (empty .Values.env.pi_envs.follower_rds_db_username_key)) }}
   FOLLOWER_RDS_SECRET_ARN: {{ $resolvedFollowerRdsArn | quote }}
   {{- end }}
-  {{- if and (not (empty .Values.env.apiSecrets.amazonmq_secret_arn)) (not (empty .Values.env.pi_envs.rabbitmq_user_key)) (not (empty .Values.env.pi_envs.rabbitmq_password_key)) }}
-  AMAZONMQ_SECRET_ARN: {{ .Values.env.apiSecrets.amazonmq_secret_arn | quote }}
+  {{- if and (not (empty $resolvedAmazonmqSecretArn)) (not (empty .Values.env.pi_envs.rabbitmq_user_key)) (not (empty .Values.env.pi_envs.rabbitmq_password_key)) }}
+  AMAZONMQ_SECRET_ARN: {{ $resolvedAmazonmqSecretArn | quote }}
   {{- end }}
   {{- if and (not (empty .Values.services.pi.apiSecrets.rds_secret_arn)) (not (empty .Values.env.pi_envs.rds_db_host_key)) (not (empty .Values.env.pi_envs.rds_db_name_key)) (not (empty .Values.env.pi_envs.rds_db_password_key)) (not (empty .Values.env.pi_envs.rds_db_port_key)) (not (empty .Values.env.pi_envs.rds_db_username_key)) }}
   RDS_SECRET_ARN: {{ .Values.services.pi.apiSecrets.rds_secret_arn | quote }}
   {{- end }}
-  {{- if and (not (empty .Values.services.pi.apiSecrets.model_secret_arn)) (not (empty .Values.services.pi.ai_providers.custom_llm.api_key)) }}
+  {{- if and (not (empty .Values.services.pi.apiSecrets.model_secret_arn)) (not (empty $resolvedModelCustomLlmApiKey)) }}
   MODEL_SECRET_ARN: {{ .Values.services.pi.apiSecrets.model_secret_arn | quote }}
   {{- end }}
 {{- end }}
@@ -168,8 +176,8 @@ data:
   CUSTOM_LLM_AWS_REGION: ""
   {{- end }}
 
-  {{- if and (not (empty .Values.services.pi.apiSecrets.model_secret_arn)) (not (empty .Values.services.pi.ai_providers.custom_llm.api_key)) }}
-  MODEL_CUSTOM_LLM_API_KEY: {{ .Values.services.pi.ai_providers.custom_llm.api_key | quote }}
+  {{- if and (not (empty .Values.services.pi.apiSecrets.model_secret_arn)) (not (empty $resolvedModelCustomLlmApiKey)) }}
+  MODEL_CUSTOM_LLM_API_KEY: {{ $resolvedModelCustomLlmApiKey | quote }}
   {{- end }}
 
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
