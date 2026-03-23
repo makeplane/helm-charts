@@ -1009,7 +1009,7 @@ questions:
   - variable: services.pi.ai_providers.embedding_model.embedding_dimension
     label: "OpenSearch Embedding Dimension"
     type: int
-    default: 4096
+    default: 1536
   - variable: services.pi.ai_providers.embedding_model.aws_access_key
     label: "Embedding Model AWS Access Key"
     type: string
