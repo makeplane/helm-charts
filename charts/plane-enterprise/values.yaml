@@ -1,4 +1,4 @@
-planeVersion: v2.5.0
+planeVersion: v2.5.1
 
 dockerRegistry:
   enabled: false
@@ -449,6 +449,7 @@ env:
 
   use_storage_proxy: false
   allow_all_attachment_types: false
+  enable_drf_spectacular: false
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
