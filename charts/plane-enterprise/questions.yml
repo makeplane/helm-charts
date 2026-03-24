@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.5.0
+  default: v2.5.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -483,6 +483,10 @@ questions:
     default: "60/minute"
   - variable: env.allow_all_attachment_types
     label: "Allow All Attachment Types"
+    type: boolean
+    default: false
+  - variable: env.enable_drf_spectacular
+    label: "Enable DRF Spectacular (OpenAPI)"
     type: boolean
     default: false
   - variable: env.web_url
