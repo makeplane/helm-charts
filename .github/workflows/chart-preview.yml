@@ -13,6 +13,11 @@ on:
         required: false
         default: false
         type: boolean
+      plane-mcp-server:
+        description: "Plane MCP Server"
+        required: false
+        default: false
+        type: boolean
 
 env:
   PREVIEW_BUILD_FOLDER: helm-preview
@@ -28,6 +33,7 @@ env:
   CHART_PREFIX: ${{ github.run_id }}
   BUILD_PLANE_CE: ${{ github.event.inputs.plane-ce }}
   BUILD_PLANE_EE: ${{ github.event.inputs.plane-enterprise }}
+  BUILD_PLANE_MCP_SERVER: ${{ github.event.inputs.plane-mcp-server }}
 
 jobs:
   build:
@@ -117,8 +123,28 @@ jobs:
           cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
           helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
 
+      - id: build-plane-mcp-server
+        if: ${{ env.BUILD_PLANE_MCP_SERVER == 'true' }}
+        name: Build Plane-MCP-Server
+        working-directory: code
+        env:
+          EXPORT_DIR: ${{env.PREVIEW_BUILD_FOLDER}}
+          CHART_REPO: plane-mcp-server
+          CR_KEY: ${{ env.GPG_KEY_NAME }}
+          CR_PASSPHRASE_FILE: ${{env.GNUPGHOME}}/gpg-passphrase
+          CR_KEYRING: ${{env.GNUPGHOME}}/secring.gpg
+        run: |
+          flatBranchName=$(echo "${{ github.ref_name}}" | sed 's/\//\-/g')
+          sed -i "s/name: ${{env.CHART_REPO}}/name: ${{ env.CHART_PREFIX }}-${{env.CHART_REPO}}/" charts/${{env.CHART_REPO}}/Chart.yaml
+          sed -i "s/description: .*/description: ${flatBranchName}/g" charts/${{env.CHART_REPO}}/Chart.yaml
+          # sed -i "s/version: \(.*\)/version: \1-${flatBranchName}/" charts/${{env.CHART_REPO}}/Chart.yaml
+
+          helm package --sign --key "$CR_KEY" --keyring $CR_KEYRING --passphrase-file "$CR_PASSPHRASE_FILE" charts/$CHART_REPO -u -d ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/charts
+          cp charts/${{env.CHART_REPO}}/README.md ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}/${{env.CHART_REPO}}.md
+          helm repo index ${{ env.EXPORT_DIR }}/${{env.CHART_REPO}}
+
       - name: Publish
-        if: ${{ env.BUILD_PLANE_CE == 'true' || env.BUILD_PLANE_EE == 'true' }}
+        if: ${{ env.BUILD_PLANE_CE == 'true' || env.BUILD_PLANE_EE == 'true' || env.BUILD_PLANE_MCP_SERVER == 'true' }}
         working-directory: code
         run: |
 
@@ -137,6 +163,11 @@ jobs:
           if [ "${{ env.BUILD_PLANE_EE }}" == "true" ]; then
             HTML_CONTENT="$HTML_CONTENT
             <li><a href='plane-enterprise/'>Plane-Enterprise</a></li>"
+          fi
+
+          if [ "${{ env.BUILD_PLANE_MCP_SERVER }}" == "true" ]; then
+            HTML_CONTENT="$HTML_CONTENT
+            <li><a href='plane-mcp-server/'>Plane-MCP-Server</a></li>"
           fi
 
           HTML_CONTENT="$HTML_CONTENT
