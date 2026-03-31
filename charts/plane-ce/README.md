@@ -4,6 +4,36 @@
 
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
+- An ingress controller installed in your cluster:
+  - **Traefik** — install via Helm: [`traefik/traefik`](https://artifacthub.io/packages/helm/traefik/traefik)
+    ```bash
+    helm repo add traefik https://traefik.github.io/charts
+    helm repo update
+    helm upgrade --install traefik traefik/traefik \
+      --namespace traefik \
+      --create-namespace \
+      --set image.tag=v3.6.2 \
+      --set api.dashboard=true \
+      --set api.insecure=true \
+      --set providers.kubernetesIngress.enabled=false \
+      --set providers.kubernetesIngressNginx.enabled=true \
+      --set providers.kubernetesIngressNginx.ingressClass="traefik" \
+      --set providers.kubernetesIngressNginx.controllerClass="traefik.io/ingress-controller" \
+      --set providers.kubernetesIngressNginx.ingressClassByName=true \
+      --set ingressClass.enabled=true \
+      --set ingressClass.name="traefik" \
+      --set service.type=LoadBalancer \
+      --set "service.annotations.service\.beta\.kubernetes\.io/aws-load-balancer-type=nlb" \
+      --set "ports.web.http.redirections.entryPoint.to=websecure" \
+      --set "ports.web.http.redirections.entryPoint.scheme=https" \
+      --set "ports.web.http.redirections.entryPoint.permanent=true"
+    ```
+  - **nginx** — install via Helm: [`ingress-nginx/ingress-nginx`](https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx)
+    ```bash
+    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+    helm repo update
+    helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+    ```
 
 ## Installing Plane
 
@@ -305,7 +335,7 @@
 | ingress.minioHost           |                                                           |          | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                       |
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
 | ingress.ingressClass        |                           nginx                           |   Yes    | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.                                                                                                                                                                                               |
-| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
+| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Annotations applied to the Ingress resource. Both Traefik (via its KubernetesIngress provider) and nginx read these annotations. Key annotations: `nginx.ingress.kubernetes.io/proxy-body-size` — sets the maximum allowed request body size (default `5m`); `nginx.ingress.kubernetes.io/force-ssl-redirect` — when `"false"`, disables forced HTTPS redirect at the ingress level (useful when Traefik already handles redirects at its entrypoint); `nginx.ingress.kubernetes.io/ssl-redirect` — when `"false"`, disables automatic HTTP→HTTPS redirect at the ingress level. The two ssl-redirect annotations are optional and commented out in `values.yaml` by default. |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -313,6 +343,49 @@
 | ssl.email                   |                    <plane@example.com>                    |          | Certificate generation authority needs a valid email id before generating certificate. Required when `ssl.createIssuer=true`                                                                                                                                                                                                                                                                                              |
 | ssl.generateCerts           |                           false                           |          | After creating the issuers, user can still not create the certificate untill sure of configuration. Setting this to `true` will try to generate SSL certificate and associate with ingress. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=true`                                                                                                                                                       |
 | ssl.tls_secret_name         |                                                           |          | If you have a custom TLS secret name, set this to the name of the secret. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=false`                                                                                                                                                                                                                                                                        |
+
+#### Using Traefik as the ingress controller
+
+The chart uses a standard Kubernetes `Ingress` resource — no Traefik-specific CRDs are required. Set `ingress.ingressClass` to the class name you used when installing Traefik (e.g. `traefik` from the install command in the pre-requisites above).
+
+**Switching between controllers**
+
+Change only `ingressClass` to your controller's class name. Everything else (`ingress_annotations`, `ssl.*`, `minioHost`, `rabbitmqHost`) works identically:
+
+```yaml
+# Traefik (using the traefik class from the install command above)
+ingress:
+  ingressClass: 'traefik'
+
+# nginx
+ingress:
+  ingressClass: 'nginx'      # or your custom nginx class name
+```
+
+**Annotations**
+
+The default `nginx.ingress.kubernetes.io/proxy-body-size: "5m"` annotation is read by Traefik's `KubernetesIngress` provider natively — no annotation changes needed.
+
+To use cert-manager with Traefik, add the issuer annotation alongside the existing ones:
+
+```yaml
+ingress:
+  ingressClass: 'traefik'
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+    cert-manager.io/issuer: "your-issuer-name"
+```
+
+If Traefik is already handling HTTPS redirects at the entrypoint level (via the `ports.web.http.redirections` flags in the install command above), you can optionally disable the ingress-level redirect annotations to avoid double redirects:
+
+```yaml
+ingress:
+  ingressClass: 'traefik'
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+```
 
 ### Common Environment Settings
 
