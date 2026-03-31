@@ -11,8 +11,12 @@ ingress:
   appHost: "plane.example.com"
   minioHost: ""
   rabbitmqHost: ""
-  ingressClass: "nginx"
-  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  ingressClass: "traefik"
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+    # Optional: disable ingress-level HTTPS redirects when Traefik already handles them at the entrypoint
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "false"
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
