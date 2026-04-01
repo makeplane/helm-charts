@@ -1,4 +1,4 @@
-planeVersion: v2.5.1
+planeVersion: v2.5.2
 
 dockerRegistry:
   enabled: false
@@ -456,6 +456,7 @@ env:
   opensearch_remote_username: ''
   opensearch_remote_password: ''
   opensearch_index_prefix: ''
+  opensearch_embedding_dimension: 1536
 
   #API KEYS
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"

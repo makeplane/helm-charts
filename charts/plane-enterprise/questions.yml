@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.5.1
+  default: v2.5.2
   required: true
   group: "Docker Registry"
   subquestions:
@@ -1199,6 +1199,10 @@ questions:
     label: "Index Prefix"
     type: string
     default: ""
+  - variable: env.opensearch_embedding_dimension
+    label: "Embedding Dimension"
+    type: int
+    default: 1536
 
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
