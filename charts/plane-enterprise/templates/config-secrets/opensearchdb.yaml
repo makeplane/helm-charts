@@ -13,18 +13,21 @@ stringData:
   OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
   OPENSEARCH_INITIAL_ADMIN_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
+  OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
   {{- else if .Values.env.opensearch_remote_url }}
   OPENSEARCH_ENABLED: "1"
   OPENSEARCH_URL: {{ .Values.env.opensearch_remote_url | quote }}
   OPENSEARCH_USERNAME: {{ .Values.env.opensearch_remote_username | default "" | quote }}
   OPENSEARCH_PASSWORD: {{ .Values.env.opensearch_remote_password | default "" | quote }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
+  OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
   {{- else }}
   OPENSEARCH_ENABLED: "0"
   OPENSEARCH_URL: ""
   OPENSEARCH_USERNAME: ""
   OPENSEARCH_PASSWORD: ""
   OPENSEARCH_INDEX_PREFIX: ""
+  OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
   {{- end }}
 {{- end }}
 ---

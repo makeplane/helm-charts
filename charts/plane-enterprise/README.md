@@ -11,7 +11,7 @@
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v2.5.1 # or the last released version
+   PLANE_VERSION=v2.5.2 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -67,7 +67,7 @@
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v2.5.1 <or the last released version>`
+     - `planeVersion: v2.5.2 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
@@ -93,7 +93,7 @@
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.5.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v2.5.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -215,6 +215,7 @@ airgapped:
 | env.opensearch_remote_username           |                                   |          | Username for remote OpenSearch service. Required when `services.opensearch.local_setup=false` and `env.opensearch_remote_url` is set. Note: This is not a secret and should be configured in values.yaml, not in external secrets.                                                                                                                                                                                                      |
 | env.opensearch_remote_password           |                                   |          | Password for remote OpenSearch service. Required when `services.opensearch.local_setup=false` and `env.opensearch_remote_url` is set. This can be configured in values.yaml or provided via external secrets (`opensearch_existingSecret` with `OPENSEARCH_PASSWORD`). **Password Complexity Requirements:** Must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character (e.g., `!@#$%^&*`). |
 | env.opensearch_index_prefix              |              plane_               |          | Prefix to be used for OpenSearch indices. This helps organize indices in a multi-tenant or multi-environment setup.                                                                                                                                                                                                                        |
+| env.opensearch_embedding_dimension       |               1536                |          | Embedding vector dimension used for OpenSearch semantic/vector indexing.                                                                                                                                                                                                                               |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -625,6 +626,7 @@ To configure the external secrets for your application, you need to define speci
 |                          | `OPENSEARCH_PASSWORD`  | Required if OpenSearch is enabled                                | Password for OpenSearch                      | **local setup**: `Secure@Pass#123!%^&*` <br> <br> **remote setup**: `your_remote_password`                                                                                                            |
 |                          | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Required if `opensearch.local_setup=true` | Initial admin password for local OpenSearch  | `Secure@Pass#123!%^&*`                                                                                                                                                                                |
 |                          | `OPENSEARCH_INDEX_PREFIX` | Optional                                                       | Prefix for OpenSearch indices                | `plane_`                                                                                                                                                                                              |
+|                          | `OPENSEARCH_EMBEDDING_DIMENSION` | Optional                                                | Embedding vector dimension for OpenSearch    | `1536`                                                                                                                                                                                                |
 | doc_store_existingSecret | `USE_MINIO`             | Yes                                                             | Flag to enable MinIO as the storage backend | `1`                                                                                                                                                                                                  |
 |                          | `MINIO_ROOT_USER`       | Yes                                                             | MinIO root user                             | `admin`                                                                                                                                                                                              |
 |                          | `MINIO_ROOT_PASSWORD`   | Yes                                                             | MinIO root password                         | `password`                                                                                                                                                                                           |
