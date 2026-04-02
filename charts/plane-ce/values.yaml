@@ -12,6 +12,13 @@ ingress:
   minioHost: ""
   rabbitmqHost: ""
   ingressClass: "traefik"
+  # Traefik-specific options (only used when ingressClass starts with "traefik")
+  traefik:
+    maxRequestBodyBytes: 5242880  # in bytes (default: 5 MiB)
+    # Set to true if Traefik needs RBAC to read TLS secrets from this namespace
+    createSecretReadRBAC: false
+    serviceAccountName: "traefik"
+    serviceAccountNamespace: "traefik"
   ingress_annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "20m"
     # Optional: disable ingress-level HTTPS redirects when Traefik already handles them at the entrypoint

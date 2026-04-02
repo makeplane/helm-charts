@@ -15,11 +15,8 @@
       --set image.tag=v3.6.2 \
       --set api.dashboard=true \
       --set api.insecure=true \
+      --set providers.kubernetesCRD.enabled=true \
       --set providers.kubernetesIngress.enabled=false \
-      --set providers.kubernetesIngressNginx.enabled=true \
-      --set providers.kubernetesIngressNginx.ingressClass="traefik" \
-      --set providers.kubernetesIngressNginx.controllerClass="traefik.io/ingress-controller" \
-      --set providers.kubernetesIngressNginx.ingressClassByName=true \
       --set ingressClass.enabled=true \
       --set ingressClass.name="traefik" \
       --set service.type=LoadBalancer \
@@ -334,8 +331,12 @@
 | ingress.appHost             |                     plane.example.com                     |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane.                                                                                                                                                                                                                                      |
 | ingress.minioHost           |                                                           |          | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                       |
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
-| ingress.ingressClass        |                           nginx                           |   Yes    | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.                                                                                                                                                                                               |
-| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Annotations applied to the Ingress resource. Both Traefik (via its KubernetesIngress provider) and nginx read these annotations. Key annotations: `nginx.ingress.kubernetes.io/proxy-body-size` — sets the maximum allowed request body size (default `5m`); `nginx.ingress.kubernetes.io/force-ssl-redirect` — when `"false"`, disables forced HTTPS redirect at the ingress level (useful when Traefik already handles redirects at its entrypoint); `nginx.ingress.kubernetes.io/ssl-redirect` — when `"false"`, disables automatic HTTP→HTTPS redirect at the ingress level. The two ssl-redirect annotations are optional and commented out in `values.yaml` by default. |
+| ingress.ingressClass        |                          traefik                          |   Yes    | Set to `traefik` (or a name starting with `traefik`) to use native Traefik `IngressRoute` CRDs. Set to `nginx` (or any other class) to use a standard `networking.k8s.io/v1 Ingress` resource. |
+| ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Annotations applied to the standard `Ingress` resource. **Only used when `ingressClass` is not `traefik`.** When Traefik is selected, use `ingress.traefik.maxRequestBodyBytes` to control request body size instead. |
+| ingress.traefik.maxRequestBodyBytes | `5242880` |          | Maximum allowed request body size in bytes for Traefik's buffering middleware (default: 5 MiB). Only used when `ingressClass` starts with `traefik`. |
+| ingress.traefik.createSecretReadRBAC | `false` |          | Set to `true` to create a `Role` and `RoleBinding` allowing Traefik to read TLS secrets from the release namespace. Required when using `ssl.tls_secret_name` and Traefik does not already have cluster-wide secret access. |
+| ingress.traefik.serviceAccountName | `traefik` |          | Name of the Traefik service account to bind when `createSecretReadRBAC=true`. |
+| ingress.traefik.serviceAccountNamespace | `traefik` |          | Namespace of the Traefik service account to bind when `createSecretReadRBAC=true`. |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -346,45 +347,47 @@
 
 #### Using Traefik as the ingress controller
 
-The chart uses a standard Kubernetes `Ingress` resource — no Traefik-specific CRDs are required. Set `ingress.ingressClass` to the class name you used when installing Traefik (e.g. `traefik` from the install command in the pre-requisites above).
+When `ingress.ingressClass` starts with `traefik`, the chart deploys native Traefik CRDs instead of a standard `Ingress` resource:
+
+- **`IngressRoute`** (`traefik.io/v1alpha1`) — routes traffic to each Plane service via `Host` + `PathPrefix` rules on the `websecure` entrypoint
+- **`Middleware`** (`traefik.io/v1alpha1`) — enforces a request body size limit on every route (default 5 MiB, configurable via `ingress.traefik.maxRequestBodyBytes`)
+
+This requires the Traefik Helm chart to be installed with `providers.kubernetesCRD.enabled=true` (enabled by default in Traefik v3), as shown in the pre-requisites above.
 
 **Switching between controllers**
 
-Change only `ingressClass` to your controller's class name. Everything else (`ingress_annotations`, `ssl.*`, `minioHost`, `rabbitmqHost`) works identically:
-
 ```yaml
-# Traefik (using the traefik class from the install command above)
+# Traefik — uses native IngressRoute CRDs
 ingress:
   ingressClass: 'traefik'
 
-# nginx
+# nginx — uses standard networking.k8s.io/v1 Ingress
 ingress:
-  ingressClass: 'nginx'      # or your custom nginx class name
+  ingressClass: 'nginx'
 ```
 
-**Annotations**
+**TLS**
 
-The default `nginx.ingress.kubernetes.io/proxy-body-size: "5m"` annotation is read by Traefik's `KubernetesIngress` provider natively — no annotation changes needed.
-
-To use cert-manager with Traefik, add the issuer annotation alongside the existing ones:
+The `IngressRoute` always references a TLS secret. Provide it via `ssl.tls_secret_name`, or let cert-manager generate it by setting `ssl.createIssuer=true` and `ssl.generateCerts=true` (the chart will create the secret named `<release>-ssl-cert` automatically).
 
 ```yaml
-ingress:
-  ingressClass: 'traefik'
-  ingress_annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
-    cert-manager.io/issuer: "your-issuer-name"
+ssl:
+  tls_secret_name: "my-tls-secret"   # bring your own secret
+  # — OR —
+  createIssuer: true
+  generateCerts: true
+  issuer: http
+  email: you@example.com
 ```
 
-If Traefik is already handling HTTPS redirects at the entrypoint level (via the `ports.web.http.redirections` flags in the install command above), you can optionally disable the ingress-level redirect annotations to avoid double redirects:
+If Traefik needs permission to read the TLS secret from the release namespace, enable the optional RBAC resources:
 
 ```yaml
 ingress:
-  ingressClass: 'traefik'
-  ingress_annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  traefik:
+    createSecretReadRBAC: true
+    serviceAccountName: "traefik"       # defaults to "traefik"
+    serviceAccountNamespace: "traefik"  # defaults to "traefik"
 ```
 
 ### Common Environment Settings

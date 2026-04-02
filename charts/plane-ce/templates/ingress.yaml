@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled .Values.ingress.appHost }}
+{{- if and .Values.ingress.enabled .Values.ingress.appHost (not (hasPrefix "traefik" .Values.ingress.ingressClass)) }}
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
