@@ -17,7 +17,7 @@ ingress:
   ingressClass: "traefik"
   # Traefik-specific options (only used when ingressClass starts with "traefik")
   traefik:
-    maxRequestBodyBytes: 20971520   # in bytes (default: 5 MiB)
+    maxRequestBodyBytes: 20971520   # in bytes (default: 20 MiB)
   # ingress_annotations:
   #   nginx.ingress.kubernetes.io/proxy-body-size: "20m"
     # Optional: disable ingress-level HTTPS redirects when Traefik already handles them at the entrypoint
