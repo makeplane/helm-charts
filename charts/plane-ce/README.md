@@ -121,13 +121,11 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
      --wait
    ```
 
-   After the upgrade the `IngressRoute`, `Middleware`, and (if enabled) RBAC resources are no longer rendered and will be orphaned — delete them manually:
+   After the upgrade the `IngressRoute` and `Middleware` resources are no longer rendered and will be orphaned — delete them manually:
 
    ```bash
-   kubectl delete ingressroute  -n plane-ce -l app.kubernetes.io/instance=plane-app
-   kubectl delete middleware     -n plane-ce -l app.kubernetes.io/instance=plane-app
-   # If createSecretReadRBAC was true:
-   kubectl delete role,rolebinding -n plane-ce -l app.kubernetes.io/instance=plane-app
+   kubectl delete ingressroute -n plane-ce -l app.kubernetes.io/instance=plane-app
+   kubectl delete middleware    -n plane-ce -l app.kubernetes.io/instance=plane-app
    ```
 
 4. **Verify** that the new `Ingress` is admitted and routes traffic before removing the old Traefik resources.
@@ -149,14 +147,6 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
    kubectl delete ingress -n plane-ce <release-name>-ingress
    ```
 
-4. If Traefik needs permission to read TLS secrets from the release namespace, also set:
-
-   ```yaml
-   ingress:
-     traefik:
-       createSecretReadRBAC: true
-   ```
-
 ### Key values controlling template selection
 
 | Value                         | Default    | Effect                                                                                          |
@@ -164,7 +154,7 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | `ingress.enabled`             | `true`     | Master switch — set to `false` to render neither template.                                      |
 | `ingress.appHost`             | _(empty)_  | Required for both templates; no ingress is rendered without it.                                 |
 | `ingress.ingressClass`        | `traefik`  | Selects which template is active (see table above).                                             |
-| `ingress.traefik.*`           | see values | Traefik-only settings (middleware body limit, RBAC). Ignored when using the standard `Ingress`. |
+| `ingress.traefik.*`           | see values | Traefik-only settings (middleware body limit). Ignored when using the standard `Ingress`.       |
 | `ingress.ingress_annotations` | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.             |
 
 ## Configuration Settings Available
@@ -400,9 +390,6 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | ingress.ingressClass        |                          traefik                          |   Yes    | Set to `traefik` (or a name starting with `traefik`) to use native Traefik `IngressRoute` CRDs. Set to `nginx` (or any other class) to use a standard `networking.k8s.io/v1 Ingress` resource. |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Annotations applied to the standard `Ingress` resource. **Only used when `ingressClass` is not `traefik`.** When Traefik is selected, use `ingress.traefik.maxRequestBodyBytes` to control request body size instead. |
 | ingress.traefik.maxRequestBodyBytes | `5242880` |          | Maximum allowed request body size in bytes for Traefik's buffering middleware (default: 5 MiB). Only used when `ingressClass` starts with `traefik`. |
-| ingress.traefik.createSecretReadRBAC | `false` |          | Set to `true` to create a `Role` and `RoleBinding` allowing Traefik to read TLS secrets from the release namespace. Required when using `ssl.tls_secret_name` and Traefik does not already have cluster-wide secret access. |
-| ingress.traefik.serviceAccountName | `traefik` |          | Name of the Traefik service account to bind when `createSecretReadRBAC=true`. |
-| ingress.traefik.serviceAccountNamespace | `traefik` |          | Namespace of the Traefik service account to bind when `createSecretReadRBAC=true`. |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -444,16 +431,6 @@ ssl:
   generateCerts: true
   issuer: http
   email: you@example.com
-```
-
-If Traefik needs permission to read the TLS secret from the release namespace, enable the optional RBAC resources:
-
-```yaml
-ingress:
-  traefik:
-    createSecretReadRBAC: true
-    serviceAccountName: "traefik"       # defaults to "traefik"
-    serviceAccountNamespace: "traefik"  # defaults to "traefik"
 ```
 
 ### Common Environment Settings
