@@ -10,20 +10,9 @@
     helm repo add traefik https://traefik.github.io/charts
     helm repo update
     helm upgrade --install traefik traefik/traefik \
-      --namespace traefik \
       --create-namespace \
-      --set image.tag=v3.6.2 \
-      --set api.dashboard=true \
-      --set api.insecure=true \
-      --set providers.kubernetesCRD.enabled=true \
-      --set providers.kubernetesIngress.enabled=false \
-      --set ingressClass.enabled=true \
-      --set ingressClass.name="traefik" \
-      --set service.type=LoadBalancer \
-      --set "service.annotations.service\.beta\.kubernetes\.io/aws-load-balancer-type=nlb" \
-      --set "ports.web.http.redirections.entryPoint.to=websecure" \
-      --set "ports.web.http.redirections.entryPoint.scheme=https" \
-      --set "ports.web.http.redirections.entryPoint.permanent=true"
+      --namespace traefik \
+      --wait
     ```
   - **nginx** — install via Helm: [`ingress-nginx/ingress-nginx`](https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx)
     ```bash
