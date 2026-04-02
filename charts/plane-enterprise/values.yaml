@@ -39,14 +39,11 @@ ingress:
   minioHost: ''
   rabbitmqHost: ''
   ingressClass: 'traefik'
-  # For nginx ingress controller.
-  # ingressClass: 'nginx'
+  # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
+  # For nginx ingress controller, you can set the proxy body size limit using annotations. Example:
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
   traefik:
-    maxRequestBodyBytes: 5242880  # in bytes (default: 5 MiB)
-    createSecretReadRBAC: true
-    serviceAccountName: "traefik"
-    serviceAccountNamespace: "traefik"
+    maxRequestBodyBytes: 20971520  # in bytes (default: 20 MiB)
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name

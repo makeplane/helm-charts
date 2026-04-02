@@ -6,6 +6,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   buffering:
-    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 5242880 }}
+    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 }}
 
 {{- end }}
