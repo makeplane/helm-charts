@@ -1,0 +1,11 @@
+{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-body-limit
+  namespace: {{ .Release.Namespace }}
+spec:
+  buffering:
+    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 5242880 }}
+
+{{- end }}
