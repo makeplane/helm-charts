@@ -44,6 +44,9 @@ ingress:
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
   traefik:
     maxRequestBodyBytes: 5242880  # in bytes (default: 5 MiB)
+    createSecretReadRBAC: false
+    serviceAccountName: "traefik"
+    serviceAccountNamespace: "traefik"
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
