@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "traefik") .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) .Values.license.licenseDomain }}
 
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -15,55 +15,85 @@ spec:
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/spaces/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-space
         port: 3000
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/god-mode/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-admin
         port: 3000
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/api/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-api
         port: 8000
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/auth/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-api
         port: 8000
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/graphql/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-api
         port: 8000
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/marketplace/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-api
         port: 8000
 
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/live/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-live
         port: 3000
 
+  {{- if .Values.services.silo.enabled }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/silo/`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-silo
         port: 3000
+  {{- end }}
+
+  {{- if .Values.services.pi.enabled }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-pi-api
+        port: 8000
+  {{- end }}
 
   {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
     kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-minio
         port: 9000

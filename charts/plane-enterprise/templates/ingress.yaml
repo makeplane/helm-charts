@@ -91,13 +91,6 @@ spec:
             path: /pi/
             pathType: Prefix
           {{- end }}
-          - backend:
-              service:
-                port:
-                  number: 8000
-                name: {{ .Release.Name }}-api
-            path: /marketplace/
-            pathType: Prefix
           {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
           - backend:
               service:

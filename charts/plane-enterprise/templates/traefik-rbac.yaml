@@ -1,5 +1,5 @@
 {{- $traefik := .Values.ingress.traefik | default dict }}
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "traefik") ($traefik.createSecretReadRBAC) }}
+{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) ($traefik.createSecretReadRBAC) }}
 # Role: allows reading secrets in this namespace (for TLS certs used by IngressRoute).
 # RoleBinding: grants the Traefik controller's service account that permission.
 # Required so Traefik can load the TLS certificate referenced in the IngressRoute.
