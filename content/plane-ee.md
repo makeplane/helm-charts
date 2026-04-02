@@ -3,6 +3,94 @@
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
+### Installing Traefik Ingress Controller (optional)
+
+If you plan to use Traefik as your ingress controller, install it before deploying Plane.
+
+1. Add the Traefik Helm chart repo and update it.
+
+   ```bash
+   helm repo add traefik https://traefik.github.io/charts
+   helm repo update
+   ```
+
+2. Install Traefik into your cluster.
+
+   ```bash
+   helm upgrade --install traefik traefik/traefik \
+       --create-namespace \
+       --namespace traefik \
+       --wait
+   ```
+
+   > Once installed, set `ingress.ingressClass=traefik` when deploying Plane.
+
+## Migrating the Ingress Controller
+
+The chart selects between two ingress templates based on `ingress.ingressClass`:
+
+| `ingressClass` value           | Template rendered                | Resource kind                      |
+| ------------------------------ | -------------------------------- | ---------------------------------- |
+| `traefik` (or starts with it)  | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
+| Any other value (e.g. `nginx`) | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+
+The default value is `"traefik"`. If you are switching to a standard ingress controller such as nginx, follow the migration steps below.
+
+### Switching from Traefik to a standard Ingress controller (e.g. nginx)
+
+1. **Install your target ingress controller** if it is not already running.
+
+2. **Update `ingress.ingressClass`** in your `values.yaml`:
+
+   ```yaml
+   ingress:
+     ingressClass: "nginx"   # or whichever class your controller exposes
+   ```
+
+3. **Run `helm upgrade`**:
+
+   ```bash
+   helm upgrade plane-app plane/plane-enterprise \
+     --namespace plane-ns \
+     -f values.yaml \
+     --wait
+   ```
+
+   After the upgrade the `IngressRoute` and `Middleware` resources are no longer rendered and will be orphaned — delete them manually:
+
+   ```bash
+   kubectl delete ingressroute -n plane-ns -l app.kubernetes.io/instance=plane-app
+   kubectl delete middleware    -n plane-ns -l app.kubernetes.io/instance=plane-app
+   ```
+
+4. **Verify** that the new `Ingress` is admitted and routes traffic before removing the old Traefik resources.
+
+### Switching from a standard Ingress controller to Traefik
+
+1. **Install Traefik** with CRD support enabled (see [Installing Traefik Ingress Controller](#installing-traefik-ingress-controller-optional) above).
+
+2. **Update `ingress.ingressClass`**:
+
+   ```yaml
+   ingress:
+     ingressClass: "traefik"
+   ```
+
+3. **Run `helm upgrade`**. The old `Ingress` resource is orphaned — delete it:
+
+   ```bash
+   kubectl delete ingress -n plane-ns plane-app-ingress
+   ```
+
+### Key values controlling template selection
+
+| Value                                 | Default    | Effect                                                                                    |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| `ingress.enabled`                     | `true`     | Master switch — set to `false` to render neither template.                                |
+| `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
+| `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+
 ## Installing Plane
 
 1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
@@ -27,7 +115,7 @@
 
    - Quick set-up
 
-     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class.This also sets up the ingress routes for you using `nginx` ingress class.
+     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class. This also sets up the ingress routes for you using `traefik` ingress class.
 
      > To customize this, see `Custom ingress routes` below.
 
@@ -40,7 +128,7 @@
          --set license.licenseDomain=${DOMAIN_NAME} \
          --set planeVersion=${PLANE_VERSION} \
          --set ingress.enabled=true \
-         --set ingress.ingressClass=nginx \
+         --set ingress.ingressClass=traefik \
          --timeout 10m \
          --wait \
          --wait-for-jobs
@@ -70,7 +158,7 @@
      - `planeVersion: v2.5.2 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
-     - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
+     - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
      - `env.storageClass: <default storage class configured in your cluster>`
 
        > See `Available customizations` for more details.
