@@ -3,6 +3,28 @@
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
+### Installing Traefik Ingress Controller (optional)
+
+If you plan to use Traefik as your ingress controller, install it before deploying Plane.
+
+1. Add the Traefik Helm chart repo and update it.
+
+   ```bash
+   helm repo add traefik https://traefik.github.io/charts
+   helm repo update
+   ```
+
+2. Install Traefik into your cluster.
+
+   ```bash
+   helm upgrade --install traefik traefik/traefik \
+       --create-namespace \
+       --namespace traefik \
+       --wait
+   ```
+
+   > Once installed, set `ingress.ingressClass=traefik` when deploying Plane.
+
 ## Installing Plane
 
 1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
