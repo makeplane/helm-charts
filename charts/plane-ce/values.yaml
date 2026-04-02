@@ -11,6 +11,9 @@ ingress:
   appHost: "plane.example.com"
   minioHost: ""
   rabbitmqHost: ""
+  # Set to "traefik" (or any value starting with "traefik") to deploy native Traefik IngressRoute CRDs
+  # (templates/ingress-traefik.yaml). Set to any other value (e.g., "nginx") to deploy a standard
+  # networking.k8s.io/v1 Ingress resource (templates/ingress.yaml).
   ingressClass: "traefik"
   # Traefik-specific options (only used when ingressClass starts with "traefik")
   traefik:
