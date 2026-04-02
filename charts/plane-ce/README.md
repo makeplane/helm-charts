@@ -44,7 +44,7 @@
        helm upgrade --install plane-app makeplane/plane-ce \
            --create-namespace \
            --namespace plane-ce \
-           --set planeVersion=v1.2.0 \
+           --set planeVersion=v1.2.3 \
            --set ingress.appHost="plane.example.com" \
            --set ingress.minioHost="plane-minio.example.com" \
            --set ingress.rabbitmqHost="plane-mq.example.com" \
@@ -163,7 +163,7 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 
 | Setting      | Default | Required | Description |
 | ------------ | :-----: | :------: | ----------- |
-| planeVersion | v1.2.0  |   Yes    |             |
+| planeVersion | v1.2.3  |   Yes    |             |
 
 ### Postgress DB Setup
 
