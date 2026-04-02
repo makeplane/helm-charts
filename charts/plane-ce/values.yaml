@@ -19,8 +19,8 @@ ingress:
     createSecretReadRBAC: false
     serviceAccountName: "traefik"
     serviceAccountNamespace: "traefik"
-  ingress_annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+  # ingress_annotations:
+  #   nginx.ingress.kubernetes.io/proxy-body-size: "20m"
     # Optional: disable ingress-level HTTPS redirects when Traefik already handles them at the entrypoint
     # nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
     # nginx.ingress.kubernetes.io/ssl-redirect: "false"
