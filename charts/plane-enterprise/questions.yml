@@ -893,133 +893,136 @@ questions:
     type: string
     default: 50m
 
-- variable: services.pi.ai_providers.openai.enabled
+- variable: services.pi.ai_providers.llm_providers.openai.enabled
   label: "Enable OpenAI Provider"
   type: boolean
   default: false
-  group: "Plane AI Providers"
+  group: "Plane AI - LLM Providers"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.ai_providers.openai.base_url
+  - variable: services.pi.ai_providers.llm_providers.openai.base_url
     label: "OpenAI Base URL"
     type: string
     default: ""
-  - variable: services.pi.ai_providers.openai.api_key
+  - variable: services.pi.ai_providers.llm_providers.openai.api_key
     label: "OpenAI API Key"
     type: password
     default: ""
-- variable: services.pi.ai_providers.claude.enabled
+- variable: services.pi.ai_providers.llm_providers.claude.enabled
   label: "Enable Claude Provider"
   type: boolean
   default: false
-  group: "Plane AI Providers"
+  group: "Plane AI - LLM Providers"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.ai_providers.claude.base_url
+  - variable: services.pi.ai_providers.llm_providers.claude.base_url
     label: "Claude Base URL"
     type: string
     default: ""
-  - variable: services.pi.ai_providers.claude.api_key
+  - variable: services.pi.ai_providers.llm_providers.claude.api_key
     label: "Claude API Key"
     type: password
     default: ""
-- variable: services.pi.ai_providers.groq.enabled
+- variable: services.pi.ai_providers.llm_providers.groq.enabled
   label: "Enable Groq Provider"
   type: boolean
   default: false
-  group: "Plane AI Providers"
+  group: "Plane AI - LLM Providers"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.ai_providers.groq.base_url
+  - variable: services.pi.ai_providers.llm_providers.groq.base_url
     label: "Groq Base URL"
     type: string
     default: ""
-  - variable: services.pi.ai_providers.groq.api_key
+  - variable: services.pi.ai_providers.llm_providers.groq.api_key
     label: "Groq API Key"
     type: password
     default: ""
 
-- variable: services.pi.ai_providers.cohere.enabled
-  label: "Enable Cohere Provider"
-  type: boolean
-  default: false
-  group: "Plane AI Providers"
-  show_subquestion_if: true
-  subquestions:
-  - variable: services.pi.ai_providers.cohere.base_url
-    label: "Cohere Base URL"
-    type: string
-    default: ""
-  - variable: services.pi.ai_providers.cohere.api_key
-    label: "Cohere API Key"
-    type: password
-    default: ""
-
-- variable: services.pi.ai_providers.custom_llm.enabled
+- variable: services.pi.ai_providers.llm_providers.custom_llm.enabled
   label: "Enable Custom LLM Provider"
   type: boolean
   default: false
-  group: "Plane AI Providers"
+  group: "Plane AI - LLM Providers"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.ai_providers.custom_llm.name
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.name
     label: "Custom LLM Name"
     type: string
     default: "GPT-OSS-120B"
-  - variable: services.pi.ai_providers.custom_llm.base_url
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.base_url
     label: "Custom LLM Base URL"
     type: string
     default: ""
-  - variable: services.pi.ai_providers.custom_llm.api_key
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.api_key
     label: "Custom LLM API Key"
     type: password
     default: ""
-  - variable: services.pi.ai_providers.custom_llm.model_key
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.model_key
     label: "Custom LLM Model Key"
     type: string
     default: "gpt-oss-120b"
-  - variable: services.pi.ai_providers.custom_llm.max_tokens
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.max_tokens
     label: "Custom LLM Max Tokens"
     type: int
     default: 128000
-  - variable: services.pi.ai_providers.custom_llm.provider
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.provider
     label: "Custom LLM Provider"
     type: string
     default: ""
-  - variable: services.pi.ai_providers.custom_llm.aws_region
+  - variable: services.pi.ai_providers.llm_providers.custom_llm.aws_region
     label: "Custom LLM AWS Region"
     type: string
     default: ""
 
-- variable: services.pi.ai_providers.embedding_model.enabled
-  label: "Enable Embedding Model"
+- variable: services.pi.ai_providers.embedding_model.name
+  label: "Embedding Model Name"
+  type: string
+  default: ""
+  group: "Plane AI - Embedding Model"
+- variable: services.pi.ai_providers.embedding_model.model_id
+  label: "Embedding Model ID"
+  type: string
+  default: ""
+  group: "Plane AI - Embedding Model"
+
+- variable: services.pi.ai_providers.embedding_model.cohere.enabled
+  label: "Enable Cohere Embedding Provider"
   type: boolean
   default: false
-  group: "Plane AI Providers"
+  group: "Plane AI - Embedding Model"
   show_subquestion_if: true
   subquestions:
-  - variable: services.pi.ai_providers.embedding_model.name
-    label: "Embedding Model Name"
-    type: string
-    default: ""
-  - variable: services.pi.ai_providers.embedding_model.model_id
-    label: "Embedding Model ID"
-    type: string
-    default: ""
-  - variable: services.pi.ai_providers.embedding_model.aws_access_key
-    label: "Embedding Model AWS Access Key"
-    type: string
-    default: ""
-  - variable: services.pi.ai_providers.embedding_model.aws_secret_access_key
-    label: "Embedding Model AWS Secret Access Key"
+  - variable: services.pi.ai_providers.embedding_model.cohere.api_key
+    label: "Cohere API Key"
     type: password
     default: ""
-  - variable: services.pi.ai_providers.embedding_model.aws_region
-    label: "Embedding Model AWS Region"
+  - variable: services.pi.ai_providers.embedding_model.cohere.base_url
+    label: "Cohere Base URL"
+    type: string
+    default: ""
+
+- variable: services.pi.ai_providers.embedding_model.aws_bedrock.enabled
+  label: "Enable AWS Bedrock Embedding Provider"
+  type: boolean
+  default: false
+  group: "Plane AI - Embedding Model"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi.ai_providers.embedding_model.aws_bedrock.aws_access_key
+    label: "AWS Bedrock Access Key"
+    type: string
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_bedrock.aws_secret_access_key
+    label: "AWS Bedrock Secret Access Key"
+    type: password
+    default: ""
+  - variable: services.pi.ai_providers.embedding_model.aws_bedrock.aws_region
+    label: "AWS Bedrock Region"
     type: string
     default: "us-east-1"
-  - variable: services.pi.ai_providers.embedding_model.aws_session_token
-    label: "Embedding Model AWS Session Token"
+  - variable: services.pi.ai_providers.embedding_model.aws_bedrock.aws_session_token
+    label: "AWS Bedrock Session Token"
     type: password
     default: ""
 

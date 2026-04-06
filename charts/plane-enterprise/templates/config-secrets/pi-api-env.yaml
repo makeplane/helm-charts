@@ -33,32 +33,31 @@ stringData:
   AMQP_URL: ""
   {{- end }}
 
-  {{- if .Values.services.pi.ai_providers.openai.enabled }}
-  OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
+  {{- if .Values.services.pi.ai_providers.llm_providers.openai.enabled }}
+  OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.llm_providers.openai.api_key | default "" | quote }}
   {{- end }}
-  {{- if .Values.services.pi.ai_providers.claude.enabled }}
-  CLAUDE_API_KEY: {{ .Values.services.pi.ai_providers.claude.api_key | default "" |  quote }}
+  {{- if .Values.services.pi.ai_providers.llm_providers.claude.enabled }}
+  CLAUDE_API_KEY: {{ .Values.services.pi.ai_providers.llm_providers.claude.api_key | default "" | quote }}
   {{- end }}
-  {{- if .Values.services.pi.ai_providers.groq.enabled }}
-  GROQ_API_KEY: {{ .Values.services.pi.ai_providers.groq.api_key | default "" |  quote }}
-  {{- end }}
-  
-
-  {{- if .Values.services.pi.ai_providers.cohere.enabled }}
-  COHERE_API_KEY: {{ .Values.services.pi.ai_providers.cohere.api_key | default "" | quote }}
-  {{- else }}
-  COHERE_API_KEY: ""
+  {{- if .Values.services.pi.ai_providers.llm_providers.groq.enabled }}
+  GROQ_API_KEY: {{ .Values.services.pi.ai_providers.llm_providers.groq.api_key | default "" | quote }}
   {{- end }}
 
-  {{- if .Values.services.pi.ai_providers.custom_llm.enabled }}
-  CUSTOM_LLM_API_KEY: {{ .Values.services.pi.ai_providers.custom_llm.api_key | default "" | quote }}
+  {{- if .Values.services.pi.ai_providers.llm_providers.custom_llm.enabled }}
+  CUSTOM_LLM_API_KEY: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.api_key | default "" | quote }}
   {{- else }}
   CUSTOM_LLM_API_KEY: ""
   {{- end }}
 
-  {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
-  BR_AWS_SECRET_ACCESS_KEY: {{ .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key | default "" | quote }}
-  BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_session_token | default "" | quote }}
+  {{- if .Values.services.pi.ai_providers.embedding_model.cohere.enabled }}
+  COHERE_API_KEY: {{ .Values.services.pi.ai_providers.embedding_model.cohere.api_key | default "" | quote }}
+  {{- else }}
+  COHERE_API_KEY: ""
+  {{- end }}
+
+  {{- if .Values.services.pi.ai_providers.embedding_model.aws_bedrock.enabled }}
+  BR_AWS_SECRET_ACCESS_KEY: {{ .Values.services.pi.ai_providers.embedding_model.aws_bedrock.aws_secret_access_key | default "" | quote }}
+  BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_bedrock.aws_session_token | default "" | quote }}
   {{- end }}
 
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
@@ -111,19 +110,18 @@ data:
   {{- end }}
   PLANE_OAUTH_STATE_EXPIRY_SECONDS: {{ .Values.env.pi_envs.plane_oauth.state_expiry_seconds | default 82800 | quote }}
 
-  OPENAI_BASE_URL: {{ .Values.services.pi.ai_providers.openai.base_url | default "" | quote }}
-  CLAUDE_BASE_URL: {{ .Values.services.pi.ai_providers.claude.base_url | default "" | quote }}
-  COHERE_BASE_URL: {{ .Values.services.pi.ai_providers.cohere.base_url | default "" | quote }}
-  GROQ_BASE_URL: {{ .Values.services.pi.ai_providers.groq.base_url | default "" | quote }}
-  
-  {{- if .Values.services.pi.ai_providers.custom_llm.enabled }}
+  OPENAI_BASE_URL: {{ .Values.services.pi.ai_providers.llm_providers.openai.base_url | default "" | quote }}
+  CLAUDE_BASE_URL: {{ .Values.services.pi.ai_providers.llm_providers.claude.base_url | default "" | quote }}
+  GROQ_BASE_URL: {{ .Values.services.pi.ai_providers.llm_providers.groq.base_url | default "" | quote }}
+
+  {{- if .Values.services.pi.ai_providers.llm_providers.custom_llm.enabled }}
   CUSTOM_LLM_ENABLED: "true"
-  CUSTOM_LLM_MODEL_KEY: {{ .Values.services.pi.ai_providers.custom_llm.model_key | default "gpt-oss-120b" | quote }}
-  CUSTOM_LLM_BASE_URL: {{ .Values.services.pi.ai_providers.custom_llm.base_url | default "" | quote }}
-  CUSTOM_LLM_NAME: {{ .Values.services.pi.ai_providers.custom_llm.name | default "GPT-OSS-120B" | quote }}
-  CUSTOM_LLM_MAX_TOKENS: {{ .Values.services.pi.ai_providers.custom_llm.max_tokens | default 128000 | quote }}
-  CUSTOM_LLM_PROVIDER: {{ .Values.services.pi.ai_providers.custom_llm.provider | default "" | quote }}
-  CUSTOM_LLM_AWS_REGION: {{ .Values.services.pi.ai_providers.custom_llm.aws_region | default "" | quote }}
+  CUSTOM_LLM_MODEL_KEY: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.model_key | default "gpt-oss-120b" | quote }}
+  CUSTOM_LLM_BASE_URL: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.base_url | default "" | quote }}
+  CUSTOM_LLM_NAME: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.name | default "GPT-OSS-120B" | quote }}
+  CUSTOM_LLM_MAX_TOKENS: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.max_tokens | default 128000 | quote }}
+  CUSTOM_LLM_PROVIDER: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.provider | default "" | quote }}
+  CUSTOM_LLM_AWS_REGION: {{ .Values.services.pi.ai_providers.llm_providers.custom_llm.aws_region | default "" | quote }}
   {{- else }}
   CUSTOM_LLM_ENABLED: "false"
   CUSTOM_LLM_MODEL_KEY: ""
@@ -134,11 +132,14 @@ data:
   CUSTOM_LLM_AWS_REGION: ""
   {{- end }}
 
-  {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
+  COHERE_BASE_URL: {{ .Values.services.pi.ai_providers.embedding_model.cohere.base_url | default "" | quote }}
+
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
-  OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" |  quote }}
-  BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
-  BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
+  OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" | quote }}
+
+  {{- if .Values.services.pi.ai_providers.embedding_model.aws_bedrock.enabled }}
+  BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_bedrock.aws_access_key | default "" | quote }}
+  BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_bedrock.aws_region | default "us-east-1" | quote }}
   {{- end }}
 
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}

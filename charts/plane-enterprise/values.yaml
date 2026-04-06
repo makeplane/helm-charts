@@ -354,39 +354,41 @@ services:
     labels: {}
     annotations: {}
     ai_providers:
-      openai:
-        enabled: false
-        base_url: ''
-        api_key: ''
-      claude:
-        enabled: false
-        base_url: ''
-        api_key: ''
-      groq:
-        enabled: false
-        base_url: ''
-        api_key: ''
-      cohere:
-        enabled: false
-        base_url: ''
-        api_key: ''
-      custom_llm:
-        enabled: false
-        api_key: ''
-        base_url: ''
-        model_key: 'gpt-oss-120b'
-        name: 'GPT-OSS-120B'
-        max_tokens: 128000
-        provider: ''
-        aws_region: ''
+      llm_providers:
+        openai:
+          enabled: false
+          base_url: ''
+          api_key: ''
+        claude:
+          enabled: false
+          base_url: ''
+          api_key: ''
+        groq:
+          enabled: false
+          base_url: ''
+          api_key: ''
+        custom_llm:
+          enabled: false
+          api_key: ''
+          base_url: ''
+          model_key: 'gpt-oss-120b'
+          name: 'GPT-OSS-120B'
+          max_tokens: 128000
+          provider: ''
+          aws_region: ''
       embedding_model:
-        enabled: false
         name: ''
         model_id: ''
-        aws_access_key: ''
-        aws_secret_access_key: ''
-        aws_region: 'us-east-1'
-        aws_session_token: ''
+        cohere:
+          enabled: false
+          api_key: ''
+          base_url: ''
+        aws_bedrock:
+          enabled: false
+          aws_access_key: ''
+          aws_secret_access_key: ''
+          aws_region: 'us-east-1'
+          aws_session_token: ''
 
   pi_beat_worker:
     replicas: 1
