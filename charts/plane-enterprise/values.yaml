@@ -1,4 +1,4 @@
-planeVersion: v2.5.2
+planeVersion: v2.5.3
 
 dockerRegistry:
   enabled: false
@@ -43,7 +43,7 @@ ingress:
   # For nginx ingress controller, you can set the proxy body size limit using annotations. Example:
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
   traefik:
-    maxRequestBodyBytes: 20971520  # in bytes (default: 20 MiB)
+    maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
