@@ -1,4 +1,4 @@
-planeVersion: v2.5.0
+planeVersion: v2.5.2
 
 dockerRegistry:
   enabled: false
@@ -38,8 +38,12 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
-  ingressClass: 'nginx'
-  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  ingressClass: 'traefik'
+  # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
+  # For nginx ingress controller, you can set the proxy body size limit using annotations. Example:
+  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  traefik:
+    maxRequestBodyBytes: 20971520  # in bytes (default: 20 MiB)
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
@@ -450,12 +454,14 @@ env:
 
   use_storage_proxy: false
   allow_all_attachment_types: false
+  enable_drf_spectacular: false
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
   opensearch_remote_username: ''
   opensearch_remote_password: ''
   opensearch_index_prefix: ''
+  opensearch_embedding_dimension: 1536
 
   #API KEYS
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"

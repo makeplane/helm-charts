@@ -3,6 +3,94 @@
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
+### Installing Traefik Ingress Controller (optional)
+
+If you plan to use Traefik as your ingress controller, install it before deploying Plane.
+
+1. Add the Traefik Helm chart repo and update it.
+
+   ```bash
+   helm repo add traefik https://traefik.github.io/charts
+   helm repo update
+   ```
+
+2. Install Traefik into your cluster.
+
+   ```bash
+   helm upgrade --install traefik traefik/traefik \
+       --create-namespace \
+       --namespace traefik \
+       --wait
+   ```
+
+   > Once installed, set `ingress.ingressClass=traefik` when deploying Plane.
+
+## Migrating the Ingress Controller
+
+The chart selects between two ingress templates based on `ingress.ingressClass`:
+
+| `ingressClass` value           | Template rendered                | Resource kind                      |
+| ------------------------------ | -------------------------------- | ---------------------------------- |
+| `traefik` (or starts with it)  | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
+| Any other value (e.g. `nginx`) | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+
+The default value is `"traefik"`. If you are switching to a standard ingress controller such as nginx, follow the migration steps below.
+
+### Switching from Traefik to a standard Ingress controller (e.g. nginx)
+
+1. **Install your target ingress controller** if it is not already running.
+
+2. **Update `ingress.ingressClass`** in your `values.yaml`:
+
+   ```yaml
+   ingress:
+     ingressClass: "nginx"   # or whichever class your controller exposes
+   ```
+
+3. **Run `helm upgrade`**:
+
+   ```bash
+   helm upgrade plane-app plane/plane-enterprise \
+     --namespace plane-ns \
+     -f values.yaml \
+     --wait
+   ```
+
+   After the upgrade the `IngressRoute` and `Middleware` resources are no longer rendered and will be orphaned — delete them manually:
+
+   ```bash
+   kubectl delete ingressroute -n plane-ns -l app.kubernetes.io/instance=plane-app
+   kubectl delete middleware    -n plane-ns -l app.kubernetes.io/instance=plane-app
+   ```
+
+4. **Verify** that the new `Ingress` is admitted and routes traffic before removing the old Traefik resources.
+
+### Switching from a standard Ingress controller to Traefik
+
+1. **Install Traefik** with CRD support enabled (see [Installing Traefik Ingress Controller](#installing-traefik-ingress-controller-optional) above).
+
+2. **Update `ingress.ingressClass`**:
+
+   ```yaml
+   ingress:
+     ingressClass: "traefik"
+   ```
+
+3. **Run `helm upgrade`**. The old `Ingress` resource is orphaned — delete it:
+
+   ```bash
+   kubectl delete ingress -n plane-ns plane-app-ingress
+   ```
+
+### Key values controlling template selection
+
+| Value                                 | Default    | Effect                                                                                    |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| `ingress.enabled`                     | `true`     | Master switch — set to `false` to render neither template.                                |
+| `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
+| `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+
 ## Installing Plane
 
 1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
@@ -11,7 +99,7 @@
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v2.5.0 # or the last released version
+   PLANE_VERSION=v2.5.2 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -27,7 +115,7 @@
 
    - Quick set-up
 
-     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class.This also sets up the ingress routes for you using `nginx` ingress class.
+     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class. This also sets up the ingress routes for you using `traefik` ingress class.
 
      > To customize this, see `Custom ingress routes` below.
 
@@ -40,7 +128,7 @@
          --set license.licenseDomain=${DOMAIN_NAME} \
          --set planeVersion=${PLANE_VERSION} \
          --set ingress.enabled=true \
-         --set ingress.ingressClass=nginx \
+         --set ingress.ingressClass=traefik \
          --timeout 10m \
          --wait \
          --wait-for-jobs
@@ -67,10 +155,10 @@
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v2.5.0 <or the last released version>`
+     - `planeVersion: v2.5.2 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
-     - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
+     - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
      - `env.storageClass: <default storage class configured in your cluster>`
 
        > See `Available customizations` for more details.
@@ -93,7 +181,7 @@
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.5.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v2.5.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -215,6 +303,7 @@ airgapped:
 | env.opensearch_remote_username           |                                   |          | Username for remote OpenSearch service. Required when `services.opensearch.local_setup=false` and `env.opensearch_remote_url` is set. Note: This is not a secret and should be configured in values.yaml, not in external secrets.                                                                                                                                                                                                      |
 | env.opensearch_remote_password           |                                   |          | Password for remote OpenSearch service. Required when `services.opensearch.local_setup=false` and `env.opensearch_remote_url` is set. This can be configured in values.yaml or provided via external secrets (`opensearch_existingSecret` with `OPENSEARCH_PASSWORD`). **Password Complexity Requirements:** Must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character (e.g., `!@#$%^&*`). |
 | env.opensearch_index_prefix              |              plane_               |          | Prefix to be used for OpenSearch indices. This helps organize indices in a multi-tenant or multi-environment setup.                                                                                                                                                                                                                        |
+| env.opensearch_embedding_dimension       |               1536                |          | Embedding vector dimension used for OpenSearch semantic/vector indexing.                                                                                                                                                                                                                               |
 
 ### Doc Store (Minio/S3) Setup
 
@@ -242,6 +331,7 @@ airgapped:
 | env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                    |
 | env.use_storage_proxy                 |       false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`.                                      |
 | env.allow_all_attachment_types       |       false        |          | When set to `true`, allows all file types as attachments. When `false`, only permitted types are allowed. Default is `false`.                                                                                                                                                        |
+| env.enable_drf_spectacular            |       false        |          | When set to `true`, enables drf-spectacular OpenAPI schema generation for the API (`ENABLE_DRF_SPECTACULAR`). Default is `false`.                                                                                                                                                       |
 
 ### Web Deployment
 
@@ -653,6 +743,7 @@ To configure the external secrets for your application, you need to define speci
 |                          | `OPENSEARCH_PASSWORD`  | Required if OpenSearch is enabled                                | Password for OpenSearch                      | **local setup**: `Secure@Pass#123!%^&*` <br> <br> **remote setup**: `your_remote_password`                                                                                                            |
 |                          | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Required if `opensearch.local_setup=true` | Initial admin password for local OpenSearch  | `Secure@Pass#123!%^&*`                                                                                                                                                                                |
 |                          | `OPENSEARCH_INDEX_PREFIX` | Optional                                                       | Prefix for OpenSearch indices                | `plane_`                                                                                                                                                                                              |
+|                          | `OPENSEARCH_EMBEDDING_DIMENSION` | Optional                                                | Embedding vector dimension for OpenSearch    | `1536`                                                                                                                                                                                                |
 | doc_store_existingSecret | `USE_MINIO`             | Yes                                                             | Flag to enable MinIO as the storage backend | `1`                                                                                                                                                                                                  |
 |                          | `MINIO_ROOT_USER`       | Yes                                                             | MinIO root user                             | `admin`                                                                                                                                                                                              |
 |                          | `MINIO_ROOT_PASSWORD`   | Yes                                                             | MinIO root password                         | `password`                                                                                                                                                                                           |

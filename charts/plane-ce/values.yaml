@@ -11,8 +11,14 @@ ingress:
   appHost: "plane.example.com"
   minioHost: ""
   rabbitmqHost: ""
-  ingressClass: "nginx"
-  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  # Set to "traefik" (or any value starting with "traefik") to deploy native Traefik IngressRoute CRDs
+  # (templates/ingress-traefik.yaml). Set to any other value (e.g., "nginx") to deploy a standard
+  # networking.k8s.io/v1 Ingress resource (templates/ingress.yaml).
+  ingressClass: "traefik"
+  # Traefik-specific options (only used when ingressClass starts with "traefik")
+  traefik:
+    maxRequestBodyBytes: 20971520   # in bytes (default: 20 MiB)
+  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:

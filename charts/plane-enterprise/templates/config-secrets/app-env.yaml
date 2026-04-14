@@ -56,6 +56,7 @@ data:
   MINIO_ENDPOINT_SSL: {{ .Values.services.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
   USE_STORAGE_PROXY: {{ .Values.env.use_storage_proxy | default false | ternary "1" "0" | quote }}
   ALLOW_ALL_ATTACHMENT_TYPES: {{ .Values.env.allow_all_attachment_types | default false | ternary "1" "0" | quote }}
+  ENABLE_DRF_SPECTACULAR: {{ .Values.env.enable_drf_spectacular | default false | ternary "1" "0" | quote }}
   INTAKE_EMAIL_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
 
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
