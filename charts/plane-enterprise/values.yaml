@@ -387,6 +387,7 @@ services:
         enabled: false
         name: ''
         model_id: ''
+        embedding_dimension: 1536
         aws_access_key: ''
         aws_secret_access_key: ''
         aws_region: 'us-east-1'

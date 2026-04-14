@@ -1010,6 +1010,10 @@ questions:
     label: "Embedding Model ID"
     type: string
     default: ""
+  - variable: services.pi.ai_providers.embedding_model.embedding_dimension
+    label: "OpenSearch Embedding Dimension"
+    type: int
+    default: 1536
   - variable: services.pi.ai_providers.embedding_model.aws_access_key
     label: "Embedding Model AWS Access Key"
     type: string
