@@ -135,10 +135,9 @@ data:
   {{- end }}
 
   {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
-  {{- $embeddingDim := .Values.services.pi.ai_providers.embedding_model.embedding_dimension | default 1536 | int }}
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
-  OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" |  quote }}
-  OPENSEARCH_EMBEDDING_DIMENSION: {{ if gt $embeddingDim 0 }}{{ $embeddingDim | quote }}{{ else }}""{{ end }}
+  OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" | quote }}
+  OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.services.pi.ai_providers.embedding_model.embedding_dimension | default 1536 | quote }}
   BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}
