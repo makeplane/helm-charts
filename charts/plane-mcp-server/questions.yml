@@ -1,0 +1,139 @@
+questions:
+
+- variable: dockerRegistry.loginid
+  label: "Login ID"
+  type: string
+  default: "makeplane"
+  group: "Docker Credentials"
+  subquestions:
+  - variable: dockerRegistry.password
+    label: "Password/Token"
+    type: password
+    default: ""
+  - variable: dockerRegistry.default_tag
+    label: "Image Tag"
+    type: string
+    default: "latest"
+  - variable: services.api.image
+    label: "MCP Server Docker Image (without tag)"
+    type: string
+    default: "makeplane/plane-mcp-server"
+  - variable: services.storage_class
+    label: "Storage Class"
+    type: storageclass
+
+- variable: services.api.replicas
+  label: "MCP Server Replicas"
+  type: int
+  default: 1
+  group: "MCP Server Setup"
+  subquestions:
+  - variable: services.api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: "1000Mi"
+  - variable: services.api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: "500m"
+  - variable: services.api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: "50Mi"
+  - variable: services.api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: "50m"
+
+- variable: services.api.plane_oauth.enabled
+  label: "Enable Plane OAuth"
+  type: boolean
+  default: true
+  group: "MCP Server Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.api.plane_oauth.client_id
+    label: "Plane OAuth Client ID"
+    type: string
+    default: ""
+  - variable: services.api.plane_oauth.client_secret
+    label: "Plane OAuth Client Secret"
+    type: password
+    default: ""
+  - variable: services.api.plane_oauth.provider_base_url
+    label: "Plane OAuth Provider Base URL"
+    type: string
+    default: ""
+  - variable: services.api.plane_base_url
+    label: "Plane Base URL"
+    type: string
+    default: ""
+  - variable: services.api.plane_internal_base_url
+    label: "Plane Internal Base URL"
+    type: string
+    default: ""
+
+- variable: services.redis.local_setup
+  label: "Install Redis"
+  type: boolean
+  default: true
+  group: "Redis Setup"
+  subquestions:
+  - variable: services.redis.image
+    label: "Docker Image"
+    type: string
+    default: "valkey/valkey:7.2.11-alpine"
+    show_if: "services.redis.local_setup=true"
+  - variable: services.redis.volume_size
+    label: "Volume Size"
+    type: string
+    default: "500Mi"
+    show_if: "services.redis.local_setup=true"
+  - variable: services.redis.external_redis_url
+    label: "Remote Redis URL"
+    type: string
+    default: "redis://"
+    show_if: "services.redis.local_setup=false"
+
+- variable: ingress.host
+  label: "MCP Server Hostname"
+  type: string
+  required: true
+  default: "mcp.example.com"
+  group: "Ingress Setup"
+  subquestions:
+  - variable: ingress.ingressClass
+    label: "Ingress Classname"
+    type: string
+    required: true
+    default: "nginx"
+
+- variable: ingress.ssl.enabled
+  label: "Enable SSL"
+  type: boolean
+  default: false
+  group: "Ingress Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.ssl.issuer
+    label: "SSL Issuer"
+    type: enum
+    options:
+    - "http"
+    - "cloudflare"
+    - "digitalocean"
+    default: "cloudflare"
+  - variable: ingress.ssl.server
+    label: "SSL Server"
+    type: string
+    default: "https://acme-v02.api.letsencrypt.org/directory"
+  - variable: ingress.ssl.email
+    label: "SSL Email"
+    type: string
+    default: "engineering@plane.so"
+  - variable: ingress.ssl.token
+    label: "Provider API Token"
+    type: password
+    default: ""
+    description: "Not required for 'http' issuer"
+    show_if: "ingress.ssl.issuer=cloudflare || ingress.ssl.issuer=digitalocean"
