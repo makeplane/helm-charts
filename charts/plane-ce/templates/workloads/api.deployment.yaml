@@ -39,9 +39,17 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
+      {{- with .Values.api.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
         imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}
+        {{- with .Values.api.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         image: {{ .Values.api.image | default "artifacts.plane.so/makeplane/plane-backend" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
