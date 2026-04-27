@@ -138,6 +138,7 @@ data:
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
   OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.services.pi.ai_providers.embedding_model.embedding_dimension | default 1536 | quote }}
+  BEDROCK_INFERENCE_PROFILE_ARN: {{ .Values.services.pi.ai_providers.embedding_model.bedrock_inference_profile_arn | default "" | quote }}
   BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}

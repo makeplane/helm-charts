@@ -1010,6 +1010,10 @@ questions:
     label: "Embedding Model ID"
     type: string
     default: ""
+  - variable: services.pi.ai_providers.embedding_model.bedrock_inference_profile_arn
+    label: "Bedrock Inference Profile ARN"
+    type: string
+    default: ""
   - variable: services.pi.ai_providers.embedding_model.embedding_dimension
     label: "OpenSearch Embedding Dimension"
     type: int
@@ -1207,6 +1211,10 @@ questions:
     label: "Embedding Dimension"
     type: int
     default: 1536
+  - variable: env.opensearch_aws_connector_role_arn
+    label: "OpenSearch AWS Connector Role ARN"
+    type: string
+    default: ""
 
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"

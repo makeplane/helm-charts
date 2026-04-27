@@ -14,6 +14,7 @@ stringData:
   OPENSEARCH_INITIAL_ADMIN_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
+  OPENSEARCH_AWS_CONNECTOR_ROLE_ARN: {{ .Values.env.opensearch_aws_connector_role_arn | default "" | quote }}
   {{- else if .Values.env.opensearch_remote_url }}
   OPENSEARCH_ENABLED: "1"
   OPENSEARCH_URL: {{ .Values.env.opensearch_remote_url | quote }}
@@ -21,6 +22,7 @@ stringData:
   OPENSEARCH_PASSWORD: {{ .Values.env.opensearch_remote_password | default "" | quote }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
+  OPENSEARCH_AWS_CONNECTOR_ROLE_ARN: {{ .Values.env.opensearch_aws_connector_role_arn | default "" | quote }}
   {{- else }}
   OPENSEARCH_ENABLED: "0"
   OPENSEARCH_URL: ""
@@ -28,6 +30,7 @@ stringData:
   OPENSEARCH_PASSWORD: ""
   OPENSEARCH_INDEX_PREFIX: ""
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
+  OPENSEARCH_AWS_CONNECTOR_ROLE_ARN: {{ .Values.env.opensearch_aws_connector_role_arn | default "" | quote }}
   {{- end }}
 {{- end }}
 ---
