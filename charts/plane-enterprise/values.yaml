@@ -81,6 +81,9 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    read_replica:
+      enabled: false
+      remote_url: '' # INCASE OF REMOTE PG DB URL ONLY    
 
   rabbitmq:
     local_setup: true
