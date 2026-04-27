@@ -1,3 +1,6 @@
+{{- if and .Values.services.postgres.read_replica.enabled (not .Values.services.postgres.read_replica.remote_url) }}
+{{- fail "read_replica.enabled is true but read_replica.remote_url is empty" }}
+{{- end }}
 {{- if empty .Values.external_secrets.app_env_existingSecret}}
 apiVersion: v1
 kind: Secret
@@ -24,6 +27,10 @@ stringData:
   {{ else }}
   DATABASE_URL: ""
   {{ end }}
+
+  {{- if and .Values.services.postgres.read_replica.enabled .Values.services.postgres.read_replica.remote_url }}
+  DATABASE_READ_REPLICA_URL: {{ .Values.services.postgres.read_replica.remote_url | quote }}
+  {{- end }}
 
   {{- if .Values.services.rabbitmq.local_setup }}
   AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
@@ -57,6 +64,7 @@ data:
   USE_STORAGE_PROXY: {{ .Values.env.use_storage_proxy | default false | ternary "1" "0" | quote }}
   ALLOW_ALL_ATTACHMENT_TYPES: {{ .Values.env.allow_all_attachment_types | default false | ternary "1" "0" | quote }}
   ENABLE_DRF_SPECTACULAR: {{ .Values.env.enable_drf_spectacular | default false | ternary "1" "0" | quote }}
+  ENABLE_READ_REPLICA: {{ .Values.services.postgres.read_replica.enabled | default false | ternary "1" "0" | quote }}
   INTAKE_EMAIL_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
 
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
