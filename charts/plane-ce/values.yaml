@@ -109,6 +109,12 @@ web:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 space:
   replicas: 1
@@ -124,6 +130,12 @@ space:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 admin:
   replicas: 1
@@ -139,6 +151,12 @@ admin:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 live:
   replicas: 1
@@ -154,6 +172,12 @@ live:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 api:
   replicas: 1
@@ -169,6 +193,12 @@ api:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 worker:
   replicas: 1
@@ -183,6 +213,12 @@ worker:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 beatworker:
   replicas: 1
@@ -197,6 +233,12 @@ beatworker:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # podSecurityContext sets pod-level securityContext (e.g. fsGroup,
+  # runAsUser, seccompProfile). Empty = no pod-level securityContext rendered.
+  podSecurityContext: {}
+  # containerSecurityContext sets container-level securityContext (e.g.
+  # runAsNonRoot, capabilities.drop, allowPrivilegeEscalation). Empty = none rendered.
+  containerSecurityContext: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
