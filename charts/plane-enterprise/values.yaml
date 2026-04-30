@@ -59,6 +59,7 @@ services:
   redis:
     local_setup: true
     image: valkey/valkey:7.2.11-alpine
+    replicas: 1
     servicePort: 6379
     volumeSize: 500Mi
     pullPolicy: IfNotPresent
@@ -72,6 +73,7 @@ services:
   postgres:
     local_setup: true
     image: postgres:15.7-alpine
+    replicas: 1
     servicePort: 5432
     volumeSize: 2Gi
     pullPolicy: IfNotPresent
@@ -88,6 +90,7 @@ services:
   rabbitmq:
     local_setup: true
     image: rabbitmq:3.13.6-management-alpine
+    replicas: 1
     servicePort: 5672
     managementPort: 15672
     volumeSize: 100Mi
@@ -105,6 +108,7 @@ services:
   opensearch:
     local_setup: false
     image: opensearchproject/opensearch:3.3.2
+    replicas: 1
     servicePort: 9200
     volumeSize: 5Gi
     pullPolicy: IfNotPresent

@@ -27,6 +27,7 @@ metadata:
   name: {{ .Release.Name }}-opensearch-wl
   {{- include "plane.labelsAndAnnotations" .Values.services.opensearch }}
 spec:
+  replicas: {{ .Values.services.opensearch.replicas | default 1 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
