@@ -25,7 +25,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-pi-worker
         imagePullPolicy: Always
-        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

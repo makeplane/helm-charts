@@ -142,7 +142,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/iframely:v1.2.0
+    image: makeplane/iframely:v1.2.0
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -157,7 +157,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/web-commercial
+    image: makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -171,7 +171,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/monitor-commercial
+    image: makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
@@ -187,7 +187,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/space-commercial
+    image: makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -202,7 +202,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/admin-commercial
+    image: makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -217,7 +217,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/live-commercial
+    image: makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -232,7 +232,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/backend-commercial
+    image: makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -272,7 +272,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/silo-commercial
+    image: makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -304,7 +304,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/email-commercial
+    image: makeplane/email-commercial
     pullPolicy: Always
     nodeSelector: {}
     tolerations: []
@@ -349,7 +349,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/plane-pi-commercial
+    image: makeplane/plane-pi-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}

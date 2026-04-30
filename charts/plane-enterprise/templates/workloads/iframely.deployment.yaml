@@ -41,7 +41,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-iframely
         imagePullPolicy: Always
-        image: {{ .Values.services.iframely.image | default "artifacts.plane.so/makeplane/iframely:v1.2.0" }}
+        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v1.2.0" }}
         stdin: true
         tty: true
         resources:
