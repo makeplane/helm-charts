@@ -39,7 +39,7 @@ spec:
     spec:
       {{- include "plane.podScheduling" .Values.services.monitor }}
       containers:
-      - image: {{ .Values.services.monitor.image | default "artifacts.plane.so/makeplane/monitor-commercial" }}:{{ .Values.planeVersion }}
+      - image: {{ .Values.services.monitor.image | default "makeplane/monitor-commercial" }}:{{ .Values.planeVersion }}
         imagePullPolicy: {{ .Values.services.monitor.pullPolicy | default "Always" }}
         name: {{ .Release.Name }}-monitor
         stdin: true
