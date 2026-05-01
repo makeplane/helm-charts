@@ -1,0 +1,114 @@
+{{- if .Values.services.runner.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-runner
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
+spec:
+  type: ClusterIP
+  {{- if not .Values.services.runner.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: runner-3000
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-runner-wl
+  {{- include "plane.labelsAndAnnotations" .Values.services.runner }}
+spec:
+  replicas: {{ .Values.services.runner.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.runner }}
+      {{- with (include "plane.s3CANodeVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
+      {{- if include "plane.s3CAEnabled" . }}
+      initContainers:
+      - name: prepare-ca-bundle
+        image: busybox
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "Preparing custom CA bundle for Node.js..."
+            if [ "$(ls -A /s3-custom-ca)" ]; then
+              cat /s3-custom-ca/* > /ca-bundle/custom-ca-bundle.crt
+              echo "CA bundle created at /ca-bundle/custom-ca-bundle.crt"
+            else
+              echo "No custom CA certificates found, creating empty bundle"
+              touch /ca-bundle/custom-ca-bundle.crt
+            fi
+        volumeMounts:
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
+            readOnly: true
+          - name: ca-bundle
+            mountPath: /ca-bundle
+      {{- end }}
+      containers:
+      - name: {{ .Release.Name }}-runner
+        imagePullPolicy: {{ .Values.services.runner.pullPolicy | default "Always" }}
+        image: {{ .Values.services.runner.image | default "makeplane/node-runner-commercial" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.runner.memoryRequest | default "128Mi" | quote }}
+            cpu: {{ .Values.services.runner.cpuRequest | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.services.runner.memoryLimit | default "512Mi" | quote }}
+            cpu: {{ .Values.services.runner.cpuLimit | default "500m" | quote }}
+        {{- with (include "plane.s3CANodeBundleMount" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        readinessProbe:
+          tcpSocket:
+            port: 3000
+          failureThreshold: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-runner-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.runner_env_existingSecret) }}{{ .Values.external_secrets.runner_env_existingSecret }}{{ else }}{{ .Release.Name }}-runner-secrets{{ end }}
+              optional: false
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        env:
+          {{- with (include "plane.s3CANodeEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+        {{- end }}
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- end }}

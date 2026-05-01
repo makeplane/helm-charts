@@ -81,6 +81,10 @@ data:
   {{- end }}
   PI_BASE_PATH: "/pi"
 
+  {{- if .Values.services.runner.enabled }}
+  RUNNER_BASE_URL: "http://{{ .Release.Name }}-runner.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000"
+  {{- end }}
+
   {{- if .Values.airgapped.enabled }}
   IS_AIRGAPPED: "1"
   {{- end }}
