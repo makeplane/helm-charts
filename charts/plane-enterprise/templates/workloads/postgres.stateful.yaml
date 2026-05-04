@@ -27,6 +27,7 @@ metadata:
   name: {{ .Release.Name }}-pgdb-wl
   {{- include "plane.labelsAndAnnotations" .Values.services.postgres }}
 spec:
+  replicas: {{ .Values.services.postgres.replicas | default 1 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb

@@ -30,6 +30,7 @@ metadata:
   name: {{ .Release.Name }}-redis-wl
   {{- include "plane.labelsAndAnnotations" .Values.services.redis }}
 spec:
+  replicas: {{ .Values.services.redis.replicas | default 1 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
