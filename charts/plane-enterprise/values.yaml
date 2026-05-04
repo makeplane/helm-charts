@@ -417,6 +417,22 @@ services:
     labels: {}
     annotations: {}
 
+  runner:
+    enabled: false
+    replicas: 1
+    memoryLimit: 512Mi
+    cpuLimit: 500m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
+    image: makeplane/node-runner-commercial
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -427,6 +443,7 @@ external_secrets:
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
   pi_api_env_existingSecret: ''
+  runner_env_existingSecret: ''
 
 env:
   storageClass: ''
@@ -516,6 +533,13 @@ env:
     event_stream_prefetch: 10
     exchange_name: "plane.event_stream"
     event_types: "issue"
+
+  runner_envs:
+    execution_timeout_ms: "10000"
+    init_timeout_ms: "5000"
+    isolate_memory_mb: "128"
+    control_service_base_url: ""
+    hmac_secret_key: ""
 
   pi_envs:
     plane_oauth:
