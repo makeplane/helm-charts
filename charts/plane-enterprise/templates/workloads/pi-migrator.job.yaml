@@ -20,7 +20,7 @@ spec:
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-pi-api-migrate
-        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         imagePullPolicy: Always
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
