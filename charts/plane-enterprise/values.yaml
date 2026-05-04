@@ -1,4 +1,4 @@
-planeVersion: v2.5.3
+planeVersion: v2.5.4
 
 dockerRegistry:
   enabled: false
@@ -85,7 +85,7 @@ services:
     annotations: {}
     read_replica:
       enabled: false
-      remote_url: '' # INCASE OF REMOTE PG DB URL ONLY    
+      remote_url: '' # INCASE OF REMOTE PG DB URL ONLY
 
   rabbitmq:
     local_setup: true
@@ -149,7 +149,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/iframely:v1.2.0
+    image: makeplane/iframely:v1.2.0
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -164,7 +164,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/web-commercial
+    image: makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -178,7 +178,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/monitor-commercial
+    image: makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
@@ -194,7 +194,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/space-commercial
+    image: makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -209,7 +209,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/admin-commercial
+    image: makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -224,7 +224,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/live-commercial
+    image: makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -239,7 +239,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/backend-commercial
+    image: makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -279,7 +279,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/silo-commercial
+    image: makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -311,7 +311,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/email-commercial
+    image: makeplane/email-commercial
     pullPolicy: Always
     nodeSelector: {}
     tolerations: []
@@ -356,7 +356,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/plane-pi-commercial
+    image: makeplane/plane-pi-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -424,6 +424,22 @@ services:
     labels: {}
     annotations: {}
 
+  runner:
+    enabled: false
+    replicas: 1
+    memoryLimit: 512Mi
+    cpuLimit: 500m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
+    image: makeplane/node-runner-commercial
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -434,6 +450,7 @@ external_secrets:
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
   pi_api_env_existingSecret: ''
+  runner_env_existingSecret: ''
 
 env:
   storageClass: ''
@@ -523,6 +540,13 @@ env:
     event_stream_prefetch: 10
     exchange_name: "plane.event_stream"
     event_types: "issue"
+
+  runner_envs:
+    execution_timeout_ms: "10000"
+    init_timeout_ms: "5000"
+    isolate_memory_mb: "128"
+    control_service_base_url: ""
+    hmac_secret_key: ""
 
   pi_envs:
     plane_oauth:
