@@ -82,8 +82,6 @@ spec:
   {{- if .Values.services.pi.enabled }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/`)
     kind: Rule
-    middlewares:
-      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-pi-api
         port: 8000
