@@ -1,4 +1,4 @@
-{{- if and .Values.services.postgres.read_replica.enabled (not .Values.services.postgres.read_replica.remote_url) }}
+{{- if and .Values.services.postgres.read_replica.enabled (not .Values.services.postgres.read_replica.remote_url) (empty .Values.external_secrets.app_env_existingSecret) }}
 {{- fail "read_replica.enabled is true but read_replica.remote_url is empty" }}
 {{- end }}
 {{- if empty .Values.external_secrets.app_env_existingSecret}}
