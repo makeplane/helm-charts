@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-doc-store-secrets
 stringData:
-  FILE_SIZE_LIMIT: {{ .Values.env.file_size_limit | default "5242880" | quote }}
+  FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "5242880" | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
   {{- if .Values.services.minio.local_setup }}
   USE_MINIO: "1"
