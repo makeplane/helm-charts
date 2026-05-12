@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-runner-secrets
 stringData:
-  RUNNER_HMAC_SECRET_KEY: {{ .Values.env.runner_envs.hmac_secret_key | default "" | quote }}
+  RUNNER_HMAC_SECRET_KEY: {{ required "env.runner_envs.hmac_secret_key must be set when services.runner.enabled=true and external_secrets.runner_env_existingSecret is empty" .Values.env.runner_envs.hmac_secret_key | quote }}
 {{- end }}
 ---
 {{- if .Values.services.runner.enabled }}
