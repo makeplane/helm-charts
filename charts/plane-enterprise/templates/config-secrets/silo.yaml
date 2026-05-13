@@ -19,7 +19,7 @@ stringData:
   {{ end }}
 
   {{- if .Values.services.redis.local_setup }}
-  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379"
   {{- else if .Values.env.remote_redis_url }}
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
@@ -76,7 +76,7 @@ data:
   APP_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
-  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
+  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
   
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
@@ -84,8 +84,8 @@ data:
   SILO_API_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
-  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080"
 
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}

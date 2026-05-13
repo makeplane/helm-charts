@@ -9,8 +9,8 @@ data:
   APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
   APP_VERSION: {{ .Values.planeVersion | quote }}
   DEPLOY_PLATFORM: "KUBERNETES"
-  API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
-  API_HOSTNAME: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+  API_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
+  API_HOSTNAME: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000"
   {{- if .Values.airgapped.enabled }}
   IS_AIRGAPPED: "1"
   {{- end }}
