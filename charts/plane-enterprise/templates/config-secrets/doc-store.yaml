@@ -1,4 +1,5 @@
 {{- if empty .Values.external_secrets.doc_store_existingSecret }}
+{{- $storageProvider := .Values.env.storage_provider | default "s3" }}
 apiVersion: v1
 kind: Secret
 type: Opaque
@@ -8,7 +9,7 @@ metadata:
 stringData:
   FILE_SIZE_LIMIT: {{ .Values.env.file_size_limit | default "5242880" | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
-  {{- if .Values.services.minio.local_setup }}
+  {{- if and (eq $storageProvider "s3") .Values.services.minio.local_setup }}
   USE_MINIO: "1"
   MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | quote }}
   MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | quote}}
@@ -23,11 +24,21 @@ stringData:
   AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
   {{- end }}
 
-  STORAGE_PROVIDER: {{ .Values.env.storage_provider | default "s3" | quote }}
+  STORAGE_PROVIDER: {{ $storageProvider | quote }}
   SIGNED_URL_EXPIRATION: {{ .Values.env.signed_url_expiration | default 3600 | quote }}
+  {{- if eq $storageProvider "gcs" }}
+  {{- if and (empty .Values.env.gcs_credentials_path) (empty .Values.env.gcs_credentials_json) }}
+  {{- fail "either env.gcs_credentials_path or env.gcs_credentials_json is required when env.storage_provider is 'gcs'" }}
+  {{- end }}
+  GCS_BUCKET_NAME: {{ required "env.gcs_bucket_name is required when env.storage_provider is 'gcs'" .Values.env.gcs_bucket_name | quote }}
+  GCS_PROJECT_ID: {{ required "env.gcs_project_id is required when env.storage_provider is 'gcs'" .Values.env.gcs_project_id | quote }}
+  GCS_CREDENTIALS_JSON: {{ .Values.env.gcs_credentials_json | default "" | quote }}
+  GCS_CREDENTIALS_PATH: {{ .Values.env.gcs_credentials_path | default "" | quote }}
+  {{- else }}
   GCS_BUCKET_NAME: {{ .Values.env.gcs_bucket_name | default "" | quote }}
   GCS_PROJECT_ID: {{ .Values.env.gcs_project_id | default "" | quote }}
   GCS_CREDENTIALS_JSON: {{ .Values.env.gcs_credentials_json | default "" | quote }}
   GCS_CREDENTIALS_PATH: {{ .Values.env.gcs_credentials_path | default "" | quote }}
+  {{- end }}
 {{- end }}
 ---
