@@ -80,6 +80,14 @@ data:
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
+  {{- if .Values.env.app_base_url}}
+  APP_BASE_URL: {{ .Values.env.app_base_url | default "" | quote }}
+  {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
+  {{- else }}
+  APP_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
+  {{- end }}
+
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
   LIVE_BASE_PATH: "/live"
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}

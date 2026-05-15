@@ -472,6 +472,16 @@ env:
   aws_region: ''
   aws_s3_endpoint_url: ''
 
+  # STORAGE PROVIDER SELECTION (s3 or gcs)
+  storage_provider: 's3'
+  signed_url_expiration: 3600
+
+  # GCS (REQUIRED IF storage_provider IS 'gcs')
+  gcs_bucket_name: ''
+  gcs_project_id: ''
+  gcs_credentials_json: ''
+  gcs_credentials_path: ''
+
   use_storage_proxy: false
   allow_all_attachment_types: false
   enable_drf_spectacular: false
@@ -493,6 +503,7 @@ env:
   cors_allowed_origins: ''
   instance_admin_email: ''
   web_url: ''
+  app_base_url: ''
 
   live_sentry_dsn: ""
   live_sentry_environment: ""
