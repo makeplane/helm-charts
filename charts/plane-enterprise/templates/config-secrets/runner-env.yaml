@@ -1,0 +1,27 @@
+{{- if and .Values.services.runner.enabled (empty .Values.external_secrets.runner_env_existingSecret)}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-runner-secrets
+stringData:
+  RUNNER_HMAC_SECRET_KEY: {{ .Values.env.runner_envs.hmac_secret_key | default "" | quote }}
+{{- end }}
+---
+{{- if .Values.services.runner.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-runner-vars
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  EXECUTION_TIMEOUT_MS: {{ .Values.env.runner_envs.execution_timeout_ms | default "10000" | quote }}
+  INIT_TIMEOUT_MS: {{ .Values.env.runner_envs.init_timeout_ms | default "5000" | quote }}
+  ISOLATE_MEMORY_MB: {{ .Values.env.runner_envs.isolate_memory_mb | default "128" | quote }}
+  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
+  CONTROL_SERVICE_BASE_URL: {{ .Values.env.runner_envs.control_service_base_url | default "" | quote }}
+{{- end }}
+---
