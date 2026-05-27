@@ -41,7 +41,11 @@ ingress:
   ingressClass: 'traefik'
   # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
   # For nginx ingress controller, you can set the proxy body size limit using annotations. Example:
-  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  #   ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  # proxy-buffer-size is set to 8k by default so large upstream response headers (e.g. the Swagger
+  # UI / OpenAPI schema endpoints) are not truncated. Override or extend with your own annotations.
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: '8k'
   traefik:
     maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
 
