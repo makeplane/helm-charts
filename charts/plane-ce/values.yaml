@@ -18,7 +18,11 @@ ingress:
   # Traefik-specific options (only used when ingressClass starts with "traefik")
   traefik:
     maxRequestBodyBytes: 20971520   # in bytes (default: 20 MiB)
-  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  # Annotations applied to the standard Ingress resource (only used when ingressClass is not "traefik").
+  # proxy-buffer-size is set to 8k by default so large upstream response headers (e.g. the Swagger
+  # UI / OpenAPI schema endpoints) are not truncated. Override or extend with your own annotations.
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
 
 # SSL Configuration - Valid only if ingress.enabled is true
 ssl:
