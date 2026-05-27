@@ -45,6 +45,14 @@ spec:
       - name: {{ .Release.Name }}-api
         port: 8000
 
+  - match: Host(`{{ .Values.ingress.appHost }}`) && PathPrefix(`/static`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
   - match: Host(`{{ .Values.ingress.appHost }}`) && PathPrefix(`/live`)
     kind: Rule
     middlewares:
