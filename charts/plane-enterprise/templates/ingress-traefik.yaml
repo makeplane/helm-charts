@@ -45,6 +45,14 @@ spec:
       - name: {{ .Release.Name }}-api
         port: 8000
 
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/static/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/graphql/`)
     kind: Rule
     middlewares:
