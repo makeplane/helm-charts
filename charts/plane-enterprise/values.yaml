@@ -40,8 +40,12 @@ ingress:
   rabbitmqHost: ''
   ingressClass: 'traefik'
   # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
-  # For nginx ingress controller, you can set the proxy body size limit using annotations. Example:
-  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  # These annotations are ONLY rendered when ingressClass is 'nginx' (the nginx Ingress template is gated on
+  # ingressClass == "nginx"); they have no effect with traefik. Example:
+  # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
+  # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
+  #   "502 upstream sent too big header" errors.
+  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m", "nginx.ingress.kubernetes.io/proxy-buffer-size": "16k" }
   traefik:
     maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
 
