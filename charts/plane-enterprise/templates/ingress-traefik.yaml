@@ -80,6 +80,15 @@ spec:
   {{- end }}
 
   {{- if .Values.services.pi.enabled }}
+  # File uploads in pi: keep the body-size limit (more specific path matches first)
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/attachments/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-pi-api
+        port: 8000
+  # Everything else in pi (incl. streaming/SSE): no buffering middleware
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/`)
     kind: Rule
     services:
