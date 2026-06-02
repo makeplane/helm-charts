@@ -104,3 +104,6 @@ data:
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
   {{- end }}
+
+  WEBHOOK_ALLOWED_IPS: {{ .Values.env.webhook_allowed_ips | default "" | quote }}
+  WEBHOOK_ALLOWED_HOSTS: {{ .Values.env.webhook_allowed_hosts | default "" | quote }}

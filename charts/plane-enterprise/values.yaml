@@ -345,6 +345,21 @@ services:
     labels: {}
     annotations: {}
 
+  webhook_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 500Mi
+    cpuRequest: 250m
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   pi:
     enabled: false
     replicas: 1
@@ -494,6 +509,11 @@ env:
   instance_admin_email: ''
   web_url: ''
 
+  # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
+  # Leave empty to allow all (no restriction).
+  webhook_allowed_ips: ''
+  webhook_allowed_hosts: ''
+
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
@@ -536,6 +556,10 @@ env:
     event_stream_prefetch: 10
     exchange_name: "plane.event_stream"
     event_types: "issue"
+
+  webhook_consumer_envs:
+    queue_name: "plane.webhook"
+    prefetch_count: 10
 
   runner_envs:
     execution_timeout_ms: "10000"
