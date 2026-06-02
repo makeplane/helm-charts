@@ -1,0 +1,11 @@
+{{- if .Values.services.webhook_consumer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-webhook-consumer-vars
+data:
+  WEBHOOK_QUEUE_NAME: {{ .Values.env.webhook_consumer_envs.queue_name | default "plane.webhook" | quote }}
+  WEBHOOK_PREFETCH_COUNT: {{ .Values.env.webhook_consumer_envs.prefetch_count | default 10 | quote }}
+---
+{{- end }}

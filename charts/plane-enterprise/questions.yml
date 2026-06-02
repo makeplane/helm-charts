@@ -534,6 +534,14 @@ questions:
     label: "Web URL"
     type: string
     default: ""
+  - variable: env.webhook_allowed_ips
+    label: "Webhook Allowed IPs"
+    type: string
+    default: ""
+  - variable: env.webhook_allowed_hosts
+    label: "Webhook Allowed Hosts"
+    type: string
+    default: ""
 - variable: services.external_api.enabled
   label: "Enable External API"
   type: boolean
@@ -826,6 +834,46 @@ questions:
     label: "Event Types"
     type: string
     default: "issue"
+
+- variable: services.webhook_consumer.enabled
+  label: "Enable Webhook Consumer"
+  type: boolean
+  default: false
+  group: "Webhook Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.webhook_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.webhook_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.webhook_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.webhook_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.webhook_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.webhook_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.webhook_consumer_envs.queue_name
+    label: "Webhook Queue Name"
+    type: string
+    default: "plane.webhook"
+  - variable: env.webhook_consumer_envs.prefetch_count
+    label: "Webhook Prefetch Count"
+    type: int
+    default: 10
 
 - variable: services.iframely.enabled
   label: "Enable Iframely"
