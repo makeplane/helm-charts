@@ -19,8 +19,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.outbox_poller }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-outbox-poller
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true

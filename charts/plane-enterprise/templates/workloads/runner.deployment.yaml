@@ -42,8 +42,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.runner }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-runner
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.runner.pullPolicy | default "Always" }}
         image: {{ .Values.services.runner.image | default "makeplane/node-runner-commercial" }}:{{ .Values.planeVersion }}
         stdin: true

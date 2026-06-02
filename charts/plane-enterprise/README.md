@@ -211,6 +211,53 @@ airgapped:
   # s3SecretName and s3SecretKey can be removed after migration
 ```
 
+### Pod Security (PSA `restricted`)
+
+Plane's first-party images run as non-root, so the chart can render a hardened
+pod- and container-level `securityContext` that satisfies the Kubernetes
+[Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/)
+`restricted` profile. This is the Helm equivalent of the kustomize
+`nonroot-security-context` component, and is **opt-in** (`securityContext.enabled=false`
+by default) so existing installs are unchanged.
+
+When enabled, the context is applied to all first-party Plane workloads (api, web,
+space, admin, live, worker, beat-worker, automation-consumer, outbox-poller, silo,
+monitor, iframely, runner, pi-api/beat/worker, and the migration Jobs — including
+their busybox init containers).
+
+It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
+minio, opensearch), which use third-party images with their own UID/GID requirements
+and are intended for local/dev use — run those externally in hardened clusters and
+leave `local_setup` off. The email service also keeps its own `securityContext`
+(its image pins UID 100).
+
+| Setting                                  |     Default      | Required | Description                                                                                    |
+| ---------------------------------------- | :--------------: | :------: | ---------------------------------------------------------------------------------------------- |
+| securityContext.enabled                  |      false       |    No    | Master switch. When `true`, renders the pod- and container-level `securityContext` blocks.     |
+| securityContext.podSecurityContext       | see `values.yaml`|    No    | Map rendered at `spec.template.spec.securityContext`. Defaults to PSA `restricted` settings.   |
+| securityContext.containerSecurityContext | see `values.yaml`|    No    | Map rendered at each container's/initContainer's `securityContext`. PSA `restricted` defaults. |
+
+Enable with PSA-restricted defaults (UID/GID `1000`):
+
+```bash
+helm upgrade --install plane-app plane/plane-enterprise \
+    --namespace plane \
+    --set securityContext.enabled=true
+```
+
+To pin a specific UID (e.g. `10001`), override the relevant keys:
+
+```yaml
+securityContext:
+  enabled: true
+  podSecurityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+  containerSecurityContext:
+    runAsUser: 10001
+```
+
 ### Docker Registry
 
 | Setting                      | Default              | Required | Description                                                                                                                                                                                                                                                                                                                        |

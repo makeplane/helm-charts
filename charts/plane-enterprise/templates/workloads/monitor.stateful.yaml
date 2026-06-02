@@ -38,8 +38,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.monitor }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - image: {{ .Values.services.monitor.image | default "makeplane/monitor-commercial" }}:{{ .Values.planeVersion }}
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.monitor.pullPolicy | default "Always" }}
         name: {{ .Release.Name }}-monitor
         stdin: true

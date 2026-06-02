@@ -18,8 +18,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.beatworker }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-beat-worker
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy:  {{ .Values.services.api.pullPolicy | default "Always" }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
