@@ -639,3 +639,47 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# OpenTelemetry APM for the Django backend (api, worker, beat-worker,
+# automation-consumer, outbox-poller, migrator). Off by default — when
+# enabled, OTEL env vars are injected into the backend app-vars ConfigMap.
+# Point `endpoint` at any OTLP collector. See docs/otel-api-observability
+# in the plane-ee repo for the full guide.
+observability:
+  otel:
+    enabled: false
+    # Service name reported to your APM backend.
+    serviceName: plane-api
+    # OTLP receiver, e.g. http://otel-collector.<ns>.svc.cluster.local:4317
+    endpoint: ""
+    # grpc | http/protobuf
+    protocol: grpc
+    # Standard OTEL head sampler. Set tracesSamplerArg to "1.0" to capture every request.
+    tracesSampler: parentbased_traceidratio
+    tracesSamplerArg: "0.1"
+    # Extra resource attrs, e.g. "deployment.environment=prod,service.version=v2.6.1"
+    resourceAttributes: ""
+    # Auth headers for SaaS backends (rendered into app-secrets), e.g. "Authorization=Bearer%20<token>"
+    headers: ""
+    # Bundled in-cluster OpenTelemetry Collector. When enabled, the chart deploys
+    # a collector Deployment/Service/ConfigMap and — if `endpoint` above is empty —
+    # the backend auto-targets it. Leave disabled to export to an external
+    # collector (Datadog Agent, Grafana Cloud, an existing cluster collector).
+    collector:
+      enabled: false
+      image: otel/opentelemetry-collector-contrib:0.115.1
+      pullPolicy: IfNotPresent
+      replicas: 1
+      memoryRequest: 128Mi
+      cpuRequest: 100m
+      memoryLimit: 512Mi
+      cpuLimit: 500m
+      # Optional full collector config override (YAML string). When empty, a
+      # default OTLP-in → `debug`-out pipeline is used (good for verifying spans;
+      # replace `debug` with a real exporter for production).
+      config: ""
+      nodeSelector: {}
+      tolerations: []
+      affinity: {}
+      labels: {}
+      annotations: {}
