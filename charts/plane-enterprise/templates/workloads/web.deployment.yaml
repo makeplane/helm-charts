@@ -41,8 +41,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.web }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-web
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.web.pullPolicy | default "Always" }}
         image: {{ .Values.services.web.image | default "makeplane/web-commercial" }}:{{ .Values.planeVersion }}
         stdin: true

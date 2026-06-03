@@ -99,7 +99,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v2.6.0 # or the last released version
+   PLANE_VERSION=v2.6.1 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -155,7 +155,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v2.6.0 <or the last released version>`
+     - `planeVersion: v2.6.1 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
@@ -181,7 +181,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.6.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v2.6.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -209,6 +209,53 @@ airgapped:
     - name: plane-s3-ca      # same as your previous s3SecretName
       key: s3-custom-ca.crt  # same as your previous s3SecretKey
   # s3SecretName and s3SecretKey can be removed after migration
+```
+
+### Pod Security (PSA `restricted`)
+
+Plane's first-party images run as non-root, so the chart can render a hardened
+pod- and container-level `securityContext` that satisfies the Kubernetes
+[Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/)
+`restricted` profile. This is the Helm equivalent of the kustomize
+`nonroot-security-context` component, and is **opt-in** (`securityContext.enabled=false`
+by default) so existing installs are unchanged.
+
+When enabled, the context is applied to all first-party Plane workloads (api, web,
+space, admin, live, worker, beat-worker, automation-consumer, outbox-poller, silo,
+monitor, iframely, runner, pi-api/beat/worker, and the migration Jobs — including
+their busybox init containers).
+
+It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
+minio, opensearch), which use third-party images with their own UID/GID requirements
+and are intended for local/dev use — run those externally in hardened clusters and
+leave `local_setup` off. The email service also keeps its own `securityContext`
+(its image pins UID 100).
+
+| Setting                                  |     Default      | Required | Description                                                                                    |
+| ---------------------------------------- | :--------------: | :------: | ---------------------------------------------------------------------------------------------- |
+| securityContext.enabled                  |      false       |    No    | Master switch. When `true`, renders the pod- and container-level `securityContext` blocks.     |
+| securityContext.podSecurityContext       | see `values.yaml`|    No    | Map rendered at `spec.template.spec.securityContext`. Defaults to PSA `restricted` settings.   |
+| securityContext.containerSecurityContext | see `values.yaml`|    No    | Map rendered at each container's/initContainer's `securityContext`. PSA `restricted` defaults. |
+
+Enable with PSA-restricted defaults (UID/GID `1000`):
+
+```bash
+helm upgrade --install plane-app plane/plane-enterprise \
+    --namespace plane \
+    --set securityContext.enabled=true
+```
+
+To pin a specific UID (e.g. `10001`), override the relevant keys:
+
+```yaml
+securityContext:
+  enabled: true
+  podSecurityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+  containerSecurityContext:
+    runAsUser: 10001
 ```
 
 ### Docker Registry

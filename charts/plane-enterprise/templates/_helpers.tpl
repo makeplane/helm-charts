@@ -18,6 +18,30 @@
   {{- end }}
 {{- end }}
 
+{{/*
+Pod-level securityContext. Rendered only when securityContext.enabled is true.
+Mirrors the kustomize nonroot-security-context component (pod patch).
+Place inside spec.template.spec — call with the root context, e.g.
+  {{- include "plane.podSecurityContext" . }}
+*/}}
+{{- define "plane.podSecurityContext" -}}
+{{- if .Values.securityContext.enabled }}
+      securityContext: {{- toYaml .Values.securityContext.podSecurityContext | nindent 8 }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Container-level securityContext. Rendered only when securityContext.enabled is true.
+Mirrors the kustomize nonroot-security-context component (container patch).
+Place inside a container/initContainer entry — call with the root context, e.g.
+  {{- include "plane.containerSecurityContext" . }}
+*/}}
+{{- define "plane.containerSecurityContext" -}}
+{{- if .Values.securityContext.enabled }}
+        securityContext: {{- toYaml .Values.securityContext.containerSecurityContext | nindent 10 }}
+{{- end }}
+{{- end -}}
+
 {{- define "plane.labelsAndAnnotations" -}}
   {{- with .labels }}
   labels: {{ toYaml . | nindent 4 }}

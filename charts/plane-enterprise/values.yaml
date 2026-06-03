@@ -1,4 +1,4 @@
-planeVersion: v2.6.0
+planeVersion: v2.6.1
 
 dockerRegistry:
   enabled: false
@@ -40,8 +40,12 @@ ingress:
   rabbitmqHost: ''
   ingressClass: 'traefik'
   # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
-  # For nginx ingress controller, you can set the proxy body size limit using annotations. Example:
-  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  # These annotations are ONLY rendered when ingressClass is 'nginx' (the nginx Ingress template is gated on
+  # ingressClass == "nginx"); they have no effect with traefik. Example:
+  # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
+  # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
+  #   "502 upstream sent too big header" errors.
+  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m", "nginx.ingress.kubernetes.io/proxy-buffer-size": "16k" }
   traefik:
     maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
 
@@ -54,6 +58,46 @@ ssl:
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
   generateCerts: false
+
+# ============================================================
+# Pod Security (Kubernetes Pod Security Admission "restricted")
+# ============================================================
+# When enabled, applies a hardened pod- and container-level securityContext to
+# all first-party Plane workloads: api, web, space, admin, live, worker,
+# beat-worker, automation-consumer, outbox-poller, silo, monitor, iframely,
+# runner, pi-api/beat/worker, and the migration Jobs (including their busybox
+# init containers). Plane's images run fine as non-root, so these defaults
+# satisfy the PSA "restricted" profile.
+#
+# NOT applied to:
+#   - The bundled local infrastructure (postgres, redis, rabbitmq, minio,
+#     opensearch): third-party images with their own UID/GID requirements,
+#     intended for local/dev use. In hardened clusters run those externally
+#     (managed RDS, ElastiCache, etc.) and leave local_setup off.
+#   - The email service: its image pins UID 100 and keeps its own securityContext.
+#
+# Mirrors the kustomize `nonroot-security-context` component. Override runAsUser/
+# runAsGroup/fsGroup below if your environment pins a specific UID (e.g. 10001).
+securityContext:
+  enabled: false
+  # Rendered at spec.template.spec.securityContext (pod level).
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # Rendered at each container's / initContainer's securityContext.
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
 services:
   redis:
