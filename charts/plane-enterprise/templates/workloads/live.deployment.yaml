@@ -41,6 +41,7 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CANodeVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
@@ -48,6 +49,7 @@ spec:
       initContainers:
       - name: prepare-ca-bundle
         image: busybox
+        {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
           - -c
@@ -70,6 +72,7 @@ spec:
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-live
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.live.pullPolicy | default "Always" }}
         image: {{ .Values.services.live.image | default "makeplane/live-commercial" }}:{{ .Values.planeVersion }}
         stdin: true

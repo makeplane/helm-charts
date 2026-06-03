@@ -19,8 +19,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.automation_consumer }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-automation-consumer
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true

@@ -59,6 +59,46 @@ ssl:
   email: plane@example.com
   generateCerts: false
 
+# ============================================================
+# Pod Security (Kubernetes Pod Security Admission "restricted")
+# ============================================================
+# When enabled, applies a hardened pod- and container-level securityContext to
+# all first-party Plane workloads: api, web, space, admin, live, worker,
+# beat-worker, automation-consumer, outbox-poller, silo, monitor, iframely,
+# runner, pi-api/beat/worker, and the migration Jobs (including their busybox
+# init containers). Plane's images run fine as non-root, so these defaults
+# satisfy the PSA "restricted" profile.
+#
+# NOT applied to:
+#   - The bundled local infrastructure (postgres, redis, rabbitmq, minio,
+#     opensearch): third-party images with their own UID/GID requirements,
+#     intended for local/dev use. In hardened clusters run those externally
+#     (managed RDS, ElastiCache, etc.) and leave local_setup off.
+#   - The email service: its image pins UID 100 and keeps its own securityContext.
+#
+# Mirrors the kustomize `nonroot-security-context` component. Override runAsUser/
+# runAsGroup/fsGroup below if your environment pins a specific UID (e.g. 10001).
+securityContext:
+  enabled: false
+  # Rendered at spec.template.spec.securityContext (pod level).
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # Rendered at each container's / initContainer's securityContext.
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
 services:
   redis:
     local_setup: true

@@ -38,8 +38,10 @@ spec:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.iframely }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-iframely
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
         image: {{ .Values.services.iframely.image | default "makeplane/iframely:v1.2.0" }}
         stdin: true
