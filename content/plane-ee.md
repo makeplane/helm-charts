@@ -99,7 +99,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v2.6.1 # or the last released version
+   PLANE_VERSION=v2.6.2 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -155,7 +155,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v2.6.1 <or the last released version>`
+     - `planeVersion: v2.6.2 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
@@ -181,7 +181,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.6.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v2.6.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -209,6 +209,53 @@ airgapped:
     - name: plane-s3-ca      # same as your previous s3SecretName
       key: s3-custom-ca.crt  # same as your previous s3SecretKey
   # s3SecretName and s3SecretKey can be removed after migration
+```
+
+### Pod Security (PSA `restricted`)
+
+Plane's first-party images run as non-root, so the chart can render a hardened
+pod- and container-level `securityContext` that satisfies the Kubernetes
+[Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/)
+`restricted` profile. This is the Helm equivalent of the kustomize
+`nonroot-security-context` component, and is **opt-in** (`securityContext.enabled=false`
+by default) so existing installs are unchanged.
+
+When enabled, the context is applied to all first-party Plane workloads (api, web,
+space, admin, live, worker, beat-worker, automation-consumer, outbox-poller, silo,
+monitor, iframely, runner, pi-api/beat/worker, and the migration Jobs — including
+their busybox init containers).
+
+It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
+minio, opensearch), which use third-party images with their own UID/GID requirements
+and are intended for local/dev use — run those externally in hardened clusters and
+leave `local_setup` off. The email service also keeps its own `securityContext`
+(its image pins UID 100).
+
+| Setting                                  |     Default      | Required | Description                                                                                    |
+| ---------------------------------------- | :--------------: | :------: | ---------------------------------------------------------------------------------------------- |
+| securityContext.enabled                  |      false       |    No    | Master switch. When `true`, renders the pod- and container-level `securityContext` blocks.     |
+| securityContext.podSecurityContext       | see `values.yaml`|    No    | Map rendered at `spec.template.spec.securityContext`. Defaults to PSA `restricted` settings.   |
+| securityContext.containerSecurityContext | see `values.yaml`|    No    | Map rendered at each container's/initContainer's `securityContext`. PSA `restricted` defaults. |
+
+Enable with PSA-restricted defaults (UID/GID `1000`):
+
+```bash
+helm upgrade --install plane-app plane/plane-enterprise \
+    --namespace plane \
+    --set securityContext.enabled=true
+```
+
+To pin a specific UID (e.g. `10001`), override the relevant keys:
+
+```yaml
+securityContext:
+  enabled: true
+  podSecurityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+  containerSecurityContext:
+    runAsUser: 10001
 ```
 
 ### Docker Registry
@@ -479,6 +526,11 @@ airgapped:
 | services.silo.connectors.gitlab.enabled       |                    false                     |                                                                 | Gitlab App Integration                                                                                                                                                                                          |
 | services.silo.connectors.gitlab.client_id     |                      ""                      | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client ID                                                                                                                                                                                                |
 | services.silo.connectors.gitlab.client_secret |                      ""                      | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client Secret                                                                                                                                                                                            |
+| services.silo.connectors.sentry.enabled       |                    false                     |                                                                 | Sentry App Integration                                                                                                                                                                                          |
+| services.silo.connectors.sentry.base_url      |                      ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Base URL                                                                                                                                                                                                 |
+| services.silo.connectors.sentry.client_id     |                      ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Client ID                                                                                                                                                                                                |
+| services.silo.connectors.sentry.client_secret |                      ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Client Secret                                                                                                                                                                                            |
+| services.silo.connectors.sentry.integration_slug |                   ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Integration Slug                                                                                                                                                                                         |
 | env.silo_envs.mq_prefetch_count               |                      10                      |                                                                 | Prefetch count for RabbitMQ                                                                                                                                                                                     |
 | env.silo_envs.batch_size                      |                      60                      |                                                                 | Batch size for Silo                                                                                                                                                                                             |
 | env.silo_envs.request_interval                |                     400                      |                                                                 | Request interval for Silo                                                                                                                                                                                       |
@@ -771,6 +823,10 @@ To configure the external secrets for your application, you need to define speci
 |                          | `SLACK_CLIENT_SECRET`   | required if `services.silo.connectors.slack.enabled` is `true`  | Slack client secret key                     | `your_slack_client_secret_key`                                                                                                                                                                       |
 |                          | `GITLAB_CLIENT_ID`      | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client ID                            | `your_gitlab_client_id`                                                                                                                                                                              |
 |                          | `GITLAB_CLIENT_SECRET`  | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client secret key                    | `your_gitlab_client_secret_key`                                                                                                                                                                      |
+|                          | `SENTRY_BASE_URL`       | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry base URL                             | `your_sentry_base_url`                                                                                                                                                                               |
+|                          | `SENTRY_CLIENT_ID`      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry client ID                            | `your_sentry_client_id`                                                                                                                                                                              |
+|                          | `SENTRY_CLIENT_SECRET`  | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry client secret key                    | `your_sentry_client_secret_key`                                                                                                                                                                      |
+|                          | `SENTRY_INTEGRATION_SLUG` | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry integration slug                   | `your_sentry_integration_slug`                                                                                                                                                                       |
 | pi_api_env_existingSecret   | `PLANE_PI_DATABASE_URL` | Yes (if `services.pi.enabled=true`)                             | PostgreSQL connection URL for Plane AI (PI) database   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local/plane_pi` <br> <br>**external**: `postgresql://username:password@your-db-host:5432/plane_pi`                  |
 |                          | `AMQP_URL`             | Yes (if `services.pi.enabled=true`)                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external**: `amqp://username:password@your-rabbitmq-host:5672/`                              |
 |                          | `AES_SECRET_KEY`       | Yes (if `services.pi.enabled=true`)                             | AES secret key for Plane AI (PI)                       | `dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr` (or your own value)                                                                                                                                               |
