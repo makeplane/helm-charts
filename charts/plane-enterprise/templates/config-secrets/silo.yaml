@@ -47,6 +47,12 @@ stringData:
   GITLAB_CLIENT_SECRET: {{ .Values.services.silo.connectors.gitlab.client_secret | default "" | quote }}
   GITLAB_CLIENT_ID: {{ .Values.services.silo.connectors.gitlab.client_id | default "" | quote }}
   {{- end }}
+  {{- if .Values.services.silo.connectors.sentry.enabled }}
+  SENTRY_BASE_URL: {{ .Values.services.silo.connectors.sentry.base_url | default "" | quote }}
+  SENTRY_CLIENT_ID: {{ .Values.services.silo.connectors.sentry.client_id | default "" | quote }}
+  SENTRY_CLIENT_SECRET: {{ .Values.services.silo.connectors.sentry.client_secret | default "" | quote }}
+  SENTRY_INTEGRATION_SLUG: {{ .Values.services.silo.connectors.sentry.integration_slug | default "" | quote }}
+  {{- end }}
 {{- end }}
 ---
 {{- if .Values.services.silo.enabled }}

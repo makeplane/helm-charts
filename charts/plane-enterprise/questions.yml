@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.6.1
+  default: v2.6.2
   required: true
   group: "Docker Registry"
   subquestions:
@@ -388,6 +388,30 @@ questions:
     default: ""
   - variable: services.silo.connectors.gitlab.client_secret
     label: "Gitlab Client Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.sentry.enabled
+  label: "Sentry App Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.sentry.base_url
+    label: "Sentry Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.client_id
+    label: "Sentry Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.client_secret
+    label: "Sentry Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.integration_slug
+    label: "Sentry Integration Slug"
     type: string
     default: ""
 

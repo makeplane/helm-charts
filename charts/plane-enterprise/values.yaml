@@ -1,4 +1,4 @@
-planeVersion: v2.6.1
+planeVersion: v2.6.2
 
 dockerRegistry:
   enabled: false
@@ -95,7 +95,7 @@ securityContext:
     runAsUser: 1000
     capabilities:
       drop:
-        - ALL
+      - ALL
     seccompProfile:
       type: RuntimeDefault
 
@@ -343,6 +343,12 @@ services:
         enabled: false
         client_id: ''
         client_secret: ''
+      sentry:
+        enabled: false
+        base_url: ''
+        client_id: ''
+        client_secret: ''
+        integration_slug: ''
 
   email_service:
     enabled: false
