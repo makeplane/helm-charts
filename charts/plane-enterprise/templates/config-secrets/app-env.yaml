@@ -67,6 +67,8 @@ data:
   ENABLE_READ_REPLICA: {{ .Values.services.postgres.read_replica.enabled | default false | ternary "1" "0" | quote }}
   INTAKE_EMAIL_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
 
+  DRAWIO_EMBED_URL: {{ .Values.env.drawio_embed_url | default "" | quote }}
+
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}
   SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
   DEBUG: "0"

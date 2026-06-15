@@ -526,6 +526,10 @@ env:
   allow_all_attachment_types: false
   enable_drf_spectacular: false
 
+  # Self-hosted drawio endpoint for the Wiki editor's diagram extension.
+  # Leave empty to use the diagrams.net cloud.
+  drawio_embed_url: ''
+
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
   opensearch_remote_username: ''
