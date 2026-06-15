@@ -517,6 +517,11 @@ questions:
     label: "Web URL"
     type: string
     default: ""
+  - variable: env.drawio_embed_url
+    label: "Drawio Embed URL"
+    description: "Self-hosted drawio endpoint for the Wiki editor's diagram extension. Leave empty to use the diagrams.net cloud."
+    type: string
+    default: ""
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
