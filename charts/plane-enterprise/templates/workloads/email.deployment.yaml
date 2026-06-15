@@ -44,7 +44,9 @@ spec:
       labels:
        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app 
       annotations:  
+        {{- if not $.Values.gitops.enabled }}
         timestamp: {{ now | quote }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.email_service }}
       containers:

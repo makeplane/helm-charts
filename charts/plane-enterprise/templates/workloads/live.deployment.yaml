@@ -38,7 +38,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
       annotations:
+        {{- if not $.Values.gitops.enabled }}
         timestamp: {{ now | quote }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live }}
       {{- include "plane.podSecurityContext" . }}
