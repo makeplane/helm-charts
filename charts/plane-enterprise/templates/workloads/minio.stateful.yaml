@@ -1,4 +1,4 @@
-{{- if .Values.services.minio.local_setup }}
+{{- if eq (include "plane.minioEnabled" .) "true" }}
 
 apiVersion: v1
 kind: Service

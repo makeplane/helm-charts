@@ -96,7 +96,7 @@ spec:
         port: 8000
   {{- end }}
 
-  {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
+  {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
     kind: Rule
     middlewares:

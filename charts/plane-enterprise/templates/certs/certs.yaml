@@ -8,7 +8,7 @@ metadata:
 spec:
   dnsNames:
   - {{ .Values.license.licenseDomain | quote }}
-  {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
+  {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
   - {{ .Values.ingress.minioHost | quote }}
   {{- end }}
   {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}

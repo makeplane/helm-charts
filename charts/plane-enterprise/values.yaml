@@ -516,11 +516,28 @@ env:
   docstore_bucket: uploads
   doc_upload_size_limit: '5242880' # 5MB
 
+  # Storage backend selection: 'S3' (default; covers MinIO and S3-compatible
+  # services) or 'GCS' (Google Cloud Storage native mode).
+  storage_provider: 'S3'
+
   # REQUIRED IF MINIO LOCAL SETUP IS FALSE
   aws_access_key: ''
   aws_secret_access_key: ''
   aws_region: ''
   aws_s3_endpoint_url: ''
+
+  # GCS (Google Cloud Storage) — used only when storage_provider is 'GCS'.
+  # When using GCS, set use_storage_proxy: true so browser uploads are proxied
+  # server-side through the API (the bucket then needs no CORS configuration).
+  # Defaults to docstore_bucket when left empty.
+  gcs_bucket_name: ''
+  gcs_project_id: ''
+  # Credentials are resolved in this order (first match wins):
+  #   1. gcs_credentials_json — inline service-account JSON (stored in a Secret)
+  #   2. gcs_credentials_path  — path to a service-account file you mount yourself
+  #   3. neither — Application Default Credentials (e.g. GKE Workload Identity)
+  gcs_credentials_json: ''
+  gcs_credentials_path: ''
 
   use_storage_proxy: false
   allow_all_attachment_types: false
