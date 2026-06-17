@@ -1364,6 +1364,40 @@ questions:
     default: false
     show_if: "services.minio.local_setup=true"
 
+- variable: env.storage_provider
+  label: "Storage Provider"
+  description: "S3 (default; covers MinIO and S3-compatible services) or GCS (Google Cloud Storage native mode)."
+  type: enum
+  options:
+  - "S3"
+  - "GCS"
+  default: "S3"
+  group: "Storage Setup"
+  subquestions:
+  - variable: env.gcs_bucket_name
+    label: "GCS Bucket Name"
+    description: "Falls back to the Doc Store bucket name when left empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_project_id
+    label: "GCP Project ID"
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_json
+    label: "GCS Service Account JSON"
+    description: "Inline service-account JSON. Highest-priority credential source. Leave empty to use a mounted file path or GKE Workload Identity."
+    type: password
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_path
+    label: "GCS Credentials File Path"
+    description: "In-container path to a service-account file you mount yourself (e.g. /etc/gcs/service-account.json). Used when the inline JSON is empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+
 - variable: ingress.enabled
   label: "Enable Ingress"
   type: boolean

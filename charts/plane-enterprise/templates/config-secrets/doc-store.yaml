@@ -8,7 +8,22 @@ metadata:
 stringData:
   FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "20971520" | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
-  {{- if .Values.services.minio.local_setup }}
+  STORAGE_PROVIDER: {{ .Values.env.storage_provider | default "S3" | quote }}
+  {{- if eq (.Values.env.storage_provider | default "S3" | upper) "GCS" }}
+  # Google Cloud Storage (GCS) native mode. Browser uploads are proxied through
+  # the API (set env.use_storage_proxy=true), so the bucket needs no CORS config.
+  USE_MINIO: "0"
+  GCS_BUCKET_NAME: {{ .Values.env.gcs_bucket_name | default .Values.env.docstore_bucket | default "" | quote }}
+  {{- with .Values.env.gcs_project_id }}
+  GCS_PROJECT_ID: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.gcs_credentials_path }}
+  GCS_CREDENTIALS_PATH: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.gcs_credentials_json }}
+  GCS_CREDENTIALS_JSON: {{ . | quote }}
+  {{- end }}
+  {{- else if .Values.services.minio.local_setup }}
   USE_MINIO: "1"
   MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | quote }}
   MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | quote}}
