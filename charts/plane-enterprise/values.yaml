@@ -613,3 +613,26 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# OpenTelemetry APM (self-hoster observability) for the Django backend.
+# When enabled, the non-secret vars are injected into the {{ .Release.Name }}-app-vars
+# ConfigMap and the auth header into the {{ .Release.Name }}-app-secrets Secret, so the
+# api/worker/beat-worker containers pick them up via envFrom. Off by default.
+# See apps/api/docs/otel-api-observability/README.md for the full guide.
+observability:
+  otel:
+    enabled: false
+    # Service identifier shown in your APM backend.
+    serviceName: plane-api
+    # Your OTLP receiver. For SigNoz Cloud use https://ingest.<region>.signoz.cloud:443
+    endpoint: ""
+    # grpc (default) or http/protobuf.
+    protocol: grpc
+    tracesSampler: parentbased_traceidratio
+    # 0.1 = 10% head sampling. Set to "1.0" to capture every request while testing.
+    tracesSamplerArg: "0.1"
+    # Extra resource attrs, e.g. "deployment.environment=prod,service.version=v2.6.1".
+    resourceAttributes: ""
+    # Auth header(s) for SaaS backends, OTEL "k1=v1,k2=v2" format. Stored in the
+    # app-secrets Secret. SigNoz Cloud: "signoz-ingestion-key=<your-key>".
+    headers: ""

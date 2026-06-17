@@ -43,6 +43,10 @@ stringData:
   {{- if include "plane.s3CAEnabled" . }}
   AWS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
   {{- end }}
+
+  {{- if and .Values.observability.otel.enabled .Values.observability.otel.headers }}
+  OTEL_EXPORTER_OTLP_HEADERS: {{ .Values.observability.otel.headers | quote }}
+  {{- end }}
 {{- end }}
 ---
 
@@ -103,4 +107,16 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+  {{- end }}
+
+  {{- if .Values.observability.otel.enabled }}
+  OTEL_ENABLED: "1"
+  OTEL_SERVICE_NAME: {{ .Values.observability.otel.serviceName | default "plane-api" | quote }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otel.endpoint | default "" | quote }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otel.protocol | default "grpc" | quote }}
+  OTEL_TRACES_SAMPLER: {{ .Values.observability.otel.tracesSampler | default "parentbased_traceidratio" | quote }}
+  OTEL_TRACES_SAMPLER_ARG: {{ .Values.observability.otel.tracesSamplerArg | default "0.1" | quote }}
+  {{- if .Values.observability.otel.resourceAttributes }}
+  OTEL_RESOURCE_ATTRIBUTES: {{ .Values.observability.otel.resourceAttributes | quote }}
+  {{- end }}
   {{- end }}
