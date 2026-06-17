@@ -52,6 +52,19 @@ Place inside a container/initContainer entry — call with the root context, e.g
 {{- end }}
 
 {{/*
+Returns "true" when the bundled MinIO should be deployed.
+MinIO is deployed only when services.minio.local_setup is enabled AND the storage
+provider is not GCS — GCS native mode never uses the bundled MinIO, so selecting it
+must disable the MinIO StatefulSet, bucket job, ingress routes and certs regardless
+of the local_setup flag's value.
+*/}}
+{{- define "plane.minioEnabled" -}}
+  {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
 Returns "true" when airgapped is enabled and at least one CA secret is configured.
 */}}
