@@ -1505,3 +1505,76 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+
+- variable: observability.otel.enabled
+  label: "Enable OpenTelemetry"
+  description: "Export traces, logs and metrics from the backend services over OTLP. Off by default."
+  type: boolean
+  default: false
+  group: "OpenTelemetry"
+  show_subquestion_if: true
+  subquestions:
+  - variable: observability.otel.endpoint
+    label: "OTLP Endpoint"
+    description: "OTLP collector endpoint. An https:// endpoint uses secure gRPC."
+    type: string
+    default: ""
+  - variable: observability.otel.protocol
+    label: "OTLP Protocol"
+    type: enum
+    options:
+    - "grpc"
+    - "http/protobuf"
+    default: "grpc"
+  - variable: observability.otel.headers
+    label: "OTLP Exporter Headers"
+    description: "Extra OTLP exporter headers as k1=v1,k2=v2 (e.g. a collector ingestion/auth key)."
+    type: string
+    default: ""
+  - variable: observability.otel.environment
+    label: "Deployment Environment"
+    description: "Emitted as deployment.environment.name (e.g. prod, staging). Use for cross-service environment filtering."
+    type: string
+    default: ""
+  - variable: observability.otel.resourceAttributes
+    label: "Extra Resource Attributes"
+    description: "Additional OTel resource attributes as k1=v1,k2=v2 (merged after environment)."
+    type: string
+    default: ""
+  - variable: observability.otel.sampler
+    label: "Trace Sampler"
+    description: "always_on captures every trace (recommended for test/debug). In production use parentbased_traceidratio; unlike always_on it honours an upstream traceparent's sampling decision."
+    type: enum
+    options:
+    - "always_on"
+    - "parentbased_traceidratio"
+    - "traceidratio"
+    - "always_off"
+    default: "always_on"
+  - variable: observability.otel.samplerArg
+    label: "Trace Sampler Ratio"
+    description: "Sampling ratio 0.0-1.0 for ratio-based samplers. Ignored by always_on."
+    type: string
+    default: "1.0"
+    show_if: "observability.otel.sampler=parentbased_traceidratio || observability.otel.sampler=traceidratio"
+  - variable: observability.otel.debugConsole
+    label: "Print Spans to Stdout (debug)"
+    type: boolean
+    default: false
+  - variable: observability.otel.frontend.enabled
+    label: "Enable Browser Tracing"
+    description: "Browser tracing for web/admin/space, served to browsers by the API."
+    type: boolean
+    default: false
+  - variable: observability.otel.frontend.endpoint
+    label: "Browser OTLP Endpoint"
+    description: "Public OTLP/HTTP endpoint the browser posts to (must be internet-reachable and CORS-enabled)."
+    type: string
+    default: ""
+    show_if: "observability.otel.frontend.enabled=true"
+  - variable: observability.otel.frontend.headers
+    label: "Browser OTLP Headers"
+    description: "A non-empty value forces the browser exporter onto XHR (required cross-origin; sendBeacon fails CORS)."
+    type: string
+    default: "x-otlp-browser=1"
+    show_if: "observability.otel.frontend.enabled=true"
