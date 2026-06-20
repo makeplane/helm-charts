@@ -208,3 +208,35 @@ Caller must nindent to the correct depth.
   value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
 {{- end -}}
+
+{{/*
+OpenTelemetry — returns "true" when observability.otel.enabled is set, else "".
+*/}}
+{{- define "plane.otel.enabled" -}}
+{{- if and .Values.observability .Values.observability.otel .Values.observability.otel.enabled -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+envFrom entry for the shared OTEL ConfigMap. Call with the root context and
+nindent to the envFrom list depth, e.g.
+  {{- include "plane.otel.envFrom" $ | nindent 10 }}
+*/}}
+{{- define "plane.otel.envFrom" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+- configMapRef:
+    name: {{ .Release.Name }}-otel-vars
+    optional: false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Per-workload OTEL_SERVICE_NAME (overrides the shared ConfigMap so each workload
+reports its own service.name). Call with a dict and nindent, e.g.
+  {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "api") | nindent 10 }}
+*/}}
+{{- define "plane.otel.serviceEnv" -}}
+{{- if eq (include "plane.otel.enabled" .ctx) "true" -}}
+- name: OTEL_SERVICE_NAME
+  value: {{ .service | quote }}
+{{- end -}}
+{{- end -}}

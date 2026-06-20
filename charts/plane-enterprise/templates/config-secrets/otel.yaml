@@ -1,0 +1,42 @@
+{{- if eq (include "plane.otel.enabled" .) "true" }}
+# Shared OpenTelemetry env for the backend workloads. Mounted via envFrom; each
+# workload additionally sets an inline OTEL_SERVICE_NAME (see plane.otel.serviceEnv).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-otel-vars
+data:
+  OTEL_ENABLED: "1"
+  {{- with .Values.observability.otel.endpoint }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otel.protocol | default "grpc" | quote }}
+  {{- with .Values.observability.otel.headers }}
+  OTEL_EXPORTER_OTLP_HEADERS: {{ . | quote }}
+  {{- end }}
+  {{- $parts := list }}
+  {{- with .Values.observability.otel.environment }}{{- $parts = append $parts (printf "deployment.environment.name=%s" .) }}{{- end }}
+  {{- with .Values.observability.otel.resourceAttributes }}{{- $parts = append $parts . }}{{- end }}
+  {{- if $parts }}
+  OTEL_RESOURCE_ATTRIBUTES: {{ join "," $parts | quote }}
+  {{- end }}
+  {{- if .Values.observability.otel.debugConsole }}
+  OTEL_DEBUG_CONSOLE: "1"
+  {{- end }}
+  {{- with .Values.observability.otel.sampler }}
+  OTEL_TRACES_SAMPLER: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.observability.otel.samplerArg }}
+  OTEL_TRACES_SAMPLER_ARG: {{ . | quote }}
+  {{- end }}
+  {{- if .Values.observability.otel.frontend.enabled }}
+  FRONTEND_OTEL_ENABLED: "1"
+  {{- with .Values.observability.otel.frontend.endpoint }}
+  FRONTEND_OTLP_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.observability.otel.frontend.headers }}
+  FRONTEND_OTLP_HEADERS: {{ . | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

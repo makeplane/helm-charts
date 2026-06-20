@@ -636,3 +636,46 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# OpenTelemetry (traces + logs + metrics). Off by default. When enabled, a shared
+# ConfigMap (<release>-otel-vars) is mounted via envFrom into the backend
+# workloads (api, worker, beat-worker, automation-consumer, outbox-poller, silo,
+# live, space, pi-api, pi-beat, pi-worker), and each gets an inline
+# OTEL_SERVICE_NAME so it reports its own service.name. web/admin are NOT wired:
+# their only OTel is browser tracing, configured from the API's instance config
+# via the frontend.* keys below — not per-workload env.
+observability:
+  otel:
+    enabled: false
+    # OTLP collector endpoint. An https:// endpoint => secure gRPC.
+    endpoint: ''
+    protocol: grpc
+    # Extra OTLP exporter headers, "k1=v1,k2=v2" (e.g. a collector ingestion key).
+    headers: ''
+    # Deployment environment tag. Emitted as deployment.environment.name (the
+    # CURRENT semconv key — matches the node/pi/browser services for cross-service
+    # filtering). Leave blank to omit.
+    environment: ''
+    # Any additional resource attributes, "k1=v1,k2=v2" (merged after environment).
+    resourceAttributes: ''
+    # Print spans to stdout (debug only).
+    debugConsole: false
+    # Trace sampler. always_on = export every span the service sees and, unlike
+    # parentbased_*, does NOT defer to an upstream traceparent's sampled flag — so
+    # browser-initiated POST/user-action traces aren't silently dropped (the "only
+    # GET shows up" symptom). For prod use parentbased_traceidratio with a ratio
+    # AND ensure browser tracing samples consistently. samplerArg is ignored by
+    # always_on.
+    sampler: always_on
+    samplerArg: '1.0'
+    # Browser/client tracing for web/admin/space — served to browsers by the API
+    # (read only by the API container). Turns on when enabled AND endpoint is set.
+    frontend:
+      enabled: false
+      # PUBLIC OTLP/HTTP endpoint the browser posts to (must be internet-reachable
+      # and CORS-enabled for the Plane web origin; the client appends /v1/traces).
+      endpoint: ''
+      # A non-empty header is REQUIRED cross-origin: it forces the web exporter
+      # onto XHR instead of navigator.sendBeacon (sendBeacon sends credentials,
+      # which CORS rejects against a wildcard ACAO). Value is arbitrary.
+      headers: 'x-otlp-browser=1'
