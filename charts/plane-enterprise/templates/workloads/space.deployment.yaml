@@ -56,9 +56,16 @@ spec:
           limits:
             memory: {{ .Values.services.space.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.space.cpuLimit | default "500m" | quote}}
-        {{- if .Values.extraEnv }}
+        {{- if eq (include "plane.otel.enabled" .) "true" }}
+        envFrom:
+          {{- include "plane.otel.envFrom" $ | nindent 10 }}
+        {{- end }}
+        {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") }}
         env:
+          {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "space") | nindent 10 }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account

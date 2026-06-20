@@ -53,9 +53,13 @@ spec:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
           {{- end }}
-        {{- if .Values.extraEnv }}
+          {{- include "plane.otel.envFrom" $ | nindent 10 }}
+        {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") }}
         env:
+          {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "beat-worker") | nindent 10 }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
 
       serviceAccount: {{ .Release.Name }}-srv-account

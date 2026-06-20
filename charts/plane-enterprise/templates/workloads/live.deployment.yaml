@@ -94,11 +94,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- include "plane.otel.envFrom" $ | nindent 10 }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live") | nindent 10 }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
