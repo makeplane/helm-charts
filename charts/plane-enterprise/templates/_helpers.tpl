@@ -65,13 +65,41 @@ of the local_setup flag's value.
 {{- end -}}
 
 {{/*
-Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
-Returns "true" when airgapped is enabled and at least one CA secret is configured.
+Returns "true" when at least one custom CA secret is configured, in either the
+top-level `customCA` section or the legacy `airgapped` keys. This is decoupled
+from `airgapped.enabled` so custom CA certs can be mounted in non-airgapped
+deployments (e.g. an S3-compatible endpoint that uses a private CA).
 */}}
 {{- define "plane.s3CAEnabled" -}}
-  {{- if and .Values.airgapped.enabled (or (gt (len .Values.airgapped.s3Secrets) 0) (and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey)) -}}
+  {{- if or (gt (len .Values.customCA.s3Secrets) 0) (and .Values.customCA.s3SecretName .Values.customCA.s3SecretKey) (gt (len .Values.airgapped.s3Secrets) 0) (and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey) -}}
     true
   {{- end -}}
+{{- end -}}
+
+{{/*
+Resolve the effective list of CA secrets and render them as projected-volume sources.
+Precedence: customCA.s3Secrets > customCA single secret > airgapped.s3Secrets > airgapped single secret.
+Single-secret (legacy) configs are normalized into the same { name, key } shape.
+Output starts at column 0; caller controls indentation (e.g. nindent).
+*/}}
+{{- define "plane.s3CAProjectedSources" -}}
+{{- $secrets := list -}}
+{{- if gt (len .Values.customCA.s3Secrets) 0 -}}
+  {{- $secrets = .Values.customCA.s3Secrets -}}
+{{- else if and .Values.customCA.s3SecretName .Values.customCA.s3SecretKey -}}
+  {{- $secrets = list (dict "name" .Values.customCA.s3SecretName "key" .Values.customCA.s3SecretKey) -}}
+{{- else if gt (len .Values.airgapped.s3Secrets) 0 -}}
+  {{- $secrets = .Values.airgapped.s3Secrets -}}
+{{- else if and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey -}}
+  {{- $secrets = list (dict "name" .Values.airgapped.s3SecretName "key" .Values.airgapped.s3SecretKey) -}}
+{{- end -}}
+{{- range $secrets }}
+- secret:
+    name: {{ .name }}
+    items:
+      - key: {{ .key }}
+        path: {{ .key }}
+{{- end }}
 {{- end -}}
 
 {{/*
@@ -86,21 +114,7 @@ volumes:
   - name: s3-custom-ca
     projected:
       sources:
-      {{- if gt (len .Values.airgapped.s3Secrets) 0 }}
-      {{- range .Values.airgapped.s3Secrets }}
-      - secret:
-          name: {{ .name }}
-          items:
-            - key: {{ .key }}
-              path: {{ .key }}
-      {{- end }}
-      {{- else }}
-      - secret:
-          name: {{ .Values.airgapped.s3SecretName }}
-          items:
-            - key: {{ .Values.airgapped.s3SecretKey }}
-              path: {{ .Values.airgapped.s3SecretKey }}
-      {{- end }}
+        {{- include "plane.s3CAProjectedSources" . | trim | nindent 8 }}
 {{- end }}
 {{- end -}}
 
@@ -164,21 +178,7 @@ volumes:
   - name: s3-custom-ca
     projected:
       sources:
-      {{- if gt (len .Values.airgapped.s3Secrets) 0 }}
-      {{- range .Values.airgapped.s3Secrets }}
-      - secret:
-          name: {{ .name }}
-          items:
-            - key: {{ .key }}
-              path: {{ .key }}
-      {{- end }}
-      {{- else }}
-      - secret:
-          name: {{ .Values.airgapped.s3SecretName }}
-          items:
-            - key: {{ .Values.airgapped.s3SecretKey }}
-              path: {{ .Values.airgapped.s3SecretKey }}
-      {{- end }}
+        {{- include "plane.s3CAProjectedSources" . | trim | nindent 8 }}
   - name: ca-bundle
     emptyDir: {}
 {{- end }}
