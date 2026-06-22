@@ -14,9 +14,20 @@ license:
 
 airgapped:
   enabled: false
-  # The boto module used by API does not use the CA bundles in the container, so we need to
-  # mount the CA bundle into the API pod by passing it in as an environment
-  # variable.
+  # DEPRECATED: custom S3 CA configuration has moved to the top-level `customCA`
+  # section and no longer requires airgapped mode. These keys are still honored
+  # as a fallback for backward compatibility - prefer `customCA.*` going forward.
+  s3Secrets: []
+  s3SecretName: ""
+  s3SecretKey: ""
+
+# Custom CA certificates for object storage / S3-compatible endpoints whose
+# certificates are signed by a private or internal CA. This is independent of
+# `airgapped.enabled` - set it whenever your storage endpoint presents a custom
+# CA, including non-airgapped deployments.
+# The boto module used by the API does not use the OS CA bundle, so the chart
+# mounts these certs into the relevant pods and points the runtime at them.
+customCA:
   # Preferred: list of Kubernetes Secrets containing CA certificates (supports multiple certs).
   # Example:
   # s3Secrets:
@@ -26,8 +37,8 @@ airgapped:
   #     key: s3-custom-ca-2.crt
   s3Secrets: []
 
-  # Deprecated (backward compatibility): use a single secret for custom S3 CA.
-  # If set, used when s3Secrets is empty. Prefer migrating to s3Secrets.
+  # Single-secret form (backward compatible). Used only when s3Secrets is empty.
+  # Prefer migrating to s3Secrets.
   # Example:
   # s3SecretName: plane-s3-ca
   # s3SecretKey: s3-custom-ca.crt
