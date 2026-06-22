@@ -14,41 +14,17 @@ license:
 
 airgapped:
   enabled: false
-  # The boto module used by API does not use the CA bundles in the container, so we need to
-  # mount the CA bundle into the API pod by passing it in as an environment
-  # variable.
-  #
-  # Despite the name, these certificates are not limited to S3. They are installed
-  # into the system trust store of api, external-api, worker, worker-importers and
-  # the pi-* workloads, and concatenated into NODE_EXTRA_CA_CERTS for live and silo,
-  # so they cover any outbound TLS those services do against a private CA. Both the
-  # standard (Alpine/Debian) and FIPS (UBI) images are supported; the trust tool is
-  # detected at runtime.
-  #
-  # Each certificate is also mounted verbatim at /s3-custom-ca/<key>, which is what
-  # a component reading its own CA file wants. LDAP, for example, is configured
-  # separately because OpenLDAP does not read the system store:
-  #
-  #   extraEnv:
-  #     - name: LDAP_TLS_REQUIRE_CERT
-  #       value: "demand"
-  #     - name: LDAP_TLS_CA_CERTFILE
-  #       value: "/s3-custom-ca/corp-ca.crt"
-  #
-  # Preferred: list of Kubernetes Secrets containing CA certificates (supports multiple certs).
-  # Example:
-  # s3Secrets:
-  #   - name: plane-s3-ca
-  #     key: s3-custom-ca.crt
-  #   - name: plane-s3-ca-2
-  #     key: s3-custom-ca-2.crt
+  # DEPRECATED: use the top-level `customCA` instead. Still honored as a fallback.
   s3Secrets: []
+  s3SecretName: ""
+  s3SecretKey: ""
 
-  # Deprecated (backward compatibility): use a single secret for custom S3 CA.
-  # If set, used when s3Secrets is empty. Prefer migrating to s3Secrets.
-  # Example:
-  # s3SecretName: plane-s3-ca
-  # s3SecretKey: s3-custom-ca.crt
+# Private/internal CA certificates to trust for outbound TLS (S3, Git, IdP, ...).
+# Works with or without airgapped mode. Each cert is also mounted at /s3-custom-ca/<key>.
+customCA:
+  # List of Secrets holding CA certs, e.g. [{name: corp-ca, key: ca.crt}].
+  s3Secrets: []
+  # Single-secret form, used only when s3Secrets is empty.
   s3SecretName: ""
   s3SecretKey: ""
 
