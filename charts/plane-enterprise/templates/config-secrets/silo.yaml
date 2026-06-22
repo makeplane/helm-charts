@@ -6,6 +6,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "gzb7MRLr0FoN129NyWARZEs84P9LzQ" | quote }}
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
@@ -61,6 +63,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   PORT: "3000"
   BATCH_SIZE: {{ .Values.env.silo_envs.batch_size | default 100 | quote }}

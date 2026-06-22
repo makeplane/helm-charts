@@ -6,6 +6,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   {{- if .Values.services.postgres.local_setup }}
   PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pg_pi_db_name }}"
@@ -71,6 +73,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   DEBUG: {{ if .Values.env.pi_envs.debug | default false }} "1" {{- else -}} "0" {{ end }}
   LOG_LEVEL: {{ .Values.env.pi_envs.log_level | default "DEBUG" | quote }}
