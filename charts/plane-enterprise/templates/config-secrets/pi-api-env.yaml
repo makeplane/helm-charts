@@ -63,7 +63,7 @@ stringData:
 
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
 
-  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
+  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "change-to-top-secret" | quote }}
 {{- end }}
 ---
 
