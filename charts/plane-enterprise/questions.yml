@@ -1420,7 +1420,7 @@ questions:
     label: "Ingress Classname"
     type: string
     required: true
-    default: "nginx"
+    default: "traefik"
     show_if: "ingress.enabled=true"
 
 - variable: ssl.createIssuer

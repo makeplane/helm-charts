@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "traefik") }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

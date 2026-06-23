@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "traefik") .Values.license.licenseDomain }}
 
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
