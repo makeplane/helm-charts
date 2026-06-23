@@ -564,7 +564,7 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
-  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  live_server_secret_key: "change-to-top-secret"
   external_iframely_url: ""
 
   silo_envs:
@@ -574,7 +574,7 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
-    hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
+    hmac_secret_key: 'change-to-top-secret'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
 
@@ -617,7 +617,7 @@ env:
     plane_api_host: ''
     follower_postgres_uri: ''
     cors_allowed_origins: ''
-    internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
+    internal_secret: 'change-to-top-secret'
     log_level: 'DEBUG'
 
     celery:
