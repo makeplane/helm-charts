@@ -6,8 +6,6 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-secrets
-  labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   RABBITMQ_DEFAULT_USER: {{ .Values.rabbitmq.default_user | default "plane" | quote }}
   RABBITMQ_DEFAULT_PASS: {{ .Values.rabbitmq.default_password | default "plane" |quote }}

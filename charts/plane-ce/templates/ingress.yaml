@@ -5,8 +5,6 @@ kind: Ingress
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
-  labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
   {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
   annotations:
     {{- range $key, $value := .Values.ingress.ingress_annotations }}

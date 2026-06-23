@@ -5,8 +5,6 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-secrets
-  labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
   {{- if .Values.redis.local_setup }}
@@ -22,8 +20,6 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-vars
-  labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
   LIVE_BASE_PATH: "/live"

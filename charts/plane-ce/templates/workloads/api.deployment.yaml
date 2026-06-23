@@ -6,7 +6,6 @@ metadata:
   name: {{ .Release.Name }}-api
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   {{- if not .Values.api.assign_cluster_ip }}
   clusterIP: None
@@ -26,7 +25,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.api) }}
+  {{- template "plane.labelsAndAnnotations" .Values.api }}
 spec:
   replicas: {{ .Values.api.replicas | default 1}}
   selector:
@@ -37,7 +36,6 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
-        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

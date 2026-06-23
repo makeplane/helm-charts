@@ -7,7 +7,6 @@ metadata:
   name: {{ .Release.Name }}-redis
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   {{- if not .Values.redis.assign_cluster_ip }}
   clusterIP: None
@@ -28,7 +27,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.redis) }}
+  {{- template "plane.labelsAndAnnotations" .Values.redis }}
 spec:
   selector:
     matchLabels:
@@ -38,7 +37,6 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
-        {{- include "plane.commonLabels" $ | nindent 8 }}
     spec:
       containers:
       - image: {{ .Values.redis.image }}

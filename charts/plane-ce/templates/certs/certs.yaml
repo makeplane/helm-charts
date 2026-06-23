@@ -5,8 +5,6 @@ kind: Certificate
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ssl-cert
-  labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   dnsNames:
   - {{ .Values.ingress.appHost | quote }}

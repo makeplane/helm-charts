@@ -7,7 +7,6 @@ metadata:
   name: {{ .Release.Name }}-rabbitmq
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   {{- if not .Values.rabbitmq.assign_cluster_ip }}
   clusterIP: None
@@ -30,7 +29,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.rabbitmq) }}
+  {{- template "plane.labelsAndAnnotations" .Values.rabbitmq }}
 spec:
   selector:
     matchLabels:
@@ -40,7 +39,6 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
-        {{- include "plane.commonLabels" $ | nindent 8 }}
     spec:
       containers:
       - image: {{ .Values.rabbitmq.image }}

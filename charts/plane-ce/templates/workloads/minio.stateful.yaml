@@ -7,7 +7,6 @@ metadata:
   name: {{ .Release.Name }}-minio
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
-    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   {{- if not .Values.minio.assign_cluster_ip }}
   clusterIP: None
@@ -30,7 +29,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio) }}
+  {{- template "plane.labelsAndAnnotations" .Values.minio }}
 spec:
   selector:
     matchLabels:
@@ -40,7 +39,6 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
-        {{- include "plane.commonLabels" $ | nindent 8 }}
     spec:
       containers:
       - image: {{ .Values.minio.image }}
@@ -88,7 +86,7 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio) }}
+  {{- template "plane.labelsAndAnnotations" .Values.minio }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
