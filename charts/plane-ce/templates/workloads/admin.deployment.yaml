@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-admin
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   {{- if not .Values.admin.assign_cluster_ip }}
   clusterIP: None
@@ -25,7 +26,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
-  {{- template "plane.labelsAndAnnotations" .Values.admin }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.admin) }}
 spec:
   replicas: {{ .Values.admin.replicas | default 1 }}
   selector:
@@ -36,6 +37,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
