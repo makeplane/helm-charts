@@ -1,13 +1,13 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "nginx") .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "ingress") .Values.license.licenseDomain }}
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
-  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
+  {{- with .Values.ingress.ingress_annotations }}
   annotations:
-    {{- range $key, $value := .Values.ingress.ingress_annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}

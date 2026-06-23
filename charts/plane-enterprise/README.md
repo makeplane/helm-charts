@@ -27,24 +27,44 @@ If you plan to use Traefik as your ingress controller, install it before deployi
 
 ## Migrating the Ingress Controller
 
-The chart selects between two ingress templates based on `ingress.ingressClass`:
+The chart renders one of two ingress templates. **Which one** is chosen by the
+*controller type* — kept separate from the *class name* so atypical class names
+(e.g. `nginx-new`, or a Traefik-named alias served by a standard controller) work
+without changing template selection.
 
-| `ingressClass` value           | Template rendered                | Resource kind                      |
-| ------------------------------ | -------------------------------- | ---------------------------------- |
-| `traefik` (or starts with it)  | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
-| Any other value (e.g. `nginx`) | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+`ingress.controller` selects the resource kind:
 
-The default value is `"traefik"`. If you are switching to a standard ingress controller such as nginx, follow the migration steps below.
+| `ingress.controller` value           | Template rendered                | Resource kind                      |
+| ------------------------------------- | -------------------------------- | ---------------------------------- |
+| `traefik`                             | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
+| Any other value (`nginx`, `f5`, ...)  | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+
+> The standard `Ingress` path covers **any** standard Kubernetes ingress controller —
+> ingress-nginx, F5 NGINX, HAProxy, etc. The value is just a selector; it is not
+> written anywhere. The actual class name comes from `ingress.ingressClass`
+> (`spec.ingressClassName`), which can be any string your controller exposes.
+
+If `ingress.controller` is left empty, the controller is **auto-detected** from
+`ingress.ingressClass` for backward compatibility: a value starting with `traefik`
+selects Traefik, anything else selects the standard `Ingress`. Set
+`ingress.controller` explicitly to override this — for example, to serve a standard
+`Ingress` whose `ingressClassName` happens to start with `traefik`, or to use a
+non-`nginx` class name like `nginx-new` (which previously was silently dropped).
+
+The default is a Traefik `IngressRoute` (`ingressClass: traefik`, controller
+auto-detected). If you are switching to a standard ingress controller, follow the
+migration steps below.
 
 ### Switching from Traefik to a standard Ingress controller (e.g. nginx)
 
 1. **Install your target ingress controller** if it is not already running.
 
-2. **Update `ingress.ingressClass`** in your `values.yaml`:
+2. **Set `ingress.controller` and `ingress.ingressClass`** in your `values.yaml`:
 
    ```yaml
    ingress:
-     ingressClass: "nginx"   # or whichever class your controller exposes
+     controller: "nginx"      # selects the standard Ingress template (any value but "traefik")
+     ingressClass: "nginx"    # spec.ingressClassName — whichever class your controller exposes (e.g. "nginx-new")
    ```
 
 3. **Run `helm upgrade`**:
@@ -69,11 +89,12 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 1. **Install Traefik** with CRD support enabled (see [Installing Traefik Ingress Controller](#installing-traefik-ingress-controller-optional) above).
 
-2. **Update `ingress.ingressClass`**:
+2. **Set `ingress.controller`**:
 
    ```yaml
    ingress:
-     ingressClass: "traefik"
+     controller: "traefik"
+     ingressClass: "traefik"   # unused by the IngressRoute, kept for clarity
    ```
 
 3. **Run `helm upgrade`**. The old `Ingress` resource is orphaned — delete it:
@@ -87,9 +108,10 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | Value                                 | Default    | Effect                                                                                    |
 | ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
 | `ingress.enabled`                     | `true`     | Master switch — set to `false` to render neither template.                                |
-| `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
+| `ingress.controller`                  | `''`       | Selects the resource kind: `traefik` → IngressRoute, anything else → standard `Ingress`. Empty = auto-detect from `ingressClass`. |
+| `ingress.ingressClass`                | `traefik`  | Free-form `spec.ingressClassName` on the standard `Ingress`. Also drives auto-detection when `controller` is empty. Unused by Traefik. |
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
-| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations (e.g. cert-manager). Rendered only on the standard `Ingress`; ignored when `controller` resolves to `traefik`. |
 
 ## Installing Plane
 
@@ -158,6 +180,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
      - `planeVersion: v2.6.3 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
+     - `ingress.controller: <traefik | nginx | ... — leave empty to auto-detect from ingressClass>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
      - `env.storageClass: <default storage class configured in your cluster>`
 
@@ -760,7 +783,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ingress.enabled             |                           true                            |          | Ingress setup in kubernetes is a common practice to expose application to the intended audience. Set it to `false` if you are using external ingress providers like `Cloudflare`                                                                                                                                                                                                                                          |
 | ingress.minioHost           |                                                           |          | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                       |
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
-| ingress.ingressClass        |                           nginx                           |   Yes    | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.                                                                                                                                                                                               |
+| ingress.controller          |                                                           |          | Selects the ingress resource kind: `traefik` renders a Traefik `IngressRoute`; any other value (`nginx`, `f5`, `haproxy`, ...) renders a standard `Ingress`. Leave empty to auto-detect from `ingressClass`. Set explicitly for atypical class names (e.g. `nginx-new`) or a Traefik-named alias served by a standard controller.                                                                                          |
+| ingress.ingressClass        |                          traefik                          |   Yes    | Free-form class name written to the standard `Ingress` `spec.ingressClassName` (eg. nginx, traefik, nginx-new, etc). When `controller` is empty it also drives auto-detection. Unused by the Traefik `IngressRoute`.                                                                                                                                                                                                       |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |

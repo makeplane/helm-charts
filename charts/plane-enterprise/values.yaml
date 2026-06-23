@@ -38,10 +38,23 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
+  # controller selects WHICH KIND of ingress resource the chart renders, decoupled
+  # from the class name below. Only the literal value "traefik" emits a Traefik
+  # IngressRoute CRD; any other value ("nginx", "f5", "haproxy", ...) emits a standard
+  # networking.k8s.io/v1 Ingress. Leave empty to auto-detect from ingressClass
+  # (a value starting with "traefik" -> Traefik, otherwise standard Ingress).
+  # Set this explicitly when your ingressClass is an atypical name (e.g. "nginx-new")
+  # or a Traefik-named alias that should still be served by a standard Ingress.
+  controller: ''
+  # ingressClass is the free-form class name written to the standard Ingress'
+  # spec.ingressClassName. It no longer constrains which template renders (use
+  # controller above for that). With controller="traefik" it is unused, since an
+  # IngressRoute has no class name.
   ingressClass: 'traefik'
-  # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
-  # These annotations are ONLY rendered when ingressClass is 'nginx' (the nginx Ingress template is gated on
-  # ingressClass == "nginx"); they have no effect with traefik. Example:
+  # For standard Ingress controllers (controller != "traefik") set the proxy body
+  # size / buffer annotations here. These are rendered onto the standard Ingress
+  # only; they have no effect with Traefik (use ingress.traefik.maxRequestBodyBytes).
+  # Example for ingress-nginx:
   # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
   # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
   #   "502 upstream sent too big header" errors.

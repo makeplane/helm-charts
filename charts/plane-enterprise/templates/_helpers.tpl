@@ -65,6 +65,36 @@ of the local_setup flag's value.
 {{- end -}}
 
 {{/*
+Selects which ingress template renders, decoupling the controller *type* (which
+resource kind to emit) from the ingress *class name* (a free-form string).
+
+Returns one of:
+  - "traefik" -> templates/ingress-traefik.yaml emits a traefik.io/v1alpha1 IngressRoute
+  - "ingress" -> templates/ingress.yaml emits a networking.k8s.io/v1 Ingress
+                 (nginx, F5 NGINX, HAProxy, or any other standard controller)
+
+Resolution order:
+  1. If ingress.controller is set explicitly, it wins. Only the literal value
+     "traefik" selects the IngressRoute path; any other value (e.g. "nginx",
+     "f5", "haproxy") selects the standard Ingress path. This lets atypical
+     class names like "nginx-new" be used without affecting template selection.
+  2. Otherwise (legacy behavior) the choice is inferred from ingress.ingressClass:
+     a value starting with "traefik" selects Traefik, anything else selects the
+     standard Ingress. Set ingress.controller to override the inference (e.g. a
+     standard Ingress whose ingressClassName happens to start with "traefik").
+*/}}
+{{- define "plane.ingressController" -}}
+  {{- $c := .Values.ingress.controller | default "" | lower | trim -}}
+  {{- if $c -}}
+    {{- if eq $c "traefik" -}}traefik{{- else -}}ingress{{- end -}}
+  {{- else if hasPrefix "traefik" (.Values.ingress.ingressClass | default "" | lower) -}}
+    traefik
+  {{- else -}}
+    ingress
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
 Returns "true" when airgapped is enabled and at least one CA secret is configured.
 */}}
