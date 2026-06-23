@@ -43,8 +43,7 @@ ingress:
   # IngressRoute CRD; any other value ("nginx", "f5", "haproxy", ...) emits a standard
   # networking.k8s.io/v1 Ingress. Leave empty to auto-detect from ingressClass
   # (a value starting with "traefik" -> Traefik, otherwise standard Ingress).
-  # Set this explicitly when your ingressClass is an atypical name (e.g. "nginx-new")
-  # or a Traefik-named alias that should still be served by a standard Ingress.
+  # Set this explicitly when your ingressClass is an atypical name (e.g. "nginx-new").
   controller: ''
   # ingressClass is the free-form class name written to the standard Ingress'
   # spec.ingressClassName. It no longer constrains which template renders (use

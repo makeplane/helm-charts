@@ -29,8 +29,7 @@ If you plan to use Traefik as your ingress controller, install it before deployi
 
 The chart renders one of two ingress templates. **Which one** is chosen by the
 *controller type* — kept separate from the *class name* so atypical class names
-(e.g. `nginx-new`, or a Traefik-named alias served by a standard controller) work
-without changing template selection.
+(e.g. `nginx-new`) work without changing template selection.
 
 `ingress.controller` selects the resource kind:
 
@@ -47,9 +46,8 @@ without changing template selection.
 If `ingress.controller` is left empty, the controller is **auto-detected** from
 `ingress.ingressClass` for backward compatibility: a value starting with `traefik`
 selects Traefik, anything else selects the standard `Ingress`. Set
-`ingress.controller` explicitly to override this — for example, to serve a standard
-`Ingress` whose `ingressClassName` happens to start with `traefik`, or to use a
-non-`nginx` class name like `nginx-new` (which previously was silently dropped).
+`ingress.controller` explicitly to use a non-`nginx` class name like `nginx-new`
+(which previously was silently dropped).
 
 The default is a Traefik `IngressRoute` (`ingressClass: traefik`, controller
 auto-detected). If you are switching to a standard ingress controller, follow the
@@ -783,7 +781,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ingress.enabled             |                           true                            |          | Ingress setup in kubernetes is a common practice to expose application to the intended audience. Set it to `false` if you are using external ingress providers like `Cloudflare`                                                                                                                                                                                                                                          |
 | ingress.minioHost           |                                                           |          | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                       |
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
-| ingress.controller          |                                                           |          | Selects the ingress resource kind: `traefik` renders a Traefik `IngressRoute`; any other value (`nginx`, `f5`, `haproxy`, ...) renders a standard `Ingress`. Leave empty to auto-detect from `ingressClass`. Set explicitly for atypical class names (e.g. `nginx-new`) or a Traefik-named alias served by a standard controller.                                                                                          |
+| ingress.controller          |                                                           |          | Selects the ingress resource kind: `traefik` renders a Traefik `IngressRoute`; any other value (`nginx`, `f5`, `haproxy`, ...) renders a standard `Ingress`. Leave empty to auto-detect from `ingressClass`. Set explicitly for atypical class names (e.g. `nginx-new`).                                                                                          |
 | ingress.ingressClass        |                          traefik                          |   Yes    | Free-form class name written to the standard `Ingress` `spec.ingressClassName` (eg. nginx, traefik, nginx-new, etc). When `controller` is empty it also drives auto-detection. Unused by the Traefik `IngressRoute`.                                                                                                                                                                                                       |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
