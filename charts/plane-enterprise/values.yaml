@@ -617,7 +617,7 @@ env:
     plane_api_host: ''
     follower_postgres_uri: ''
     cors_allowed_origins: ''
-    internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
+    internal_secret: 'change-to-top-secret'
     log_level: 'DEBUG'
 
     celery:
