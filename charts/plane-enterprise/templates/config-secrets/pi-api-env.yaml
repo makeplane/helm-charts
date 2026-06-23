@@ -61,7 +61,7 @@ stringData:
   BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_session_token | default "" | quote }}
   {{- end }}
 
-  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "change-to-top-secret-aes-32chars" | quote }}
+  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
 
   PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "change-to-top-secret" | quote }}
 {{- end }}

@@ -575,7 +575,7 @@ env:
     mq_prefetch_count: 1
     request_interval: 400
     hmac_secret_key: 'change-to-top-secret'
-    aes_secret_key: 'change-to-top-secret-aes-32chars'
+    aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
 
   email_service_envs:
