@@ -7,8 +7,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-secrets
 stringData:
-  SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "gzb7MRLr0FoN129NyWARZEs84P9LzQ" | quote }}
-  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+  SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "change-to-top-secret" | quote }}
+  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "change-to-top-secret-aes-32chars" | quote }}
 
   {{- if .Values.services.postgres.local_setup }}
   DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
