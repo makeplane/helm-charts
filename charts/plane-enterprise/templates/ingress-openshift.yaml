@@ -2,18 +2,19 @@
 ================================================================================
 OpenShift ingress: one route.openshift.io/v1 Route per path.
 ================================================================================
-Rendered when ingress.ingressClass == "openshift".
+Rendered when "plane.ingressController" resolves to "openshift", i.e.
+ingress.controller (or, unset, ingress.ingressClass) is "openshift".
 
 Why explicit Routes rather than a plain Ingress:
 
 OpenShift's ingress-to-route controller can convert a networking.k8s.io/v1
-Ingress into Routes. This chart does not offer that path: templates/ingress.yaml
-is gated on ingressClass == "nginx", so setting "openshift-default" renders
-nothing. Declaring the Routes here is also the more predictable option — the
-conversion only picks up an Ingress whose class maps to the
+Ingress into Routes, but declaring the Routes here is the more predictable
+option — the conversion only picks up an Ingress whose class maps to the
 openshift.io/ingress-to-route controller, and whether per-path HAProxy
 annotations survive it varies by OCP version. Plane needs the timeout below, so
-there is no guesswork this way.
+there is no guesswork this way. (If you do want that path, set
+ingress.controller to "nginx" with ingressClass "openshift-default" and the
+standard Ingress renders instead.)
 
 Differences from the Traefik IngressRoute this mirrors:
 
@@ -26,7 +27,7 @@ Differences from the Traefik IngressRoute this mirrors:
   - Path-based Routes require edge or reencrypt TLS termination; they are not
     supported with passthrough.
 */}}
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "openshift") .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "openshift") .Values.license.licenseDomain }}
 {{- $host := .Values.license.licenseDomain }}
 {{- $name := .Release.Name }}
 {{- $oc := .Values.ingress.openshift | default dict }}

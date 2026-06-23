@@ -1,15 +1,9 @@
 {{/*
-Standard networking.k8s.io/v1 Ingress. Gated on ingressClass being exactly
-"nginx"; the other templates are ingress-traefik.yaml ("traefik*") and
-ingress-openshift.yaml ("openshift").
-
-NOTE: any other class (alb, haproxy, contour, openshift-default, a custom
-IngressClass name, ...) renders nothing at all, with no error -- despite the
-README describing this template as the fallback for "any other value". That
-mismatch is deliberately left as-is for now and tracked separately; do not widen
-this condition without checking what else assumes the nginx-only behaviour.
+Standard networking.k8s.io/v1 Ingress -- the fallback for every controller that
+is not Traefik or OpenShift. Which of the three ingress templates renders is
+decided by the "plane.ingressController" helper, not by ingressClass directly.
 */}}
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "nginx") .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "ingress") .Values.license.licenseDomain }}
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress

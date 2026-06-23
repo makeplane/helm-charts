@@ -99,6 +99,28 @@ of the local_setup flag's value.
 {{- end -}}
 
 {{/*
+Selects which ingress template renders, decoupling the controller *type* (which
+resource kind to emit) from the ingress *class name* (a free-form string).
+Returns "traefik" (IngressRoute), "openshift" (Route per path), or "ingress"
+(networking.k8s.io/v1 Ingress -- nginx, F5 NGINX, HAProxy, ALB, anything else).
+
+ingress.controller decides when set; otherwise the value is inferred from
+ingress.ingressClass, which is the pre-existing behaviour. Set controller to
+override that inference -- an atypical class name such as "nginx-new", or a
+Traefik-named class that should still be served by a standard Ingress.
+*/}}
+{{- define "plane.ingressController" -}}
+  {{- $c := .Values.ingress.controller | default "" | trim | lower -}}
+  {{- if not $c -}}
+    {{- $c = .Values.ingress.ingressClass | default "" | trim | lower -}}
+  {{- end -}}
+  {{- if hasPrefix "traefik" $c -}}traefik
+  {{- else if eq $c "openshift" -}}openshift
+  {{- else -}}ingress
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
 Returns "true" when airgapped is enabled and at least one CA secret is configured.
 */}}
