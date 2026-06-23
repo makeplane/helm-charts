@@ -47,7 +47,7 @@ ingress:
   # Leave empty to infer it from ingressClass: a value starting with 'traefik'
   # means Traefik, exactly 'openshift' means Routes, everything else means a
   # standard Ingress. Set it explicitly when your class name is atypical
-  # (e.g. 'nginx-new', or a Traefik-named alias served by a standard Ingress).
+  # (e.g. 'nginx-new').
   controller: ''
   # ingressClass is the free-form class name written to the standard Ingress'
   # spec.ingressClassName. It no longer constrains which template renders (use
