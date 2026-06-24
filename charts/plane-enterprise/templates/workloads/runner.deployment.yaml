@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-runner
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.runner.assign_cluster_ip }}
@@ -27,7 +28,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-runner-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.runner }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.runner) }}
 spec:
   replicas: {{ .Values.services.runner.replicas | default 1}}
   selector:
@@ -38,6 +39,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

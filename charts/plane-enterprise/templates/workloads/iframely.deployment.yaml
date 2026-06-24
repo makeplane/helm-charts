@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-iframely
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -23,7 +24,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-iframely-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.iframely }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.iframely) }}
 spec:
   replicas: {{ .Values.services.iframely.replicas | default 1 }}
   selector:
@@ -34,6 +35,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
