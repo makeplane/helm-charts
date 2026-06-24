@@ -64,6 +64,8 @@ stringData:
   {{- end }}
 
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+
+  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
 {{- end }}
 ---
 
@@ -93,8 +95,6 @@ data:
   {{- else }}
   PLANE_API_HOST: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
-
-  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
 
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080"
   PI_BASE_PATH: "/pi"
