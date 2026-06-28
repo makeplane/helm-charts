@@ -85,7 +85,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-minio-bucket-{{ now | date "20060102-150405" }}
+  name: {{ .Release.Name }}-minio-bucket-{{ if $.Values.gitops.enabled }}{{ .Values.planeVersion | replace "." "-" | replace "+" "-" | lower }}{{ else }}{{ now | date "20060102-150405" }}{{ end }}
   {{- include "plane.labelsAndAnnotations" .Values.services.minio }}
 spec:
   backoffLimit: 6
