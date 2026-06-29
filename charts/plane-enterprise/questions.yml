@@ -80,6 +80,11 @@ questions:
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
+  - variable: env.default_cluster_domain
+    label: "Default Cluster Domain"
+    description: "Kubernetes internal cluster domain used to build in-cluster service URLs"
+    type: string
+    default: "cluster.local"
 
 - variable: license.licenseServer
   label: "License Server"
