@@ -93,6 +93,8 @@ data:
   PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
 
+  AI_SERVICE_BASE_URL: "http://{{ .Release.Name }}-pi-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
+
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}
   SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.silo_envs.sentry_traces_sample_rate | default "0.1" | quote }}

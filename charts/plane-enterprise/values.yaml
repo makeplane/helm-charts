@@ -501,6 +501,9 @@ external_secrets:
 env:
   storageClass: ''
 
+  # Kubernetes internal cluster domain used to build in-cluster service URLs
+  default_cluster_domain: 'cluster.local'
+
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
 
