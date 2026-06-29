@@ -83,9 +83,9 @@ data:
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000/"
   LIVE_BASE_PATH: "/live"
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
-  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}/pi"
+  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
-  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}/pi"
+  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
   PI_BASE_PATH: "/pi"
 
