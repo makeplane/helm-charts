@@ -25,6 +25,12 @@ data:
   LIVE_SENTRY_ENVIRONMENT: {{ .Values.env.live_sentry_environment | default "" | quote }}
   LIVE_SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.live_sentry_traces_sample_rate | default "" | quote }}
   LIVE_BASE_PATH: "/live"
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
+  {{- else }}
+  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
+  {{- end }}
+  PI_BASE_PATH: "/pi"
 
   {{- if .Values.env.external_iframely_url }}
   IFRAMELY_URL: {{ .Values.env.external_iframely_url | default "" | quote }}
