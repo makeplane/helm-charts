@@ -33,6 +33,12 @@ stringData:
   AMQP_URL: ""
   {{- end }}
 
+  {{- if .Values.services.redis.local_setup }}
+  CELERY_BROKER_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  {{- else }}
+  CELERY_BROKER_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+
   {{- if .Values.services.pi.ai_providers.openai.enabled }}
   OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
   {{- end }}
