@@ -10,7 +10,7 @@ metadata:
 stringData:
   LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
   {{- if .Values.services.redis.local_setup }}
-  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
   {{- else }}
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
@@ -24,15 +24,21 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
-  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.cluster.local:8000/"
+  API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
   LIVE_SENTRY_DSN: {{ .Values.env.live_sentry_dsn | default "" | quote }}
   LIVE_SENTRY_ENVIRONMENT: {{ .Values.env.live_sentry_environment | default "" | quote }}
   LIVE_SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.live_sentry_traces_sample_rate | default "" | quote }}
   LIVE_BASE_PATH: "/live"
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
+  {{- else }}
+  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
+  {{- end }}
+  PI_BASE_PATH: "/pi"
 
   {{- if .Values.env.external_iframely_url }}
   IFRAMELY_URL: {{ .Values.env.external_iframely_url | default "" | quote }}
   {{- else }}
-  IFRAMELY_URL: http://{{ .Release.Name }}-iframely.{{ .Release.Namespace }}.svc.cluster.local:8061/
+  IFRAMELY_URL: http://{{ .Release.Name }}-iframely.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8061/
   {{- end }}
 ---
