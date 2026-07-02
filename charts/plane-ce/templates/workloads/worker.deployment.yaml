@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-worker-wl
-  {{- template "plane.labelsAndAnnotations" .Values.worker }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.worker) }}
 spec:
   replicas: {{ .Values.worker.replicas | default 1 }}
   selector:
@@ -14,6 +14,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-worker
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
