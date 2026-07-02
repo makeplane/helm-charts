@@ -4,6 +4,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-email-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
   namespace: {{ .Release.Namespace }}
 data:
   SMTP_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}

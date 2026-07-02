@@ -5,6 +5,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-opensearch-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   {{- if .Values.services.opensearch.local_setup }}
   OPENSEARCH_ENABLED: "1"
@@ -37,6 +39,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-opensearch-init
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   create-user.sh: |
     #!/bin/bash

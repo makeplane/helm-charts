@@ -4,13 +4,14 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ now | date "20060102-150405" }}
-  {{- include "plane.labelsAndAnnotations" .Values.services.api }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-migrate
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
