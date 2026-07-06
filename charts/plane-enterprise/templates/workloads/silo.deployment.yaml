@@ -122,9 +122,12 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) .Values.observability.otel.enabled }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.otelServiceEnv" (dict "context" $ "service" "silo")) }}
 {{ . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}

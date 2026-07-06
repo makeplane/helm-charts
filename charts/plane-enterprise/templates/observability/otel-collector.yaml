@@ -1,0 +1,120 @@
+{{- /*
+  Bundled OpenTelemetry Collector. Rendered only when OTEL is enabled AND the
+  bundled collector is requested. Self-hosters pointing at an external collector
+  (Datadog Agent, Grafana Cloud, an existing cluster collector) leave
+  observability.otel.collector.enabled=false and these resources are omitted.
+
+  When enabled with an empty observability.otel.endpoint, the backend auto-targets
+  this collector's in-cluster Service (see config-secrets/app-env.yaml).
+*/}}
+{{- if and .Values.observability.otel.enabled .Values.observability.otel.collector.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-otel-collector-config
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-otel-collector
+data:
+  config.yaml: |
+{{- if .Values.observability.otel.collector.config }}
+{{ .Values.observability.otel.collector.config | indent 4 }}
+{{- else }}
+    # Default pipeline: receive OTLP, log via `debug`. Override the whole config
+    # with observability.otel.collector.config to export to a real backend.
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+    exporters:
+      debug:
+        verbosity: detailed
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [debug]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [debug]
+{{- end }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-otel-collector
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-otel-collector
+spec:
+  type: ClusterIP
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    protocol: TCP
+    targetPort: 4317
+  - name: otlp-http
+    port: 4318
+    protocol: TCP
+    targetPort: 4318
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-otel-collector
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-otel-collector
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.observability.otel.collector) }}
+spec:
+  replicas: {{ .Values.observability.otel.collector.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-otel-collector
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-otel-collector
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.observability.otel.collector }}
+      containers:
+      - name: {{ .Release.Name }}-otel-collector
+        imagePullPolicy: {{ .Values.observability.otel.collector.pullPolicy | default "IfNotPresent" }}
+        image: {{ .Values.observability.otel.collector.image | default "otel/opentelemetry-collector-contrib:0.115.1" }}
+        args: ["--config=/etc/otel/config.yaml"]
+        ports:
+        - name: otlp-grpc
+          containerPort: 4317
+        - name: otlp-http
+          containerPort: 4318
+        resources:
+          requests:
+            memory: {{ .Values.observability.otel.collector.memoryRequest | default "128Mi" | quote }}
+            cpu: {{ .Values.observability.otel.collector.cpuRequest | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.observability.otel.collector.memoryLimit | default "512Mi" | quote }}
+            cpu: {{ .Values.observability.otel.collector.cpuLimit | default "500m" | quote }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/otel
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-otel-collector-config
+{{- end }}

@@ -45,6 +45,10 @@ stringData:
   {{- if include "plane.s3CAEnabled" . }}
   AWS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
   {{- end }}
+
+  {{- if and .Values.observability.otel.enabled .Values.observability.otel.headers }}
+  OTEL_EXPORTER_OTLP_HEADERS: {{ .Values.observability.otel.headers | quote }}
+  {{- end }}
 {{- end }}
 ---
 
@@ -107,4 +111,40 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }},{{ .Values.env.cors_allowed_origins }}"
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
+  {{- end }}
+
+  {{- /* OpenTelemetry APM for the Django backend (api, worker, beat-worker,
+         automation-consumer, outbox-poller, migrator). No-op in the app unless
+         OTEL_ENABLED=1 and an endpoint is set. Auth headers, if any, live in the
+         app-secrets Secret above. See docs/otel-api-observability in plane-ee. */}}
+  {{- if .Values.observability.otel.enabled }}
+  OTEL_ENABLED: "1"
+  OTEL_SERVICE_NAME: {{ .Values.observability.otel.serviceName | default "plane-api" | quote }}
+  {{- if .Values.observability.otel.endpoint }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otel.endpoint | quote }}
+  {{- else if .Values.observability.otel.collector.enabled }}
+  {{- $collectorPort := eq (.Values.observability.otel.protocol | default "grpc") "grpc" | ternary "4317" "4318" }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:{{ $collectorPort }}"
+  {{- else }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+  {{- end }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otel.protocol | default "grpc" | quote }}
+  OTEL_TRACES_SAMPLER: {{ .Values.observability.otel.tracesSampler | default "parentbased_traceidratio" | quote }}
+  OTEL_TRACES_SAMPLER_ARG: {{ .Values.observability.otel.tracesSamplerArg | default "0.1" | quote }}
+  {{- if .Values.observability.otel.resourceAttributes }}
+  OTEL_RESOURCE_ATTRIBUTES: {{ .Values.observability.otel.resourceAttributes | quote }}
+  {{- end }}
+  {{- if .Values.observability.otel.debugConsole }}
+  OTEL_DEBUG_CONSOLE: "1"
+  {{- end }}
+  {{- /* Browser/client tracing. Read ONLY by the API, which serves it to the
+         web/admin/space browsers via its public instance config — a no-op env on
+         every other workload, so it lives here on the API's app-vars alone. */}}
+  {{- if .Values.observability.otel.frontend.enabled }}
+  FRONTEND_OTEL_ENABLED: "1"
+  FRONTEND_OTLP_ENDPOINT: {{ .Values.observability.otel.frontend.endpoint | default .Values.observability.otel.endpoint | quote }}
+  {{- if .Values.observability.otel.frontend.headers }}
+  FRONTEND_OTLP_HEADERS: {{ .Values.observability.otel.frontend.headers | quote }}
+  {{- end }}
+  {{- end }}
   {{- end }}

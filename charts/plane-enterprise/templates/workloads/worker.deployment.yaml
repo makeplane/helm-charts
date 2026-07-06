@@ -70,9 +70,12 @@ spec:
               optional: false
           {{- end }}
 
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) .Values.observability.otel.enabled }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.otelServiceEnv" (dict "context" $ "service" "worker" "full" false)) }}
 {{ . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}

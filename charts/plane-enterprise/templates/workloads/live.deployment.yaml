@@ -96,9 +96,12 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) .Values.observability.otel.enabled }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.otelServiceEnv" (dict "context" $ "service" "live")) }}
 {{ . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}
