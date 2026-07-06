@@ -78,7 +78,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-otel-collector
-  {{- include "plane.labelsAndAnnotations" .Values.observability.otel.collector }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.observability.otel.collector) }}
 spec:
   replicas: {{ .Values.observability.otel.collector.replicas | default 1 }}
   selector:

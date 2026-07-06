@@ -242,3 +242,61 @@ Caller must nindent to the correct depth.
   value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
 {{- end -}}
+
+{{/*
+OpenTelemetry inline env vars for a single workload.
+
+The Django backend (api, worker, beat-worker, automation-consumer, outbox-poller,
+migrator) already sources the shared OTEL_* config from the app-vars ConfigMap
+(see config-secrets/app-env.yaml). This helper renders those same keys INLINE so
+that services which do NOT consume app-vars — the Node services (silo, live), the
+SSR frontend (space) and Plane Intelligence (pi-api, pi-worker, pi-beat) — get
+full OTel coverage, and so every workload can report its own OTEL_SERVICE_NAME
+(inline env wins over envFrom). Kept in sync with the OTEL block in app-env.yaml.
+
+Call with a dict carrying the root context and the per-service name:
+  {{- include "plane.otelServiceEnv" (dict "context" $ "service" "silo") }}
+Pass "full" false to emit ONLY the OTEL_SERVICE_NAME override — used by Django
+workloads that already get the rest of the OTEL_* keys from app-vars.
+Caller must indent to the correct depth (matches the s3CA*EnvVars pattern).
+*/}}
+{{- define "plane.otelServiceEnv" -}}
+{{- $ctx := .context -}}
+{{- $otel := $ctx.Values.observability.otel -}}
+{{- if $otel.enabled -}}
+- name: OTEL_SERVICE_NAME
+  value: {{ .service | quote }}
+{{- if not (eq .full false) }}
+- name: OTEL_ENABLED
+  value: "1"
+{{- if $otel.endpoint }}
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: {{ $otel.endpoint | quote }}
+{{- else if $otel.collector.enabled }}
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: "http://{{ $ctx.Release.Name }}-otel-collector.{{ $ctx.Release.Namespace }}.svc.cluster.local:4317"
+{{- else }}
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: ""
+{{- end }}
+- name: OTEL_EXPORTER_OTLP_PROTOCOL
+  value: {{ $otel.protocol | default "grpc" | quote }}
+- name: OTEL_TRACES_SAMPLER
+  value: {{ $otel.tracesSampler | default "parentbased_traceidratio" | quote }}
+- name: OTEL_TRACES_SAMPLER_ARG
+  value: {{ $otel.tracesSamplerArg | default "0.1" | quote }}
+{{- if $otel.resourceAttributes }}
+- name: OTEL_RESOURCE_ATTRIBUTES
+  value: {{ $otel.resourceAttributes | quote }}
+{{- end }}
+{{- if $otel.debugConsole }}
+- name: OTEL_DEBUG_CONSOLE
+  value: "1"
+{{- end }}
+{{- if $otel.headers }}
+- name: OTEL_EXPORTER_OTLP_HEADERS
+  value: {{ $otel.headers | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end -}}

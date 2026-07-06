@@ -640,27 +640,45 @@ extraEnv: []
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
 
-# OpenTelemetry APM for the Django backend (api, worker, beat-worker,
-# automation-consumer, outbox-poller, migrator). Off by default — when
-# enabled, OTEL env vars are injected into the backend app-vars ConfigMap.
-# Point `endpoint` at any OTLP collector. See docs/otel-api-observability
-# in the plane-ee repo for the full guide.
+# OpenTelemetry APM. Off by default — when enabled, OTEL env vars are injected
+# into every instrumented workload: the Django backend (api, worker, beat-worker,
+# automation-consumer, outbox-poller, migrator) via the app-vars ConfigMap, and
+# the Node services (silo, live), the SSR frontend (space) and Plane Intelligence
+# (pi-api, pi-worker, pi-beat) via inline env. Each workload reports its own
+# OTEL_SERVICE_NAME. Point `endpoint` at any OTLP collector. See
+# docs/otel-api-observability in the plane-ee repo for the full guide.
 observability:
   otel:
     enabled: false
-    # Service name reported to your APM backend.
+    # Service name reported to your APM backend for the api workload. The other
+    # workloads report their own name (silo, live, space, worker, pi-api, …).
     serviceName: plane-api
     # OTLP receiver, e.g. http://otel-collector.<ns>.svc.cluster.local:4317
     endpoint: ""
     # grpc | http/protobuf
     protocol: grpc
-    # Standard OTEL head sampler. Set tracesSamplerArg to "1.0" to capture every request.
+    # Standard OTEL head sampler. Set tracesSampler=always_on (or tracesSamplerArg
+    # to "1.0") to capture every request — recommended for test/load/debug envs.
     tracesSampler: parentbased_traceidratio
     tracesSamplerArg: "0.1"
-    # Extra resource attrs, e.g. "deployment.environment=prod,service.version=v2.6.1"
+    # Extra resource attrs, e.g. "deployment.environment.name=prod,service.version=v2.6.3"
     resourceAttributes: ""
-    # Auth headers for SaaS backends (rendered into app-secrets), e.g. "Authorization=Bearer%20<token>"
+    # Auth headers for SaaS backends (rendered into app-secrets for the Django
+    # backend, inline for the Node/pi workloads), e.g. "Authorization=Bearer%20<token>"
     headers: ""
+    # Emit spans to the container console in addition to the OTLP exporter (debug aid).
+    debugConsole: false
+    # Browser/client tracing for the web/admin/space frontends. These keys are
+    # served to browsers by the API (via its public instance config) and are only
+    # read by the API workload, so they are injected into app-vars alongside the
+    # backend OTEL_* keys. Turn on with frontend.enabled=true.
+    frontend:
+      enabled: false
+      # OTLP endpoint the browser posts spans to (must be reachable cross-origin
+      # from the browser), e.g. https://telemetry.example.com
+      endpoint: ""
+      # Optional auth headers for the browser exporter.
+      headers: ""
     # Bundled in-cluster OpenTelemetry Collector. When enabled, the chart deploys
     # a collector Deployment/Service/ConfigMap and — if `endpoint` above is empty —
     # the backend auto-targets it. Leave disabled to export to an external

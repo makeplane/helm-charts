@@ -53,9 +53,14 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+        {{- if or .Values.extraEnv .Values.observability.otel.enabled }}
         env:
+          {{- with (include "plane.otelServiceEnv" (dict "context" $ "service" "automation-consumer" "full" false)) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
 
       serviceAccount: {{ .Release.Name }}-srv-account
