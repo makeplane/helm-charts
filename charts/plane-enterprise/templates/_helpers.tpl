@@ -274,7 +274,7 @@ Caller must indent to the correct depth (matches the s3CA*EnvVars pattern).
   value: {{ $otel.endpoint | quote }}
 {{- else if $otel.collector.enabled }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
-  value: "http://{{ $ctx.Release.Name }}-otel-collector.{{ $ctx.Release.Namespace }}.svc.cluster.local:4317"
+  value: "http://{{ $ctx.Release.Name }}-otel-collector.{{ $ctx.Release.Namespace }}.svc.{{ $ctx.Values.env.default_cluster_domain | default "cluster.local" }}:{{ eq ($otel.protocol | default "grpc") "grpc" | ternary "4317" "4318" }}"
 {{- else }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
   value: ""

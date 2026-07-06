@@ -123,7 +123,8 @@ data:
   {{- if .Values.observability.otel.endpoint }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otel.endpoint | quote }}
   {{- else if .Values.observability.otel.collector.enabled }}
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector.{{ .Release.Namespace }}.svc.cluster.local:4317"
+  {{- $collectorPort := eq (.Values.observability.otel.protocol | default "grpc") "grpc" | ternary "4317" "4318" }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://{{ .Release.Name }}-otel-collector.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:{{ $collectorPort }}"
   {{- else }}
   OTEL_EXPORTER_OTLP_ENDPOINT: ""
   {{- end }}
