@@ -4,10 +4,15 @@ kind: Middleware
 metadata:
   name: {{ .Release.Name }}-body-limit
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   buffering:
-    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 }}
+    {{- /* int64 keeps Helm's float64 YAML numbers from rendering as scientific notation (e.g. 2.097152e+07), which the Traefik CRD's integer field can reject */}}
+    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 | int64 }}
 
 {{- end }}

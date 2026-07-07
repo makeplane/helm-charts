@@ -6,7 +6,11 @@ metadata:
   name: {{ .Release.Name }}-space
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-space
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.space.assign_cluster_ip }}
@@ -38,9 +42,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-space
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.services.space) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
+        {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.services.space)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.space }}
       {{- include "plane.podSecurityContext" . }}

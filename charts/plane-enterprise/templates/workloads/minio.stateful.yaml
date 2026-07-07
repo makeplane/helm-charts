@@ -7,7 +7,11 @@ metadata:
   name: {{ .Release.Name }}-minio
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.minio.assign_cluster_ip }}
@@ -40,7 +44,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.services.minio) | nindent 8 }}
+      {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.services.minio)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.minio }}
       containers:
@@ -88,13 +96,19 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ now | date "20060102-150405" }}
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.minio) }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.minio "job" .Values.services.minio.bucketJob) }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
+      labels:
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.services.minio "job" .Values.services.minio.bucketJob) | nindent 8 }}
+      {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.services.minio "job" .Values.services.minio.bucketJob)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.minio }}
       restartPolicy: OnFailure

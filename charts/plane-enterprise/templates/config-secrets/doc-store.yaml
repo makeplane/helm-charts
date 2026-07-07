@@ -6,7 +6,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-doc-store-secrets
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 stringData:
   FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "20971520" | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}

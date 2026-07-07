@@ -5,7 +5,11 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-ingress
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:

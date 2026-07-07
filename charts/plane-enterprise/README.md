@@ -258,6 +258,50 @@ securityContext:
     runAsUser: 10001
 ```
 
+### Labels and Annotations
+
+The chart always applies the standard Kubernetes recommended labels (`app.kubernetes.io/name`,
+`app.kubernetes.io/instance`, `app.kubernetes.io/managed-by`, `app.kubernetes.io/version` and
+`helm.sh/chart`) to every resource. On top of those you can attach your own labels/annotations at
+three scopes. All scopes are merged and **more specific scopes win on key conflicts**. The chart's
+`app.name` selector label is never overridden, and nothing is ever injected into a
+`selector`/`matchLabels`, so `helm upgrade` of an existing release is always safe.
+
+| Setting                          | Default | Required | Scope                    | Description                                                                                                                                                                                                                             |
+| -------------------------------- | :-----: | :------: | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| commonLabels                     |  `{}`   |    No    | **Every resource**       | Labels added to the metadata of **every object** the chart creates (Deployments, StatefulSets, Jobs, Services, ConfigMaps, Secrets, certs, Ingress/IngressRoute, ServiceAccount, Middleware) **and** to every pod template.            |
+| commonAnnotations                |  `{}`   |    No    | **Every resource**       | Annotations added to every object's metadata and every pod template. On the nginx `Ingress` these merge with `ingress.ingress_annotations` (the ingress-specific value wins).                                                          |
+| services.\<svc\>.labels          |  `{}`   |    No    | One workload **object**  | Labels added to a single workload's own resource metadata (the Deployment/StatefulSet/Job object). Wins over `commonLabels`.                                                                                                           |
+| services.\<svc\>.annotations     |  `{}`   |    No    | One workload **object**  | Annotations added to a single workload's own resource metadata. Wins over `commonAnnotations`.                                                                                                                                        |
+| services.\<svc\>.podLabels       |  `{}`   |    No    | One workload **pods**    | Labels added to a single workload's pod template only (e.g. `services.api.podLabels`). Wins over `commonLabels`. This is what service meshes, NetworkPolicies and Prometheus pod selectors match on.                                   |
+| services.\<svc\>.podAnnotations  |  `{}`   |    No    | One workload **pods**    | Annotations added to a single workload's pod template only (e.g. `services.api.podAnnotations`). Wins over `commonAnnotations`.                                                                                                        |
+| services.api.migrator.\*         |  `{}`   |    No    | Migration **Job** only   | `labels`/`annotations`/`podLabels`/`podAnnotations` for the one-shot db-migration Job. The Job inherits all of `services.api`'s maps; keys set here **win** on conflict — e.g. `podAnnotations: {sidecar.istio.io/inject: "false"}` so the Job can complete on a meshed cluster, or `annotations: {argocd.argoproj.io/hook: PreSync}`. |
+| services.pi.migrator.\*          |  `{}`   |    No    | pi migration **Job** only  | Same override tier for the pi db-migration Job (inherits `services.pi`'s maps).                                                                                                                                                     |
+| services.minio.bucketJob.\*      |  `{}`   |    No    | Bucket-setup **Job** only  | Same override tier for the MinIO bucket-setup Job (inherits `services.minio`'s maps).                                                                                                                                               |
+
+> **Object-level vs pod-level.** `services.<svc>.labels`/`annotations` land on the **workload
+> resource** (the Deployment/StatefulSet object itself). `services.<svc>.podLabels`/`podAnnotations`
+> land on the **pod template** (`spec.template.metadata`), so they propagate to every pod.
+> `commonLabels`/`commonAnnotations` reach **both** levels, on every object in the chart.
+> One-shot Jobs (api/pi migrators, MinIO bucket setup) inherit their parent service's maps and can
+> selectively override them via the `migrator`/`bucketJob` blocks — precedence is
+> `job override` > `services.<svc>.*` > `common*` > standard labels.
+
+```yaml
+commonLabels:
+  team: platform
+commonAnnotations:
+  cost-center: engineering
+services:
+  api:
+    labels: {}          # only the api Deployment/Service object
+    annotations: {}
+    podLabels:          # only the api pods; wins over commonLabels
+      tier: backend
+    podAnnotations:
+      prometheus.io/scrape: "true"
+```
+
 ### Docker Registry
 
 | Setting                      | Default              | Required | Description                                                                                                                                                                                                                                                                                                                        |

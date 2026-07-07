@@ -6,7 +6,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-secrets
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 stringData:
   LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
   {{- if .Values.services.redis.local_setup }}
@@ -22,7 +26,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-vars
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 data:
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
   LIVE_SENTRY_DSN: {{ .Values.env.live_sentry_dsn | default "" | quote }}

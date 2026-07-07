@@ -15,9 +15,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-outbox-poller
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.services.outbox_poller) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
+        {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.services.outbox_poller)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.outbox_poller }}
       {{- include "plane.podSecurityContext" . }}
