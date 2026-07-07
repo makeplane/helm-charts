@@ -6,7 +6,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-issuer-api-token-secret
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 type: Opaque
 stringData:
   api-token: {{ .Values.ssl.token | default "default-api-token" | quote }}
@@ -18,7 +22,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-cert-issuer
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   acme:
     email: {{ .Values.ssl.email }}

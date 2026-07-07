@@ -7,7 +7,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-secrets
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 stringData:
   POSTGRES_PASSWORD: {{ .Values.env.pgdb_password | default "plane" | quote }}
   POSTGRES_DB: {{ .Values.env.pgdb_name | default "plane" | quote }}

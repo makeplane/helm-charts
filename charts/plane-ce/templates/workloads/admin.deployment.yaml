@@ -6,7 +6,11 @@ metadata:
   name: {{ .Release.Name }}-admin
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.admin.assign_cluster_ip }}
   clusterIP: None
@@ -37,9 +41,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.admin) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
+        {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.admin)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-admin

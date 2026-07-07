@@ -7,7 +7,11 @@ metadata:
   name: {{ .Release.Name }}-minio
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.minio.assign_cluster_ip }}
   clusterIP: None
@@ -40,7 +44,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.minio) | nindent 8 }}
+      {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.minio)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - image: {{ .Values.minio.image }}
@@ -88,13 +96,19 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio) }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio "job" .Values.minio.bucketJob) }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
+      labels:
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.minio "job" .Values.minio.bucketJob) | nindent 8 }}
+      {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.minio "job" .Values.minio.bucketJob)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       restartPolicy: OnFailure
       initContainers:

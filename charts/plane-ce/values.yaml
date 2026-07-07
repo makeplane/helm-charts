@@ -1,5 +1,17 @@
 planeVersion: v1.2.0
 
+# Chart-wide labels/annotations added to the metadata of EVERY resource the chart
+# creates (Deployments, StatefulSets, Jobs, Services, ConfigMaps, Secrets, certs,
+# Ingress/IngressRoute, ServiceAccount, Middleware, ...) AND to every pod template.
+# Useful for cost-allocation, ownership, NetworkPolicy/service-mesh targeting,
+# Prometheus scrape hints, external-dns, etc. These are additive and never injected
+# into a selector/matchLabels. For a narrower scope, use:
+#   - <component>.labels / annotations       -> that workload's OBJECT only
+#   - <component>.podLabels / podAnnotations -> that workload's PODS only
+# Per-component maps win over these chart-wide values on key conflicts.
+commonLabels: {}
+commonAnnotations: {}
+
 dockerRegistry:
   enabled: false
   host: "index.docker.io/v1/"
@@ -41,6 +53,8 @@ redis:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -55,6 +69,8 @@ postgres:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -73,6 +89,8 @@ rabbitmq:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -89,6 +107,15 @@ minio:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+  # Extra metadata for the one-shot bucket-setup Job ONLY (inherits minio's maps
+  # above; keys here win on conflict). See api.migrator for typical uses.
+  bucketJob:
+    labels: {}
+    annotations: {}
+    podLabels: {}
+    podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -106,6 +133,8 @@ web:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -121,6 +150,8 @@ space:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -136,6 +167,8 @@ admin:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -151,6 +184,8 @@ live:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -166,6 +201,18 @@ api:
   assign_cluster_ip: false
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+  # Extra metadata for the one-shot db-migration Job ONLY. The Job inherits all of
+  # api's labels/annotations/podLabels/podAnnotations above; keys set here WIN over
+  # the inherited ones on conflict. Typical uses: turn OFF service-mesh sidecar
+  # injection so the Job can complete (sidecar.istio.io/inject: "false"), Vault
+  # agent-pre-populate-only, or GitOps hook annotations (argocd.argoproj.io/hook).
+  migrator:
+    labels: {}
+    annotations: {}
+    podLabels: {}
+    podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -180,6 +227,8 @@ worker:
   pullPolicy: Always
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -194,6 +243,8 @@ beatworker:
   pullPolicy: Always
   labels: {}
   annotations: {}
+  podLabels: {}
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}

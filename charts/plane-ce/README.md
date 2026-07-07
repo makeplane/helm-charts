@@ -165,6 +165,48 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | ------------ | :-----: | :------: | ----------- |
 | planeVersion | v1.3.1  |   Yes    |             |
 
+### Labels and Annotations
+
+The chart always applies the standard Kubernetes recommended labels (`app.kubernetes.io/name`,
+`app.kubernetes.io/instance`, `app.kubernetes.io/managed-by`, `app.kubernetes.io/version` and
+`helm.sh/chart`) to every resource. On top of those you can attach your own labels/annotations at
+three scopes. All scopes are merged and **more specific scopes win on key conflicts**. The chart's
+`app.name` selector label is never overridden, and nothing is ever injected into a
+`selector`/`matchLabels`, so `helm upgrade` of an existing release is always safe.
+
+| Setting                          | Default | Required | Scope                    | Description                                                                                                                                                                                            |
+| -------------------------------- | :-----: | :------: | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| commonLabels                     |  `{}`   |    No    | **Every resource**       | Labels added to the metadata of **every object** the chart creates (Deployments, StatefulSets, Jobs, Services, ConfigMaps, Secrets, certs, Ingress/IngressRoute, ServiceAccount, Middleware) **and** to every pod template. |
+| commonAnnotations                |  `{}`   |    No    | **Every resource**       | Annotations added to every object's metadata and every pod template. On the nginx `Ingress` these merge with `ingress.ingress_annotations` (the ingress-specific value wins).                          |
+| \<component\>.labels             |  `{}`   |    No    | One workload **object**  | Labels added to a single workload's own resource metadata (e.g. `api.labels`). Wins over `commonLabels`.                                                                                               |
+| \<component\>.annotations        |  `{}`   |    No    | One workload **object**  | Annotations added to a single workload's own resource metadata. Wins over `commonAnnotations`.                                                                                                        |
+| \<component\>.podLabels          |  `{}`   |    No    | One workload **pods**    | Labels added to a single workload's pod template only (e.g. `api.podLabels`). Wins over `commonLabels`. This is what service meshes, NetworkPolicies and Prometheus pod selectors match on.            |
+| \<component\>.podAnnotations     |  `{}`   |    No    | One workload **pods**    | Annotations added to a single workload's pod template only. Wins over `commonAnnotations`.                                                                                                            |
+| api.migrator.\*                  |  `{}`   |    No    | Migration **Job** only   | `labels`/`annotations`/`podLabels`/`podAnnotations` for the one-shot db-migration Job. The Job inherits all of `api`'s maps; keys set here **win** on conflict — e.g. `podAnnotations: {sidecar.istio.io/inject: "false"}` so the Job can complete on a meshed cluster. |
+| minio.bucketJob.\*               |  `{}`   |    No    | Bucket-setup **Job** only | Same override tier for the MinIO bucket-setup Job (inherits `minio`'s maps).                                                                                                                          |
+
+> **Object-level vs pod-level.** `<component>.labels`/`annotations` land on the **workload resource**
+> (the Deployment/StatefulSet object itself). `<component>.podLabels`/`podAnnotations` land on the
+> **pod template** (`spec.template.metadata`), so they propagate to every pod. `commonLabels`/
+> `commonAnnotations` reach **both** levels, on every object in the chart. One-shot Jobs inherit
+> their parent component and can selectively override via `api.migrator` / `minio.bucketJob` —
+> precedence is `job override` > `<component>.*` > `common*` > standard labels.
+
+```yaml
+commonLabels:
+  team: platform
+commonAnnotations:
+  cost-center: engineering
+api:
+  podLabels:
+    tier: backend
+  podAnnotations:
+    prometheus.io/scrape: "true"
+  migrator:
+    podAnnotations:
+      sidecar.istio.io/inject: "false"
+```
+
 ### Postgress DB Setup
 
 | Setting                    |              Default              | Required | Description                                                                                                                                                                                                                                                                                                                                                                             |

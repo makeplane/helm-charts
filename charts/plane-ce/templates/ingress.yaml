@@ -6,12 +6,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
-  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
-  annotations:
-    {{- range $key, $value := .Values.ingress.ingress_annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- $annotations := merge (dict) (.Values.ingress.ingress_annotations | default dict) (.Values.commonAnnotations | default dict) }}
+  {{- with $annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.ingressClass | quote }}
