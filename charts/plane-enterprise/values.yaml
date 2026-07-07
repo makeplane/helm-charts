@@ -1,5 +1,23 @@
 planeVersion: v2.6.3
 
+# Chart-wide labels/annotations added to the metadata of EVERY resource the chart
+# creates (Deployments, StatefulSets, Jobs, Services, ConfigMaps, Secrets, certs,
+# Ingress/IngressRoute, ServiceAccount, Middleware, ...) AND to every pod template.
+# Useful for cost-allocation, ownership, NetworkPolicy/service-mesh targeting,
+# Prometheus scrape hints, external-dns, etc. These are additive and never override
+# the chart's standard recommended labels (app.kubernetes.io/*, helm.sh/chart) unless
+# you set the same key, and are never injected into a selector/matchLabels.
+# For a narrower scope, use:
+#   - services.<svc>.labels / annotations       -> that workload's OBJECT only
+#   - services.<svc>.podLabels / podAnnotations -> that workload's PODS only
+# Per-service maps win over these chart-wide values on key conflicts.
+#   commonLabels:
+#     team: platform
+#   commonAnnotations:
+#     cost-center: engineering
+commonLabels: {}
+commonAnnotations: {}
+
 dockerRegistry:
   enabled: false
   registry: 'index.docker.io/v1/'
@@ -112,6 +130,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   postgres:
     local_setup: true
@@ -125,6 +145,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
     read_replica:
       enabled: false
       remote_url: '' # INCASE OF REMOTE PG DB URL ONLY
@@ -145,6 +167,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   opensearch:
     local_setup: false
@@ -164,6 +188,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   minio:
     local_setup: true
@@ -181,6 +207,15 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
+    # Extra metadata for the one-shot bucket-setup Job ONLY (inherits minio's maps
+    # above; keys here win on conflict). See services.api.migrator for typical uses.
+    bucketJob:
+      labels: {}
+      annotations: {}
+      podLabels: {}
+      podAnnotations: {}
 
   iframely:
     enabled: false
@@ -197,6 +232,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   web:
     replicas: 1
@@ -212,6 +249,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   monitor:
     memoryLimit: 1000Mi
@@ -227,6 +266,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   space:
     replicas: 1
@@ -242,6 +283,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   admin:
     replicas: 1
@@ -257,6 +300,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   live:
     replicas: 1
@@ -272,6 +317,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   api:
     replicas: 1
@@ -287,6 +334,18 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
+    # Extra metadata for the one-shot db-migration Job ONLY. The Job inherits all of
+    # api's labels/annotations/podLabels/podAnnotations above; keys set here WIN over
+    # the inherited ones on conflict. Typical uses: turn OFF service-mesh sidecar
+    # injection so the Job can complete (sidecar.istio.io/inject: "false"), Vault
+    # agent-pre-populate-only, or GitOps hook annotations (argocd.argoproj.io/hook).
+    migrator:
+      labels: {}
+      annotations: {}
+      podLabels: {}
+      podAnnotations: {}
 
   worker:
     replicas: 1
@@ -299,6 +358,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   beatworker:
     replicas: 1
@@ -311,6 +372,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   silo:
     enabled: true
@@ -327,6 +390,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
     connectors:
       slack:
         enabled: false
@@ -364,6 +429,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   outbox_poller:
     enabled: false
@@ -379,6 +446,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   automation_consumer:
     enabled: false
@@ -394,6 +463,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   pi:
     enabled: false
@@ -410,6 +481,15 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
+    # Extra metadata for the one-shot pi db-migration Job ONLY (inherits pi's maps
+    # above; keys here win on conflict). See services.api.migrator for typical uses.
+    migrator:
+      labels: {}
+      annotations: {}
+      podLabels: {}
+      podAnnotations: {}
     ai_providers:
       openai:
         enabled: false
@@ -457,6 +537,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   pi_worker:
     replicas: 1
@@ -469,6 +551,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
   runner:
     enabled: false
@@ -485,6 +569,8 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    podLabels: {}
+    podAnnotations: {}
 
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details

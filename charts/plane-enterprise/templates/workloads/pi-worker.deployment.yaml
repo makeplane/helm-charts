@@ -15,9 +15,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.services.pi_worker) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
+        {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.services.pi_worker)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi_worker }}
       {{- include "plane.podSecurityContext" . }}

@@ -4,7 +4,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-vars
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 data:
   PRIME_HOST: {{ .Values.license.licenseServer | quote }}
   MACHINE_SIGNATURE: {{ include "hashString" . | quote }}

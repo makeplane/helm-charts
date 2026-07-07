@@ -6,7 +6,11 @@ metadata:
   name: {{ .Release.Name }}-iframely
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   clusterIP: None
   ports:
@@ -35,9 +39,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.services.iframely) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
+        {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.services.iframely)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.iframely }}
       {{- include "plane.podSecurityContext" . }}

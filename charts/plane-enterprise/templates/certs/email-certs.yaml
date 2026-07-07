@@ -4,7 +4,11 @@ kind: Certificate
 metadata:
   name: {{ .Release.Name }}-mail-tls-cert
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
