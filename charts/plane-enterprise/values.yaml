@@ -288,7 +288,34 @@ services:
     labels: {}
     annotations: {}
 
+  external_api:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   worker:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  worker_importers:
+    enabled: false
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
@@ -580,6 +607,8 @@ env:
     hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
+    jira_server_issues_page_size: 50
+    jira_server_issues_parallel_pages: 1
 
   email_service_envs:
     smtp_domain: ''

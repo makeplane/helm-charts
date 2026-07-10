@@ -99,6 +99,9 @@ data:
 
   AI_SERVICE_BASE_URL: "http://{{ .Release.Name }}-pi-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
 
+  JIRA_SERVER_ISSUES_PAGE_SIZE: {{ .Values.env.silo_envs.jira_server_issues_page_size | default 50 | quote }}
+  JIRA_SERVER_ISSUES_PARALLEL_PAGES: {{ .Values.env.silo_envs.jira_server_issues_parallel_pages | default 1 | quote }}
+
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}
   SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.silo_envs.sentry_traces_sample_rate | default "0.1" | quote }}

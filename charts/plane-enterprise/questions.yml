@@ -335,6 +335,14 @@ questions:
     label: "Silo CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.silo_envs.jira_server_issues_page_size
+    label: "Jira Server Issues Page Size"
+    type: int
+    default: 50
+  - variable: env.silo_envs.jira_server_issues_parallel_pages
+    label: "Jira Server Issues Parallel Pages"
+    type: int
+    default: 1
 
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
@@ -522,6 +530,37 @@ questions:
     label: "Web URL"
     type: string
     default: ""
+- variable: services.external_api.enabled
+  label: "Enable External API"
+  type: boolean
+  default: false
+  group: "External API Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.external_api.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.external_api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.external_api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.external_api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.external_api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.external_api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
@@ -541,6 +580,33 @@ questions:
     type: string
     default: 50Mi
   - variable: services.worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+- variable: services.worker_importers.enabled
+  label: "Enable Importer Worker"
+  type: boolean
+  default: false
+  group: "Importer Worker Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.worker_importers.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.worker_importers.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.worker_importers.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.worker_importers.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.worker_importers.cpuRequest
     label: "CPU Request"
     type: string
     default: 50m
