@@ -311,6 +311,10 @@ questions:
     label: "Request Interval"
     type: int
     default: 400
+  - variable: env.silo_envs.importers_queue_name
+    label: "Importers Queue Name"
+    type: string
+    default: "celery"
   - variable: env.silo_envs.sentry_dsn
     label: "Silo Sentry DSN"
     type: string

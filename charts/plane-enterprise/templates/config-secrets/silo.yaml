@@ -69,6 +69,7 @@ data:
   PORT: "3000"
   BATCH_SIZE: {{ .Values.env.silo_envs.batch_size | default 100 | quote }}
   MQ_PREFETCH_COUNT: {{ .Values.env.silo_envs.mq_prefetch_count | default 1 | quote }}
+  IMPORTERS_QUEUE_NAME: {{ .Values.env.silo_envs.importers_queue_name | default "celery" | quote }}
   REQUEST_INTERVAL: {{ .Values.env.silo_envs.request_interval | default 400 | quote }}
   SILO_BASE_PATH: "/silo"
 
