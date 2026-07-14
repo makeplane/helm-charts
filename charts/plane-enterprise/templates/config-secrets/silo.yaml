@@ -38,7 +38,7 @@ stringData:
   {{- if .Values.services.silo.connectors.slack.enabled }}
   SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
   SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
-  SLACK_BASE_URL: {{ .Values.services.silo.connectors.slack.base_url | default "https://slack.com" | quote }}
+  SLACK_BASE_URL: {{ .Values.services.silo.connectors.slack.base_url | default "" | quote }}
   {{- end }}
   {{- if .Values.services.silo.connectors.github.enabled }}
   GITHUB_CLIENT_SECRET: {{ .Values.services.silo.connectors.github.client_secret | default "" | quote }}

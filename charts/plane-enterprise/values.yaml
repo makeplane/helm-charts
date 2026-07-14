@@ -359,7 +359,7 @@ services:
         enabled: false
         client_id: ''
         client_secret: ''
-        base_url: 'https://slack.com'
+        base_url: ''
       github:
         enabled: false
         client_id: ''

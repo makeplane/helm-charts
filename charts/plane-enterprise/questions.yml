@@ -370,7 +370,7 @@ questions:
   - variable: services.silo.connectors.slack.base_url
     label: "Slack Base URL"
     type: string
-    default: "https://slack.com"
+    default: ""
 
 - variable: services.silo.connectors.github.enabled
   label: "Github App Integration"
