@@ -1,0 +1,40 @@
+dockerRegistry:
+  enabled: true
+  loginid: makeplane
+  password: ''
+  default_tag: latest
+
+ingress:
+  enabled: true
+  host: 'mcp.example.com'
+  ingressClass: 'nginx'
+  ingressAnnotations: { nginx.ingress.kubernetes.io/proxy-body-size: "10m" }
+  ssl:
+    enabled: false
+    issuer: cloudflare # Allowed : cloudflare, digitalocean, http
+    token: '' # not required for http
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: engineering@plane.so
+
+services:
+  storage_class: ''
+  api:
+    image: makeplane/plane-mcp-server
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    plane_base_url: ''
+    plane_internal_base_url: ''
+    plane_oauth:
+      enabled: false
+      client_id: ''
+      client_secret: ''
+      provider_base_url: ''
+
+  redis:
+    local_setup: true
+    image: valkey/valkey:7.2.11-alpine
+    volume_size: 500Mi
+    external_redis_url: '' # INCASE OF REMOTE REDIS ONLY

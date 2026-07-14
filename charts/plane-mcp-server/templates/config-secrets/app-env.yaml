@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-secrets
+stringData:
+  PLANE_OAUTH_PROVIDER_CLIENT_ID: {{ .Values.services.api.plane_oauth.client_id | quote }}
+  PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.api.plane_oauth.client_secret | quote }}
+  PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.api.plane_oauth.provider_base_url | quote }}
+  PLANE_BASE_URL: {{ .Values.services.api.plane_base_url | quote }}
+  PLANE_INTERNAL_BASE_URL: {{ .Values.services.api.plane_internal_base_url | quote }}
+  REDIS_HOST: {{ .Release.Name }}-redis
+  REDIS_PORT: "6379"
+  {{- if .Values.services.redis.local_setup }}
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  {{- else }}
+  REDIS_URL: {{ .Values.services.redis.external_redis_url | default "" | quote }}
+  {{- end }}
+  PORT: "8211"

@@ -1,0 +1,14 @@
+apiVersion: v2
+
+name: plane-mcp-server
+description: plane-mcp-server Setup
+
+type: application
+
+version: 1.0.0
+appVersion: "v0.2.0"
+
+home: https://plane.so
+icon: https://plane.so/favicon/favicon-32x32.png
+sources:
+  - https://github.com/makeplane/plane-mcp-server
