@@ -347,6 +347,14 @@ questions:
     label: "Jira Server Issues Parallel Pages"
     type: int
     default: 1
+  - variable: env.silo_envs.slack_base_url
+    label: "Slack Base URL"
+    type: string
+    default: "https://slack.com"
+  - variable: env.silo_envs.cursor_webhook_secret
+    label: "Cursor Webhook Secret"
+    type: string
+    default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
 
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"

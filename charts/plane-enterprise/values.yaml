@@ -628,6 +628,8 @@ env:
     cors_allowed_origins: ''
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
+    slack_base_url: 'https://slack.com'
+    cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
 
   email_service_envs:
     smtp_domain: ''
