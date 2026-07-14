@@ -38,6 +38,7 @@ stringData:
   {{- if .Values.services.silo.connectors.slack.enabled }}
   SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
   SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
+  SLACK_BASE_URL: {{ .Values.services.silo.connectors.slack.base_url | default "https://slack.com" | quote }}
   {{- end }}
   {{- if .Values.services.silo.connectors.github.enabled }}
   GITHUB_CLIENT_SECRET: {{ .Values.services.silo.connectors.github.client_secret | default "" | quote }}
@@ -73,7 +74,6 @@ data:
   IMPORTERS_QUEUE_NAME: {{ .Values.env.silo_envs.importers_queue_name | default "celery" | quote }}
   REQUEST_INTERVAL: {{ .Values.env.silo_envs.request_interval | default 400 | quote }}
   SILO_BASE_PATH: "/silo"
-  SLACK_BASE_URL: {{ .Values.env.silo_envs.slack_base_url | default "https://slack.com" | quote }}
 
   {{- if eq .Values.env.silo_envs.cors_allowed_origins "*"}}
   CORS_ALLOWED_ORIGINS: "*"
