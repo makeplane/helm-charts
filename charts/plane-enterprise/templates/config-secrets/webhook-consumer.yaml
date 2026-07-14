@@ -4,6 +4,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-webhook-consumer-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   WEBHOOK_QUEUE_NAME: {{ .Values.env.webhook_consumer_envs.queue_name | default "plane.webhook" | quote }}
   WEBHOOK_PREFETCH_COUNT: {{ .Values.env.webhook_consumer_envs.prefetch_count | default 10 | quote }}
