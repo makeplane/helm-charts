@@ -24,7 +24,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-automation-consumer
         {{- include "plane.containerSecurityContext" . }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

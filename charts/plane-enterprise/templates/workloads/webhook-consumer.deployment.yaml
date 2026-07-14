@@ -21,7 +21,7 @@ spec:
       {{- include "plane.podScheduling" .Values.services.webhook_consumer }}
       containers:
       - name: {{ .Release.Name }}-webhook-consumer
-        imagePullPolicy:  {{ .Values.services.api.pullPolicy | default "Always" }}
+        imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true

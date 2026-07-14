@@ -414,7 +414,6 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -429,7 +428,6 @@ services:
     cpuLimit: 500m
     memoryRequest: 500Mi
     cpuRequest: 250m
-    pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
