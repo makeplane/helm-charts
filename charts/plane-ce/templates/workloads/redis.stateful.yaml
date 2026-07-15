@@ -7,7 +7,11 @@ metadata:
   name: {{ .Release.Name }}-redis
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.redis.assign_cluster_ip }}
   clusterIP: None
@@ -38,7 +42,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.redis) | nindent 8 }}
+      {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.redis)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - image: {{ .Values.redis.image }}

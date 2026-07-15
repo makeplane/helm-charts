@@ -7,7 +7,11 @@ metadata:
   name: {{ .Release.Name }}-pgdb
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if not .Values.postgres.assign_cluster_ip }}
   clusterIP: None
@@ -36,7 +40,11 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.postgres) | nindent 8 }}
+      {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.postgres)) }}
+      annotations:
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - image: {{ .Values.postgres.image }}

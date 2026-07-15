@@ -7,7 +7,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-secrets
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 stringData:
   RABBITMQ_DEFAULT_USER: {{ .Values.rabbitmq.default_user | default "plane" | quote }}
   RABBITMQ_DEFAULT_PASS: {{ .Values.rabbitmq.default_password | default "plane" |quote }}

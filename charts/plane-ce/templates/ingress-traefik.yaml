@@ -5,7 +5,11 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-ingress
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
@@ -86,7 +90,11 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-minio-ingress
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
@@ -110,7 +118,11 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-rabbitmq-ingress
   labels:
-    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- include "plane.resourceLabels" $ | nindent 4 }}
+  {{- with (include "plane.resourceAnnotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:

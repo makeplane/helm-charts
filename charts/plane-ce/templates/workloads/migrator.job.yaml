@@ -4,16 +4,19 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.api) }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.api "job" .Values.api.migrator) }}
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-migrate
-        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.podLabels" (dict "context" $ "values" .Values.api "job" .Values.api.migrator) | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
+        {{- with (include "plane.podAnnotations" (dict "context" $ "values" .Values.api "job" .Values.api.migrator)) }}
+        {{- . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-api-migrate
