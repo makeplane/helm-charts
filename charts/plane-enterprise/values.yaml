@@ -1,5 +1,13 @@
 planeVersion: v3.0.0
 
+# GitOps mode: render deterministically for declarative tools (Argo CD / Flux). When true,
+# the per-render `timestamp` rollout annotation is omitted and migration Job names are keyed
+# to `planeVersion` instead of a wall-clock timestamp, so repeated renders of an unchanged
+# release are byte-identical (no perpetual drift, no immutable-Job patch errors). Default
+# false preserves the existing imperative `helm upgrade` behavior exactly.
+gitops:
+  enabled: false
+
 dockerRegistry:
   enabled: false
   registry: 'index.docker.io/v1/'
