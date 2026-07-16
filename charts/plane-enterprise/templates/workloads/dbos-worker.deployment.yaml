@@ -1,0 +1,80 @@
+{{- if .Values.services.dbos_worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-dbos-worker-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.dbos_worker) }}
+spec:
+  replicas: {{ .Values.services.dbos_worker.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-dbos-worker
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-dbos-worker
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.dbos_worker }}
+      {{- include "plane.podSecurityContext" . }}
+      containers:
+      - name: {{ .Release.Name }}-dbos-worker
+        {{- include "plane.containerSecurityContext" . }}
+        imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
+        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.dbos_worker.memoryRequest | default "500Mi" | quote }}
+            cpu: {{ .Values.services.dbos_worker.cpuRequest | default "250m" | quote }}
+          limits:
+            memory: {{ .Values.services.dbos_worker.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.dbos_worker.cpuLimit | default "500m" | quote}}
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - pgrep -f "python" > /dev/null
+          initialDelaySeconds: 10
+          failureThreshold: 3
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        command:
+          - ./bin/docker-entrypoint-dbos-worker.sh
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-dbos-worker-vars
+              optional: false
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
+          {{- if .Values.services.silo.enabled }}
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
+              optional: false
+          {{- end }}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- end }}

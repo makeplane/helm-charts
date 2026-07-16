@@ -883,6 +883,50 @@ questions:
     type: int
     default: 10
 
+- variable: services.dbos_worker.enabled
+  label: "Enable DBOS Worker"
+  type: boolean
+  default: false
+  group: "DBOS Worker Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.dbos_worker.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.dbos_worker.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.dbos_worker.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.dbos_worker.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.dbos_worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.dbos_worker.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.dbos_worker_envs.system_database_url
+    label: "DBOS System Database URL"
+    type: string
+    default: ""
+  - variable: env.dbos_worker_envs.sys_db_pool_size
+    label: "DBOS System DB Pool Size"
+    type: int
+    default: 10
+  - variable: env.dbos_worker_envs.app_version
+    label: "DBOS App Version"
+    type: string
+    default: "v1.0.0"
+
 - variable: services.iframely.enabled
   label: "Enable Iframely"
   type: boolean

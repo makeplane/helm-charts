@@ -436,6 +436,20 @@ services:
     labels: {}
     annotations: {}
 
+  dbos_worker:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 500Mi
+    cpuRequest: 250m
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   pi:
     enabled: false
     replicas: 1
@@ -660,6 +674,11 @@ env:
   webhook_consumer_envs:
     queue_name: "plane.webhook"
     prefetch_count: 10
+
+  dbos_worker_envs:
+    system_database_url: ''
+    sys_db_pool_size: 10
+    app_version: "v1.0.0"
 
   runner_envs:
     execution_timeout_ms: "10000"

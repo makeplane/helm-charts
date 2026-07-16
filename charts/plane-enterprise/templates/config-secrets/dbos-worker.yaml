@@ -1,0 +1,14 @@
+{{- if .Values.services.dbos_worker.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-dbos-worker-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+data:
+  DBOS_SYSTEM_DATABASE_URL: {{ .Values.env.dbos_worker_envs.system_database_url | default "" | quote }}
+  DBOS_SYS_DB_POOL_SIZE: {{ .Values.env.dbos_worker_envs.sys_db_pool_size | default 10 | quote }}
+  DBOS_APP_VERSION: {{ .Values.env.dbos_worker_envs.app_version | default "v1.0.0" | quote }}
+---
+{{- end }}
