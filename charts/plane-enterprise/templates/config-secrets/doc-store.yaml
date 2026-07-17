@@ -37,6 +37,10 @@ stringData:
   AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}
   AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | quote  }}
   AWS_REGION: {{ .Values.env.aws_region | default "" | quote  }}
+  # boto3 resolves the signing region from AWS_DEFAULT_REGION (not AWS_REGION).
+  # Without this, presigned URLs for buckets outside us-east-1 are signed for
+  # us-east-1 and S3 rejects the download with AuthorizationQueryParametersError.
+  AWS_DEFAULT_REGION: {{ .Values.env.aws_region | default "" | quote  }}
   AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
   {{- end }}
 {{- end }}
