@@ -548,6 +548,7 @@ external_secrets:
   opensearch_existingSecret: ''
   doc_store_existingSecret: ''
   app_env_existingSecret: ''
+  dbos_worker_existingSecret: ''
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
   pi_api_env_existingSecret: ''

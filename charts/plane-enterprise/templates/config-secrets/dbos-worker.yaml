@@ -1,4 +1,25 @@
 {{- if .Values.services.dbos_worker.enabled }}
+{{- if empty .Values.external_secrets.dbos_worker_existingSecret }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-dbos-worker-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+stringData:
+  {{- if .Values.env.dbos_worker_envs.system_database_url }}
+  DBOS_SYSTEM_DATABASE_URL: {{ .Values.env.dbos_worker_envs.system_database_url | quote }}
+  {{- else if .Values.services.postgres.local_setup }}
+  DBOS_SYSTEM_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
+  {{- else if .Values.env.pgdb_remote_url }}
+  DBOS_SYSTEM_DATABASE_URL: {{ .Values.env.pgdb_remote_url | quote }}
+  {{- else }}
+  DBOS_SYSTEM_DATABASE_URL: ""
+  {{- end }}
+---
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,7 +28,6 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
-  DBOS_SYSTEM_DATABASE_URL: {{ .Values.env.dbos_worker_envs.system_database_url | default "" | quote }}
   DBOS_SYS_DB_POOL_SIZE: {{ .Values.env.dbos_worker_envs.sys_db_pool_size | default 10 | quote }}
   DBOS_APP_VERSION: {{ .Values.env.dbos_worker_envs.app_version | default "v1.0.0" | quote }}
 ---
