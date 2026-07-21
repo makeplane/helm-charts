@@ -883,6 +883,46 @@ questions:
     type: int
     default: 10
 
+- variable: services.agent_consumer.enabled
+  label: "Enable Agent Consumer"
+  type: boolean
+  default: false
+  group: "Agent Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.agent_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.agent_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.agent_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.agent_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.agent_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.agent_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.agent_consumer_envs.queue_name
+    label: "Agent Queue Name"
+    type: string
+    default: "plane.agent"
+  - variable: env.agent_consumer_envs.prefetch_count
+    label: "Agent Prefetch Count"
+    type: int
+    default: 10
+
 - variable: services.iframely.enabled
   label: "Enable Iframely"
   type: boolean
