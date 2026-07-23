@@ -552,14 +552,14 @@ questions:
     default: ""
   - variable: env.gunicorn_max_requests
     label: "Gunicorn Max Requests"
-    description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation (recommended for Kubernetes)."
+    description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation."
     type: int
-    default: 0
+    default: 1000
   - variable: env.gunicorn_max_requests_jitter
     label: "Gunicorn Max Requests Jitter"
     description: "Random jitter added to GUNICORN_MAX_REQUESTS to stagger worker restarts. Set to 0 when rotation is disabled."
     type: int
-    default: 0
+    default: 150
   - variable: env.celery_task_publish_retry
     label: "Celery Task Publish Retry"
     description: "Retry task publishing on transient AMQP failures instead of silently dropping tasks."

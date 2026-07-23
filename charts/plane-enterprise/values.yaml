@@ -598,10 +598,9 @@ env:
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
-  # Gunicorn worker rotation settings. Set to 0 to disable rotation (recommended for Kubernetes,
-  # where pod lifecycle is managed by the orchestrator rather than the worker process itself).
-  gunicorn_max_requests: 0
-  gunicorn_max_requests_jitter: 0
+  # Gunicorn worker rotation settings.
+  gunicorn_max_requests: 1000
+  gunicorn_max_requests_jitter: 150
 
   # Celery broker settings.
   # celery_task_publish_retry: retry task publishing on transient AMQP failures instead of silently dropping.
