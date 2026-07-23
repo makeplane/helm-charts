@@ -78,7 +78,7 @@ data:
   GUNICORN_WORKERS: "1"
   GUNICORN_MAX_REQUESTS: {{ .Values.env.gunicorn_max_requests | default 0 | quote }}
   GUNICORN_MAX_REQUESTS_JITTER: {{ .Values.env.gunicorn_max_requests_jitter | default 0 | quote }}
-  CELERY_TASK_PUBLISH_RETRY: {{ .Values.env.celery_task_publish_retry | default true | ternary "True" "False" | quote }}
+  CELERY_TASK_PUBLISH_RETRY: {{ .Values.env.celery_task_publish_retry | ternary "True" "False" | quote }}
   CELERY_BROKER_POOL_LIMIT: {{ .Values.env.celery_broker_pool_limit | default 10 | quote }}
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
