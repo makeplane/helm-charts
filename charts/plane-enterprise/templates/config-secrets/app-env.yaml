@@ -76,10 +76,10 @@ data:
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
-  GUNICORN_MAX_REQUESTS: {{ .Values.env.gunicorn_max_requests | default 1000 | quote }}
-  GUNICORN_MAX_REQUESTS_JITTER: {{ .Values.env.gunicorn_max_requests_jitter | default 150 | quote }}
+  GUNICORN_MAX_REQUESTS: {{ .Values.env.gunicorn_max_requests | quote }}
+  GUNICORN_MAX_REQUESTS_JITTER: {{ .Values.env.gunicorn_max_requests_jitter | quote }}
   CELERY_TASK_PUBLISH_RETRY: {{ .Values.env.celery_task_publish_retry | ternary "True" "False" | quote }}
-  CELERY_BROKER_POOL_LIMIT: {{ .Values.env.celery_broker_pool_limit | default 10 | quote }}
+  CELERY_BROKER_POOL_LIMIT: {{ .Values.env.celery_broker_pool_limit | quote }}
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
   {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
