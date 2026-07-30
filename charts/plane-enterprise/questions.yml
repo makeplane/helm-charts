@@ -970,6 +970,14 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.pi_envs.ai_usage_agent_max_tokens_budget
+    label: "AI Usage Agent Max Tokens Budget"
+    type: string
+    default: ""
+  - variable: env.pi_envs.ai_usage_enforcement_enabled
+    label: "AI Usage Enforcement Enabled"
+    type: boolean
+    default: true
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean
