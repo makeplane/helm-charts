@@ -111,5 +111,4 @@ data:
 
   WEBHOOK_ALLOWED_IPS: {{ .Values.env.webhook_allowed_ips | default "" | quote }}
   WEBHOOK_ALLOWED_HOSTS: {{ .Values.env.webhook_allowed_hosts | default "" | quote }}
-  IS_SELF_MANAGED: "0"
   AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
