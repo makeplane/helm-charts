@@ -402,8 +402,8 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 
 When `ingress.ingressClass` starts with `traefik`, the chart deploys native Traefik CRDs instead of a standard `Ingress` resource:
 
-- **`IngressRoute`** (`traefik.io/v1alpha1`) — routes traffic to each Plane service via `Host` + `PathPrefix` rules on the `websecure` entrypoint
-- **`Middleware`** (`traefik.io/v1alpha1`) — enforces a request body size limit on every route (default 5 MiB, configurable via `ingress.traefik.maxRequestBodyBytes`)
+- **`IngressRoute`** (`traefik.io/v1alpha1`) — routes traffic to each Plane service via `Host` + `PathPrefix` rules on the `websecure` entrypoint. Specific paths (`/god-mode`, `/api`, …) use a higher priority than the catch-all `/` route.
+- **`Middleware`** (`traefik.io/v1alpha1`) — request body size limit on every route, plus a temporary redirect that adds a trailing slash for `/god-mode`, `/spaces`, and `/live` (required by those SPAs' React Router basenames).
 
 This requires the Traefik Helm chart to be installed with `providers.kubernetesCRD.enabled=true` (enabled by default in Traefik v3), as shown in the pre-requisites above.
 
@@ -437,6 +437,7 @@ ssl:
 
 | Setting                    |                      Default                       | Required | Description                                                                                                                                                                      |
 | -------------------------- | :------------------------------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| env.web_url                |                                                    |          | Optional public URL for the app (include scheme), e.g. `https://plane.example.com`. When set, used as `WEB_URL` as-is. When empty, `WEB_URL` is derived from `ingress.appHost` using **https** if TLS is configured (`ssl.tls_secret_name`, cert-manager certs, or Traefik ingress), otherwise **http**. |
 | env.secret_key             | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 |   Yes    | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data |
 | env.default_cluster_domain |                   cluster.local                    |   Yes    | Set this value as configured in your kubernetes cluster. `cluster.local` is usally the default in most cases.                                                                    |
 

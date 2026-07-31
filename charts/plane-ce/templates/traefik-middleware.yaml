@@ -9,5 +9,24 @@ metadata:
 spec:
   buffering:
     maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 5242880 }}
-
+---
+{{/*
+  Admin/space/live SPAs use React Router basenames with a trailing slash
+  (e.g. /god-mode/). Without a client-visible redirect, /god-mode serves HTML
+  but the router refuses to match. Use a temporary (302) redirect so browsers
+  do not permanently cache a bad Location (e.g. with the container port).
+*/}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-trailing-slash
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  redirectRegex:
+    # Match full request URL; keep host/scheme, add trailing slash.
+    regex: "^(https://[^/]+)/(god-mode|spaces|live)$"
+    replacement: "${1}/${2}/"
+    permanent: false
 {{- end }}

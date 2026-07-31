@@ -208,6 +208,13 @@ external_secrets:
 
 env:
 
+  # Public app URL (optional). When set, used as WEB_URL as-is (include scheme).
+  # Example: "https://plane.example.com"
+  # If empty, WEB_URL is derived from ingress.appHost:
+  #   https when TLS is configured (ssl.tls_secret_name, cert-manager certs, or Traefik ingress),
+  #   otherwise http.
+  web_url: ""
+
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
   remote_redis_url: "" #INCASE OF REMOTE REDIS ONLY
