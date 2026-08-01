@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-worker-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.pi_worker }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi_worker) }}
 spec:
   replicas: {{ .Values.services.pi_worker.replicas | default 1}}
   selector:
@@ -15,6 +15,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

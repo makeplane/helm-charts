@@ -14,6 +14,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 env:
   PREVIEW_BUILD_FOLDER: helm-preview
   AWS_ACCESS_KEY_ID: ${{ secrets.HELM_PREVIEW_AWS_ACCESS_KEY_ID }}

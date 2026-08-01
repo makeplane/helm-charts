@@ -5,6 +5,7 @@ metadata:
   name: {{ .Release.Name }}-monitor
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.monitor.assign_cluster_ip }}
@@ -24,7 +25,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-monitor-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.monitor }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.monitor) }}
 spec:
   selector:
     matchLabels:
@@ -34,6 +35,7 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-monitor
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

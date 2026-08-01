@@ -6,9 +6,12 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "gzb7MRLr0FoN129NyWARZEs84P9LzQ" | quote }}
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+  CURSOR_WEBHOOK_SECRET: {{ .Values.env.silo_envs.cursor_webhook_secret | default "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG" | quote }}
 
   {{- if .Values.services.postgres.local_setup }}
   DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
@@ -35,6 +38,7 @@ stringData:
   {{- if .Values.services.silo.connectors.slack.enabled }}
   SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
   SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
+  SLACK_BASE_URL: {{ .Values.services.silo.connectors.slack.base_url | default "" | quote }}
   {{- end }}
   {{- if .Values.services.silo.connectors.github.enabled }}
   GITHUB_CLIENT_SECRET: {{ .Values.services.silo.connectors.github.client_secret | default "" | quote }}
@@ -61,10 +65,13 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   PORT: "3000"
   BATCH_SIZE: {{ .Values.env.silo_envs.batch_size | default 100 | quote }}
   MQ_PREFETCH_COUNT: {{ .Values.env.silo_envs.mq_prefetch_count | default 1 | quote }}
+  IMPORTERS_QUEUE_NAME: {{ .Values.env.silo_envs.importers_queue_name | default "celery" | quote }}
   REQUEST_INTERVAL: {{ .Values.env.silo_envs.request_interval | default 400 | quote }}
   SILO_BASE_PATH: "/silo"
 
@@ -92,6 +99,11 @@ data:
 
   PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+
+  AI_SERVICE_BASE_URL: "http://{{ .Release.Name }}-pi-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
+
+  JIRA_SERVER_ISSUES_PAGE_SIZE: {{ .Values.env.silo_envs.jira_server_issues_page_size | default 50 | quote }}
+  JIRA_SERVER_ISSUES_PARALLEL_PAGES: {{ .Values.env.silo_envs.jira_server_issues_parallel_pages | default 1 | quote }}
 
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}

@@ -1,54 +1,31 @@
-
-apiVersion: v1
-kind: Service
-metadata:
-  namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-api
-  labels:
-    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
-    {{- include "plane.commonLabels" $ | nindent 4 }}
-spec:
-  type: ClusterIP
-  {{- if not .Values.services.api.assign_cluster_ip }}
-  clusterIP: None
-  {{- end }}
-  ports:
-  - name: api-8000
-    port: 8000
-    protocol: TCP
-    targetPort: 8000
-  selector:
-    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
-
----
-
+{{- if .Values.services.worker_importers.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-api-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
+  name: {{ .Release.Name }}-worker-importers-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.worker_importers) }}
 spec:
-  replicas: {{ .Values.services.api.replicas | default 1}}
+  replicas: {{ .Values.services.worker_importers.replicas | default 1 }}
   selector:
     matchLabels:
-      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-worker-importers
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
       labels:
-        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-worker-importers
         {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.api }}
+      {{- include "plane.podScheduling" .Values.services.worker_importers }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
-      - name: {{ .Release.Name }}-api
+      - name: {{ .Release.Name }}-worker-importers
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
@@ -56,11 +33,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.api.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.api.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.worker_importers.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.worker_importers.cpuRequest | default "50m" | quote }}
           limits:
-            memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.worker_importers.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.worker_importers.cpuLimit | default "500m" | quote}}
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}
@@ -73,8 +50,8 @@ spec:
 {{ . | indent 12 }}
             {{- end }}
 
-            # Start the API
-            exec ./bin/docker-entrypoint-api-ee.sh
+            # Start the importer worker
+            exec ./bin/docker-entrypoint-worker.sh celery.importer
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
@@ -104,15 +81,17 @@ spec:
           {{- end }}
         {{- end }}
         readinessProbe:
-          failureThreshold: 30
-          httpGet:
-            path: /
-            port: 8000
-            scheme: HTTP
-          periodSeconds: 10
+          exec:
+            command:
+              - sh
+              - -c
+              - pgrep -f "celery.*worker" > /dev/null
+          initialDelaySeconds: 10
+          failureThreshold: 3
+          periodSeconds: 30
           successThreshold: 1
-          timeoutSeconds: 1
+          timeoutSeconds: 5
 
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
----
+{{- end }}
