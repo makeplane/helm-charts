@@ -1,0 +1,54 @@
+
+{{- if .Values.services.live_exporter.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-live-exporter-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.live_exporter) }}
+spec:
+  replicas: {{ .Values.services.live_exporter.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live-exporter
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live-exporter
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.live_exporter }}
+      {{- include "plane.podSecurityContext" . }}
+      containers:
+      - name: {{ .Release.Name }}-live-exporter
+        {{- include "plane.containerSecurityContext" . }}
+        imagePullPolicy: {{ .Values.services.live_exporter.pullPolicy | default "Always" }}
+        image: {{ .Values.services.live_exporter.image | default "makeplane/live-commercial" }}:{{ .Values.planeVersion }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.live_exporter.memoryRequest | default "50Mi" | quote }}
+            cpu: {{ .Values.services.live_exporter.cpuRequest | default "50m" | quote }}
+          limits:
+            memory: {{ .Values.services.live_exporter.memoryLimit | default "2000Mi" | quote }}
+            cpu: {{ .Values.services.live_exporter.cpuLimit | default "1000m" | quote }}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-live-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
+              optional: false
+        env:
+          - name: LIVE_MODE
+            value: "exporter"
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+{{- end }}

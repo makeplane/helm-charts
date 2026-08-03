@@ -273,6 +273,22 @@ services:
     labels: {}
     annotations: {}
 
+  live_exporter:
+    enabled: true
+    replicas: 1
+    # PDF render footprint is 500MB-2GB; default limits reflect that.
+    memoryLimit: 2000Mi
+    cpuLimit: 1000m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    image: makeplane/live-commercial
+    pullPolicy: Always
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   api:
     replicas: 1
     memoryLimit: 1000Mi
@@ -614,6 +630,9 @@ env:
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+
+  # Background PDF/DOCX export worker queue.
+  export_queue_name: "plane-exports"
   external_iframely_url: ""
 
   silo_envs:
