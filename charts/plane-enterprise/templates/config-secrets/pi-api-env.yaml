@@ -109,6 +109,7 @@ data:
 
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080"
   PI_BASE_PATH: "/pi"
+  PLANE_INTERNAL_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
 
   
   {{- if eq .Values.env.pi_envs.cors_allowed_origins "*"}}

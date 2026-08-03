@@ -550,6 +550,26 @@ questions:
     label: "Webhook Allowed Hosts"
     type: string
     default: ""
+  - variable: env.gunicorn_max_requests
+    label: "Gunicorn Max Requests"
+    description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation."
+    type: int
+    default: 1000
+  - variable: env.gunicorn_max_requests_jitter
+    label: "Gunicorn Max Requests Jitter"
+    description: "Random jitter added to GUNICORN_MAX_REQUESTS to stagger worker restarts. Set to 0 when rotation is disabled."
+    type: int
+    default: 150
+  - variable: env.celery_task_publish_retry
+    label: "Celery Task Publish Retry"
+    description: "Retry task publishing on transient AMQP failures instead of silently dropping tasks."
+    type: boolean
+    default: true
+  - variable: env.celery_broker_pool_limit
+    label: "Celery Broker Pool Limit"
+    description: "Maximum number of connections in the Celery broker connection pool. Limits stale connection accumulation."
+    type: int
+    default: 10
 - variable: services.external_api.enabled
   label: "Enable External API"
   type: boolean
