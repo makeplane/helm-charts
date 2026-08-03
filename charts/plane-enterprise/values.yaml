@@ -360,6 +360,7 @@ services:
         client_id: ''
         client_secret: ''
         base_url: ''
+        signing_secret: ''
       github:
         enabled: false
         client_id: ''
@@ -367,6 +368,7 @@ services:
         app_name: ''
         app_id: ''
         private_key: ''
+        webhook_secret: ''
       gitlab:
         enabled: false
         client_id: ''
@@ -377,6 +379,18 @@ services:
         client_id: ''
         client_secret: ''
         integration_slug: ''
+      bitbucket:
+        enabled: false
+        client_id: ''
+        client_secret: ''
+        webhook_secret: ''
+      flatfile:
+        enabled: false
+        api_key: ''
+      hubspot:
+        enabled: false
+        client_id: ''
+        client_secret: ''
 
   email_service:
     enabled: false
@@ -640,6 +654,7 @@ env:
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
     cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
+    api_internal_base_url: ''
 
   email_service_envs:
     smtp_domain: ''

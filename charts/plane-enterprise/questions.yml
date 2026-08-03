@@ -351,6 +351,11 @@ questions:
     label: "Cursor Webhook Secret"
     type: string
     default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
+  - variable: env.silo_envs.api_internal_base_url
+    label: "API Internal Base URL"
+    description: "Internal cluster URL for the API service. Defaults to the in-cluster service DNS when left empty."
+    type: string
+    default: ""
 
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
@@ -369,6 +374,10 @@ questions:
     default: ""
   - variable: services.silo.connectors.slack.base_url
     label: "Slack Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.signing_secret
+    label: "Slack Signing Secret"
     type: string
     default: ""
 
@@ -397,6 +406,10 @@ questions:
     default: ""
   - variable: services.silo.connectors.github.private_key
     label: "Github Private Key"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.github.webhook_secret
+    label: "Github Webhook Secret"
     type: string
     default: ""
 
@@ -437,6 +450,54 @@ questions:
     default: ""
   - variable: services.silo.connectors.sentry.integration_slug
     label: "Sentry Integration Slug"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.bitbucket.enabled
+  label: "Bitbucket Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.bitbucket.client_id
+    label: "Bitbucket Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.client_secret
+    label: "Bitbucket Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.webhook_secret
+    label: "Bitbucket Webhook Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.flatfile.enabled
+  label: "Flatfile Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.flatfile.api_key
+    label: "Flatfile API Key"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.hubspot.enabled
+  label: "HubSpot Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.hubspot.client_id
+    label: "HubSpot Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.hubspot.client_secret
+    label: "HubSpot Client Secret"
     type: string
     default: ""
 
