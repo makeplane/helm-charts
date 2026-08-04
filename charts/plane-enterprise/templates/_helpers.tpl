@@ -80,7 +80,17 @@ Call with a dict carrying the root context and the component values:
     {{- with .values.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .values.annotations }}
+  {{- /*
+  Reloader reads its annotation from the workload resource, not the pod template,
+  so it is merged in here rather than emitted alongside the per-component
+  annotations — a second literal `annotations:` key would silently shadow one of
+  the two. A component-level annotation of the same name still wins.
+  */}}
+  {{- $annotations := deepCopy (default dict .values.annotations) }}
+  {{- if .context.Values.reloader.enabled }}
+  {{- $annotations = merge $annotations (dict "reloader.stakater.com/auto" "true") }}
+  {{- end }}
+  {{- with $annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
@@ -240,5 +250,333 @@ Caller must nindent to the correct depth.
 {{- if include "plane.s3CAEnabled" . -}}
 - name: NODE_EXTRA_CA_CERTS
   value: "/ca-bundle/custom-ca-bundle.crt"
+{{- end }}
+{{- end -}}
+
+{{/*
+================================================================================
+ServiceAccount
+================================================================================
+*/}}
+
+{{/*
+Name of the ServiceAccount every workload runs as. Defaults to the release-scoped
+account the chart creates; override with serviceAccount.name to run as a
+ServiceAccount you manage yourself (e.g. one created by Crossplane/Terraform and
+already bound to a cloud IAM role, or an EKS Pod Identity association target).
+*/}}
+{{- define "plane.serviceAccountName" -}}
+{{- .Values.serviceAccount.name | default (printf "%s-srv-account" .Release.Name) -}}
+{{- end -}}
+
+{{/*
+Returns "true" when the chart should render the ServiceAccount itself.
+Skipped when serviceAccount.create is false — i.e. the account is managed outside
+the chart (GitOps, Terraform) and only referenced here.
+*/}}
+{{- define "plane.createServiceAccount" -}}
+{{- if .Values.serviceAccount.create -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Pod-template labels required by some workload-identity implementations
+(notably Azure Workload Identity, which needs azure.workload.identity/use: "true"
+on the pod). Indentation is baked in for the pod-template label position, so call it
+bare: {{- include "plane.serviceAccountPodLabels" . }}
+*/}}
+{{- define "plane.serviceAccountPodLabels" -}}
+{{- with .Values.serviceAccount.podLabels }}
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- end -}}
+
+{{/*
+================================================================================
+Rollout: config checksum + Reloader
+================================================================================
+*/}}
+
+{{/*
+Aggregate sha256 over every Secret/ConfigMap the chart renders from values.
+Used as a pod-template annotation so `helm upgrade` rolls workloads when — and
+only when — chart-rendered configuration actually changed. Secrets that live
+outside the chart (External Secrets Operator, sealed secrets, manual) are not
+visible here by design: rotation of those is Reloader's job, see
+plane.reloaderAnnotations.
+
+The hash intentionally covers all config-secret templates rather than a per-workload
+subset: several keys (AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET)
+must stay in lockstep across services, so a shared trigger is the safe default.
+*/}}
+{{- define "plane.configChecksum" -}}
+{{- $ctx := . -}}
+{{- $acc := "" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" -}}
+{{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
+{{- end -}}
+{{- $acc | sha256sum -}}
+{{- end -}}
+
+{{/*
+Pod-template annotations shared by every workload.
+
+  checksum/config   always — rolls the pod when chart-rendered config changes
+  timestamp         only when global.forceRedeploy — restores the pre-3.1 behaviour
+                    of rolling every workload on every upgrade
+
+The Reloader annotation is NOT here: Reloader watches the workload resource's own
+annotations, so it is merged into plane.labelsAndAnnotations instead.
+
+Call with the root context. Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.podAnnotations" -}}
+checksum/config: {{ include "plane.configChecksum" . | quote }}
+{{- if .Values.global.forceRedeploy }}
+timestamp: {{ now | quote }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Rolling-update strategy that keeps full capacity during a rollout, so a
+Reloader-triggered restart after a credential rotation never drops requests.
+Rendered only for replicated Deployments (surge needs room to schedule).
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.rollingUpdateStrategy" -}}
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+{{- end -}}
+
+{{/*
+================================================================================
+Externalized secret values
+================================================================================
+*/}}
+
+{{/*
+Resolve a secret value with an optional insecure fallback.
+
+Returns .value when set. Otherwise fails the render when env.requireExplicitSecrets
+is true, and falls back to .fallback when it is false (the pre-3.1 behaviour, kept
+so existing installs keep working). The fallback values shipped by this chart are
+PUBLIC CONSTANTS — any production install must supply its own.
+
+Call with a dict: (dict "context" $ "name" "SECRET_KEY" "value" .Values.env.secret_key "fallback" "...")
+*/}}
+{{- define "plane.secretValue" -}}
+{{- if .value -}}
+{{- .value -}}
+{{- else if .context.Values.env.requireExplicitSecrets -}}
+{{- required (printf "%s has no value. Set it in values.yaml, or supply it through external_secrets.app_keys_existingSecret, or set env.requireExplicitSecrets=false to fall back to the chart's insecure default." .name) nil -}}
+{{- else -}}
+{{- .fallback -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+envFrom entry for the Secret carrying the shared signing/encryption keys
+(SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
+SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET). Renders nothing unless
+external_secrets.app_keys_existingSecret is set.
+
+These keys are duplicated across the api, live, silo and pi Secrets, and several of
+them must agree for those services to talk to each other. Pointing all of them at
+one Secret makes that agreement structural instead of something an operator has to
+remember to update in four places. When it is in use the chart stops emitting those
+keys in its own Secrets, so this is their only source.
+
+Placed first in envFrom so that a key you have already externalized through one of
+the older *_existingSecret groups keeps taking precedence.
+
+Indentation is baked in for the container envFrom position, so call it bare:
+{{- include "plane.appKeysSecretRef" . }}
+*/}}
+{{- define "plane.appKeysSecretRef" -}}
+{{- with .Values.external_secrets.app_keys_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
+Returns "true" when an externally managed Secret supplies the Postgres credentials,
+in which case the chart must not render a composed DATABASE_URL that would take
+precedence over the discrete POSTGRES_* parts.
+*/}}
+{{- define "plane.externalDatabase" -}}
+{{- if .Values.external_secrets.database.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.externalRabbitmq" -}}
+{{- if .Values.external_secrets.rabbitmq.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.externalRedis" -}}
+{{- if .Values.external_secrets.redis.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Only meaningful for a remote OpenSearch: when the chart runs the bundled cluster it
+owns those credentials on both sides, so externalizing just the application's half
+would leave the two disagreeing. Use opensearch_existingSecret for that case.
+*/}}
+{{- define "plane.externalOpensearch" -}}
+{{- if and .Values.external_secrets.opensearch.secretName (not .Values.services.opensearch.local_setup) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Postgres host/port/database the app should connect to in externalized-credential
+mode. Endpoint details are not secret, so they come from values (or from the
+mirrored cloud secret when it happens to carry them — see hostKey/portKey/dbNameKey).
+*/}}
+{{- define "plane.postgresHost" -}}
+{{- if .Values.services.postgres.local_setup -}}
+{{- printf "%s-pgdb.%s.svc.%s" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
+{{- else -}}
+{{- .Values.env.pgdb_host -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.rabbitmqHost" -}}
+{{- if .Values.services.rabbitmq.local_setup -}}
+{{- printf "%s-rabbitmq.%s.svc.%s" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
+{{- else -}}
+{{- .Values.env.rabbitmq_host -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.redisHost" -}}
+{{- if .Values.services.redis.local_setup -}}
+{{- printf "%s-redis.%s.svc.%s" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
+{{- else -}}
+{{- .Values.env.redis_host -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Emit one env entry sourced from a key inside an externally managed Secret.
+Call with a dict: (dict "name" "POSTGRES_USER" "secret" $name "key" $key)
+
+Emits a leading newline so that call sites can use a left-trim marker
+({{- include ... }}) without swallowing the separator from the previous entry.
+*/}}
+{{- define "plane.secretKeyEnv" }}
+- name: {{ .name }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ .secret }}
+      key: {{ .key }}
+{{- end -}}
+
+{{/*
+Discrete infrastructure credentials for the Django services (api, workers,
+consumers, poller, migrator). Renders nothing unless at least one of
+external_secrets.{database,redis,rabbitmq}.secretName is set.
+
+Design: the cluster Secret is a verbatim mirror of the cloud secret — an RDS or
+CloudSQL managed-rotation secret holds only {"username","password"} — so the chart
+maps whatever keys that secret happens to use onto the env var names the app reads,
+and takes the non-secret endpoint (host/port/database) from values. Nothing needs
+templating or recomposing on rotation, and there is exactly one secret to watch.
+
+The app composes its own connection URLs from these parts, so a rotated password
+propagates with no URL rewriting anywhere in the chain.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.infraCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- if $db.secretName }}
+- name: POSTGRES_HOST
+  value: {{ include "plane.postgresHost" . | quote }}
+- name: POSTGRES_PORT
+  value: {{ .Values.env.pgdb_port | default "5432" | quote }}
+- name: POSTGRES_DB
+  value: {{ .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_USER" "secret" $db.secretName "key" ($db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_PASSWORD" "secret" $db.secretName "key" ($db.passwordKey | default "password")) }}
+{{- with $db.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_HOST" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- with $db.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_PORT" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- with $db.dbNameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_DB" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- $mq := .Values.external_secrets.rabbitmq -}}
+{{- if $mq.secretName }}
+- name: RABBITMQ_HOST
+  value: {{ include "plane.rabbitmqHost" . | quote }}
+- name: RABBITMQ_PORT
+  value: {{ .Values.env.rabbitmq_port | default "5672" | quote }}
+- name: RABBITMQ_VHOST
+  value: {{ .Values.env.rabbitmq_vhost | default "/" | quote }}
+- name: RABBITMQ_SSL
+  {{/* The parts path has no URL scheme to carry TLS, so it needs an explicit flag.
+       Amazon MQ for RabbitMQ listens on 5671 and refuses plaintext. */}}
+  value: {{ .Values.env.rabbitmq_ssl | default false | ternary "1" "0" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PASSWORD" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
+{{- with $mq.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_HOST" "secret" $mq.secretName "key" .) }}
+{{- end }}
+{{- with $mq.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PORT" "secret" $mq.secretName "key" .) }}
+{{- end }}
+{{- with $mq.vhostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_VHOST" "secret" $mq.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- $redis := .Values.external_secrets.redis -}}
+{{- if $redis.secretName }}
+- name: REDIS_HOST
+  value: {{ include "plane.redisHost" . | quote }}
+- name: REDIS_PORT
+  value: {{ .Values.env.redis_port | default "6379" | quote }}
+- name: REDIS_SSL
+  value: {{ .Values.env.redis_ssl | default false | ternary "1" "0" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_PASSWORD" "secret" $redis.secretName "key" ($redis.passwordKey | default "password")) }}
+{{- with $redis.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_HOST" "secret" $redis.secretName "key" .) }}
+{{- end }}
+{{- with $redis.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_PORT" "secret" $redis.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- include "plane.opensearchCredsEnv" . }}
+{{- end -}}
+
+{{/*
+OpenSearch credentials from an externally managed Secret. Kept separate from
+plane.infraCredsEnv (which includes it) because Plane AI's workloads need these
+without the database/broker/cache parts.
+
+The application reads OPENSEARCH_USERNAME and OPENSEARCH_PASSWORD directly, so there
+is no URL to recompose here either. Leaving both unset on AWS makes the API use SigV4
+IAM auth instead, which is the better option when the domain supports it.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.opensearchCredsEnv" -}}
+{{- $os := .Values.external_secrets.opensearch -}}
+{{- if include "plane.externalOpensearch" . }}
+{{- include "plane.secretKeyEnv" (dict "name" "OPENSEARCH_USERNAME" "secret" $os.secretName "key" ($os.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "OPENSEARCH_PASSWORD" "secret" $os.secretName "key" ($os.passwordKey | default "password")) }}
 {{- end }}
 {{- end -}}

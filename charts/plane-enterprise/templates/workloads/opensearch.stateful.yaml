@@ -37,6 +37,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       {{- include "plane.podScheduling" .Values.services.opensearch }}
       securityContext:
@@ -83,8 +84,8 @@ spec:
           subPath: ''
         - mountPath: /docker-entrypoint-init.d
           name: {{.Release.Name}}-opensearch-init-script
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
       volumes:
       - name: {{.Release.Name}}-opensearch-init-script
         configMap:

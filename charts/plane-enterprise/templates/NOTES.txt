@@ -1,0 +1,73 @@
+Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespace {{ .Release.Namespace }}
+
+  App version:  {{ .Values.planeVersion }}
+  URL:          {{ if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}https{{ else }}http{{ end }}://{{ .Values.license.licenseDomain }}
+  Admin setup:  {{ if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}https{{ else }}http{{ end }}://{{ .Values.license.licenseDomain }}/god-mode/
+
+{{- $warnings := list }}
+
+{{- /* Credentials still living in values.yaml. */}}
+{{- if and (empty .Values.external_secrets.app_keys_existingSecret) (not .Values.env.requireExplicitSecrets) }}
+{{- $publicDefaults := list }}
+{{- if or (empty .Values.env.secret_key) (eq .Values.env.secret_key "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5") }}{{ $publicDefaults = append $publicDefaults "SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.live_server_secret_key) (eq .Values.env.live_server_secret_key "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") }}{{ $publicDefaults = append $publicDefaults "LIVE_SERVER_SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.silo_envs.aes_secret_key) (eq .Values.env.silo_envs.aes_secret_key "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") }}{{ $publicDefaults = append $publicDefaults "AES_SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.pi_envs.internal_secret) (eq .Values.env.pi_envs.internal_secret "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") }}{{ $publicDefaults = append $publicDefaults "PI_INTERNAL_SECRET" }}{{ end }}
+{{- if $publicDefaults }}
+{{- $warnings = append $warnings (printf "Using the chart's PUBLIC example values for: %s.\n    These are published in the chart and are not secret. Supply your own through\n    external_secrets.app_keys_existingSecret, and set env.requireExplicitSecrets=true\n    to make a missing value fail the render instead of falling back." (join ", " $publicDefaults)) }}
+{{- end }}
+{{- end }}
+
+{{- /* Externalized credentials with no way to pick up a rotation. */}}
+{{- if and (not .Values.reloader.enabled) (or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName .Values.external_secrets.app_keys_existingSecret) }}
+{{- $warnings = append $warnings "Credentials come from an external Secret, but reloader.enabled is false.\n    Pods will keep the values they started with, so a rotated credential will not\n    take effect until something restarts them. Install Stakater Reloader and set\n    reloader.enabled=true." }}
+{{- end }}
+
+{{- /* Services that cannot consume discrete credential parts yet. */}}
+{{- $externalInfra := or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName }}
+{{- if $externalInfra }}
+{{- $urlServices := list }}
+{{- if and .Values.services.silo.enabled (empty .Values.external_secrets.silo_env_existingSecret) }}{{ $urlServices = append $urlServices "silo" }}{{ end }}
+{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ $urlServices = append $urlServices "pi" }}{{ end }}
+{{- if and .Values.external_secrets.redis.secretName (empty .Values.external_secrets.live_env_existingSecret) }}{{ $urlServices = append $urlServices "live" }}{{ end }}
+{{- if $urlServices }}
+{{- $warnings = append $warnings (printf "These services read a connection URL rather than discrete credential parts: %s.\n    They will start without working connection details. Supply their DSN through the\n    matching *_existingSecret with an ESO template block — see\n    examples/external-secrets/ — or disable them." (join ", " $urlServices)) }}
+{{- end }}
+{{- end }}
+
+{{- /* A composed URL would shadow the discrete parts. */}}
+{{- if and .Values.external_secrets.app_env_existingSecret $externalInfra }}
+{{- $warnings = append $warnings (printf "Both external_secrets.app_env_existingSecret (%s) and the discrete credential\n    parts are set. Make sure that Secret does NOT contain DATABASE_URL, AMQP_URL or\n    REDIS_URL: the application prefers a URL when one is present, so a stale URL there\n    would silently shadow the rotated credential." .Values.external_secrets.app_env_existingSecret) }}
+{{- end }}
+
+{{- /* Redis parts need app support. */}}
+{{- if .Values.external_secrets.redis.secretName }}
+{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.1.0. This release runs %s — verify it is\n    v3.1.0 or newer, or keep supplying REDIS_URL instead." .Values.planeVersion) }}
+{{- end }}
+
+{{- /* Secrets that env rotation cannot reach. */}}
+{{- if and (eq (.Values.env.skip_env_var | default "1" | toString) "1") (or .Values.external_secrets.app_keys_existingSecret $externalInfra) }}
+{{- $warnings = append $warnings "env.skip_env_var is '1', so the SMTP password, OAuth client secrets, LLM_API_KEY\n    and LDAP_BIND_PASSWORD are read from the instance-configuration table in the\n    database, seeded from the environment only on first startup. Rotating those through\n    a Secret will have no effect. Set env.skip_env_var='0' to make the environment the\n    source of truth on every restart." }}
+{{- end }}
+
+{{- /* Static object-storage keys where a cloud identity would do. */}}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (not .Values.serviceAccount.annotations) }}
+{{- $warnings = append $warnings "Object storage is configured with a static AWS access key. Prefer a cloud identity:\n    annotate the ServiceAccount (serviceAccount.annotations) for IRSA / EKS Pod Identity\n    / GKE or Azure Workload Identity and clear env.aws_access_key and\n    env.aws_secret_access_key — the chart then omits those env vars so the SDK's default\n    credential chain picks up the pod's role." }}
+{{- end }}
+
+{{- if $warnings }}
+
+────────────────────────────────────────────────────────────────────────────────
+{{ len $warnings }} configuration {{ if eq (len $warnings) 1 }}warning{{ else }}warnings{{ end }}:
+{{ range $i, $w := $warnings }}
+  {{ add1 $i }}. {{ $w }}
+{{ end }}
+See the "Keeping credentials out of values.yaml" section of the chart README.
+────────────────────────────────────────────────────────────────────────────────
+{{- end }}
+
+{{- if .Values.global.forceRedeploy }}
+
+Note: global.forceRedeploy is on, so every workload restarts on every `helm upgrade`.
+Turn it off to have upgrades roll only the workloads whose configuration changed.
+{{- end }}

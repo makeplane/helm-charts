@@ -65,15 +65,24 @@ stringData:
   {{- end }}
 
   {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
-  BR_AWS_SECRET_ACCESS_KEY: {{ .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key | default "" | quote }}
-  BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_session_token | default "" | quote }}
+  {{- with .Values.services.pi.ai_providers.embedding_model.aws_access_key }}
+  BR_AWS_ACCESS_KEY_ID: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key }}
+  BR_AWS_SECRET_ACCESS_KEY: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.services.pi.ai_providers.embedding_model.aws_session_token }}
+  BR_AWS_SESSION_TOKEN: {{ . | quote }}
+  {{- end }}
   {{- end }}
 
-  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+  {{- if empty .Values.external_secrets.app_keys_existingSecret }}
+  AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "fallback" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") | quote }}
 
-  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
+  PI_INTERNAL_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.pi_envs.internal_secret" "value" .Values.env.pi_envs.internal_secret "fallback" "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") | quote }}
 
-  LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
+  LIVE_SERVER_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.live_server_secret_key" "value" .Values.env.live_server_secret_key "fallback" "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") | quote }}
+  {{- end }}
 {{- end }}
 ---
 
@@ -153,7 +162,8 @@ data:
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
   OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.services.pi.ai_providers.embedding_model.embedding_dimension | default 1536 | quote }}
-  BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
+  {{/* BR_AWS_ACCESS_KEY_ID lives in the Secret alongside BR_AWS_SECRET_ACCESS_KEY.
+       Both are omitted when unset so Bedrock falls back to the pod's cloud identity. */}}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}
 

@@ -7,6 +7,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi_worker) }}
 spec:
   replicas: {{ .Values.services.pi_worker.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
@@ -16,8 +17,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi_worker }}
       {{- include "plane.podSecurityContext" . }}
@@ -52,6 +54,7 @@ spec:
 
             exec ./bin/entrypoint-celery-worker.sh
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-pi-api-vars
               optional: false
@@ -64,16 +67,19 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.opensearchCredsEnv" .) }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.opensearchCredsEnv" .) }}
+{{ trim . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
 {{- end }}

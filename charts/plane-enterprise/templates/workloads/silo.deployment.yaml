@@ -31,6 +31,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.silo) }}
 spec:
   replicas: {{ .Values.services.silo.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
@@ -40,8 +41,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.silo }}
       {{- include "plane.podSecurityContext" . }}
@@ -113,6 +115,7 @@ spec:
 {{ . | indent 8 }}
         {{- end }}
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
               optional: false
@@ -131,7 +134,7 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
 {{- end }}

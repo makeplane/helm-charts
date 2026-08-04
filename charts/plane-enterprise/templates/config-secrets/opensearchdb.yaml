@@ -19,8 +19,12 @@ stringData:
   {{- else if .Values.env.opensearch_remote_url }}
   OPENSEARCH_ENABLED: "1"
   OPENSEARCH_URL: {{ .Values.env.opensearch_remote_url | quote }}
+  {{- if not (include "plane.externalOpensearch" .) }}
+  {{- /* Omitted when external_secrets.opensearch supplies them, so the externally
+       managed Secret is the only source and the two cannot drift. */}}
   OPENSEARCH_USERNAME: {{ .Values.env.opensearch_remote_username | default "" | quote }}
   OPENSEARCH_PASSWORD: {{ .Values.env.opensearch_remote_password | default "" | quote }}
+  {{- end }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
   {{- else }}

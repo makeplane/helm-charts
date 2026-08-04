@@ -34,8 +34,18 @@ stringData:
   AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000
   {{- else }}
   USE_MINIO: "0"
-  AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | quote  }}
+  {{/* Static access keys are rendered only when supplied. Leaving them unset is the
+       preferred configuration on a cloud: boto3 then walks its default credential
+       chain and picks up the pod's identity (IRSA, EKS Pod Identity, GKE/Azure
+       Workload Identity) — see serviceAccount.annotations in values.yaml. An empty
+       AWS_ACCESS_KEY_ID would derail that chain, so the key is omitted rather than
+       rendered blank. */}}
+  {{- with .Values.env.aws_access_key }}
+  AWS_ACCESS_KEY_ID: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_secret_access_key }}
+  AWS_SECRET_ACCESS_KEY: {{ . | quote  }}
+  {{- end }}
   AWS_REGION: {{ .Values.env.aws_region | default "" | quote  }}
   AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
   {{- end }}

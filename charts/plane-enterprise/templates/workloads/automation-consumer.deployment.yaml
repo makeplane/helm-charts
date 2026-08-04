@@ -7,6 +7,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.automation_consumer) }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
@@ -16,8 +17,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.automation_consumer }}
       {{- include "plane.podSecurityContext" . }}
@@ -38,6 +40,7 @@ spec:
         command:
           - ./bin/docker-entrypoint-automation-consumer.sh
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-automation-consumer-vars
               optional: false
@@ -53,11 +56,16 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+        {{- if or .Values.extraEnv (include "plane.infraCredsEnv" .) }}
         env:
+          {{- with (include "plane.infraCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
 
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 {{- end }}

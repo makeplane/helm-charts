@@ -30,6 +30,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
 spec:
   replicas: {{ .Values.services.api.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
@@ -39,8 +40,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.api }}
       {{- include "plane.podSecurityContext" . }}
@@ -76,6 +78,7 @@ spec:
             # Start the API
             exec ./bin/docker-entrypoint-api-ee.sh
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
@@ -94,10 +97,13 @@ spec:
               optional: false
           {{- end }}
 
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.infraCredsEnv" .) }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.infraCredsEnv" .) }}
+{{ trim . | indent 10 }}
           {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
@@ -113,6 +119,6 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
 
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---

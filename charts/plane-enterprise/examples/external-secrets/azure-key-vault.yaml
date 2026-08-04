@@ -1,0 +1,211 @@
+# External Secrets Operator -> Azure Key Vault, for the plane-enterprise chart.
+#
+# Replace: NAMESPACE, VAULT_NAME, TENANT_ID, and the secret names.
+#
+# Authentication uses Azure Workload Identity on the External Secrets Operator's own
+# ServiceAccount — no static keys. The bound managed identity needs "Key Vault Secrets
+# User" (or a get/list access policy) on the vault.
+#
+# Note on naming: Key Vault secret names allow only alphanumerics and hyphens, so the
+# key names below use hyphens and are mapped onto the env var names the chart expects.
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: azure-key-vault
+  namespace: NAMESPACE
+spec:
+  provider:
+    azurekv:
+      authType: WorkloadIdentity
+      vaultUrl: https://VAULT_NAME.vault.azure.net
+      serviceAccountRef:
+        # ESO's ServiceAccount, annotated with azure.workload.identity/client-id
+        name: external-secrets
+        namespace: external-secrets
+---
+# 1. DATABASE (Azure Database for PostgreSQL Flexible Server).
+#
+# Key Vault secrets are single values, so map each one to a key. Storing the username
+# and password as two secrets keeps the mapping explicit; a rotation replaces only the
+# password secret's version and nothing here changes.
+#
+# Chart side:
+#   external_secrets.database.secretName: plane-postgres
+#   external_secrets.database.usernameKey: username
+#   external_secrets.database.passwordKey: password
+#   env.pgdb_host: plane.postgres.database.azure.com
+#   env.pgdb_name: plane
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-postgres
+  namespace: NAMESPACE
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-key-vault
+    kind: SecretStore
+  target:
+    name: plane-postgres
+    creationPolicy: Owner
+  data:
+    - secretKey: username
+      remoteRef:
+        key: plane-postgres-username
+    - secretKey: password
+      remoteRef:
+        key: plane-postgres-password
+---
+# Alternative: if you store the credential as a single JSON secret
+# ({"username": "...", "password": "..."}), extract it verbatim instead:
+#
+#   dataFrom:
+#     - extract:
+#         key: plane-postgres
+---
+# 2. RABBITMQ.
+#
+# Chart side:
+#   external_secrets.rabbitmq.secretName: plane-rabbitmq
+#   env.rabbitmq_host / rabbitmq_port / rabbitmq_vhost
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-rabbitmq
+  namespace: NAMESPACE
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-key-vault
+    kind: SecretStore
+  target:
+    name: plane-rabbitmq
+    creationPolicy: Owner
+  data:
+    - secretKey: username
+      remoteRef:
+        key: plane-rabbitmq-username
+    - secretKey: password
+      remoteRef:
+        key: plane-rabbitmq-password
+---
+# 3. REDIS (Azure Cache for Redis access key).
+#
+# Azure Cache exposes a primary and a secondary access key, both valid at once — that
+# is the two-credential pattern the rotation runbook describes. Rotate the secondary,
+# point this secret at it, let Reloader roll, then rotate the primary.
+#
+# Chart side (needs planeVersion v3.1.0+):
+#   external_secrets.redis.secretName: plane-redis
+#   external_secrets.redis.passwordKey: password
+#   env.redis_host: plane.redis.cache.windows.net
+#   env.redis_port: '6380'
+#   env.redis_ssl: true
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-redis
+  namespace: NAMESPACE
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-key-vault
+    kind: SecretStore
+  target:
+    name: plane-redis
+    creationPolicy: Owner
+  data:
+    - secretKey: password
+      remoteRef:
+        key: plane-redis-primary-key
+---
+# 4. SHARED SIGNING KEYS — external_secrets.app_keys_existingSecret: plane-app-keys
+#
+# NEVER rotate this secret: SECRET_KEY and AES_SECRET_KEY/AES_SALT are key-encryption
+# keys, and changing them makes existing ciphertext undecryptable, silently. Disable
+# any Key Vault rotation policy on these.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-app-keys
+  namespace: NAMESPACE
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-key-vault
+    kind: SecretStore
+  target:
+    name: plane-app-keys
+    creationPolicy: Owner
+  data:
+    - secretKey: SECRET_KEY
+      remoteRef: { key: plane-secret-key }
+    - secretKey: AES_SECRET_KEY
+      remoteRef: { key: plane-aes-secret-key }
+    - secretKey: AES_SALT
+      remoteRef: { key: plane-aes-salt }
+    - secretKey: LIVE_SERVER_SECRET_KEY
+      remoteRef: { key: plane-live-server-secret-key }
+    - secretKey: PI_INTERNAL_SECRET
+      remoteRef: { key: plane-pi-internal-secret }
+    - secretKey: SILO_HMAC_SECRET_KEY
+      remoteRef: { key: plane-silo-hmac-secret-key }
+    - secretKey: CURSOR_WEBHOOK_SECRET
+      remoteRef: { key: plane-cursor-webhook-secret }
+---
+# 5. OBJECT STORAGE
+#
+# Plane's storage layer speaks S3 and GCS. On Azure, point it at an S3-compatible
+# gateway or use an S3-compatible object store, and deliver its keys through
+# doc_store_existingSecret (that Secret replaces the chart's doc-store Secret, so it
+# must also carry USE_MINIO "0", AWS_S3_BUCKET_NAME, AWS_S3_ENDPOINT_URL,
+# STORAGE_PROVIDER and FILE_SIZE_LIMIT).
+#
+# Azure Workload Identity for the Plane pods themselves (used by any Azure SDK calls)
+# needs both an annotation and a pod label:
+#
+#   serviceAccount:
+#     annotations:
+#       azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
+#     podLabels:
+#       azure.workload.identity/use: 'true'
+---
+# 6. SILO / LIVE / PLANE AI — these read a connection URL, not discrete parts, so ESO
+# composes the DSN here. urlEncode matters: Azure Redis access keys end in '=' and
+# generated passwords often contain @ : / #, any of which would break the URL.
+#
+# Chart side: external_secrets.silo_env_existingSecret: plane-silo-env
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: plane-silo-env
+  namespace: NAMESPACE
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-key-vault
+    kind: SecretStore
+  target:
+    name: plane-silo-env
+    creationPolicy: Owner
+    template:
+      engine: v2
+      data:
+        DATABASE_URL: >-
+          postgresql://{{ .username }}:{{ .password | urlEncode }}@plane.postgres.database.azure.com:5432/plane?sslmode=require
+        REDIS_URL: >-
+          rediss://:{{ .redis_password | urlEncode }}@plane.redis.cache.windows.net:6380
+        AMQP_URL: >-
+          amqp://{{ .mq_username }}:{{ .mq_password | urlEncode }}@rabbitmq.internal:5672/
+  data:
+    - secretKey: username
+      remoteRef: { key: plane-postgres-username }
+    - secretKey: password
+      remoteRef: { key: plane-postgres-password }
+    - secretKey: redis_password
+      remoteRef: { key: plane-redis-primary-key }
+    - secretKey: mq_username
+      remoteRef: { key: plane-rabbitmq-username }
+    - secretKey: mq_password
+      remoteRef: { key: plane-rabbitmq-password }
