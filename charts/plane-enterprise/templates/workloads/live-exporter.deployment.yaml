@@ -44,8 +44,6 @@ spec:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
         env:
-          - name: LIVE_MODE
-            value: "exporter"
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
