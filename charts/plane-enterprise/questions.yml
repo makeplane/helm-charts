@@ -284,6 +284,14 @@ questions:
     label: "Default Replica Count"
     type: int
     default: 1
+  - variable: services.live_exporter.pullPolicy
+    label: "Live Exporter Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
   - variable: services.live_exporter.memoryLimit
     label: "Memory Limit"
     type: string
