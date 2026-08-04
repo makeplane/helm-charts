@@ -624,15 +624,33 @@ external_secrets:
     usernameKey: username
     passwordKey: password
 
-  # Shared signing/encryption keys (SECRET_KEY, AES_SECRET_KEY, AES_SALT,
-  # LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,
-  # CURSOR_WEBHOOK_SECRET). One Secret for every service that needs them, so a
-  # rotation can never leave two services disagreeing.
+  # Shared signing/encryption keys. One Secret for every service that needs them, so
+  # a rotation can never leave two services disagreeing. While this is set, the chart
+  # stops emitting these keys in its own Secrets, making yours the only source.
+  #
+  # The Secret MUST contain every key your deployment uses — a missing key is not a
+  # render error, it is an absent env var:
+  #   SECRET_KEY              REQUIRED. The API falls back to a per-pod random value
+  #                           when absent, so JWTs stop verifying across replicas and
+  #                           encrypted instance-configuration rows become unreadable.
+  #   AES_SECRET_KEY          REQUIRED. api/silo/pi all derive from it.
+  #   AES_SALT                Optional; all three services default to "aes-salt".
+  #                           Set it only if you set it from the start.
+  #   LIVE_SERVER_SECRET_KEY  Required when live is deployed (api <-> live <-> pi).
+  #   PI_INTERNAL_SECRET      Required when Plane AI is deployed.
+  #   SILO_HMAC_SECRET_KEY    Required when silo is deployed (silo signs, API verifies).
+  #   CURSOR_WEBHOOK_SECRET   Required for silo's Cursor agent integration.
+  #   RUNNER_HMAC_SECRET_KEY  Required when the runner is deployed.
   #
   # WARNING — SECRET_KEY, AES_SECRET_KEY and AES_SALT are key-encryption keys:
   # SECRET_KEY protects the encrypted instance-configuration rows and the AES pair
   # protects stored OAuth/MCP tokens. Changing them makes existing ciphertext
-  # undecryptable. Store them in a secret that is NOT on a rotation schedule.
+  # undecryptable, and it fails silently. Store them in a secret that is NOT on a
+  # rotation schedule.
+  #
+  # Do NOT also define these keys in one of the *_existingSecret groups below. Those
+  # are mounted after this Secret, so a duplicate wins on some workloads and not
+  # others, leaving two services with different values of a key that must match.
   app_keys_existingSecret: ''
 
   # DNS-01 API token for the cert-manager Issuer (ssl.issuer cloudflare/digitalocean).
@@ -804,6 +822,11 @@ env:
     # aes_secret_key encrypts stored connector tokens: NEVER ROTATE on a live instance.
     hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
+    # Salt paired with aes_secret_key. Shared by api, silo and pi, which all default
+    # to "aes-salt" internally — leave empty to keep that default. Setting it on an
+    # instance that already has encrypted data makes that data undecryptable, exactly
+    # like changing aes_secret_key. NEVER ROTATE.
+    aes_salt: ''
     cors_allowed_origins: ''
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1

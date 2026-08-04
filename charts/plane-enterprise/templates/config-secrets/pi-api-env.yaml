@@ -9,7 +9,13 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
-  {{- if .Values.services.postgres.local_setup }}
+  {{- if include "plane.externalDatabase" . }}
+  {{/* Credentials come from external_secrets.database as discrete
+       PLANE_PI_POSTGRES_* / FOLLOWER_POSTGRES_* parts. Left empty on purpose: pi
+       prefers a URL when one is set, so a composed URL here would shadow the
+       rotated password. */}}
+  PLANE_PI_DATABASE_URL: ""
+  {{- else if .Values.services.postgres.local_setup }}
   PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pg_pi_db_name }}"
   {{- else if .Values.env.pg_pi_db_remote_url }}
   PLANE_PI_DATABASE_URL: {{ .Values.env.pg_pi_db_remote_url}}
@@ -17,17 +23,23 @@ stringData:
   PLANE_PI_DATABASE_URL: ""
   {{- end }}
 
+  {{/* An explicit follower_postgres_uri still wins — it is the escape hatch for a
+       follower with genuinely separate credentials from the primary. */}}
   {{- if .Values.env.pi_envs.follower_postgres_uri }}
   FOLLOWER_POSTGRES_URI: {{ .Values.env.pi_envs.follower_postgres_uri | quote }}
+  {{- else if include "plane.externalDatabase" . }}
+  FOLLOWER_POSTGRES_URI: ""
   {{- else if .Values.services.postgres.local_setup }}
   FOLLOWER_POSTGRES_URI: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
   {{- else if .Values.env.pgdb_remote_url }}
   FOLLOWER_POSTGRES_URI: {{ .Values.env.pgdb_remote_url | quote }}
-  {{- else }}  
+  {{- else }}
   FOLLOWER_POSTGRES_URI: ""
   {{- end }}
 
-  {{- if .Values.services.rabbitmq.local_setup }}
+  {{- if include "plane.externalRabbitmq" . }}
+  AMQP_URL: ""
+  {{- else if .Values.services.rabbitmq.local_setup }}
   AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
   {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
   AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
@@ -35,7 +47,11 @@ stringData:
   AMQP_URL: ""
   {{- end }}
 
-  {{- if .Values.services.redis.local_setup }}
+  {{/* Redis is pi's Celery broker in this chart. CELERY_BROKER_URL takes precedence
+       over AMQP_URL in pi, so leaving it empty is what lets the REDIS_* parts win. */}}
+  {{- if include "plane.externalRedis" . }}
+  CELERY_BROKER_URL: ""
+  {{- else if .Values.services.redis.local_setup }}
   CELERY_BROKER_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
   {{- else }}
   CELERY_BROKER_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
@@ -78,6 +94,11 @@ stringData:
 
   {{- if empty .Values.external_secrets.app_keys_existingSecret }}
   AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "fallback" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") | quote }}
+  {{- with .Values.env.silo_envs.aes_salt }}
+  {{/* Rendered only when set: api, silo and pi all default to "aes-salt" internally,
+       so emitting an empty value would break decryption on existing instances. */}}
+  AES_SALT: {{ . | quote }}
+  {{- end }}
 
   PI_INTERNAL_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.pi_envs.internal_secret" "value" .Values.env.pi_envs.internal_secret "fallback" "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") | quote }}
 

@@ -14,6 +14,11 @@ stringData:
   {{- if empty .Values.external_secrets.app_keys_existingSecret }}
   SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.secret_key" "value" .Values.env.secret_key "fallback" "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5") | quote }}
   AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "fallback" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") | quote }}
+  {{- with .Values.env.silo_envs.aes_salt }}
+  {{/* Rendered only when set: api, silo and pi all default to "aes-salt" internally,
+       so emitting an empty value would break decryption on existing instances. */}}
+  AES_SALT: {{ . | quote }}
+  {{- end }}
   LIVE_SERVER_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.live_server_secret_key" "value" .Values.env.live_server_secret_key "fallback" "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") | quote }}
   PI_INTERNAL_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.pi_envs.internal_secret" "value" .Values.env.pi_envs.internal_secret "fallback" "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") | quote }}
   {{- end }}

@@ -949,11 +949,13 @@ If your rotation secret happens to carry the endpoint too (RDS non-master rotati
 
 Whenever one of these is set, the chart stops emitting the corresponding composed `DATABASE_URL` / `AMQP_URL` / `REDIS_URL` in its own Secrets — the application prefers a URL when one is present, so a stale URL would silently shadow the rotated credential. **If you also supply `app_env_existingSecret`, make sure it does not contain those URL keys.**
 
-Applies to the Django services: api, external-api, worker, importer worker, beat-worker, webhook and automation consumers, outbox poller, migrator. OpenSearch credentials additionally reach the Plane AI workloads, since they query the same cluster.
+**Every service reads discrete parts from planeVersion v3.2.0 onward** — the Django family (api, external-api, worker, importer worker, beat-worker, webhook and automation consumers, outbox poller, migrator) plus silo, live and Plane AI. Below v3.2.0 only the Django family does; `helm upgrade` warns when your `planeVersion` predates the support you have configured.
 
-**Silo, live and Plane AI still need a connection URL** for the database, broker and cache — they do not read discrete parts. For those, keep using `silo_env_existingSecret` / `live_env_existingSecret` / `pi_api_env_existingSecret` and let ESO compose the DSN with a `template` block (see `examples/external-secrets/`). `helm upgrade` prints a warning when you have configured a combination that would leave one of them without connection details.
+Each workload receives only the credentials it uses. Live gets Redis and nothing else; silo gets Postgres, RabbitMQ and Redis but not OpenSearch; Plane AI gets its own `PLANE_PI_POSTGRES_*` and `FOLLOWER_POSTGRES_*` names plus Redis and OpenSearch, and deliberately no `RabbitMQ` — Plane AI prefers an AMQP broker over a Redis one, so sending it RabbitMQ parts would quietly move its queue off Redis.
 
-OpenSearch is the exception: `external_secrets.opensearch` covers the Plane AI workloads too, so search credentials rotate for the whole deployment at once.
+Plane AI's two databases both come from the same `external_secrets.database` Secret, which is the shape this chart provisions (one managed instance, two databases). If yours have genuinely separate credentials, set `env.pi_envs.follower_postgres_uri` — it still takes precedence — or use `pi_api_env_existingSecret`.
+
+For **planeVersion below v3.2.0**, supply silo/live/Plane AI DSNs through `silo_env_existingSecret` / `live_env_existingSecret` / `pi_api_env_existingSecret` and let ESO compose them with a `template` block (see `examples/external-secrets/`).
 
 ### 3. Shared signing keys in one Secret
 
@@ -965,6 +967,10 @@ external_secrets:
 ```
 
 The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted first in `envFrom`, so a key you already externalized through one of the older `*_existingSecret` groups still wins — don't define the same key in both.
+
+The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. `RUNNER_HMAC_SECRET_KEY` belongs here too when the runner is deployed.
+
+Do not also define any of these keys in one of the `*_existingSecret` groups. Those Secrets are mounted after this one, so a duplicate wins on the workloads mounting that group and loses everywhere else — leaving two services disagreeing on a key that has to match. `helm upgrade` warns when it sees both set.
 
 The trade-off: because it is one Secret, every service that mounts it sees all of its keys — the live server's pods get `SECRET_KEY` in their environment even though only the API uses it. These are all first-party Plane services in one namespace, so this is the same trust boundary the duplicated copies already shared. If you need the keys separated per service, keep using the per-group `*_existingSecret` mechanism and take on keeping the shared values in step yourself.
 

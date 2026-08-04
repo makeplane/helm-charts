@@ -13,6 +13,8 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- if or (empty .Values.env.live_server_secret_key) (eq .Values.env.live_server_secret_key "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") }}{{ $publicDefaults = append $publicDefaults "LIVE_SERVER_SECRET_KEY" }}{{ end }}
 {{- if or (empty .Values.env.silo_envs.aes_secret_key) (eq .Values.env.silo_envs.aes_secret_key "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") }}{{ $publicDefaults = append $publicDefaults "AES_SECRET_KEY" }}{{ end }}
 {{- if or (empty .Values.env.pi_envs.internal_secret) (eq .Values.env.pi_envs.internal_secret "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") }}{{ $publicDefaults = append $publicDefaults "PI_INTERNAL_SECRET" }}{{ end }}
+{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.hmac_secret_key) (eq .Values.env.silo_envs.hmac_secret_key "gzb7MRLr0FoN129NyWARZEs84P9LzQ")) }}{{ $publicDefaults = append $publicDefaults "SILO_HMAC_SECRET_KEY" }}{{ end }}
+{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.cursor_webhook_secret) (eq .Values.env.silo_envs.cursor_webhook_secret "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG")) }}{{ $publicDefaults = append $publicDefaults "CURSOR_WEBHOOK_SECRET" }}{{ end }}
 {{- if $publicDefaults }}
 {{- $warnings = append $warnings (printf "Using the chart's PUBLIC example values for: %s.\n    These are published in the chart and are not secret. Supply your own through\n    external_secrets.app_keys_existingSecret, and set env.requireExplicitSecrets=true\n    to make a missing value fail the render instead of falling back." (join ", " $publicDefaults)) }}
 {{- end }}
@@ -23,15 +25,27 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- $warnings = append $warnings "Credentials come from an external Secret, but reloader.enabled is false.\n    Pods will keep the values they started with, so a rotated credential will not\n    take effect until something restarts them. Install Stakater Reloader and set\n    reloader.enabled=true." }}
 {{- end }}
 
-{{- /* Services that cannot consume discrete credential parts yet. */}}
+{{- /*
+Version gate. Discrete credential parts landed in two stages: the Django services in
+v3.1.0, and silo/live/pi in v3.2.0. A deployment pinned below the relevant version
+gets the warnings that follow. planeVersion is operator-supplied and need not be
+semver ("stable", a git sha), so an unparsable value warns rather than failing the
+render — semverCompare would error on it.
+*/}}
+{{- $version := trimPrefix "v" (.Values.planeVersion | toString) }}
+{{- $parsable := regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+" $version }}
+{{- $preRedisParts := or (not $parsable) (semverCompare "< 3.1.0" $version) }}
+{{- $preServiceParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
+
+{{- /* Services that cannot consume discrete credential parts on this app version. */}}
 {{- $externalInfra := or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName }}
-{{- if $externalInfra }}
+{{- if and $externalInfra $preServiceParts }}
 {{- $urlServices := list }}
 {{- if and .Values.services.silo.enabled (empty .Values.external_secrets.silo_env_existingSecret) }}{{ $urlServices = append $urlServices "silo" }}{{ end }}
 {{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ $urlServices = append $urlServices "pi" }}{{ end }}
 {{- if and .Values.external_secrets.redis.secretName (empty .Values.external_secrets.live_env_existingSecret) }}{{ $urlServices = append $urlServices "live" }}{{ end }}
 {{- if $urlServices }}
-{{- $warnings = append $warnings (printf "These services read a connection URL rather than discrete credential parts: %s.\n    They will start without working connection details. Supply their DSN through the\n    matching *_existingSecret with an ESO template block — see\n    examples/external-secrets/ — or disable them." (join ", " $urlServices)) }}
+{{- $warnings = append $warnings (printf "These services read discrete credential parts only from planeVersion v3.2.0\n    onward, and this release runs %s: %s.\n    On an older image they will start without working connection details. Either\n    upgrade, or supply their DSN through the matching *_existingSecret with an ESO\n    template block — see examples/external-secrets/." .Values.planeVersion (join ", " $urlServices)) }}
 {{- end }}
 {{- end }}
 
@@ -41,8 +55,27 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- end }}
 
 {{- /* Redis parts need app support. */}}
-{{- if .Values.external_secrets.redis.secretName }}
-{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.1.0. This release runs %s — verify it is\n    v3.1.0 or newer, or keep supplying REDIS_URL instead." .Values.planeVersion) }}
+{{- if and .Values.external_secrets.redis.secretName $preRedisParts }}
+{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.1.0. This release runs %s — upgrade, or\n    keep supplying REDIS_URL instead." .Values.planeVersion) }}
+{{- end }}
+
+{{- /*
+Duplicate shared keys across two Secrets. The chart suppresses its own copies when
+app_keys_existingSecret is set, but it cannot see inside an operator-supplied Secret.
+Because app-keys is mounted first, a duplicate in a legacy group wins on the workloads
+that mount that group and loses everywhere else — so two services end up with
+different values of a key that has to match.
+*/}}
+{{- if .Values.external_secrets.app_keys_existingSecret }}
+{{- $legacyGroups := list }}
+{{- with .Values.external_secrets.app_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "app_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.silo_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "silo_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.live_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "live_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.pi_api_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "pi_api_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.runner_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "runner_env (%s)" .) }}{{ end }}
+{{- if $legacyGroups }}
+{{- $warnings = append $warnings (printf "app_keys_existingSecret is set alongside: %s.\n    Those Secrets must NOT contain SECRET_KEY, AES_SECRET_KEY, AES_SALT,\n    LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,\n    CURSOR_WEBHOOK_SECRET or RUNNER_HMAC_SECRET_KEY. A duplicate wins on the workloads\n    mounting that group and loses on the rest, leaving two services disagreeing on a\n    key that must match — which surfaces as auth failures or undecryptable data." (join ", " $legacyGroups)) }}
+{{- end }}
 {{- end }}
 
 {{- /* Secrets that env rotation cannot reach. */}}

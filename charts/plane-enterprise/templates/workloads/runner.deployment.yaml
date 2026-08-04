@@ -68,6 +68,7 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-runner-vars
               optional: false

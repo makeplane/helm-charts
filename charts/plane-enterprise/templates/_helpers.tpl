@@ -499,6 +499,18 @@ propagates with no URL rewriting anywhere in the chain.
 Caller must indent to the correct depth (env list items).
 */}}
 {{- define "plane.infraCredsEnv" -}}
+{{- include "plane.postgresCredsEnv" . }}
+{{- include "plane.rabbitmqCredsEnv" . }}
+{{- include "plane.redisCredsEnv" . }}
+{{- include "plane.opensearchCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Postgres credentials from an externally managed Secret. Split out of
+plane.infraCredsEnv so a workload can take only the backends it actually uses —
+the live server needs Redis and nothing else.
+*/}}
+{{- define "plane.postgresCredsEnv" -}}
 {{- $db := .Values.external_secrets.database -}}
 {{- if $db.secretName }}
 - name: POSTGRES_HOST
@@ -519,6 +531,12 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_DB" "secret" $db.secretName "key" .) }}
 {{- end }}
 {{- end }}
+{{- end -}}
+
+{{/*
+RabbitMQ credentials from an externally managed Secret.
+*/}}
+{{- define "plane.rabbitmqCredsEnv" -}}
 {{- $mq := .Values.external_secrets.rabbitmq -}}
 {{- if $mq.secretName }}
 - name: RABBITMQ_HOST
@@ -543,6 +561,13 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_VHOST" "secret" $mq.secretName "key" .) }}
 {{- end }}
 {{- end }}
+{{- end -}}
+
+{{/*
+Redis credentials from an externally managed Secret. Consumed on its own by the
+live server, and by Plane AI, whose Celery broker is Redis in Helm deployments.
+*/}}
+{{- define "plane.redisCredsEnv" -}}
 {{- $redis := .Values.external_secrets.redis -}}
 {{- if $redis.secretName }}
 - name: REDIS_HOST
@@ -559,7 +584,6 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.secretKeyEnv" (dict "name" "REDIS_PORT" "secret" $redis.secretName "key" .) }}
 {{- end }}
 {{- end }}
-{{- include "plane.opensearchCredsEnv" . }}
 {{- end -}}
 
 {{/*
@@ -579,4 +603,62 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.secretKeyEnv" (dict "name" "OPENSEARCH_USERNAME" "secret" $os.secretName "key" ($os.usernameKey | default "username")) }}
 {{- include "plane.secretKeyEnv" (dict "name" "OPENSEARCH_PASSWORD" "secret" $os.secretName "key" ($os.passwordKey | default "password")) }}
 {{- end }}
+{{- end -}}
+
+{{/*
+Infrastructure credentials for silo: Postgres, RabbitMQ and Redis, using the same
+env var names as the Django services. Not OpenSearch — silo never queries it.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.siloInfraCredsEnv" -}}
+{{- include "plane.postgresCredsEnv" . }}
+{{- include "plane.rabbitmqCredsEnv" . }}
+{{- include "plane.redisCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Database credentials for Plane AI, which reads its own env var names rather than
+the POSTGRES_* set: PLANE_PI_POSTGRES_* for its own database and
+FOLLOWER_POSTGRES_* for its read path into the main Plane database. Both come from
+the same external_secrets.database Secret — one managed instance hosting two
+databases is the shape the chart provisions. A deployment with genuinely separate
+credentials per database should use pi_api_env_existingSecret instead.
+
+Redis is included because Plane AI's Celery broker is Redis in Helm deployments.
+RabbitMQ deliberately is NOT: pi resolves an AMQP broker ahead of a Redis one, so
+emitting RABBITMQ_* here would silently move its queue off Redis.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.piInfraCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- if $db.secretName }}
+- name: PLANE_PI_POSTGRES_HOST
+  value: {{ include "plane.postgresHost" . | quote }}
+- name: PLANE_PI_POSTGRES_PORT
+  value: {{ .Values.env.pgdb_port | default "5432" | quote }}
+- name: PLANE_PI_POSTGRES_DB
+  value: {{ .Values.env.pg_pi_db_name | default "plane_pi" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_USER" "secret" $db.secretName "key" ($db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_PASSWORD" "secret" $db.secretName "key" ($db.passwordKey | default "password")) }}
+- name: FOLLOWER_POSTGRES_HOST
+  value: {{ include "plane.postgresHost" . | quote }}
+- name: FOLLOWER_POSTGRES_PORT
+  value: {{ .Values.env.pgdb_port | default "5432" | quote }}
+- name: FOLLOWER_POSTGRES_DB
+  value: {{ .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_USER" "secret" $db.secretName "key" ($db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_PASSWORD" "secret" $db.secretName "key" ($db.passwordKey | default "password")) }}
+{{- with $db.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_HOST" "secret" $db.secretName "key" .) }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_HOST" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- with $db.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_PORT" "secret" $db.secretName "key" .) }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_PORT" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- include "plane.redisCredsEnv" . }}
+{{- include "plane.opensearchCredsEnv" . }}
 {{- end -}}

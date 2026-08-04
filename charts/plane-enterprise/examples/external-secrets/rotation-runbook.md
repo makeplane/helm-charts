@@ -80,7 +80,15 @@ Both fail **silently**: decryption errors are swallowed and the values come back
 
 **Database-resident secrets do not rotate through the environment.** With the default `SKIP_ENV_VAR=1`, the SMTP password, OAuth client secrets, `LLM_API_KEY` and `LDAP_BIND_PASSWORD` live in the instance-configuration table, seeded from the environment only on first boot. Set `env.skip_env_var: '0'` to make the environment the source of truth on every restart — at the cost of god-mode admin UI edits to those settings being overwritten.
 
-**Silo, live and Plane AI read connection URLs, not discrete parts.** Their DSN has to be composed by ESO with a `template` block (see the provider examples). That template embeds the password, so it must use `urlEncode`.
+**Silo, live and Plane AI rotate like the API from planeVersion v3.2.0** — they read
+discrete parts, so nothing recomposes a DSN and a Reloader restart is all that is needed.
+Below v3.2.0 their DSN has to be composed by ESO with a `template` block (see the provider
+examples), and that template embeds the password, so it must use `urlEncode`.
+
+**Plane AI's follower connection re-reads its credentials at call time.** After an
+authentication failure it refetches without waiting for a restart, so a remounted Secret
+can take effect mid-process. Its own database and broker still resolve at import, so those
+rely on the Reloader restart like everything else.
 
 ## Verifying a rotation
 

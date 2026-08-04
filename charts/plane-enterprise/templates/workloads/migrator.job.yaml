@@ -44,6 +44,14 @@ spec:
               name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
               optional: false
           {{- end }}
+          {{- if .Values.services.runner.enabled }}
+          {{/* The API verifies the runner's HMAC signature, so it needs the same key
+               the runner signs with. Delivered here for the same reason silo-secrets
+               is above: the verifying side lives in this workload family. */}}
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.runner_env_existingSecret) }}{{ .Values.external_secrets.runner_env_existingSecret }}{{ else }}{{ .Release.Name }}-runner-secrets{{ end }}
+              optional: false
+          {{- end }}
         {{- if or .Values.extraEnv (include "plane.infraCredsEnv" .) }}
         env:
           {{- with (include "plane.infraCredsEnv" .) }}

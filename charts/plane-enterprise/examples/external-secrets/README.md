@@ -57,6 +57,17 @@ reloader:
 
 If your provider can push on rotation (an AWS Lambda rotation hook that annotates the `ExternalSecret`, or ESO's `PushSecret`/webhook paths), prefer that over polling frequently.
 
+## Composed DSNs are only for older app versions
+
+From **planeVersion v3.2.0** every service — including silo, live and Plane AI — reads
+discrete credential parts, so the `template:` blocks in the provider examples that build
+a `DATABASE_URL`/`REDIS_URL`/`AMQP_URL` are no longer needed. Point
+`external_secrets.database` / `rabbitmq` / `redis` at the mirrored secret and let each
+app compose its own URL.
+
+Keep using the templated DSN sections (`plane-silo-env` and friends) only when pinned
+below v3.2.0, or when a service genuinely needs different credentials from the primary.
+
 ## What must never rotate
 
 Do not put `SECRET_KEY`, `AES_SECRET_KEY` or `AES_SALT` in a secret with a rotation policy. `SECRET_KEY` derives the Fernet key encrypting the instance-configuration rows, and the AES pair protects stored OAuth/MCP tokens; changing either makes existing ciphertext undecryptable, silently. Keep them in a separate, static secret — that is what `app_keys_existingSecret` is for.
