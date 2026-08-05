@@ -633,6 +633,8 @@ env:
 
   # Background PDF/DOCX export worker queue.
   export_queue_name: "plane-exports"
+  # Base URL for export download redirects. Defaults to licenseDomain with protocol from SSL settings.
+  export_download_base_url: ""
   external_iframely_url: ""
 
   silo_envs:

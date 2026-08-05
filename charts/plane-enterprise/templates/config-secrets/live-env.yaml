@@ -49,5 +49,12 @@ data:
   IFRAMELY_URL: http://{{ .Release.Name }}-iframely.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8061/
   {{- end }}
 
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  EXPORT_DOWNLOAD_BASE_URL: {{ .Values.env.export_download_base_url | default (printf "https://%s" .Values.license.licenseDomain) | quote }}
+  {{- else }}
+  EXPORT_DOWNLOAD_BASE_URL: {{ .Values.env.export_download_base_url | default (printf "http://%s" .Values.license.licenseDomain) | quote }}
+  {{- end }}
+
   EXPORT_QUEUE_NAME: {{ .Values.env.export_queue_name | default "plane-exports" | quote }}
+
 ---

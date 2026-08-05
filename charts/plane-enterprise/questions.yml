@@ -272,6 +272,11 @@ questions:
     description: "RabbitMQ queue name for background PDF/DOCX export jobs consumed by the live-exporter service."
     type: string
     default: "plane-exports"
+  - variable: env.export_download_base_url
+    label: "Export Download Base URL"
+    description: "Base URL for export download redirects. Defaults to licenseDomain with protocol inferred from SSL settings."
+    type: string
+    default: ""
 
 - variable: services.live_exporter.enabled
   label: "Install Live Exporter Service"
