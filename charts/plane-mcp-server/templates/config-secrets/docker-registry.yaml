@@ -1,4 +1,4 @@
-{{- if .Values.dockerRegistry.enabled }}
+{{- if and .Values.dockerRegistry.enabled (empty .Values.dockerRegistry.existingSecret) }}
 
 apiVersion: v1
 kind: Secret
@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-docker-registry-credentials
 data:
-  .dockerconfigjson: {{ include "plane-mcp-server.imagePullSecret" .}}
+  .dockerconfigjson: {{ include "imagePullSecret" .}}
 type: kubernetes.io/dockerconfigjson
 
 {{- end }}

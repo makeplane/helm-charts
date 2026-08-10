@@ -3,12 +3,21 @@ questions:
 - variable: dockerRegistry.loginid
   label: "Login ID"
   type: string
-  default: "makeplane"
+  default: ""
   group: "Docker Credentials"
   subquestions:
+  - variable: dockerRegistry.registry
+    label: "Registry Host"
+    type: string
+    default: "index.docker.io/v1/"
   - variable: dockerRegistry.password
     label: "Password/Token"
     type: password
+    default: ""
+  - variable: dockerRegistry.existingSecret
+    label: "Existing Secret Name"
+    description: "Name of an existing Kubernetes secret of type kubernetes.io/dockerconfigjson. When set, chart will use this instead of creating a new secret."
+    type: string
     default: ""
   - variable: dockerRegistry.default_tag
     label: "Image Tag"

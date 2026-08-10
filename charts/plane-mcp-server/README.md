@@ -39,13 +39,15 @@
 
 ### Docker Registry Configuration
 
-| Setting                      |        Default                | Required | Description                                                                 |
-| ---------------------------- | :---------------------------: | :------: | --------------------------------------------------------------------------- |
-| dockerRegistry.enabled       |         true                  |          | Enable Docker registry authentication for pulling images                    |
-| dockerRegistry.loginid       |        makeplane              |          | Docker registry login ID/username                                           |
-| dockerRegistry.password      |                               |          | Docker registry password or token                                           |
-| dockerRegistry.default_tag   |        latest                 |          | Default image tag for MCP server image                                      |
-| services.api.image           | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag)                                  |
+| Setting                        |        Default                | Required | Description                                                                                                                                                                                                                                            |
+| ------------------------------ | :---------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| dockerRegistry.enabled         |         true                  |          | Enable to configure image pull secrets for pulling images from a private docker registry. When enabled, you can either provide credentials to create a new secret or use an existing Kubernetes secret.                                                 |
+| dockerRegistry.existingSecret  |                               |          | Name of an existing Kubernetes secret containing docker registry credentials. When specified, the chart will use this secret for `imagePullSecrets` instead of creating a new one. The secret should be of type `kubernetes.io/dockerconfigjson`. If left empty, credentials below will be used to create a new secret. |
+| dockerRegistry.registry        | index.docker.io/v1/           |          | Docker registry URL. Only used when `dockerRegistry.existingSecret` is empty.                                                                                                                                                                          |
+| dockerRegistry.loginid         |                               |          | Login ID / Username for the docker registry. Only used when `dockerRegistry.existingSecret` is empty.                                                                                                                                                  |
+| dockerRegistry.password        |                               |          | Password or Token for the docker registry. Only used when `dockerRegistry.existingSecret` is empty.                                                                                                                                                    |
+| dockerRegistry.default_tag     |        latest                 |          | Default image tag for MCP server image.                                                                                                                                                                                                                |
+| services.api.image             | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag).                                                                                                                                                                                                            |
 
 ### MCP Server Setup
 
