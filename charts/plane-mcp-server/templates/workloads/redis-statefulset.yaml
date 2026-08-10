@@ -41,6 +41,11 @@ spec:
         name: {{ .Release.Name }}-redis
         stdin: true
         tty: true
+        {{- if .Values.services.redis.password }}
+        args:
+          - --requirepass
+          - {{ .Values.services.redis.password | quote }}
+        {{- end }}
         volumeMounts:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-redis-vol
@@ -60,7 +65,7 @@ spec:
       resources:
         requests:
           storage: {{ .Values.services.redis.volume_size | default "1Gi" | quote }}
-      storageClassName: {{ .Values.services.storage_class | quote }}
+      storageClassName: {{ .Values.services.redis.storage_class | quote }}
       volumeMode: Filesystem
       
 {{- end }}

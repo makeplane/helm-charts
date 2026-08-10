@@ -13,9 +13,12 @@ stringData:
   {{- if .Values.services.redis.local_setup }}
   REDIS_HOST: {{ .Release.Name }}-redis
   REDIS_PORT: "6379"
-  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  {{- if .Values.services.redis.password }}
+  REDIS_URL: {{ printf "redis://:%s@%s-redis.%s.svc.cluster.local:6379/" .Values.services.redis.password .Release.Name .Release.Namespace | quote }}
+  {{- else }}
+  REDIS_URL: {{ printf "redis://%s-redis.%s.svc.cluster.local:6379/" .Release.Name .Release.Namespace | quote }}
+  {{- end }}
   {{- else }}
   REDIS_URL: {{ .Values.services.redis.external_redis_url | default "" | quote }}
   {{- end }}
   PORT: "8211"
-  

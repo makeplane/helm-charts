@@ -5,13 +5,12 @@ kind: Ingress
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
+  {{- with .Values.ingress.nginx.annotations }}
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.clientMaxBodySize | default "5m" | quote }}
-    {{- with .Values.ingress.ingressAnnotations }}
     {{- toYaml . | nindent 4 }}
-    {{- end }}
+  {{- end }}
 spec:
-  ingressClassName: {{ .Values.ingress.ingressClass }}
+  ingressClassName: {{ .Values.ingress.nginx.ingressClassName }}
   rules:
     - host: {{ .Values.ingress.host }}
       http:

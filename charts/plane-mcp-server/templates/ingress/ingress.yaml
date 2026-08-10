@@ -1,1 +1,0 @@
-{{- /* Ingress rendering is split into nginx-ingress.yaml and traefik-ingress.yaml */ -}}

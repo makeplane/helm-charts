@@ -10,7 +10,7 @@ questions:
     label: "Image Tag"
     type: string
     default: "v0.2.11"
-  - variable: services.storage_class
+  - variable: services.redis.storage_class
     label: "Storage Class"
     type: storageclass
 
@@ -81,6 +81,11 @@ questions:
     type: string
     default: "500Mi"
     show_if: "services.redis.local_setup=true"
+  - variable: services.redis.password
+    label: "Redis Password"
+    type: password
+    default: ""
+    show_if: "services.redis.local_setup=true"
   - variable: services.redis.external_redis_url
     label: "Remote Redis URL"
     type: string
@@ -102,18 +107,22 @@ questions:
     - "traefik"
     - "nginx"
     default: "traefik"
-  - variable: ingress.ingressClass
-    label: "Ingress Class Name"
-    description: "The ingressClassName to set on the Kubernetes Ingress resource (nginx only). For Traefik, also used by cert-manager http01 solvers."
+  - variable: ingress.traefik.ingressClassName
+    label: "Traefik Ingress Class Name"
     type: string
-    required: true
     default: "traefik"
+    show_if: "ingress.ingressController=traefik"
   - variable: ingress.traefik.maxRequestBodyBytes
     label: "Max Request Body Size (bytes)"
     description: "Traefik only: maximum request body size in bytes enforced via the buffering Middleware. Default: 10485760 (10 MiB)."
     type: int
     default: 10485760
     show_if: "ingress.ingressController=traefik"
+  - variable: ingress.nginx.ingressClassName
+    label: "Nginx Ingress Class Name"
+    type: string
+    default: "nginx"
+    show_if: "ingress.ingressController=nginx"
 
 - variable: ingress.ssl.enabled
   label: "Enable SSL"
