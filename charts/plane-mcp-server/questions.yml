@@ -1,32 +1,15 @@
 questions:
 
-- variable: dockerRegistry.loginid
-  label: "Login ID"
+- variable: services.api.image
+  label: "MCP Server Docker Image (without tag)"
   type: string
-  default: ""
-  group: "Docker Credentials"
+  default: "makeplane/plane-mcp-server"
+  group: "MCP Server Setup"
   subquestions:
-  - variable: dockerRegistry.registry
-    label: "Registry Host"
-    type: string
-    default: "index.docker.io/v1/"
-  - variable: dockerRegistry.password
-    label: "Password/Token"
-    type: password
-    default: ""
-  - variable: dockerRegistry.existingSecret
-    label: "Existing Secret Name"
-    description: "Name of an existing Kubernetes secret of type kubernetes.io/dockerconfigjson. When set, chart will use this instead of creating a new secret."
-    type: string
-    default: ""
-  - variable: dockerRegistry.default_tag
+  - variable: services.api.tag
     label: "Image Tag"
     type: string
     default: "latest"
-  - variable: services.api.image
-    label: "MCP Server Docker Image (without tag)"
-    type: string
-    default: "makeplane/plane-mcp-server"
   - variable: services.storage_class
     label: "Storage Class"
     type: storageclass
@@ -112,10 +95,17 @@ questions:
   group: "Ingress Setup"
   subquestions:
   - variable: ingress.ingressClass
-    label: "Ingress Classname"
+    label: "Ingress Class Name"
+    description: "Set to 'traefik' (or any value starting with 'traefik') to use Traefik IngressRoute CRDs. Any other value (e.g. 'nginx') deploys a standard Kubernetes Ingress."
     type: string
     required: true
-    default: "nginx"
+    default: "traefik"
+  - variable: ingress.traefik.maxRequestBodyBytes
+    label: "Max Request Body Size (bytes)"
+    description: "Traefik only: maximum request body size in bytes (buffering middleware). Default: 10485760 (10 MiB)."
+    type: int
+    default: 10485760
+    show_if: "ingress.ingressClass=traefik"
 
 - variable: ingress.ssl.enabled
   label: "Enable SSL"

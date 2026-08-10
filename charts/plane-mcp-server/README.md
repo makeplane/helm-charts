@@ -37,35 +37,29 @@
 
 ## Configuration Settings
 
-### Docker Registry Configuration
-
-| Setting                        |        Default                | Required | Description                                                                                                                                                                                                                                            |
-| ------------------------------ | :---------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| dockerRegistry.enabled         |         true                  |          | Enable to configure image pull secrets for pulling images from a private docker registry. When enabled, you can either provide credentials to create a new secret or use an existing Kubernetes secret.                                                 |
-| dockerRegistry.existingSecret  |                               |          | Name of an existing Kubernetes secret containing docker registry credentials. When specified, the chart will use this secret for `imagePullSecrets` instead of creating a new one. The secret should be of type `kubernetes.io/dockerconfigjson`. If left empty, credentials below will be used to create a new secret. |
-| dockerRegistry.registry        | index.docker.io/v1/           |          | Docker registry URL. Only used when `dockerRegistry.existingSecret` is empty.                                                                                                                                                                          |
-| dockerRegistry.loginid         |                               |          | Login ID / Username for the docker registry. Only used when `dockerRegistry.existingSecret` is empty.                                                                                                                                                  |
-| dockerRegistry.password        |                               |          | Password or Token for the docker registry. Only used when `dockerRegistry.existingSecret` is empty.                                                                                                                                                    |
-| dockerRegistry.default_tag     |        latest                 |          | Default image tag for MCP server image.                                                                                                                                                                                                                |
-| services.api.image             | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag).                                                                                                                                                                                                            |
-
 ### MCP Server Setup
 
-| Setting                      |        Default         | Required | Description                                                                 |
-| ---------------------------- | :--------------------: | :------: | --------------------------------------------------------------------------- |
-| services.api.replicas        |           1            |          | Number of MCP Server replicas                                               |
-| services.api.memoryLimit     |        1000Mi          |          | Memory limit for MCP Server pods                                            |
-| services.api.cpuLimit        |         500m           |          | CPU limit for MCP Server pods                                               |
-| services.api.memoryRequest   |         50Mi           |          | Memory request for MCP Server pods                                          |
-| services.api.cpuRequest      |         50m            |          | CPU request for MCP Server pods                                             |
+| Setting                      |        Default                | Required | Description                                                                 |
+| ---------------------------- | :---------------------------: | :------: | --------------------------------------------------------------------------- |
+| services.api.image           | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag)                                  |
+| services.api.tag             |        latest                 |          | Docker image tag for the MCP server                                         |
+| services.api.replicas        |           1                   |          | Number of MCP Server replicas                                               |
+| services.api.memoryLimit     |        1000Mi                 |          | Memory limit for MCP Server pods                                            |
+| services.api.cpuLimit        |         500m                  |          | CPU limit for MCP Server pods                                               |
+| services.api.memoryRequest   |         50Mi                  |          | Memory request for MCP Server pods                                          |
+| services.api.cpuRequest      |         50m                   |          | CPU request for MCP Server pods                                             |
+| services.storage_class       |                               |          | Kubernetes storage class for persistent volumes                             |
 
 ### Plane OAuth Configuration
 
 | Setting                               |   Default   | Required | Description                                                                 |
 | ------------------------------------- | :---------: | :------: | --------------------------------------------------------------------------- |
+| services.api.plane_oauth.enabled         |    false    |          | Enable Plane OAuth authentication                                           |
 | services.api.plane_oauth.client_id       |             |    Yes   | Plane OAuth Client ID for authentication                                    |
 | services.api.plane_oauth.client_secret   |             |    Yes   | Plane OAuth Client Secret for authentication                                |
 | services.api.plane_oauth.provider_base_url|            |    Yes   | Plane instance base URL for OAuth                                           |
+| services.api.plane_base_url              |             |    Yes   | Public base URL of your Plane instance                                      |
+| services.api.plane_internal_base_url     |             |          | Internal base URL of your Plane instance (for in-cluster communication)     |
 
 ### Redis/Valkey Setup
 
@@ -80,10 +74,11 @@
 
 | Setting                          |        Default                                                | Required | Description                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------------------------- | :-----------------------------------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ingress.enabled                  |         true                                                  |          | Enable ingress for Plane MCP Server                                                                                                                                                                                                                                                                                                                                             |
-| ingress.host                     |  mcp.example.com                                              |    Yes   | Main hostname for Plane MCP Server application                                                                                                                                                                                                                                                                                                                                  |
-| ingress.ingressClass             |         nginx                                                 |    Yes   | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider |
-| ingress.ingressAnnotations       | { nginx.ingress.kubernetes.io/proxy-body-size: "10m" }        |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required |
+| ingress.enabled                      |         true                                                  |          | Enable ingress for Plane MCP Server                                                                                                                                                                                                                                                                                                                                             |
+| ingress.host                         |  mcp.example.com                                              |    Yes   | Main hostname for Plane MCP Server application                                                                                                                                                                                                                                                                                                                                  |
+| ingress.ingressClass                 |         traefik                                               |    Yes   | Controls which ingress implementation is used. Set to `traefik` (or any value starting with `traefik`) to render a Traefik `IngressRoute` CRD. Any other value (e.g. `nginx`) renders a standard `networking.k8s.io/v1 Ingress`.                                                                                                                                                |
+| ingress.traefik.maxRequestBodyBytes  |         10485760                                              |          | Traefik only. Maximum request body size in bytes enforced via the Traefik `buffering` Middleware. Default is 10 MiB.                                                                                                                                                                                                                                                            |
+| ingress.ingressAnnotations           | { nginx.ingress.kubernetes.io/proxy-body-size: "10m" }        |          | nginx only. Additional annotations to add to the `Ingress` resource.                                                                                                                                                                                                                                                                                                           |
 | ingress.ssl.enabled              |         false                                                 |          | Enable SSL/TLS for ingress                                                                                                                                                                                                                                                                                                                                                      |
 | ingress.ssl.issuer               |      cloudflare                                               |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane MCP Server supports `http`, `cloudflare`, `digitalocean` |
 | ingress.ssl.token                |                                                               |          | To create issuers using DNS challenge, set the issuer api token of dns provider like `cloudflare` or `digitalocean` (not required for http)                                                                                                                                                                                                                                   |
@@ -112,3 +107,4 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 - If using external Redis, verify `services.redis.external_redis_url` is reachable from the cluster
 - Confirm Redis/Valkey pods are Ready; caching depends on it
 - Ensure all Plane OAuth configuration values are correctly set (client_id, client_secret, provider_base_url)
+- For Traefik: ensure Traefik CRDs (`IngressRoute`) are installed in your cluster before deploying

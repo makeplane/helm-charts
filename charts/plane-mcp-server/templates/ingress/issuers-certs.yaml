@@ -9,7 +9,7 @@ metadata:
 type: Opaque
 stringData:
   api-token: {{ required "ingress.ssl.token is required for DNS01 issuers (cloudflare/digitalocean)" .Values.ingress.ssl.token | quote }}
-  
+
 ---
 {{- end }}
 
@@ -43,7 +43,7 @@ spec:
           ingressClassName: {{ .Values.ingress.ingressClass }}
     {{- end }}
 
---- 
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -56,4 +56,4 @@ spec:
     name: {{ .Release.Name }}-cert-issuer
   secretName: {{ .Release.Name }}-ssl-cert
 
-{{- end}}
+{{- end }}

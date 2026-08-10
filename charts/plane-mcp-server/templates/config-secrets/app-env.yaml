@@ -18,3 +18,4 @@ stringData:
   REDIS_URL: {{ .Values.services.redis.external_redis_url | default "" | quote }}
   {{- end }}
   PORT: "8211"
+  
