@@ -10,8 +10,6 @@ stringData:
   PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.api.plane_oauth.provider_base_url | quote }}
   PLANE_BASE_URL: {{ .Values.services.api.plane_base_url | quote }}
   PLANE_INTERNAL_BASE_URL: {{ .Values.services.api.plane_internal_base_url | quote }}
-  REDIS_HOST: {{ .Release.Name }}-redis
-  REDIS_PORT: "6379"
   {{- if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
   {{- else }}
