@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled .Values.ingress.host (hasPrefix "traefik" .Values.ingress.ingressClass) }}
+{{- if and .Values.ingress.enabled .Values.ingress.host (eq .Values.ingress.ingressController "traefik") }}
 
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute

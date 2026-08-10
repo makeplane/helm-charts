@@ -1,11 +1,9 @@
 ingress:
   enabled: true
   host: 'mcp.example.com'
-  # Set to "traefik" (or any value starting with "traefik") to deploy native Traefik IngressRoute CRDs
-  # (templates/ingress/traefik-ingress.yaml). Set to any other value (e.g., "nginx") to deploy a standard
-  # networking.k8s.io/v1 Ingress resource (templates/ingress/nginx-ingress.yaml).
+  ingressController: 'traefik' # Allowed: nginx, traefik
   ingressClass: 'traefik'
-  # Traefik-specific options (only used when ingressClass starts with "traefik")
+  # Traefik-specific options (only used when ingressController is "traefik")
   traefik:
     maxRequestBodyBytes: 10485760  # in bytes (default: 10 MiB)
   # nginx-specific options (only used when ingressClass does not start with "traefik")

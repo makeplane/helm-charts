@@ -94,18 +94,26 @@ questions:
   default: "mcp.example.com"
   group: "Ingress Setup"
   subquestions:
+  - variable: ingress.ingressController
+    label: "Ingress Controller"
+    description: "Select the ingress controller type. 'traefik' deploys a native Traefik IngressRoute CRD; 'nginx' deploys a standard Kubernetes Ingress."
+    type: enum
+    options:
+    - "traefik"
+    - "nginx"
+    default: "traefik"
   - variable: ingress.ingressClass
     label: "Ingress Class Name"
-    description: "Set to 'traefik' (or any value starting with 'traefik') to use Traefik IngressRoute CRDs. Any other value (e.g. 'nginx') deploys a standard Kubernetes Ingress."
+    description: "The ingressClassName to set on the Kubernetes Ingress resource (nginx only). For Traefik, also used by cert-manager http01 solvers."
     type: string
     required: true
     default: "traefik"
   - variable: ingress.traefik.maxRequestBodyBytes
     label: "Max Request Body Size (bytes)"
-    description: "Traefik only: maximum request body size in bytes (buffering middleware). Default: 10485760 (10 MiB)."
+    description: "Traefik only: maximum request body size in bytes enforced via the buffering Middleware. Default: 10485760 (10 MiB)."
     type: int
     default: 10485760
-    show_if: "ingress.ingressClass=traefik"
+    show_if: "ingress.ingressController=traefik"
 
 - variable: ingress.ssl.enabled
   label: "Enable SSL"
