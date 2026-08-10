@@ -6,6 +6,9 @@ metadata:
   name: {{ .Release.Name }}-ingress
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.clientMaxBodySize | default "5m" | quote}}
+    {{- with .Values.ingress.ingressAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.ingressClass }}
   rules:
@@ -14,16 +17,16 @@ spec:
         paths:
           - backend:
               service:
+                name: {{ .Release.Name }}-api
                 port:
                   number: 8211
-                name: {{ .Release.Name }}-api
             path: /
             pathType: Prefix
 
   {{- if .Values.ingress.ssl.enabled }}
   tls:
     - hosts:
-      - {{ .Values.ingress.host | quote }}
+        - {{ .Values.ingress.host | quote }}
       secretName: {{ .Release.Name }}-ssl-cert
   {{- end }}
 

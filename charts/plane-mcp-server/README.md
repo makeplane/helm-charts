@@ -42,7 +42,7 @@
 | Setting                      |        Default                | Required | Description                                                                 |
 | ---------------------------- | :---------------------------: | :------: | --------------------------------------------------------------------------- |
 | dockerRegistry.enabled       |         true                  |          | Enable Docker registry authentication for pulling images                    |
-| dockerRegistry.loginid       |     planeengineering          |          | Docker registry login ID/username                                           |
+| dockerRegistry.loginid       |        makeplane              |          | Docker registry login ID/username                                           |
 | dockerRegistry.password      |                               |          | Docker registry password or token                                           |
 | dockerRegistry.default_tag   |        latest                 |          | Default image tag for MCP server image                                      |
 | services.api.image           | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag)                                  |
@@ -61,10 +61,9 @@
 
 | Setting                               |   Default   | Required | Description                                                                 |
 | ------------------------------------- | :---------: | :------: | --------------------------------------------------------------------------- |
-| services.api.plane_oauth.client_id    |             |    Yes   | Plane OAuth Client ID for authentication                                    |
-| services.api.plane_oauth.client_secret|             |    Yes   | Plane OAuth Client Secret for authentication                                |
-| services.api.plane_oauth.redirect_uri |             |    Yes   | OAuth redirect URI for callback handling                                    |
-| services.api.plane_oauth.base_url     |             |    Yes   | Plane instance base URL for OAuth                                           |
+| services.api.plane_oauth.client_id       |             |    Yes   | Plane OAuth Client ID for authentication                                    |
+| services.api.plane_oauth.client_secret   |             |    Yes   | Plane OAuth Client Secret for authentication                                |
+| services.api.plane_oauth.provider_base_url|            |    Yes   | Plane instance base URL for OAuth                                           |
 
 ### Redis/Valkey Setup
 
@@ -95,11 +94,11 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 
 | Host                    |     Path      | Service                                    | Required |
 | ----------------------- | :-----------: | ------------------------------------------ | :------: |
-| mcp.example.com         |      /        | <http://<release-name>-api:8000>           |   Yes    |
+| mcp.example.com         |      /        | <http://<release-name>-api:8211>           |   Yes    |
 
 ## Verify
 
-- After install, the MCP Server listens on Service `<release-name>-api` port 8000
+- After install, the MCP Server listens on Service `<release-name>-api` port 8211
 - If ingress is enabled, access the application at `https://<host>/` via Ingress
 - Check all pods are running: `kubectl get pods -n <namespace>`
 - Check services: `kubectl get svc -n <namespace>`
@@ -110,4 +109,4 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 - For TLS issues, check cert-manager events and Issuer/Certificate resources in the install namespace
 - If using external Redis, verify `services.redis.external_redis_url` is reachable from the cluster
 - Confirm Redis/Valkey pods are Ready; caching depends on it
-- Ensure all Plane OAuth configuration values are correctly set (client_id, client_secret, redirect_uri, base_url)
+- Ensure all Plane OAuth configuration values are correctly set (client_id, client_secret, provider_base_url)

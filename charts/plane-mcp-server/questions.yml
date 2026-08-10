@@ -92,7 +92,7 @@ questions:
   - variable: services.redis.external_redis_url
     label: "Remote Redis URL"
     type: string
-    default: "redis://"
+    default: ""
     show_if: "services.redis.local_setup=false"
 
 - variable: ingress.host

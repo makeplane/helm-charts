@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-docker-registry-credentials
 data:
-  .dockerconfigjson: {{ include "imagePullSecret" .}}
+  .dockerconfigjson: {{ include "plane-mcp-server.imagePullSecret" .}}
 type: kubernetes.io/dockerconfigjson
 
 {{- end }}
