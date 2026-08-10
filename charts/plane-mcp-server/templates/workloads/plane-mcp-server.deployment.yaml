@@ -39,7 +39,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-api
         imagePullPolicy: Always
-        image: {{ .Values.services.api.image | default "makeplane/plane-mcp-server" }}:{{ .Values.services.api.tag | default "latest" }}
+        image: {{ .Values.services.api.image | default "makeplane/plane-mcp-server" }}:{{ .Values.services.api.tag | default "v0.2.11" }}
         stdin: true
         tty: true
         resources:

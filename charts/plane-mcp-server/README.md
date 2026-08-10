@@ -42,7 +42,7 @@
 | Setting                      |        Default                | Required | Description                                                                 |
 | ---------------------------- | :---------------------------: | :------: | --------------------------------------------------------------------------- |
 | services.api.image           | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag)                                  |
-| services.api.tag             |        latest                 |          | Docker image tag for the MCP server                                         |
+| services.api.tag             |       v0.2.11                 |          | Docker image tag for the MCP server                                         |
 | services.api.replicas        |           1                   |          | Number of MCP Server replicas                                               |
 | services.api.memoryLimit     |        1000Mi                 |          | Memory limit for MCP Server pods                                            |
 | services.api.cpuLimit        |         500m                  |          | CPU limit for MCP Server pods                                               |

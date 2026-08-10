@@ -9,7 +9,7 @@ questions:
   - variable: services.api.tag
     label: "Image Tag"
     type: string
-    default: "latest"
+    default: "v0.2.11"
   - variable: services.storage_class
     label: "Storage Class"
     type: storageclass

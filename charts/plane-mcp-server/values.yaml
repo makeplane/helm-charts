@@ -21,7 +21,7 @@ services:
   storage_class: ''
   api:
     image: makeplane/plane-mcp-server
-    tag: latest
+    tag: v0.2.11
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
