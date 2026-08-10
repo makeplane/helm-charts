@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.beatworker }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.beatworker) }}
 spec:
   replicas: {{ .Values.services.beatworker.replicas | default 1 }}
   selector:
@@ -14,14 +14,17 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-beat-worker
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.beatworker }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-beat-worker
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy:  {{ .Values.services.api.pullPolicy | default "Always" }}
-        image: {{ .Values.services.api.image | default "artifacts.plane.so/makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

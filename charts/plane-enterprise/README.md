@@ -3,6 +3,94 @@
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
 
+### Installing Traefik Ingress Controller (optional)
+
+If you plan to use Traefik as your ingress controller, install it before deploying Plane.
+
+1. Add the Traefik Helm chart repo and update it.
+
+   ```bash
+   helm repo add traefik https://traefik.github.io/charts
+   helm repo update
+   ```
+
+2. Install Traefik into your cluster.
+
+   ```bash
+   helm upgrade --install traefik traefik/traefik \
+       --create-namespace \
+       --namespace traefik \
+       --wait
+   ```
+
+   > Once installed, set `ingress.ingressClass=traefik` when deploying Plane.
+
+## Migrating the Ingress Controller
+
+The chart selects between two ingress templates based on `ingress.ingressClass`:
+
+| `ingressClass` value           | Template rendered                | Resource kind                      |
+| ------------------------------ | -------------------------------- | ---------------------------------- |
+| `traefik` (or starts with it)  | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
+| Any other value (e.g. `nginx`) | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+
+The default value is `"traefik"`. If you are switching to a standard ingress controller such as nginx, follow the migration steps below.
+
+### Switching from Traefik to a standard Ingress controller (e.g. nginx)
+
+1. **Install your target ingress controller** if it is not already running.
+
+2. **Update `ingress.ingressClass`** in your `values.yaml`:
+
+   ```yaml
+   ingress:
+     ingressClass: "nginx"   # or whichever class your controller exposes
+   ```
+
+3. **Run `helm upgrade`**:
+
+   ```bash
+   helm upgrade plane-app plane/plane-enterprise \
+     --namespace plane-ns \
+     -f values.yaml \
+     --wait
+   ```
+
+   After the upgrade the `IngressRoute` and `Middleware` resources are no longer rendered and will be orphaned — delete them manually:
+
+   ```bash
+   kubectl delete ingressroute -n plane-ns -l app.kubernetes.io/instance=plane-app
+   kubectl delete middleware    -n plane-ns -l app.kubernetes.io/instance=plane-app
+   ```
+
+4. **Verify** that the new `Ingress` is admitted and routes traffic before removing the old Traefik resources.
+
+### Switching from a standard Ingress controller to Traefik
+
+1. **Install Traefik** with CRD support enabled (see [Installing Traefik Ingress Controller](#installing-traefik-ingress-controller-optional) above).
+
+2. **Update `ingress.ingressClass`**:
+
+   ```yaml
+   ingress:
+     ingressClass: "traefik"
+   ```
+
+3. **Run `helm upgrade`**. The old `Ingress` resource is orphaned — delete it:
+
+   ```bash
+   kubectl delete ingress -n plane-ns plane-app-ingress
+   ```
+
+### Key values controlling template selection
+
+| Value                                 | Default    | Effect                                                                                    |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| `ingress.enabled`                     | `true`     | Master switch — set to `false` to render neither template.                                |
+| `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
+| `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+
 ## Installing Plane
 
 1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
@@ -11,7 +99,7 @@
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v2.5.0 # or the last released version
+   PLANE_VERSION=v3.0.1 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -27,7 +115,7 @@
 
    - Quick set-up
 
-     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class.This also sets up the ingress routes for you using `nginx` ingress class.
+     This is the fastest way to deploy Plane with default settings. This will create stateful deployments for Postgres, Rabbitmq, Redis/Valkey, and Minio with a persistent volume claim using the default storage class. This also sets up the ingress routes for you using `traefik` ingress class.
 
      > To customize this, see `Custom ingress routes` below.
 
@@ -40,7 +128,7 @@
          --set license.licenseDomain=${DOMAIN_NAME} \
          --set planeVersion=${PLANE_VERSION} \
          --set ingress.enabled=true \
-         --set ingress.ingressClass=nginx \
+         --set ingress.ingressClass=traefik \
          --timeout 10m \
          --wait \
          --wait-for-jobs
@@ -67,10 +155,10 @@
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v2.5.0 <or the last released version>`
+     - `planeVersion: v3.0.1 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
-     - `ingress.ingressClass: <nginx or any other ingress class configured in your cluster>`
+     - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
      - `env.storageClass: <default storage class configured in your cluster>`
 
        > See `Available customizations` for more details.
@@ -93,7 +181,7 @@
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v2.5.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.0.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -123,6 +211,53 @@ airgapped:
   # s3SecretName and s3SecretKey can be removed after migration
 ```
 
+### Pod Security (PSA `restricted`)
+
+Plane's first-party images run as non-root, so the chart can render a hardened
+pod- and container-level `securityContext` that satisfies the Kubernetes
+[Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/)
+`restricted` profile. This is the Helm equivalent of the kustomize
+`nonroot-security-context` component, and is **opt-in** (`securityContext.enabled=false`
+by default) so existing installs are unchanged.
+
+When enabled, the context is applied to all first-party Plane workloads (api, web,
+space, admin, live, worker, beat-worker, automation-consumer, outbox-poller, silo,
+monitor, iframely, runner, pi-api/beat/worker, and the migration Jobs — including
+their busybox init containers).
+
+It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
+minio, opensearch), which use third-party images with their own UID/GID requirements
+and are intended for local/dev use — run those externally in hardened clusters and
+leave `local_setup` off. The email service also keeps its own `securityContext`
+(its image pins UID 100).
+
+| Setting                                  |     Default      | Required | Description                                                                                    |
+| ---------------------------------------- | :--------------: | :------: | ---------------------------------------------------------------------------------------------- |
+| securityContext.enabled                  |      false       |    No    | Master switch. When `true`, renders the pod- and container-level `securityContext` blocks.     |
+| securityContext.podSecurityContext       | see `values.yaml`|    No    | Map rendered at `spec.template.spec.securityContext`. Defaults to PSA `restricted` settings.   |
+| securityContext.containerSecurityContext | see `values.yaml`|    No    | Map rendered at each container's/initContainer's `securityContext`. PSA `restricted` defaults. |
+
+Enable with PSA-restricted defaults (UID/GID `1000`):
+
+```bash
+helm upgrade --install plane-app plane/plane-enterprise \
+    --namespace plane \
+    --set securityContext.enabled=true
+```
+
+To pin a specific UID (e.g. `10001`), override the relevant keys:
+
+```yaml
+securityContext:
+  enabled: true
+  podSecurityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+  containerSecurityContext:
+    runAsUser: 10001
+```
+
 ### Docker Registry
 
 | Setting                      | Default              | Required | Description                                                                                                                                                                                                                                                                                                                        |
@@ -142,6 +277,7 @@ airgapped:
 | services.postgres.pullPolicy        |     IfNotPresent     |          | Using this key, user can set the pull policy for the stateful deployment of `postgres`. (must be set when `services.postgres.local_setup=true`)                                                                                                                                                                                                                                         |
 | services.postgres.servicePort       |         5432         |          | This key sets the default port number to be used while setting up stateful deployment of `postgres`.                                                                                                                                                                                                                                                                                    |
 | services.postgres.volumeSize        |         2Gi          |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                                                             |
+| env.default_cluster_domain          |    cluster.local     |          | Kubernetes internal cluster domain used to build in-cluster service URLs (`<service>.<namespace>.svc.<domain>`). Override this if your cluster uses a non-default domain.                                                                                                                                                                                                                |
 | env.pgdb_username                   |        plane         |          | Database credentials are requried to access the hosted stateful deployment of `postgres`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                                                                 |
 | env.pgdb_password                   |        plane         |          | Database credentials are requried to access the hosted stateful deployment of `postgres`. Use this key to set the password for the stateful deployment.                                                                                                                                                                                                                                 |
 | env.pgdb_name                       |        plane         |          | Database name to be used while setting up stateful deployment of `Postgres`                                                                                                                                                                                                                                                                                                             |
@@ -215,8 +351,9 @@ airgapped:
 | env.opensearch_remote_username           |                                   |          | Username for remote OpenSearch service. Required when `services.opensearch.local_setup=false` and `env.opensearch_remote_url` is set. Note: This is not a secret and should be configured in values.yaml, not in external secrets.                                                                                                                                                                                                      |
 | env.opensearch_remote_password           |                                   |          | Password for remote OpenSearch service. Required when `services.opensearch.local_setup=false` and `env.opensearch_remote_url` is set. This can be configured in values.yaml or provided via external secrets (`opensearch_existingSecret` with `OPENSEARCH_PASSWORD`). **Password Complexity Requirements:** Must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character (e.g., `!@#$%^&*`). |
 | env.opensearch_index_prefix              |              plane_               |          | Prefix to be used for OpenSearch indices. This helps organize indices in a multi-tenant or multi-environment setup.                                                                                                                                                                                                                        |
+| env.opensearch_embedding_dimension       |               1536                |          | Embedding vector dimension used for OpenSearch semantic/vector indexing.                                                                                                                                                                                                                               |
 
-### Doc Store (Minio/S3) Setup
+### Doc Store (Minio/S3/GCS) Setup
 
 | Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------- | :----------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -240,8 +377,14 @@ airgapped:
 | env.aws_secret_access_key             |                    |          | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                                                     |
 | env.aws_region                        |                    |          | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                             |
 | env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                    |
-| env.use_storage_proxy                 |       false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`.                                      |
+| env.use_storage_proxy                 |       false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`. **Recommended `true` when `storage_provider=GCS`** so browser uploads are proxied server-side and the GCS bucket needs no CORS configuration. |
+| env.storage_provider                  |         S3         |          | Storage backend selection. `S3` (default) covers MinIO and any S3-compatible service. Set to `GCS` to use Google Cloud Storage native mode. When `GCS`, MinIO is disabled and the `env.gcs_*` settings below are used.                                                                                                                                |
+| env.gcs_bucket_name                   |                    |          | GCS bucket name. Used only when `storage_provider=GCS`. Falls back to `env.docstore_bucket` when left empty.                                                                                                                                                                                                                                          |
+| env.gcs_project_id                    |                    |          | (Optional) GCP project ID for the GCS client. Used only when `storage_provider=GCS`.                                                                                                                                                                                                                                                                 |
+| env.gcs_credentials_json              |                    |          | (Optional) Inline service-account JSON, stored in the doc-store Secret and passed as `GCS_CREDENTIALS_JSON`. Highest-priority credential source. Used only when `storage_provider=GCS`.                                                                                                                                                               |
+| env.gcs_credentials_path              |                    |          | (Optional) In-container path to a service-account file (e.g. `/etc/gcs/service-account.json`) that you mount yourself. Used when `gcs_credentials_json` is empty. If both are empty, Application Default Credentials (e.g. GKE Workload Identity) are used. Used only when `storage_provider=GCS`.                                                       |
 | env.allow_all_attachment_types       |       false        |          | When set to `true`, allows all file types as attachments. When `false`, only permitted types are allowed. Default is `false`.                                                                                                                                                        |
+| env.enable_drf_spectacular            |       false        |          | When set to `true`, enables drf-spectacular OpenAPI schema generation for the API (`ENABLE_DRF_SPECTACULAR`). Default is `false`.                                                                                                                                                       |
 
 ### Web Deployment
 
@@ -252,7 +395,7 @@ airgapped:
 | services.web.cpuLimit          |                    500m                     |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
 | services.web.memoryRequest     |                    50Mi                     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.web.cpuRequest        |                     50m                     |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
-| services.web.image             | artifacts.plane.so/makeplane/web-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
+| services.web.image             | makeplane/web-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.web.pullPolicy        |                   Always                    |          | Using this key, user can set the pull policy for the deployment of `web`.                                                                                                                                       |
 | services.web.assign_cluster_ip |                    false                    |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.web.nodeSelector      |                     {}                      |          | This key allows you to set the node selector for the deployment of `web`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                      |
@@ -270,7 +413,7 @@ airgapped:
 | services.space.cpuLimit          |                     500m                      |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
 | services.space.memoryRequest     |                     50Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.space.cpuRequest        |                      50m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
-| services.space.image             | artifacts.plane.so/makeplane/space-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
+| services.space.image             | makeplane/space-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.space.pullPolicy        |                    Always                     |          | Using this key, user can set the pull policy for the deployment of `space`.                                                                                                                                     |
 | services.space.assign_cluster_ip |                     false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.space.nodeSelector      |                      {}                       |          | This key allows you to set the node selector for the deployment of `space`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                    |
@@ -288,7 +431,7 @@ airgapped:
 | services.admin.cpuLimit          |                     500m                      |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
 | services.admin.memoryRequest     |                     50Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.admin.cpuRequest        |                      50m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
-| services.admin.image             | artifacts.plane.so/makeplane/admin-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
+| services.admin.image             | makeplane/admin-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.admin.pullPolicy        |                    Always                     |          | Using this key, user can set the pull policy for the deployment of `admin`.                                                                                                                                     |
 | services.admin.assign_cluster_ip |                     false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.admin.nodeSelector      |                      {}                       |          | This key allows you to set the node selector for the deployment of `admin`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                    |
@@ -306,7 +449,7 @@ airgapped:
 | services.live.cpuLimit             |                     500m                     |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
 | services.live.memoryRequest        |                     50Mi                     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.live.cpuRequest           |                     50m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
-| services.live.image                | artifacts.plane.so/makeplane/live-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
+| services.live.image                | makeplane/live-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.live.pullPolicy           |                    Always                    |          | Using this key, user can set the pull policy for the deployment of `live`.                                                                                                                                      |
 | env.live_sentry_dsn                |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.                                 |
 | env.live_sentry_environment        |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.   |
@@ -328,7 +471,7 @@ airgapped:
 | services.monitor.cpuLimit          |                      500m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                                               |
 | services.monitor.memoryRequest     |                      50Mi                       |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                                                       |
 | services.monitor.cpuRequest        |                       50m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                                             |
-| services.monitor.image             | artifacts.plane.so/makeplane/monitor-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                                                      |
+| services.monitor.image             | makeplane/monitor-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                                                      |
 | services.monitor.pullPolicy        |                     Always                      |          | Using this key, user can set the pull policy for the deployment of `monitor`.                                                                                                                                                               |
 | services.monitor.volumeSize        |                      100Mi                      |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
 | services.monitor.assign_cluster_ip |                      false                      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                           |
@@ -347,18 +490,37 @@ airgapped:
 | services.api.cpuLimit          |                      500m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
 | services.api.memoryRequest     |                      50Mi                       |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.api.cpuRequest        |                       50m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
-| services.api.image             | artifacts.plane.so/makeplane/backend-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
+| services.api.image             | makeplane/backend-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.api.pullPolicy        |                     Always                      |          | Using this key, user can set the pull policy for the deployment of `api`.                                                                                                                                       |
 | env.sentry_dsn                 |                                                 |          | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.                                  |
 | env.sentry_environment         |                                                 |          | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.    |
 | env.api_key_rate_limit         |                    60/minute                    |          | (optional) User can set the maximum number of requests the API can handle in a given time frame.                                                                                                                |
 | env.web_url                    |                                                 |          | (optional) Custom Web URL for the application. If not set, it will be auto-generated based on the license domain and SSL settings                                 |
+| env.webhook_allowed_ips        |                                                 |          | (optional) Comma-separated list of IPs/CIDRs that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
+| env.webhook_allowed_hosts      |                                                 |          | (optional) Comma-separated list of hostnames that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
 | services.api.assign_cluster_ip |                      false                      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.api.nodeSelector      |                       {}                        |          | This key allows you to set the node selector for the deployment of `api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                      |
 | services.api.tolerations       |                       []                        |          | This key allows you to set the tolerations for the deployment of `api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                            |
 | services.api.affinity          |                       {}                        |          | This key allows you to set the affinity rules for the deployment of `api`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                  |
 | services.api.labels            |                       {}                        |          | Custom labels to add to the API deployment                                                                                                                                                                      |
 | services.api.annotations       |                       {}                        |          | Custom annotations to add to the API deployment                                                                                                                                                                 |
+
+### External API Deployment
+
+| Setting                                 | Default | Required | Description                                                                                                                                                                                                     |
+| --------------------------------------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.external_api.enabled           |  false  |          | Set it to `true` to deploy a dedicated API workload (same backend image and entrypoint as `api`) for serving external/public API traffic.                                                                       |
+| services.external_api.replicas          |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
+| services.external_api.memoryLimit       | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.external_api.cpuLimit          |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
+| services.external_api.memoryRequest     |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.external_api.cpuRequest        |   50m   |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.external_api.assign_cluster_ip |  false  |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
+| services.external_api.nodeSelector      |   {}    |          | This key allows you to set the node selector for the deployment of `external_api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                            |
+| services.external_api.tolerations       |   []    |          | This key allows you to set the tolerations for the deployment of `external_api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                  |
+| services.external_api.affinity          |   {}    |          | This key allows you to set the affinity rules for the deployment of `external_api`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                        |
+| services.external_api.labels            |   {}    |          | Custom labels to add to the external API deployment                                                                                                                                                             |
+| services.external_api.annotations       |   {}    |          | Custom annotations to add to the external API deployment                                                                                                                                                        |
 
 ### Silo Deployment
 
@@ -369,7 +531,7 @@ airgapped:
 | services.silo.cpuLimit                        |                     500m                     |                                                                 | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
 | services.silo.memoryRequest                   |                     50Mi                     |                                                                 | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.silo.cpuRequest                      |                     50m                      |                                                                 | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                  |
-| services.silo.image                           | artifacts.plane.so/makeplane/silo-commercial |                                                                 | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
+| services.silo.image                           | makeplane/silo-commercial |                                                                 | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.silo.pullPolicy                      |                    Always                    |                                                                 | Using this key, user can set the pull policy for the deployment of `silo`.                                                                                                                                      |
 | services.silo.assign_cluster_ip               |                    false                     |                                                                 | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.silo.nodeSelector                    |                      {}                      |                                                                 | This key allows you to set the node selector for the deployment of `silo`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                     |
@@ -380,6 +542,7 @@ airgapped:
 | services.silo.connectors.slack.enabled        |                    false                     |                                                                 | Slack Integration                                                                                                                                                                                               |
 | services.silo.connectors.slack.client_id      |                      ""                      | required if `services.silo.connectors.slack.enabled` is `true`  | Slack Client ID                                                                                                                                                                                                 |
 | services.silo.connectors.slack.client_secret  |                      ""                      | required if `services.silo.connectors.slack.enabled` is `true`  | Slack Client Secret                                                                                                                                                                                             |
+| services.silo.connectors.slack.base_url       |                      ""                      |                                                                 | Base URL for the Slack API (`SLACK_BASE_URL`, e.g. `https://slack.com`), stored in the silo Secret; used when the Slack connector is enabled                                                                    |
 | services.silo.connectors.github.enabled       |                    false                     |                                                                 | Github App Integration                                                                                                                                                                                          |
 | services.silo.connectors.github.client_id     |                      ""                      | required if `services.silo.connectors.github.enabled` is `true` | Github Client ID                                                                                                                                                                                                |
 | services.silo.connectors.github.client_secret |                      ""                      | required if `services.silo.connectors.github.enabled` is `true` | Github Client Secret                                                                                                                                                                                            |
@@ -389,14 +552,23 @@ airgapped:
 | services.silo.connectors.gitlab.enabled       |                    false                     |                                                                 | Gitlab App Integration                                                                                                                                                                                          |
 | services.silo.connectors.gitlab.client_id     |                      ""                      | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client ID                                                                                                                                                                                                |
 | services.silo.connectors.gitlab.client_secret |                      ""                      | required if `services.silo.connectors.gitlab.enabled` is `true` | Gitlab Client Secret                                                                                                                                                                                            |
+| services.silo.connectors.sentry.enabled       |                    false                     |                                                                 | Sentry App Integration                                                                                                                                                                                          |
+| services.silo.connectors.sentry.base_url      |                      ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Base URL                                                                                                                                                                                                 |
+| services.silo.connectors.sentry.client_id     |                      ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Client ID                                                                                                                                                                                                |
+| services.silo.connectors.sentry.client_secret |                      ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Client Secret                                                                                                                                                                                            |
+| services.silo.connectors.sentry.integration_slug |                   ""                      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry Integration Slug                                                                                                                                                                                         |
 | env.silo_envs.mq_prefetch_count               |                      10                      |                                                                 | Prefetch count for RabbitMQ                                                                                                                                                                                     |
 | env.silo_envs.batch_size                      |                      60                      |                                                                 | Batch size for Silo                                                                                                                                                                                             |
 | env.silo_envs.request_interval                |                     400                      |                                                                 | Request interval for Silo                                                                                                                                                                                       |
+| env.silo_envs.importers_queue_name            |                    celery                    |                                                                 | Celery queue name used for importer jobs (`IMPORTERS_QUEUE_NAME`)                                                                                                                                               |
 | env.silo_envs.sentry_dsn                      |                                              |                                                                 | Sentry DSN                                                                                                                                                                                                      |
 | env.silo_envs.sentry_environment              |                                              |                                                                 | Sentry Environment                                                                                                                                                                                              |
 | env.silo_envs.sentry_traces_sample_rate       |                                              |                                                                 | Sentry Traces Sample Rate                                                                                                                                                                                       |
 | env.silo_envs.hmac_secret_key                 |         &lt;random-32-bit-string&gt;         |                                                                 | HMAC Secret Key                                                                                                                                                                                                 |
 | env.silo_envs.aes_secret_key                  |      "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr"      |                                                                 | AES Secret Key                                                                                                                                                                                                  |
+| env.silo_envs.jira_server_issues_page_size    |                      50                      |                                                                 | Page size used when fetching issues from Jira Server during imports                                                                                                                                             |
+| env.silo_envs.jira_server_issues_parallel_pages |                     1                      |                                                                 | Number of Jira Server issue pages fetched in parallel during imports                                                                                                                                            |
+| env.silo_envs.cursor_webhook_secret           |      "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"      |                                                                 | Webhook secret for the Cursor agent integration (`CURSOR_WEBHOOK_SECRET`), stored in the silo Secret                                                                                                            |
 
 ### Plane AI (PI) Deployment
 
@@ -408,7 +580,7 @@ airgapped:
 | services.pi.cpuLimit                   |                         500m                         |          | CPU limit for the Plane AI (PI) API deployment.                                                                                                                                                                             |
 | services.pi.memoryRequest              |                         50Mi                         |          | Memory request for the Plane AI (PI) API deployment.                                                                                                                                                                        |
 | services.pi.cpuRequest                 |                          50m                         |          | CPU request for the Plane AI (PI) API deployment.                                                                                                                                                                            |
-| services.pi.image                      | artifacts.plane.so/makeplane/plane-pi-commercial     |          | Docker image for the Plane AI (PI) service.                                                                                                                                                                                 |
+| services.pi.image                      | makeplane/plane-pi-commercial     |          | Docker image for the Plane AI (PI) service.                                                                                                                                                                                 |
 | services.pi.pullPolicy                 |                        Always                        |          | Image pull policy for the Plane AI (PI) deployment.                                                                                                                                                                         |
 | services.pi.assign_cluster_ip          |                        false                         |          | Set it to `true` if you want to assign `ClusterIP` to the Plane AI (PI) API service.                                                                                                                                        |
 | services.pi.nodeSelector               |                          {}                          |          | Node selector for the Plane AI (PI) API deployment.                                                                                                                                                                         |
@@ -422,6 +594,34 @@ airgapped:
 | env.pi_envs.plane_api_host             |                           ""                         |          | Override for the Plane API host URL used by Plane AI (PI). Defaults to the license domain.                                                                                                                                 |
 | env.pi_envs.cors_allowed_origins       |                           ""                         |          | CORS allowed origins for Plane AI (PI) API. Defaults to the license domain.                                                                                                                                                 |
 | env.pi_envs.log_level                  |                        DEBUG                         |          | Log level for Plane AI (PI) API (e.g. DEBUG, INFO, WARNING, ERROR).                                                                                                                                                        |
+| services.pi.ai_providers.openai.enabled |                        false                         |          | Enable OpenAI as a Plane AI provider.                                                                                                                                                                                      |
+| services.pi.ai_providers.openai.base_url |                           ""                         |          | OpenAI API base URL (optional override).                                                                                                                                                                                   |
+| services.pi.ai_providers.openai.api_key |                           ""                         | required if `services.pi.ai_providers.openai.enabled` is `true` | OpenAI API key.                                                                                                                                                                                                     |
+| services.pi.ai_providers.claude.enabled |                        false                         |          | Enable Anthropic Claude as a Plane AI provider.                                                                                                                                                                            |
+| services.pi.ai_providers.claude.base_url |                           ""                         |          | Claude API base URL (optional override).                                                                                                                                                                                  |
+| services.pi.ai_providers.claude.api_key |                           ""                         | required if `services.pi.ai_providers.claude.enabled` is `true` | Claude API key.                                                                                                                                                                                                     |
+| services.pi.ai_providers.groq.enabled  |                        false                         |          | Enable Groq as a Plane AI provider.                                                                                                                                                                                        |
+| services.pi.ai_providers.groq.base_url   |                           ""                         |          | Groq API base URL (optional override).                                                                                                                                                                                      |
+| services.pi.ai_providers.groq.api_key    |                           ""                         | required if `services.pi.ai_providers.groq.enabled` is `true` | Groq API key.                                                                                                                                                                                                       |
+| services.pi.ai_providers.cohere.enabled |                        false                         |          | Enable Cohere as a Plane AI provider.                                                                                                                                                                                      |
+| services.pi.ai_providers.cohere.base_url |                           ""                         |          | Cohere API base URL (optional override).                                                                                                                                                                                  |
+| services.pi.ai_providers.cohere.api_key |                           ""                         |          | Cohere API key (optional if Cohere is disabled).                                                                                                                                                                           |
+| services.pi.ai_providers.custom_llm.enabled |                    false                         |          | Enable a custom LLM backend for Plane AI.                                                                                                                                                                                    |
+| services.pi.ai_providers.custom_llm.api_key |                           ""                         | required if `services.pi.ai_providers.custom_llm.enabled` is `true` | Custom LLM API key.                                                                                                                                                                                             |
+| services.pi.ai_providers.custom_llm.base_url |                           ""                         |          | Custom LLM base URL.                                                                                                                                                                                                       |
+| services.pi.ai_providers.custom_llm.model_key |                  gpt-oss-120b                    |          | Model identifier key for the custom LLM.                                                                                                                                                                                   |
+| services.pi.ai_providers.custom_llm.name |                  GPT-OSS-120B                    |          | Display name for the custom LLM.                                                                                                                                                                                           |
+| services.pi.ai_providers.custom_llm.max_tokens |                  128000                      |          | Maximum tokens for the custom LLM.                                                                                                                                                                                         |
+| services.pi.ai_providers.custom_llm.provider |                           ""                         |          | Custom LLM provider identifier.                                                                                                                                                                                            |
+| services.pi.ai_providers.custom_llm.aws_region |                           ""                         |          | AWS region when the custom LLM is hosted on AWS.                                                                                                                                                                           |
+| services.pi.ai_providers.embedding_model.enabled |                    false                         |          | Enable OpenSearch embedding model integration (AWS / OpenSearch ML).                                                                                                                                                      |
+| services.pi.ai_providers.embedding_model.name |                           ""                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | Embedding model name.                                                                                                                                                                                     |
+| services.pi.ai_providers.embedding_model.model_id |                           ""                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | OpenSearch ML model ID (`OPENSEARCH_ML_MODEL_ID`).                                                                                                                                                        |
+| services.pi.ai_providers.embedding_model.embedding_dimension |                          1536                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | OpenSearch embedding vector dimension (must match the model).                                                                                                                                              |
+| services.pi.ai_providers.embedding_model.aws_access_key |                           ""                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | AWS access key ID for the embedding model (`BR_AWS_ACCESS_KEY_ID`).                                                                                                                                         |
+| services.pi.ai_providers.embedding_model.aws_secret_access_key |                           ""                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | AWS secret access key for the embedding model (also `BR_AWS_SECRET_ACCESS_KEY` in external secrets).                                                                                                        |
+| services.pi.ai_providers.embedding_model.aws_region |                  us-east-1                     |          | AWS region for the embedding model (`BR_AWS_REGION`).                                                                                                                                                                      |
+| services.pi.ai_providers.embedding_model.aws_session_token |                           ""                         |          | AWS session token when using temporary credentials (`BR_AWS_SESSION_TOKEN`).                                                                                                                                               |
 
 ### Plane AI (PI) Worker Deployment
 
@@ -437,6 +637,7 @@ airgapped:
 | services.pi_worker.affinity         |   {}    |          | This key allows you to set the affinity rules for the deployment of `pi_worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                          |
 | services.pi_worker.labels          |   {}    |          | Custom labels to add to the Plane AI (PI) worker deployment                                                                                                                                                                |
 | services.pi_worker.annotations     |   {}    |          | Custom annotations to add to the Plane AI (PI) worker deployment                                                                                                                                                           |
+
 
 ### Plane AI (PI) Beat-Worker Deployment
 
@@ -468,6 +669,22 @@ airgapped:
 | services.worker.labels        |   {}    |          | Custom labels to add to the worker deployment                                                                                                                                                                   |
 | services.worker.annotations   |   {}    |          | Custom annotations to add to the worker deployment                                                                                                                                                              |
 
+### Importer Worker Deployment
+
+| Setting                                 | Default | Required | Description                                                                                                                                                                                                     |
+| --------------------------------------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.worker_importers.enabled       |  false  |          | Set it to `true` to deploy a dedicated celery worker for the `celery.importer` queue, so imports run on their own worker instead of the default one.                                                            |
+| services.worker_importers.replicas      |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
+| services.worker_importers.memoryLimit   | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.worker_importers.cpuLimit      |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
+| services.worker_importers.memoryRequest |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.worker_importers.cpuRequest    |   50m   |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.worker_importers.nodeSelector  |   {}    |          | This key allows you to set the node selector for the deployment of `worker_importers`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                        |
+| services.worker_importers.tolerations   |   []    |          | This key allows you to set the tolerations for the deployment of `worker_importers`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.              |
+| services.worker_importers.affinity      |   {}    |          | This key allows you to set the affinity rules for the deployment of `worker_importers`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                    |
+| services.worker_importers.labels        |   {}    |          | Custom labels to add to the importer worker deployment                                                                                                                                                          |
+| services.worker_importers.annotations   |   {}    |          | Custom annotations to add to the importer worker deployment                                                                                                                                                     |
+
 ### Beat-Worker deployment
 
 | Setting                           | Default | Required | Description                                                                                                                                                                                                     |
@@ -493,7 +710,7 @@ airgapped:
 | services.email_service.cpuLimit      |                     500m                      |          | CPU limit for the email service deployment                                                                                                                                                     |
 | services.email_service.memoryRequest |                     50Mi                      |          | Memory request for the email service deployment                                                                                                                                                |
 | services.email_service.cpuRequest    |                      50m                      |          | CPU request for the email service deployment                                                                                                                                                   |
-| services.email_service.image         | artifacts.plane.so/makeplane/email-commercial |          | Docker image for the email service deployment                                                                                                                                                  |
+| services.email_service.image         | makeplane/email-commercial |          | Docker image for the email service deployment                                                                                                                                                  |
 | services.email_service.pullPolicy    |                    Always                     |          | Image pull policy for the email service deployment                                                                                                                                             |
 | services.email_service.nodeSelector  |                      {}                       |          | This key allows you to set the node selector for the deployment of `email_service`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
 | services.email_service.tolerations   |                      []                       |          | This key allows you to set the tolerations for the deployment of `email_service`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
@@ -546,7 +763,6 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.automation_consumer.cpuLimit                |               500m               |          | CPU limit for the automation consumer service deployment                                                                                                                                             |
 | services.automation_consumer.memoryRequest           |               50Mi               |          | Memory request for the automation consumer service deployment                                                                                                                                        |
 | services.automation_consumer.cpuRequest              |               50m                |          | CPU request for the automation consumer service deployment                                                                                                                                           |
-| services.automation_consumer.pullPolicy              |              Always              |          | Image pull policy for the automation consumer service deployment                                                                                                                                     |
 | services.automation_consumer.assign_cluster_ip       |              false               |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                    |
 | services.automation_consumer.nodeSelector            |                {}                |          | This key allows you to set the node selector for the deployment of `automation_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
 | services.automation_consumer.tolerations             |                []                |          | This key allows you to set the tolerations for the deployment of `automation_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
@@ -558,6 +774,44 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | env.automation_consumer_envs.exchange_name           |       "plane.event_stream"       |          | Exchange name for event stream                                                                                                                                                                       |
 | env.automation_consumer_envs.event_types             |             "issue"              |          | Event types to process                                                                                                                                                                               |
 
+### Webhook Consumer Deployment
+
+| Setting                                           |    Default     | Required | Description                                                                                                                                                                                       |
+| ------------------------------------------------- | :------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.webhook_consumer.enabled                 |     false      |          | Set to `true` to enable the webhook consumer service deployment                                                                                                                                   |
+| services.webhook_consumer.replicas                |       1        |          | Number of replicas for the webhook consumer service deployment                                                                                                                                    |
+| services.webhook_consumer.memoryLimit             |     1000Mi     |          | Memory limit for the webhook consumer service deployment                                                                                                                                          |
+| services.webhook_consumer.cpuLimit                |      500m      |          | CPU limit for the webhook consumer service deployment                                                                                                                                             |
+| services.webhook_consumer.memoryRequest           |     500Mi      |          | Memory request for the webhook consumer service deployment                                                                                                                                        |
+| services.webhook_consumer.cpuRequest              |      250m      |          | CPU request for the webhook consumer service deployment                                                                                                                                           |
+| services.webhook_consumer.assign_cluster_ip       |     false      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                 |
+| services.webhook_consumer.nodeSelector            |       {}       |          | This key allows you to set the node selector for the deployment of `webhook_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.            |
+| services.webhook_consumer.tolerations             |       []       |          | This key allows you to set the tolerations for the deployment of `webhook_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.webhook_consumer.affinity                |       {}       |          | This key allows you to set the affinity rules for the deployment of `webhook_consumer`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.        |
+| services.webhook_consumer.labels                  |       {}       |          | Custom labels to add to the webhook consumer deployment                                                                                                                                           |
+| services.webhook_consumer.annotations             |       {}       |          | Custom annotations to add to the webhook consumer deployment                                                                                                                                      |
+| env.webhook_consumer_envs.queue_name              | "plane.webhook" |          | RabbitMQ queue name the webhook consumer reads from                                                                                                                                              |
+| env.webhook_consumer_envs.prefetch_count          |       10       |          | Prefetch count for the webhook consumer                                                                                                                                                           |
+
+### Agent Consumer Deployment
+
+| Setting                                         |    Default    | Required | Description                                                                                                                                                                                     |
+| ------------------------------------------------ | :------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.agent_consumer.enabled                 |     false      |          | Set to `true` to enable the agent consumer service deployment                                                                                                                                   |
+| services.agent_consumer.replicas                |       1        |          | Number of replicas for the agent consumer service deployment                                                                                                                                    |
+| services.agent_consumer.memoryLimit             |     1000Mi     |          | Memory limit for the agent consumer service deployment                                                                                                                                          |
+| services.agent_consumer.cpuLimit                |      500m      |          | CPU limit for the agent consumer service deployment                                                                                                                                             |
+| services.agent_consumer.memoryRequest           |     500Mi      |          | Memory request for the agent consumer service deployment                                                                                                                                        |
+| services.agent_consumer.cpuRequest              |      250m      |          | CPU request for the agent consumer service deployment                                                                                                                                           |
+| services.agent_consumer.assign_cluster_ip       |     false      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                |
+| services.agent_consumer.nodeSelector            |       {}       |          | This key allows you to set the node selector for the deployment of `agent_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
+| services.agent_consumer.tolerations             |       []       |          | This key allows you to set the tolerations for the deployment of `agent_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.agent_consumer.affinity                |       {}       |          | This key allows you to set the affinity rules for the deployment of `agent_consumer`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.       |
+| services.agent_consumer.labels                  |       {}       |          | Custom labels to add to the agent consumer deployment                                                                                                                                           |
+| services.agent_consumer.annotations             |       {}       |          | Custom annotations to add to the agent consumer deployment                                                                                                                                      |
+| env.agent_consumer_envs.queue_name              |  "plane.agent"  |          | RabbitMQ queue name the agent consumer reads from                                                                                                                                                |
+| env.agent_consumer_envs.prefetch_count          |       10       |          | Prefetch count for the agent consumer                                                                                                                                                            |
+
 ### Iframely Deployment
 
 | Setting                             |                   Default                    | Required | Description                                                                                                                                                                               |
@@ -568,7 +822,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.iframely.cpuLimit          |                     500m                     |          | CPU limit for the Iframely service deployment                                                                                                                                             |
 | services.iframely.memoryRequest     |                     50Mi                     |          | Memory request for the Iframely service deployment                                                                                                                                        |
 | services.iframely.cpuRequest        |                     50m                      |          | CPU request for the Iframely service deployment                                                                                                                                           |
-| services.iframely.image             | artifacts.plane.so/makeplane/iframely:v1.2.0 |          | Docker image for the Iframely service deployment                                                                                                                                          |
+| services.iframely.image             | makeplane/iframely:v1.2.0 |          | Docker image for the Iframely service deployment                                                                                                                                          |
 | services.iframely.pullPolicy        |                    Always                    |          | Image pull policy for the Iframely service deployment                                                                                                                                     |
 | services.iframely.assign_cluster_ip |                    false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                         |
 | services.iframely.nodeSelector      |                      {}                      |          | This key allows you to set the node selector for the deployment of `iframely`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
@@ -624,6 +878,7 @@ To configure the external secrets for your application, you need to define speci
 |                          | `OPENSEARCH_PASSWORD`  | Required if OpenSearch is enabled                                | Password for OpenSearch                      | **local setup**: `Secure@Pass#123!%^&*` <br> <br> **remote setup**: `your_remote_password`                                                                                                            |
 |                          | `OPENSEARCH_INITIAL_ADMIN_PASSWORD` | Required if `opensearch.local_setup=true` | Initial admin password for local OpenSearch  | `Secure@Pass#123!%^&*`                                                                                                                                                                                |
 |                          | `OPENSEARCH_INDEX_PREFIX` | Optional                                                       | Prefix for OpenSearch indices                | `plane_`                                                                                                                                                                                              |
+|                          | `OPENSEARCH_EMBEDDING_DIMENSION` | Optional                                                | Embedding vector dimension for OpenSearch    | `1536`                                                                                                                                                                                                |
 | doc_store_existingSecret | `USE_MINIO`             | Yes                                                             | Flag to enable MinIO as the storage backend | `1`                                                                                                                                                                                                  |
 |                          | `MINIO_ROOT_USER`       | Yes                                                             | MinIO root user                             | `admin`                                                                                                                                                                                              |
 |                          | `MINIO_ROOT_PASSWORD`   | Yes                                                             | MinIO root password                         | `password`                                                                                                                                                                                           |
@@ -649,11 +904,20 @@ To configure the external secrets for your application, you need to define speci
 |                          | `GITHUB_PRIVATE_KEY`    | required if `services.silo.connectors.github.enabled` is `true` | GitHub private key                          | `your_github_private_key`                                                                                                                                                                            |
 |                          | `SLACK_CLIENT_ID`       | required if `services.silo.connectors.slack.enabled` is `true`  | Slack client ID                             | `your_slack_client_id`                                                                                                                                                                               |
 |                          | `SLACK_CLIENT_SECRET`   | required if `services.silo.connectors.slack.enabled` is `true`  | Slack client secret key                     | `your_slack_client_secret_key`                                                                                                                                                                       |
+|                          | `SLACK_BASE_URL`        | required if `services.silo.connectors.slack.enabled` is `true`  | Base URL for the Slack API                  | `https://slack.com` (or your own value)                                                                                                                                                              |
 |                          | `GITLAB_CLIENT_ID`      | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client ID                            | `your_gitlab_client_id`                                                                                                                                                                              |
 |                          | `GITLAB_CLIENT_SECRET`  | required if `services.silo.connectors.gitlab.enabled` is `true` | GitLab client secret key                    | `your_gitlab_client_secret_key`                                                                                                                                                                      |
+|                          | `SENTRY_BASE_URL`       | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry base URL                             | `your_sentry_base_url`                                                                                                                                                                               |
+|                          | `SENTRY_CLIENT_ID`      | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry client ID                            | `your_sentry_client_id`                                                                                                                                                                              |
+|                          | `SENTRY_CLIENT_SECRET`  | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry client secret key                    | `your_sentry_client_secret_key`                                                                                                                                                                      |
+|                          | `SENTRY_INTEGRATION_SLUG` | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry integration slug                   | `your_sentry_integration_slug`                                                                                                                                                                       |
+|                          | `CURSOR_WEBHOOK_SECRET` | Yes                                                             | Webhook secret for the Cursor agent integration | `TTqazTcoBajYKzIAeIKFZeTX9czAoUsG` (or your own value)                                                                                                                                               |
 | pi_api_env_existingSecret   | `PLANE_PI_DATABASE_URL` | Yes (if `services.pi.enabled=true`)                             | PostgreSQL connection URL for Plane AI (PI) database   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local/plane_pi` <br> <br>**external**: `postgresql://username:password@your-db-host:5432/plane_pi`                  |
 |                          | `AMQP_URL`             | Yes (if `services.pi.enabled=true`)                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external**: `amqp://username:password@your-rabbitmq-host:5672/`                              |
+|                          | `CELERY_BROKER_URL`    | Yes (if `services.pi.enabled=true`)                             | Redis URL used as the Celery broker for Plane AI (PI) | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
 |                          | `AES_SECRET_KEY`       | Yes (if `services.pi.enabled=true`)                             | AES secret key for Plane AI (PI)                       | `dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr` (or your own value)                                                                                                                                               |
+|                          | `PI_INTERNAL_SECRET`   | Yes (if `services.pi.enabled=true`)                             | Internal secret used by Plane AI (PI) for OAuth and internal APIs     | `tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk` (or your own value)                                                                                             |
+|                          | `LIVE_SERVER_SECRET_KEY` | Yes (if `services.pi.enabled=true`)                           | Live server secret key. **Must match** the value used for the live service (`live_env_existingSecret` / `app_env_existingSecret`) | `htbqvBJAgpm9bzvf3r4urJer0ENReatceh` (or your own value)                                                                                             |
 |                          | `OPENAI_API_KEY`       | required if `services.pi.ai_providers.openai.enabled` is `true` | OpenAI API key                              | `your_openai_api_key`                                                                                                                                                                                |
 |                          | `CLAUDE_API_KEY`       | required if `services.pi.ai_providers.claude.enabled` is `true` | Claude API key                              | `your_claude_api_key`                                                                                                                                                                                |
 |                          | `GROQ_API_KEY`         | required if `services.pi.ai_providers.groq.enabled` is `true`  | Groq API key                                 | `your_groq_api_key`                                                                                                                                                                                  |

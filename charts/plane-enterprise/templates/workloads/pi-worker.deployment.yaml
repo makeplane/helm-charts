@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-worker-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.pi_worker }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi_worker) }}
 spec:
   replicas: {{ .Values.services.pi_worker.replicas | default 1}}
   selector:
@@ -15,17 +15,20 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi_worker }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-pi-worker
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

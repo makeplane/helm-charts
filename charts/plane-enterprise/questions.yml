@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.5.0
+  default: v3.0.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -35,51 +35,56 @@ questions:
     label: Frontend Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/web-commercial"
+    default: "makeplane/web-commercial"
   - variable: services.space.image
     label: Space Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/space-commercial"
+    default: "makeplane/space-commercial"
   - variable: services.admin.image
     label: Admin Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/admin-commercial"
+    default: "makeplane/admin-commercial"
   - variable: services.live.image
     label: Live Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/live-commercial"
+    default: "makeplane/live-commercial"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/monitor-commercial"
+    default: "makeplane/monitor-commercial"
   - variable: services.silo.image
     label: Silo Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/silo-commercial"
+    default: "makeplane/silo-commercial"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/backend-commercial"
+    default: "makeplane/backend-commercial"
     description: "Used by API, Worker, Beat-Worker"
   - variable: services.email_service.image
     label: Email Service Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/email-commercial"
+    default: "makeplane/email-commercial"
   - variable: services.pi.image
     label: Plane AI (PI) Docker Image
     type: string
     required: true
-    default: "artifacts.plane.so/makeplane/plane-pi-commercial"
+    default: "makeplane/plane-pi-commercial"
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
+  - variable: env.default_cluster_domain
+    label: "Default Cluster Domain"
+    description: "Kubernetes internal cluster domain used to build in-cluster service URLs"
+    type: string
+    default: "cluster.local"
 
 - variable: license.licenseServer
   label: "License Server"
@@ -306,6 +311,10 @@ questions:
     label: "Request Interval"
     type: int
     default: 400
+  - variable: env.silo_envs.importers_queue_name
+    label: "Importers Queue Name"
+    type: string
+    default: "celery"
   - variable: env.silo_envs.sentry_dsn
     label: "Silo Sentry DSN"
     type: string
@@ -330,6 +339,18 @@ questions:
     label: "Silo CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.silo_envs.jira_server_issues_page_size
+    label: "Jira Server Issues Page Size"
+    type: int
+    default: 50
+  - variable: env.silo_envs.jira_server_issues_parallel_pages
+    label: "Jira Server Issues Parallel Pages"
+    type: int
+    default: 1
+  - variable: env.silo_envs.cursor_webhook_secret
+    label: "Cursor Webhook Secret"
+    type: string
+    default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
 
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
@@ -344,6 +365,10 @@ questions:
     default: ""
   - variable: services.silo.connectors.slack.client_secret
     label: "Slack Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.base_url
+    label: "Slack Base URL"
     type: string
     default: ""
 
@@ -388,6 +413,30 @@ questions:
     default: ""
   - variable: services.silo.connectors.gitlab.client_secret
     label: "Gitlab Client Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.sentry.enabled
+  label: "Sentry App Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.sentry.base_url
+    label: "Sentry Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.client_id
+    label: "Sentry Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.client_secret
+    label: "Sentry Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.integration_slug
+    label: "Sentry Integration Slug"
     type: string
     default: ""
 
@@ -485,10 +534,53 @@ questions:
     label: "Allow All Attachment Types"
     type: boolean
     default: false
+  - variable: env.enable_drf_spectacular
+    label: "Enable DRF Spectacular (OpenAPI)"
+    type: boolean
+    default: false
   - variable: env.web_url
     label: "Web URL"
     type: string
     default: ""
+  - variable: env.webhook_allowed_ips
+    label: "Webhook Allowed IPs"
+    type: string
+    default: ""
+  - variable: env.webhook_allowed_hosts
+    label: "Webhook Allowed Hosts"
+    type: string
+    default: ""
+- variable: services.external_api.enabled
+  label: "Enable External API"
+  type: boolean
+  default: false
+  group: "External API Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.external_api.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.external_api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.external_api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.external_api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.external_api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.external_api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
@@ -508,6 +600,33 @@ questions:
     type: string
     default: 50Mi
   - variable: services.worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+- variable: services.worker_importers.enabled
+  label: "Enable Importer Worker"
+  type: boolean
+  default: false
+  group: "Importer Worker Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.worker_importers.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.worker_importers.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.worker_importers.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.worker_importers.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.worker_importers.cpuRequest
     label: "CPU Request"
     type: string
     default: 50m
@@ -724,6 +843,86 @@ questions:
     type: string
     default: "issue"
 
+- variable: services.webhook_consumer.enabled
+  label: "Enable Webhook Consumer"
+  type: boolean
+  default: false
+  group: "Webhook Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.webhook_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.webhook_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.webhook_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.webhook_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.webhook_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.webhook_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.webhook_consumer_envs.queue_name
+    label: "Webhook Queue Name"
+    type: string
+    default: "plane.webhook"
+  - variable: env.webhook_consumer_envs.prefetch_count
+    label: "Webhook Prefetch Count"
+    type: int
+    default: 10
+
+- variable: services.agent_consumer.enabled
+  label: "Enable Agent Consumer"
+  type: boolean
+  default: false
+  group: "Agent Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.agent_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.agent_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.agent_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.agent_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.agent_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.agent_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.agent_consumer_envs.queue_name
+    label: "Agent Queue Name"
+    type: string
+    default: "plane.agent"
+  - variable: env.agent_consumer_envs.prefetch_count
+    label: "Agent Prefetch Count"
+    type: int
+    default: 10
+
 - variable: services.iframely.enabled
   label: "Enable Iframely"
   type: boolean
@@ -734,7 +933,7 @@ questions:
   - variable: services.iframely.image
     label: "Docker Image"
     type: string
-    default: "artifacts.plane.so/makeplane/iframely:v1.2.0"
+    default: "makeplane/iframely:v1.2.0"
   - variable: services.iframely.pullPolicy
     label: "Iframely Pull Policy"
     type: enum
@@ -1006,6 +1205,10 @@ questions:
     label: "Embedding Model ID"
     type: string
     default: ""
+  - variable: services.pi.ai_providers.embedding_model.embedding_dimension
+    label: "OpenSearch Embedding Dimension"
+    type: int
+    default: 1536
   - variable: services.pi.ai_providers.embedding_model.aws_access_key
     label: "Embedding Model AWS Access Key"
     type: string
@@ -1195,6 +1398,10 @@ questions:
     label: "Index Prefix"
     type: string
     default: ""
+  - variable: env.opensearch_embedding_dimension
+    label: "Embedding Dimension"
+    type: int
+    default: 1536
 
 - variable: services.rabbitmq.local_setup
   label: "Install RabbitMQ"
@@ -1327,6 +1534,40 @@ questions:
     type: boolean
     default: false
     show_if: "services.minio.local_setup=true"
+
+- variable: env.storage_provider
+  label: "Storage Provider"
+  description: "S3 (default; covers MinIO and S3-compatible services) or GCS (Google Cloud Storage native mode)."
+  type: enum
+  options:
+  - "S3"
+  - "GCS"
+  default: "S3"
+  group: "Storage Setup"
+  subquestions:
+  - variable: env.gcs_bucket_name
+    label: "GCS Bucket Name"
+    description: "Falls back to the Doc Store bucket name when left empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_project_id
+    label: "GCP Project ID"
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_json
+    label: "GCS Service Account JSON"
+    description: "Inline service-account JSON. Highest-priority credential source. Leave empty to use a mounted file path or GKE Workload Identity."
+    type: password
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_path
+    label: "GCS Credentials File Path"
+    description: "In-container path to a service-account file you mount yourself (e.g. /etc/gcs/service-account.json). Used when the inline JSON is empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
 
 - variable: ingress.enabled
   label: "Enable Ingress"

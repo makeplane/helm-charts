@@ -18,14 +18,85 @@
   {{- end }}
 {{- end }}
 
-{{- define "plane.labelsAndAnnotations" -}}
-  {{- with .labels }}
-  labels: {{ toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .annotations }}
+{{/*
+Pod-level securityContext. Rendered only when securityContext.enabled is true.
+Mirrors the kustomize nonroot-security-context component (pod patch).
+Place inside spec.template.spec — call with the root context, e.g.
+  {{- include "plane.podSecurityContext" . }}
+*/}}
+{{- define "plane.podSecurityContext" -}}
+{{- if .Values.securityContext.enabled }}
+      securityContext: {{- toYaml .Values.securityContext.podSecurityContext | nindent 8 }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Container-level securityContext. Rendered only when securityContext.enabled is true.
+Mirrors the kustomize nonroot-security-context component (container patch).
+Place inside a container/initContainer entry — call with the root context, e.g.
+  {{- include "plane.containerSecurityContext" . }}
+*/}}
+{{- define "plane.containerSecurityContext" -}}
+{{- if .Values.securityContext.enabled }}
+        securityContext: {{- toYaml .Values.securityContext.containerSecurityContext | nindent 10 }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Chart name and version, sanitized for use as the `helm.sh/chart` label value.
+*/}}
+{{- define "plane.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Standard Kubernetes recommended labels shared by every resource the chart renders.
+These are additive metadata labels only; they are intentionally kept out of
+spec.selector/matchLabels (which stay on the immutable `app.name` label) so that
+upgrading an existing release never tries to mutate an immutable selector.
+Call with the root context, e.g. {{ include "plane.commonLabels" $ }}
+*/}}
+{{- define "plane.commonLabels" -}}
+helm.sh/chart: {{ include "plane.chart" . }}
+app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Chart.AppVersion }}
+app.kubernetes.io/version: {{ . | quote }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Render a resource's `labels` and `annotations` metadata.
+Always emits the standard recommended labels (see plane.commonLabels) and merges
+any per-component labels supplied under the component's `labels` value. Per-component
+annotations are emitted when present.
+Call with a dict carrying the root context and the component values:
+  {{ include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
+*/}}
+{{- define "plane.labelsAndAnnotations" }}
+  labels:
+    {{- include "plane.commonLabels" .context | nindent 4 }}
+    {{- with .values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .values.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+
+{{/*
+Returns "true" when the bundled MinIO should be deployed.
+MinIO is deployed only when services.minio.local_setup is enabled AND the storage
+provider is not GCS — GCS native mode never uses the bundled MinIO, so selecting it
+must disable the MinIO StatefulSet, bucket job, ingress routes and certs regardless
+of the local_setup flag's value.
+*/}}
+{{- define "plane.minioEnabled" -}}
+  {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
+    true
+  {{- end -}}
+{{- end -}}
 
 {{/*
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.

@@ -5,22 +5,27 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-migrate-{{ now | date "20060102-150405" }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api-migrate
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-pi-api-migrate
-        image: {{ .Values.services.pi.image | default "artifacts.plane.so/makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        {{- include "plane.containerSecurityContext" . }}
+        image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         imagePullPolicy: Always
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}

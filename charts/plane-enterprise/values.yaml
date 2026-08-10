@@ -1,4 +1,4 @@
-planeVersion: v2.5.0
+planeVersion: v3.0.1
 
 dockerRegistry:
   enabled: false
@@ -38,8 +38,16 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
-  ingressClass: 'nginx'
-  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+  ingressClass: 'traefik'
+  # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
+  # These annotations are ONLY rendered when ingressClass is 'nginx' (the nginx Ingress template is gated on
+  # ingressClass == "nginx"); they have no effect with traefik. Example:
+  # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
+  # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
+  #   "502 upstream sent too big header" errors.
+  # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m", "nginx.ingress.kubernetes.io/proxy-buffer-size": "16k" }
+  traefik:
+    maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
@@ -50,6 +58,46 @@ ssl:
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
   generateCerts: false
+
+# ============================================================
+# Pod Security (Kubernetes Pod Security Admission "restricted")
+# ============================================================
+# When enabled, applies a hardened pod- and container-level securityContext to
+# all first-party Plane workloads: api, web, space, admin, live, worker,
+# beat-worker, automation-consumer, outbox-poller, silo, monitor, iframely,
+# runner, pi-api/beat/worker, and the migration Jobs (including their busybox
+# init containers). Plane's images run fine as non-root, so these defaults
+# satisfy the PSA "restricted" profile.
+#
+# NOT applied to:
+#   - The bundled local infrastructure (postgres, redis, rabbitmq, minio,
+#     opensearch): third-party images with their own UID/GID requirements,
+#     intended for local/dev use. In hardened clusters run those externally
+#     (managed RDS, ElastiCache, etc.) and leave local_setup off.
+#   - The email service: its image pins UID 100 and keeps its own securityContext.
+#
+# Mirrors the kustomize `nonroot-security-context` component. Override runAsUser/
+# runAsGroup/fsGroup below if your environment pins a specific UID (e.g. 10001).
+securityContext:
+  enabled: false
+  # Rendered at spec.template.spec.securityContext (pod level).
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  # Rendered at each container's / initContainer's securityContext.
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+      - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
 services:
   redis:
@@ -77,6 +125,9 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    read_replica:
+      enabled: false
+      remote_url: '' # INCASE OF REMOTE PG DB URL ONLY
 
   rabbitmq:
     local_setup: true
@@ -138,7 +189,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/iframely:v1.2.0
+    image: makeplane/iframely:v1.2.0
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -153,7 +204,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/web-commercial
+    image: makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -167,7 +218,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/monitor-commercial
+    image: makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
     assign_cluster_ip: false
@@ -183,7 +234,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/space-commercial
+    image: makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -198,7 +249,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/admin-commercial
+    image: makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -213,7 +264,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/live-commercial
+    image: makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -228,7 +279,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/backend-commercial
+    image: makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -237,7 +288,34 @@ services:
     labels: {}
     annotations: {}
 
+  external_api:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   worker:
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  worker_importers:
+    enabled: false
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
@@ -268,7 +346,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/silo-commercial
+    image: makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -281,6 +359,7 @@ services:
         enabled: false
         client_id: ''
         client_secret: ''
+        base_url: ''
       github:
         enabled: false
         client_id: ''
@@ -292,6 +371,12 @@ services:
         enabled: false
         client_id: ''
         client_secret: ''
+      sentry:
+        enabled: false
+        base_url: ''
+        client_id: ''
+        client_secret: ''
+        integration_slug: ''
 
   email_service:
     enabled: false
@@ -300,7 +385,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/email-commercial
+    image: makeplane/email-commercial
     pullPolicy: Always
     nodeSelector: {}
     tolerations: []
@@ -330,7 +415,34 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  webhook_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 500Mi
+    cpuRequest: 250m
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  agent_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 500Mi
+    cpuRequest: 250m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -345,7 +457,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 50Mi
     cpuRequest: 50m
-    image: artifacts.plane.so/makeplane/plane-pi-commercial
+    image: makeplane/plane-pi-commercial
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -383,6 +495,7 @@ services:
         enabled: false
         name: ''
         model_id: ''
+        embedding_dimension: 1536
         aws_access_key: ''
         aws_secret_access_key: ''
         aws_region: 'us-east-1'
@@ -412,6 +525,22 @@ services:
     labels: {}
     annotations: {}
 
+  runner:
+    enabled: false
+    replicas: 1
+    memoryLimit: 512Mi
+    cpuLimit: 500m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
+    image: makeplane/node-runner-commercial
+    pullPolicy: Always
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
 external_secrets:
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
@@ -422,9 +551,13 @@ external_secrets:
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
   pi_api_env_existingSecret: ''
+  runner_env_existingSecret: ''
 
 env:
   storageClass: ''
+
+  # Kubernetes internal cluster domain used to build in-cluster service URLs
+  default_cluster_domain: 'cluster.local'
 
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
@@ -441,20 +574,39 @@ env:
   docstore_bucket: uploads
   doc_upload_size_limit: '5242880' # 5MB
 
+  # Storage backend selection: 'S3' (default; covers MinIO and S3-compatible
+  # services) or 'GCS' (Google Cloud Storage native mode).
+  storage_provider: 'S3'
+
   # REQUIRED IF MINIO LOCAL SETUP IS FALSE
   aws_access_key: ''
   aws_secret_access_key: ''
   aws_region: ''
   aws_s3_endpoint_url: ''
 
+  # GCS (Google Cloud Storage) — used only when storage_provider is 'GCS'.
+  # When using GCS, set use_storage_proxy: true so browser uploads are proxied
+  # server-side through the API (the bucket then needs no CORS configuration).
+  # Defaults to docstore_bucket when left empty.
+  gcs_bucket_name: ''
+  gcs_project_id: ''
+  # Credentials are resolved in this order (first match wins):
+  #   1. gcs_credentials_json — inline service-account JSON (stored in a Secret)
+  #   2. gcs_credentials_path  — path to a service-account file you mount yourself
+  #   3. neither — Application Default Credentials (e.g. GKE Workload Identity)
+  gcs_credentials_json: ''
+  gcs_credentials_path: ''
+
   use_storage_proxy: false
   allow_all_attachment_types: false
+  enable_drf_spectacular: false
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
   opensearch_remote_username: ''
   opensearch_remote_password: ''
   opensearch_index_prefix: ''
+  opensearch_embedding_dimension: 1536
 
   #API KEYS
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
@@ -466,6 +618,11 @@ env:
   cors_allowed_origins: ''
   instance_admin_email: ''
   web_url: ''
+
+  # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
+  # Leave empty to allow all (no restriction).
+  webhook_allowed_ips: ''
+  webhook_allowed_hosts: ''
 
   live_sentry_dsn: ""
   live_sentry_environment: ""
@@ -480,9 +637,13 @@ env:
     batch_size: 100
     mq_prefetch_count: 1
     request_interval: 400
+    importers_queue_name: 'celery'
     hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
     cors_allowed_origins: ''
+    jira_server_issues_page_size: 50
+    jira_server_issues_parallel_pages: 1
+    cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
 
   email_service_envs:
     smtp_domain: ''
@@ -509,6 +670,21 @@ env:
     event_stream_prefetch: 10
     exchange_name: "plane.event_stream"
     event_types: "issue"
+
+  webhook_consumer_envs:
+    queue_name: "plane.webhook"
+    prefetch_count: 10
+
+  agent_consumer_envs:
+    queue_name: "plane.agent"
+    prefetch_count: 10
+
+  runner_envs:
+    execution_timeout_ms: "10000"
+    init_timeout_ms: "5000"
+    isolate_memory_mb: "128"
+    control_service_base_url: ""
+    hmac_secret_key: ""
 
   pi_envs:
     plane_oauth:

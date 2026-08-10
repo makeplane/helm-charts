@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-web
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.web.assign_cluster_ip }}
@@ -26,7 +27,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-web-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.web }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.web) }}
 spec:
   replicas: {{ .Values.services.web.replicas | default 1 }}
   selector:
@@ -37,14 +38,17 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.web }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-web
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.web.pullPolicy | default "Always" }}
-        image: {{ .Values.services.web.image | default "artifacts.plane.so/makeplane/web-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.web.image | default "makeplane/web-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

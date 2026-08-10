@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-api
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.api.assign_cluster_ip }}
@@ -26,7 +27,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.api }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
 spec:
   replicas: {{ .Values.services.api.replicas | default 1}}
   selector:
@@ -37,17 +38,20 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.api }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-api
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
-        image: {{ .Values.services.api.image | default "artifacts.plane.so/makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:

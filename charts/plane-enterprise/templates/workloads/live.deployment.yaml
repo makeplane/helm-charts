@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-live
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.live.assign_cluster_ip }}
@@ -26,7 +27,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.live }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.live) }}
 spec:
   replicas: {{ .Values.services.live.replicas | default 1}}
   selector:
@@ -37,10 +38,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CANodeVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
@@ -48,6 +51,7 @@ spec:
       initContainers:
       - name: prepare-ca-bundle
         image: busybox
+        {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
           - -c
@@ -70,8 +74,9 @@ spec:
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-live
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.live.pullPolicy | default "Always" }}
-        image: {{ .Values.services.live.image | default "artifacts.plane.so/makeplane/live-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ .Values.services.live.image | default "makeplane/live-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
