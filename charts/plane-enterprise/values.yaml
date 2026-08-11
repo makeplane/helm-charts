@@ -377,6 +377,13 @@ services:
         client_id: ''
         client_secret: ''
         integration_slug: ''
+      microsoft_teams:
+        enabled: false
+        client_id: ''
+        client_secret: ''
+        tenant_id: ''
+        app_id: ''
+        app_type: 'MultiTenant'
 
   email_service:
     enabled: false

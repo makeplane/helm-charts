@@ -57,6 +57,13 @@ stringData:
   SENTRY_CLIENT_SECRET: {{ .Values.services.silo.connectors.sentry.client_secret | default "" | quote }}
   SENTRY_INTEGRATION_SLUG: {{ .Values.services.silo.connectors.sentry.integration_slug | default "" | quote }}
   {{- end }}
+  {{- if .Values.services.silo.connectors.microsoft_teams.enabled }}
+  MS_TEAMS_CLIENT_ID: {{ .Values.services.silo.connectors.microsoft_teams.client_id | default "" | quote }}
+  MS_TEAMS_CLIENT_SECRET: {{ .Values.services.silo.connectors.microsoft_teams.client_secret | default "" | quote }}
+  MS_TEAMS_TENANT_ID: {{ .Values.services.silo.connectors.microsoft_teams.tenant_id | default "" | quote }}
+  MS_TEAMS_APP_ID: {{ .Values.services.silo.connectors.microsoft_teams.app_id | default "" | quote }}
+  MS_TEAMS_APP_TYPE: {{ .Values.services.silo.connectors.microsoft_teams.app_type | default "MultiTenant" | quote }}
+  {{- end }}
 {{- end }}
 ---
 {{- if .Values.services.silo.enabled }}

@@ -440,6 +440,34 @@ questions:
     type: string
     default: ""
 
+- variable: services.silo.connectors.microsoft_teams.enabled
+  label: "Microsoft Teams Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.microsoft_teams.client_id
+    label: "MS Teams Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.microsoft_teams.client_secret
+    label: "MS Teams Client Secret"
+    type: password
+    default: ""
+  - variable: services.silo.connectors.microsoft_teams.tenant_id
+    label: "MS Teams Tenant ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.microsoft_teams.app_id
+    label: "MS Teams App ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.microsoft_teams.app_type
+    label: "MS Teams App Type"
+    type: string
+    default: "MultiTenant"
+
 - variable: services.monitor.pullPolicy
   label: "Monitor Pull Policy"
   type: enum
