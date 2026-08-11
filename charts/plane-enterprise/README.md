@@ -99,7 +99,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.0.0 # or the last released version
+   PLANE_VERSION=v3.0.1 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -155,7 +155,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.0.0 <or the last released version>`
+     - `planeVersion: v3.0.1 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
@@ -181,7 +181,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.0.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.0.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -807,6 +807,25 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.webhook_consumer.annotations             |       {}       |          | Custom annotations to add to the webhook consumer deployment                                                                                                                                      |
 | env.webhook_consumer_envs.queue_name              | "plane.webhook" |          | RabbitMQ queue name the webhook consumer reads from                                                                                                                                              |
 | env.webhook_consumer_envs.prefetch_count          |       10       |          | Prefetch count for the webhook consumer                                                                                                                                                           |
+
+### Agent Consumer Deployment
+
+| Setting                                         |    Default    | Required | Description                                                                                                                                                                                     |
+| ------------------------------------------------ | :------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.agent_consumer.enabled                 |     false      |          | Set to `true` to enable the agent consumer service deployment                                                                                                                                   |
+| services.agent_consumer.replicas                |       1        |          | Number of replicas for the agent consumer service deployment                                                                                                                                    |
+| services.agent_consumer.memoryLimit             |     1000Mi     |          | Memory limit for the agent consumer service deployment                                                                                                                                          |
+| services.agent_consumer.cpuLimit                |      500m      |          | CPU limit for the agent consumer service deployment                                                                                                                                             |
+| services.agent_consumer.memoryRequest           |     500Mi      |          | Memory request for the agent consumer service deployment                                                                                                                                        |
+| services.agent_consumer.cpuRequest              |      250m      |          | CPU request for the agent consumer service deployment                                                                                                                                           |
+| services.agent_consumer.assign_cluster_ip       |     false      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                |
+| services.agent_consumer.nodeSelector            |       {}       |          | This key allows you to set the node selector for the deployment of `agent_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
+| services.agent_consumer.tolerations             |       []       |          | This key allows you to set the tolerations for the deployment of `agent_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
+| services.agent_consumer.affinity                |       {}       |          | This key allows you to set the affinity rules for the deployment of `agent_consumer`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.       |
+| services.agent_consumer.labels                  |       {}       |          | Custom labels to add to the agent consumer deployment                                                                                                                                           |
+| services.agent_consumer.annotations             |       {}       |          | Custom annotations to add to the agent consumer deployment                                                                                                                                      |
+| env.agent_consumer_envs.queue_name              |  "plane.agent"  |          | RabbitMQ queue name the agent consumer reads from                                                                                                                                                |
+| env.agent_consumer_envs.prefetch_count          |       10       |          | Prefetch count for the agent consumer                                                                                                                                                            |
 
 ### Iframely Deployment
 

@@ -1,4 +1,4 @@
-planeVersion: v3.0.0
+planeVersion: v3.0.1
 
 dockerRegistry:
   enabled: false
@@ -450,6 +450,20 @@ services:
     labels: {}
     annotations: {}
 
+  agent_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 500Mi
+    cpuRequest: 250m
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   pi:
     enabled: false
     replicas: 1
@@ -684,6 +698,10 @@ env:
 
   webhook_consumer_envs:
     queue_name: "plane.webhook"
+    prefetch_count: 10
+
+  agent_consumer_envs:
+    queue_name: "plane.agent"
     prefetch_count: 10
 
   runner_envs:
