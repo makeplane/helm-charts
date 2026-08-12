@@ -64,9 +64,7 @@ stringData:
   BITBUCKET_CLIENT_SECRET: {{ .Values.services.silo.connectors.bitbucket.client_secret | default "" | quote }}
   BITBUCKET_WEBHOOK_SECRET: {{ .Values.services.silo.connectors.bitbucket.webhook_secret | default "" | quote }}
   {{- end }}
-  {{- if .Values.services.silo.connectors.flatfile.enabled }}
-  FLATFILE_API_KEY: {{ .Values.services.silo.connectors.flatfile.api_key | default "" | quote }}
-  {{- end }}
+
   {{- if .Values.services.silo.connectors.hubspot.enabled }}
   HUBSPOT_CLIENT_ID: {{ .Values.services.silo.connectors.hubspot.client_id | default "" | quote }}
   HUBSPOT_CLIENT_SECRET: {{ .Values.services.silo.connectors.hubspot.client_secret | default "" | quote }}

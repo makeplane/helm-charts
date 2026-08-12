@@ -384,9 +384,7 @@ services:
         client_id: ''
         client_secret: ''
         webhook_secret: ''
-      flatfile:
-        enabled: false
-        api_key: ''
+
       hubspot:
         enabled: false
         client_id: ''

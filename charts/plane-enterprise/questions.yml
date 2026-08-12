@@ -467,18 +467,6 @@ questions:
     type: string
     default: ""
 
-- variable: services.silo.connectors.flatfile.enabled
-  label: "Flatfile Integration"
-  type: boolean
-  default: false
-  group: "Silo Connectors"
-  show_subquestion_if: true
-  subquestions:
-  - variable: services.silo.connectors.flatfile.api_key
-    label: "Flatfile API Key"
-    type: string
-    default: ""
-
 - variable: services.silo.connectors.hubspot.enabled
   label: "HubSpot Integration"
   type: boolean
