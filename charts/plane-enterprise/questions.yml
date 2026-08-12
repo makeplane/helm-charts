@@ -351,12 +351,6 @@ questions:
     label: "Cursor Webhook Secret"
     type: string
     default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
-  - variable: env.silo_envs.api_internal_base_url
-    label: "API Internal Base URL"
-    description: "Internal cluster URL for the API service. Defaults to the in-cluster service DNS when left empty."
-    type: string
-    default: ""
-
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
   type: boolean

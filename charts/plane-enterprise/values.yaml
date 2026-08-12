@@ -668,7 +668,6 @@ env:
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
     cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
-    api_internal_base_url: ''
 
   email_service_envs:
     smtp_domain: ''

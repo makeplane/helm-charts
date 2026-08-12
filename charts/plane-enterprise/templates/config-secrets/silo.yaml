@@ -104,11 +104,7 @@ data:
   {{- end }}
 
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
-  {{- if .Values.env.silo_envs.api_internal_base_url }}
-  API_INTERNAL_BASE_URL: {{ .Values.env.silo_envs.api_internal_base_url | quote }}
-  {{- else }}
   API_INTERNAL_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
-  {{- end }}
   
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
