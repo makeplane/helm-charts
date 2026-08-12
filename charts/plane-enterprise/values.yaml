@@ -1,4 +1,4 @@
-planeVersion: v3.0.1
+planeVersion: v3.1.0
 
 dockerRegistry:
   enabled: false
@@ -273,6 +273,22 @@ services:
     labels: {}
     annotations: {}
 
+  live_exporter:
+    enabled: true
+    replicas: 1
+    # PDF render footprint is 500MB-2GB; default limits reflect that.
+    memoryLimit: 2000Mi
+    cpuLimit: 1000m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    image: makeplane/live-commercial
+    pullPolicy: Always
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   api:
     replicas: 1
     memoryLimit: 1000Mi
@@ -360,6 +376,7 @@ services:
         client_id: ''
         client_secret: ''
         base_url: ''
+        signing_secret: ''
       github:
         enabled: false
         client_id: ''
@@ -367,6 +384,7 @@ services:
         app_name: ''
         app_id: ''
         private_key: ''
+        webhook_secret: ''
       gitlab:
         enabled: false
         client_id: ''
@@ -377,6 +395,16 @@ services:
         client_id: ''
         client_secret: ''
         integration_slug: ''
+      bitbucket:
+        enabled: false
+        client_id: ''
+        client_secret: ''
+        webhook_secret: ''
+
+      hubspot:
+        enabled: false
+        client_id: ''
+        client_secret: ''
 
   email_service:
     enabled: false
@@ -612,6 +640,16 @@ env:
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
+  # Gunicorn worker rotation settings.
+  gunicorn_max_requests: 1000
+  gunicorn_max_requests_jitter: 150
+
+  # Celery broker settings.
+  # celery_task_publish_retry: retry task publishing on transient AMQP failures instead of silently dropping.
+  # celery_broker_pool_limit: bound the connection pool to prevent stale connections accumulating.
+  celery_task_publish_retry: true
+  celery_broker_pool_limit: 10
+
   sentry_dsn: ''
   sentry_environment: ''
 
@@ -628,6 +666,11 @@ env:
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+
+  # Background PDF/DOCX export worker queue.
+  export_queue_name: "plane-exports"
+  # Base URL for export download redirects. Defaults to licenseDomain with protocol from SSL settings.
+  export_download_base_url: ""
   external_iframely_url: ""
 
   silo_envs:
@@ -694,6 +737,9 @@ env:
     cors_allowed_origins: ''
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
     log_level: 'DEBUG'
+
+    ai_usage_agent_max_tokens_budget: ''
+    ai_usage_enforcement_enabled: true
 
     celery:
       vector_sync_enabled: false

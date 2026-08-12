@@ -109,6 +109,7 @@ data:
 
   FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080"
   PI_BASE_PATH: "/pi"
+  PLANE_INTERNAL_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
 
   
   {{- if eq .Values.env.pi_envs.cors_allowed_origins "*"}}
@@ -156,6 +157,9 @@ data:
   BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}
+
+  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
+  AI_USAGE_ENFORCEMENT_ENABLED: {{ .Values.env.pi_envs.ai_usage_enforcement_enabled | ternary "1" "0" | quote }}
 
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
   CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}

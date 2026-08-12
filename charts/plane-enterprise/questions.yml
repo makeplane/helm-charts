@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.0.1
+  default: v3.1.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -267,6 +267,52 @@ questions:
     label: "Live Server Secret Key"
     type: string
     default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  - variable: env.export_queue_name
+    label: "Export Queue Name"
+    description: "RabbitMQ queue name for background PDF/DOCX export jobs consumed by the live-exporter service."
+    type: string
+    default: "plane-exports"
+  - variable: env.export_download_base_url
+    label: "Export Download Base URL"
+    description: "Base URL for export download redirects. Defaults to licenseDomain with protocol inferred from SSL settings."
+    type: string
+    default: ""
+
+- variable: services.live_exporter.enabled
+  label: "Install Live Exporter Service"
+  type: boolean
+  default: true
+  group: "Live Exporter Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.live_exporter.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.live_exporter.pullPolicy
+    label: "Live Exporter Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
+  - variable: services.live_exporter.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: services.live_exporter.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 1000m
+  - variable: services.live_exporter.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.live_exporter.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 
 - variable: services.silo.enabled
   label: "Install Silo Service"
@@ -351,7 +397,6 @@ questions:
     label: "Cursor Webhook Secret"
     type: string
     default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
-
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
   type: boolean
@@ -369,6 +414,10 @@ questions:
     default: ""
   - variable: services.silo.connectors.slack.base_url
     label: "Slack Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.signing_secret
+    label: "Slack Signing Secret"
     type: string
     default: ""
 
@@ -397,6 +446,10 @@ questions:
     default: ""
   - variable: services.silo.connectors.github.private_key
     label: "Github Private Key"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.github.webhook_secret
+    label: "Github Webhook Secret"
     type: string
     default: ""
 
@@ -437,6 +490,42 @@ questions:
     default: ""
   - variable: services.silo.connectors.sentry.integration_slug
     label: "Sentry Integration Slug"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.bitbucket.enabled
+  label: "Bitbucket Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.bitbucket.client_id
+    label: "Bitbucket Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.client_secret
+    label: "Bitbucket Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.webhook_secret
+    label: "Bitbucket Webhook Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.hubspot.enabled
+  label: "HubSpot Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.hubspot.client_id
+    label: "HubSpot Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.hubspot.client_secret
+    label: "HubSpot Client Secret"
     type: string
     default: ""
 
@@ -550,6 +639,26 @@ questions:
     label: "Webhook Allowed Hosts"
     type: string
     default: ""
+  - variable: env.gunicorn_max_requests
+    label: "Gunicorn Max Requests"
+    description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation."
+    type: int
+    default: 1000
+  - variable: env.gunicorn_max_requests_jitter
+    label: "Gunicorn Max Requests Jitter"
+    description: "Random jitter added to GUNICORN_MAX_REQUESTS to stagger worker restarts. Set to 0 when rotation is disabled."
+    type: int
+    default: 150
+  - variable: env.celery_task_publish_retry
+    label: "Celery Task Publish Retry"
+    description: "Retry task publishing on transient AMQP failures instead of silently dropping tasks."
+    type: boolean
+    default: true
+  - variable: env.celery_broker_pool_limit
+    label: "Celery Broker Pool Limit"
+    description: "Maximum number of connections in the Celery broker connection pool. Limits stale connection accumulation."
+    type: int
+    default: 10
 - variable: services.external_api.enabled
   label: "Enable External API"
   type: boolean
@@ -1010,6 +1119,14 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.pi_envs.ai_usage_agent_max_tokens_budget
+    label: "AI Usage Agent Max Tokens Budget"
+    type: string
+    default: ""
+  - variable: env.pi_envs.ai_usage_enforcement_enabled
+    label: "AI Usage Enforcement Enabled"
+    type: boolean
+    default: true
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean

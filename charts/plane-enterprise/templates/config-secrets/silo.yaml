@@ -39,6 +39,7 @@ stringData:
   SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
   SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
   SLACK_BASE_URL: {{ .Values.services.silo.connectors.slack.base_url | default "" | quote }}
+  SLACK_SIGNING_SECRET: {{ .Values.services.silo.connectors.slack.signing_secret | default "" | quote }}
   {{- end }}
   {{- if .Values.services.silo.connectors.github.enabled }}
   GITHUB_CLIENT_SECRET: {{ .Values.services.silo.connectors.github.client_secret | default "" | quote }}
@@ -46,6 +47,7 @@ stringData:
   GITHUB_CLIENT_ID: {{ .Values.services.silo.connectors.github.client_id | default "" | quote }}
   GITHUB_APP_NAME: {{ .Values.services.silo.connectors.github.app_name | default "" | quote }}
   GITHUB_APP_ID: {{ .Values.services.silo.connectors.github.app_id | default "" | quote }}
+  GITHUB_WEBHOOK_SECRET: {{ .Values.services.silo.connectors.github.webhook_secret | default "" | quote }}
   {{- end }}
   {{- if .Values.services.silo.connectors.gitlab.enabled }}
   GITLAB_CLIENT_SECRET: {{ .Values.services.silo.connectors.gitlab.client_secret | default "" | quote }}
@@ -56,6 +58,16 @@ stringData:
   SENTRY_CLIENT_ID: {{ .Values.services.silo.connectors.sentry.client_id | default "" | quote }}
   SENTRY_CLIENT_SECRET: {{ .Values.services.silo.connectors.sentry.client_secret | default "" | quote }}
   SENTRY_INTEGRATION_SLUG: {{ .Values.services.silo.connectors.sentry.integration_slug | default "" | quote }}
+  {{- end }}
+  {{- if .Values.services.silo.connectors.bitbucket.enabled }}
+  BITBUCKET_CLIENT_ID: {{ .Values.services.silo.connectors.bitbucket.client_id | default "" | quote }}
+  BITBUCKET_CLIENT_SECRET: {{ .Values.services.silo.connectors.bitbucket.client_secret | default "" | quote }}
+  BITBUCKET_WEBHOOK_SECRET: {{ .Values.services.silo.connectors.bitbucket.webhook_secret | default "" | quote }}
+  {{- end }}
+
+  {{- if .Values.services.silo.connectors.hubspot.enabled }}
+  HUBSPOT_CLIENT_ID: {{ .Values.services.silo.connectors.hubspot.client_id | default "" | quote }}
+  HUBSPOT_CLIENT_SECRET: {{ .Values.services.silo.connectors.hubspot.client_secret | default "" | quote }}
   {{- end }}
 {{- end }}
 ---
@@ -90,6 +102,7 @@ data:
   {{- end }}
 
   API_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
+  API_INTERNAL_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
   
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
   SILO_API_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
@@ -108,6 +121,7 @@ data:
   SENTRY_DSN: {{ .Values.env.silo_envs.sentry_dsn | default "" | quote }}
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}
   SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.silo_envs.sentry_traces_sample_rate | default "0.1" | quote }}
+
 
 {{- end }}
 ---
