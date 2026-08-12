@@ -14,6 +14,13 @@ stringData:
   {{- else }}
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
+  {{- if .Values.services.rabbitmq.local_setup }}
+  AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
+  {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
+  AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | quote }}
+  {{- else }}
+  AMQP_URL: ""
+  {{- end }}
 {{- end }}
 ---
 apiVersion: v1
@@ -41,4 +48,13 @@ data:
   {{- else }}
   IFRAMELY_URL: http://{{ .Release.Name }}-iframely.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8061/
   {{- end }}
+
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  EXPORT_DOWNLOAD_BASE_URL: {{ .Values.env.export_download_base_url | default (printf "https://%s" .Values.license.licenseDomain) | quote }}
+  {{- else }}
+  EXPORT_DOWNLOAD_BASE_URL: {{ .Values.env.export_download_base_url | default (printf "http://%s" .Values.license.licenseDomain) | quote }}
+  {{- end }}
+
+  EXPORT_QUEUE_NAME: {{ .Values.env.export_queue_name | default "plane-exports" | quote }}
+
 ---

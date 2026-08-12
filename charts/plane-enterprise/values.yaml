@@ -1,4 +1,4 @@
-planeVersion: v3.0.1
+planeVersion: v3.1.0
 
 dockerRegistry:
   enabled: false
@@ -267,6 +267,22 @@ services:
     image: makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  live_exporter:
+    enabled: true
+    replicas: 1
+    # PDF render footprint is 500MB-2GB; default limits reflect that.
+    memoryLimit: 2000Mi
+    cpuLimit: 1000m
+    memoryRequest: 50Mi
+    cpuRequest: 50m
+    image: makeplane/live-commercial
+    pullPolicy: Always
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -650,6 +666,11 @@ env:
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+
+  # Background PDF/DOCX export worker queue.
+  export_queue_name: "plane-exports"
+  # Base URL for export download redirects. Defaults to licenseDomain with protocol from SSL settings.
+  export_download_base_url: ""
   external_iframely_url: ""
 
   silo_envs:

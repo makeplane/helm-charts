@@ -99,7 +99,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.0.1 # or the last released version
+   PLANE_VERSION=v3.1.0 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -155,7 +155,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.0.1 <or the last released version>`
+     - `planeVersion: v3.1.0 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
@@ -181,7 +181,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.0.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.1.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -455,6 +455,7 @@ securityContext:
 | env.live_sentry_environment        |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.   |
 | env.live_sentry_traces_sample_rate |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry trace sample rate (as configured in Sentry) for this integration.  |
 | env.live_server_secret_key         |      htbqvBJAgpm9bzvf3r4urJer0ENReatceh      |          | Live Server Secret Key                                                                                                                                                                                          |
+| env.export_queue_name              |                 plane-exports                |          | RabbitMQ queue name for background PDF/DOCX export jobs consumed by the `live-exporter` service.                                                                                                                |
 | env.external_iframely_url          |                      ""                      |          | External Iframely service URL. If provided, the local Iframely deployment will be skipped and the live service will use this external URL                                                                       |
 | services.live.assign_cluster_ip    |                    false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.live.nodeSelector         |                      {}                      |          | This key allows you to set the node selector for the deployment of `live`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                     |
@@ -462,6 +463,21 @@ securityContext:
 | services.live.affinity             |                      {}                      |          | This key allows you to set the affinity rules for the deployment of `live`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                 |
 | services.live.labels               |                      {}                      |          | Custom labels to add to the live deployment                                                                                                                                                                     |
 | services.live.annotations          |                      {}                      |          | Custom annotations to add to the live deployment                                                                                                                                                                |
+
+### Live Exporter Deployment
+
+| Setting                                   |          Default           | Required | Description                                                                                                                                                                            |
+| ----------------------------------------- | :------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.live_exporter.enabled            |            true            |          | Enable or disable the background PDF/DOCX export worker. Reuses the `live` image but boots in `exporter` mode (pure queue consumer, no HTTP port).                                    |
+| services.live_exporter.replicas           |             1              |   Yes    | Number of exporter pods. PDF render footprint is 500MB–2GB per job; scale horizontally rather than increasing concurrency per pod.                                                     |
+| services.live_exporter.memoryLimit        |           2000Mi           |          | Memory limit for the exporter pod. Set higher if rendering large documents.                                                                                                            |
+| services.live_exporter.cpuLimit           |           1000m            |          | CPU limit for the exporter pod.                                                                                                                                                        |
+| services.live_exporter.memoryRequest      |            50Mi            |          | Memory request for the exporter pod.                                                                                                                                                   |
+| services.live_exporter.cpuRequest         |            50m             |          | CPU request for the exporter pod.                                                                                                                                                      |
+| services.live_exporter.image              | makeplane/live-commercial  |          | Docker image for the exporter. Must match the `live` service image.                                                                                                                    |
+| services.live_exporter.nodeSelector       |             {}             |          | Node selector for the exporter pod.                                                                                                                                                    |
+| services.live_exporter.tolerations        |             []             |          | Tolerations for the exporter pod.                                                                                                                                                      |
+| services.live_exporter.affinity           |             {}             |          | Affinity rules for the exporter pod.                                                                                                                                                   |
 
 ### Monitor Deployment
 
@@ -907,6 +923,8 @@ To configure the external secrets for your application, you need to define speci
 |                          | `DATABASE_URL`          | Yes                                                             | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
 | live_env_existingSecret  | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
+|                          | `LIVE_SERVER_SECRET_KEY` | Yes                                                            | Live server secret key                      | `htbqvBJAgpm9bzvf3r4urJer0ENReatceh`                                                                                                                                                                |
 | silo_env_existingSecret  | `SILO_HMAC_SECRET_KEY`  | Yes                                                             | Silo HMAC secret Key                        | `<random-32-bit-string>`                                                                                                                                                                             |
 |                          | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
 |                          | `DATABASE_URL`          | Yes                                                             | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |

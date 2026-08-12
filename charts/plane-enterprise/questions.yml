@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.0.1
+  default: v3.1.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -267,6 +267,52 @@ questions:
     label: "Live Server Secret Key"
     type: string
     default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  - variable: env.export_queue_name
+    label: "Export Queue Name"
+    description: "RabbitMQ queue name for background PDF/DOCX export jobs consumed by the live-exporter service."
+    type: string
+    default: "plane-exports"
+  - variable: env.export_download_base_url
+    label: "Export Download Base URL"
+    description: "Base URL for export download redirects. Defaults to licenseDomain with protocol inferred from SSL settings."
+    type: string
+    default: ""
+
+- variable: services.live_exporter.enabled
+  label: "Install Live Exporter Service"
+  type: boolean
+  default: true
+  group: "Live Exporter Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.live_exporter.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.live_exporter.pullPolicy
+    label: "Live Exporter Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
+  - variable: services.live_exporter.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: services.live_exporter.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 1000m
+  - variable: services.live_exporter.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.live_exporter.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 
 - variable: services.silo.enabled
   label: "Install Silo Service"
