@@ -51,6 +51,9 @@ stringData:
   AMQP_URL: ""
   {{- end }}
 
+  {{- if empty .Values.external_secrets.silo_connectors_existingSecret }}
+  {{/* Suppressed wholesale when the connectors Secret supplies these — client ids and
+       app names included, so the connector surface has a single owner. */}}
   {{- if .Values.services.silo.connectors.slack.enabled }}
   SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
   SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
@@ -84,6 +87,7 @@ stringData:
   {{- if .Values.services.silo.connectors.hubspot.enabled }}
   HUBSPOT_CLIENT_ID: {{ .Values.services.silo.connectors.hubspot.client_id | default "" | quote }}
   HUBSPOT_CLIENT_SECRET: {{ .Values.services.silo.connectors.hubspot.client_secret | default "" | quote }}
+  {{- end }}
   {{- end }}
 {{- end }}
 ---

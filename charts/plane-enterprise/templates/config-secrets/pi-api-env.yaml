@@ -57,6 +57,11 @@ stringData:
   CELERY_BROKER_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 
+  {{- if empty .Values.external_secrets.ai_providers_existingSecret }}
+  {{/* Suppressed wholesale when the AI-providers Secret supplies these. The
+       empty-string branches below matter as much as the populated ones: envFrom
+       resolves later-source-wins, so a rendered COHERE_API_KEY: "" would overwrite
+       the value coming from that Secret. */}}
   {{- if .Values.services.pi.ai_providers.openai.enabled }}
   OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
   {{- end }}
@@ -89,6 +94,7 @@ stringData:
   {{- end }}
   {{- with .Values.services.pi.ai_providers.embedding_model.aws_session_token }}
   BR_AWS_SESSION_TOKEN: {{ . | quote }}
+  {{- end }}
   {{- end }}
   {{- end }}
 

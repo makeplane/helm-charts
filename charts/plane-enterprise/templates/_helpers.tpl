@@ -405,6 +405,47 @@ Indentation is baked in for the container envFrom position, so call it bare:
 {{- end -}}
 
 {{/*
+envFrom entry for the Secret carrying the AI/LLM provider keys. Renders nothing
+unless external_secrets.ai_providers_existingSecret is set.
+
+Separate from the Plane AI Secret because provider accounts are shared across
+environments while everything else in that Secret is per-environment. Mounted on the
+Plane AI workloads and on live (whose AI_OPENAI_API_KEY has no values key at all).
+
+Placed before the chart's own Secret so an operator who has already externalized
+pi_api_env keeps that precedence. While this is set the chart emits none of these
+keys itself — including the empty-string branches, which would otherwise overwrite
+this Secret's values, since envFrom resolves later-source-wins.
+
+Indentation is baked in for the container envFrom position, so call it bare.
+*/}}
+{{- define "plane.aiProvidersSecretRef" -}}
+{{- with .Values.external_secrets.ai_providers_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
+envFrom entry for the Secret carrying the silo connector credentials. Renders nothing
+unless external_secrets.silo_connectors_existingSecret is set.
+
+Mounted on every workload that mounts silo-secrets today, not just silo: the Django
+auth adapter reads GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET from that Secret on the api
+family, so mounting this only on silo would drop those variables there.
+
+Indentation is baked in for the container envFrom position, so call it bare.
+*/}}
+{{- define "plane.siloConnectorsSecretRef" -}}
+{{- with .Values.external_secrets.silo_connectors_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
 Returns "true" when an externally managed Secret supplies the Postgres credentials,
 in which case the chart must not render a composed DATABASE_URL that would take
 precedence over the discrete POSTGRES_* parts.

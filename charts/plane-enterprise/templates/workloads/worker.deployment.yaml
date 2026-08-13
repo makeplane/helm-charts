@@ -55,6 +55,7 @@ spec:
             exec ./bin/docker-entrypoint-worker.sh
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false

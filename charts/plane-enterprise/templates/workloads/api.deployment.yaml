@@ -79,6 +79,7 @@ spec:
             exec ./bin/docker-entrypoint-api-ee.sh
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false

@@ -27,6 +27,7 @@ spec:
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false

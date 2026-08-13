@@ -695,6 +695,48 @@ external_secrets:
   # others, leaving two services with different values of a key that must match.
   app_keys_existingSecret: ''
 
+  # AI/LLM provider keys ONLY.
+  #
+  # pi_api_env_existingSecret below replaces the WHOLE Plane AI Secret, which forces
+  # you to own PLANE_PI_DATABASE_URL, FOLLOWER_POSTGRES_URI, AMQP_URL,
+  # CELERY_BROKER_URL and the signing keys as well. Those are per-environment, so it
+  # cannot express "one provider account shared by every environment". This hook
+  # carries nothing environment-specific, so a single Secret can be mirrored into as
+  # many namespaces as share the account — while a customer deployment can just as
+  # well point it at a per-environment Secret. The chart only takes a name.
+  #
+  # Keys read (all optional; an omitted key is simply an absent env var):
+  #   OPENAI_API_KEY  CLAUDE_API_KEY  GROQ_API_KEY  COHERE_API_KEY
+  #   CUSTOM_LLM_API_KEY
+  #   BR_AWS_ACCESS_KEY_ID  BR_AWS_SECRET_ACCESS_KEY  BR_AWS_SESSION_TOKEN
+  #     Bedrock embeddings. On AWS omit all three and let the pod's identity sign —
+  #     Plane AI falls back to AWS_ACCESS_KEY_ID and then to boto3's own chain.
+  #   AI_OPENAI_API_KEY
+  #     The live server's OpenAI-compatible proxy. The chart has no values key for
+  #     this at all, so this hook is the only way to supply it.
+  #
+  # Do NOT put base URLs in this Secret. They are not secret, they belong in
+  # services.pi.ai_providers.*.base_url, and the live server validates
+  # AI_OPENAI_BASE_URL as a URL and exits on an empty string — which is exactly what
+  # a `dataFrom.extract` of a JSON secret containing an empty base URL would deliver.
+  ai_providers_existingSecret: ''
+
+  # Silo connector app credentials (OAuth client secrets, the GitHub App private key,
+  # webhook secrets). The silo Secret also carries DATABASE_URL / AMQP_URL /
+  # REDIS_URL, so silo_env_existingSecret cannot externalize just the connectors.
+  #
+  # When set the chart emits none of the connector keys and this Secret owns the whole
+  # connector surface — client ids and app names included. They are not secret, but a
+  # half-external, half-rendered connector block is a configuration people get wrong.
+  #
+  # Naturally per-environment: a connector's OAuth callback URL is per-host, so the
+  # app registration differs per environment.
+  #   SLACK_CLIENT_ID/SECRET, SLACK_BASE_URL
+  #   GITHUB_CLIENT_ID/SECRET, GITHUB_APP_NAME, GITHUB_APP_ID, GITHUB_PRIVATE_KEY
+  #   GITLAB_CLIENT_ID/SECRET
+  #   SENTRY_CLIENT_ID/SECRET, SENTRY_BASE_URL, SENTRY_INTEGRATION_SLUG
+  silo_connectors_existingSecret: ''
+
   # DNS-01 API token for the cert-manager Issuer (ssl.issuer cloudflare/digitalocean).
   # Must contain the key `api-token`.
   ssl_token_existingSecret: ''

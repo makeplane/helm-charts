@@ -93,6 +93,7 @@ spec:
         {{- end }}
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.aiProvidersSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
               optional: false
