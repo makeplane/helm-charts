@@ -26,15 +26,20 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- end }}
 
 {{- /*
-Version gate. Discrete credential parts landed in two stages: the Django services in
-v3.1.0, and silo/live/pi in v3.2.0. A deployment pinned below the relevant version
-gets the warnings that follow. planeVersion is operator-supplied and need not be
-semver ("stable", a git sha), so an unparsable value warns rather than failing the
-render — semverCompare would error on it.
+Version gate. A deployment pinned below the app release that carries a given piece of
+discrete-parts support gets the warnings that follow.
+
+Both app changes — the API's REDIS_* support and silo/live/pi's — are expected in
+v3.2.0, hence the identical bounds. They are kept as separate variables because they
+come from separate app PRs: if one lands in a later release than the other, bump only
+that bound.
+
+planeVersion is operator-supplied and need not be semver ("stable", a git sha), so an
+unparsable value warns rather than failing the render — semverCompare would error on it.
 */}}
 {{- $version := trimPrefix "v" (.Values.planeVersion | toString) }}
 {{- $parsable := regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+" $version }}
-{{- $preRedisParts := or (not $parsable) (semverCompare "< 3.1.0" $version) }}
+{{- $preRedisParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
 {{- $preServiceParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
 
 {{- /* Services that cannot consume discrete credential parts on this app version. */}}
@@ -56,7 +61,7 @@ render — semverCompare would error on it.
 
 {{- /* Redis parts need app support. */}}
 {{- if and .Values.external_secrets.redis.secretName $preRedisParts }}
-{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.1.0. This release runs %s — upgrade, or\n    keep supplying REDIS_URL instead." .Values.planeVersion) }}
+{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.2.0. This release runs %s — upgrade, or\n    keep supplying REDIS_URL instead." .Values.planeVersion) }}
 {{- end }}
 
 {{- /*
