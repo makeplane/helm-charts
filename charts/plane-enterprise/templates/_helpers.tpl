@@ -572,6 +572,57 @@ the live server needs Redis and nothing else.
 {{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_DB" "secret" $db.secretName "key" .) }}
 {{- end }}
 {{- end }}
+{{- include "plane.postgresReadReplicaCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Returns "true" when the read replica's credentials come from an externally managed
+Secret. Falls back to the primary's Secret, since a replica normally accepts the same
+credential — set readReplica.secretName only when it has its own user.
+*/}}
+{{- define "plane.externalReadReplica" -}}
+{{- if .Values.services.postgres.read_replica.enabled -}}
+{{- if or .Values.external_secrets.database.readReplica.secretName .Values.external_secrets.database.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Read-replica credentials as discrete parts.
+
+services.postgres.read_replica.remote_url is a DSN carrying the password, so a managed
+rotation can never update it. The API reads POSTGRES_READ_REPLICA_* natively — Django
+takes the parts straight into a config dict, so nothing composes a URL — which makes
+this a chart-only change.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.postgresReadReplicaCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- $rr := $db.readReplica -}}
+{{- $secret := $rr.secretName | default $db.secretName -}}
+{{/* The newline after this `if` is deliberate: call sites use a left-trim marker, so
+     the output has to open with one to keep this entry off the previous line. */}}
+{{- if include "plane.externalReadReplica" . }}
+- name: POSTGRES_READ_REPLICA_HOST
+  value: {{ .Values.env.pgdb_read_replica_host | quote }}
+- name: POSTGRES_READ_REPLICA_PORT
+  value: {{ .Values.env.pgdb_read_replica_port | default "5432" | quote }}
+- name: POSTGRES_READ_REPLICA_DB
+  value: {{ .Values.env.pgdb_read_replica_name | default .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_USER" "secret" $secret "key" ($rr.usernameKey | default $db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_PASSWORD" "secret" $secret "key" ($rr.passwordKey | default $db.passwordKey | default "password")) }}
+{{- with $rr.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_HOST" "secret" $secret "key" .) }}
+{{- end }}
+{{- with $rr.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_PORT" "secret" $secret "key" .) }}
+{{- end }}
+{{- with $rr.dbNameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_DB" "secret" $secret "key" .) }}
+{{- end }}
+{{- end }}
 {{- end -}}
 
 {{/*

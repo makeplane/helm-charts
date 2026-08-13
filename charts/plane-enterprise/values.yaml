@@ -638,6 +638,23 @@ external_secrets:
     portKey: ''
     dbNameKey: ''
 
+    # Read replica. services.postgres.read_replica.remote_url is a DSN with the
+    # password inside it, which a managed rotation can never update — so this is the
+    # replica's equivalent of the block above. The API reads
+    # POSTGRES_READ_REPLICA_{DB,USER,PASSWORD,HOST,PORT} natively (Django takes the
+    # parts as a config dict; nothing composes a URL), so no application change is
+    # needed to use it.
+    #
+    # secretName defaults to the primary's, since a replica normally accepts the same
+    # credential. Set it only when the replica has its own user.
+    readReplica:
+      secretName: ''
+      usernameKey: ''   # defaults to database.usernameKey
+      passwordKey: ''   # defaults to database.passwordKey
+      hostKey: ''
+      portKey: ''
+      dbNameKey: ''
+
   rabbitmq:
     # Amazon MQ shape. Set env.rabbitmq_ssl: true and env.rabbitmq_port: '5671' —
     # Amazon MQ refuses plaintext AMQP.
@@ -814,6 +831,13 @@ env:
   # from that Secret). Ignored when services.postgres.local_setup is true.
   pgdb_host: ''
   pgdb_port: '5432'
+
+  # Read-replica endpoint, used with external_secrets.database.readReplica (the
+  # credentials come from that Secret). The database name defaults to pgdb_name, since
+  # a replica serves the same database under a different endpoint.
+  pgdb_read_replica_host: ''
+  pgdb_read_replica_port: '5432'
+  pgdb_read_replica_name: ''
 
   # RabbitMQ endpoint used with external_secrets.rabbitmq (credentials come from
   # that Secret). Ignored when services.rabbitmq.local_setup is true.

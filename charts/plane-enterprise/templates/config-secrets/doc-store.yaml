@@ -46,8 +46,18 @@ stringData:
   {{- with .Values.env.aws_secret_access_key }}
   AWS_SECRET_ACCESS_KEY: {{ . | quote  }}
   {{- end }}
-  AWS_REGION: {{ .Values.env.aws_region | default "" | quote  }}
-  AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
+  {{/* Also omitted rather than blank, for a subtler reason than the keys above. When a
+       pod identity is attached and OpenSearch has no basic auth, the API signs its
+       OpenSearch requests with SigV4 — and it reads the region as
+       os.environ.get("AWS_REGION") or a default. An empty string is *present*, so the
+       default never applies and every signed request goes out with an empty region and
+       is rejected. Absent is the only safe representation of "unset". */}}
+  {{- with .Values.env.aws_region }}
+  AWS_REGION: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_s3_endpoint_url }}
+  AWS_S3_ENDPOINT_URL: {{ . | quote }}
+  {{- end }}
   {{- end }}
 {{- end }}
 ---
