@@ -1,6 +1,6 @@
 # External Secrets Operator -> Azure Key Vault, for the plane-enterprise chart.
 #
-# Replace: NAMESPACE, VAULT_NAME, TENANT_ID, and the secret names.
+# Replace: NAMESPACE, VAULT_NAME, and the secret names.
 #
 # Authentication uses Azure Workload Identity on the External Secrets Operator's own
 # ServiceAccount — no static keys. The bound managed identity needs "Key Vault Secrets

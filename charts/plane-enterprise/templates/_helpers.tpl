@@ -313,7 +313,7 @@ must stay in lockstep across services, so a shared trigger is the safe default.
 {{- define "plane.configChecksum" -}}
 {{- $ctx := . -}}
 {{- $acc := "" -}}
-{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" -}}
 {{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
 {{- end -}}
 {{- $acc | sha256sum -}}

@@ -42,7 +42,7 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 
 {{- /* Redis parts need app support. */}}
 {{- if .Values.external_secrets.redis.secretName }}
-{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.1.0. This release runs %s — verify it is\n    v3.1.0 or newer, or keep supplying REDIS_URL instead." .Values.planeVersion) }}
+{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.2.0. This release runs %s — upgrade, or\n    keep supplying REDIS_URL instead." .Values.planeVersion) }}
 {{- end }}
 
 {{- /* Secrets that env rotation cannot reach. */}}

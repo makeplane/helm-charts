@@ -31,6 +31,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.runner) }}
 spec:
   replicas: {{ .Values.services.runner.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner

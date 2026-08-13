@@ -93,6 +93,10 @@ data:
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
+  GUNICORN_MAX_REQUESTS: {{ .Values.env.gunicorn_max_requests | quote }}
+  GUNICORN_MAX_REQUESTS_JITTER: {{ .Values.env.gunicorn_max_requests_jitter | quote }}
+  CELERY_TASK_PUBLISH_RETRY: {{ .Values.env.celery_task_publish_retry | ternary "1" "0" | quote }}
+  CELERY_BROKER_POOL_LIMIT: {{ .Values.env.celery_broker_pool_limit | quote }}
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
   {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
@@ -128,3 +132,4 @@ data:
 
   WEBHOOK_ALLOWED_IPS: {{ .Values.env.webhook_allowed_ips | default "" | quote }}
   WEBHOOK_ALLOWED_HOSTS: {{ .Values.env.webhook_allowed_hosts | default "" | quote }}
+  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
