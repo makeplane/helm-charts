@@ -12,6 +12,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -22,6 +23,7 @@ spec:
           - ./bin/docker-entrypoint-migrator.sh
         imagePullPolicy: {{ .Values.api.pullPolicy | default "Always" }}
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
@@ -31,8 +33,12 @@ spec:
           - secretRef:
               name:  {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+        {{- with (include "plane.storageCredsEnv" .) }}
+        env:
+{{ trim . | indent 10 }}
+        {{- end }}
       restartPolicy: OnFailure
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
       {{- include "plane.podScheduling" .Values.api }}
 ---
