@@ -22,8 +22,10 @@ stringData:
   {{- with .Values.env.gcs_credentials_path }}
   GCS_CREDENTIALS_PATH: {{ . | quote }}
   {{- end }}
+  {{- if not (include "plane.externalStorage" .) }}
   {{- with .Values.env.gcs_credentials_json }}
   GCS_CREDENTIALS_JSON: {{ . | quote }}
+  {{- end }}
   {{- end }}
   {{- else if .Values.services.minio.local_setup }}
   USE_MINIO: "1"

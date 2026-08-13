@@ -599,6 +599,15 @@ serviceAccount:
   # Extra pod-template labels (Azure Workload Identity requires one).
   podLabels: {}
 
+  # Declares that this ServiceAccount is bound to a cloud identity configured OUT OF
+  # BAND — an EKS Pod Identity association, a GKE Workload Identity binding. The chart
+  # cannot detect that on its own: a Pod Identity association is an EKS API object keyed
+  # on cluster + namespace + service account, and nothing about it appears in the pod
+  # spec. Setting this changes no rendered output; it only lets `helm upgrade` warn
+  # about the interactions an attached identity creates, chiefly that credentials now
+  # reach every container on this ServiceAccount.
+  cloudIdentity: false
+
 # ============================================================
 # Externalized secrets
 # ============================================================
@@ -672,6 +681,27 @@ external_secrets:
     passwordKey: password
     hostKey: ''
     portKey: ''
+
+  storage:
+    # Object-storage credentials.
+    #
+    # On a cloud, leave this unset and give the pod an identity instead — annotate the
+    # ServiceAccount (see serviceAccount.annotations) or attach an EKS Pod Identity
+    # association. With env.aws_access_key / aws_secret_access_key empty the chart omits
+    # those variables entirely, which is what lets the SDK's credential chain reach the
+    # pod's role. An empty value would beat the chain and fail every request.
+    #
+    # Use this for an S3-compatible backend with no workload identity (Ceph, DO Spaces,
+    # an external MinIO), or for GCS with a service-account key. Ignored while the
+    # bundled MinIO is deployed, which supplies its own credentials.
+    #
+    # gcsCredentialsJsonKey carries the whole service-account JSON, private key
+    # included — the single highest-value blob in a GCS deployment, and the reason it
+    # should never sit in values.yaml.
+    secretName: ''
+    accessKeyIdKey: ''         # -> AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: ''     # -> AWS_SECRET_ACCESS_KEY
+    gcsCredentialsJsonKey: ''  # -> GCS_CREDENTIALS_JSON
 
   opensearch:
     # Credentials for a REMOTE OpenSearch. Ignored when

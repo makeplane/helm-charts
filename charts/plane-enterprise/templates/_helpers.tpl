@@ -544,6 +544,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.redisCredsEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
 {{- end -}}
 
 {{/*
@@ -573,6 +574,42 @@ the live server needs Redis and nothing else.
 {{- end }}
 {{- end }}
 {{- include "plane.postgresReadReplicaCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Returns "true" when object-storage credentials come from an externally managed Secret.
+Never true while the bundled MinIO is deployed — that supplies its own credentials, and
+overriding them would break the in-cluster client.
+*/}}
+{{- define "plane.externalStorage" -}}
+{{- if and .Values.external_secrets.storage.secretName (not (include "plane.minioEnabled" .)) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Object-storage credentials as explicit env entries, so they win over the doc-store
+Secret mounted via envFrom.
+
+Only the keys the operator names are emitted: an S3 deployment sets the two access-key
+keys, a GCS deployment sets gcsCredentialsJsonKey, and a deployment using a pod identity
+sets none of them and relies on the SDK credential chain.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.storageCredsEnv" -}}
+{{- $st := .Values.external_secrets.storage -}}
+{{- if include "plane.externalStorage" . }}
+{{- with $st.accessKeyIdKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AWS_ACCESS_KEY_ID" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- with $st.secretAccessKeyKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AWS_SECRET_ACCESS_KEY" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- with $st.gcsCredentialsJsonKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "GCS_CREDENTIALS_JSON" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- end }}
 {{- end -}}
 
 {{/*
@@ -707,6 +744,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.postgresCredsEnv" . }}
 {{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.redisCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
 {{- end -}}
 
 {{/*
@@ -753,4 +791,5 @@ Caller must indent to the correct depth (env list items).
 {{- end }}
 {{- include "plane.redisCredsEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
 {{- end -}}

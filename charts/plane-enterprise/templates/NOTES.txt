@@ -89,8 +89,35 @@ different values of a key that has to match.
 {{- end }}
 
 {{- /* Static object-storage keys where a cloud identity would do. */}}
-{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (not .Values.serviceAccount.annotations) }}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (not .Values.serviceAccount.annotations) (not .Values.serviceAccount.cloudIdentity) }}
 {{- $warnings = append $warnings "Object storage is configured with a static AWS access key. Prefer a cloud identity:\n    annotate the ServiceAccount (serviceAccount.annotations) for IRSA / EKS Pod Identity\n    / GKE or Azure Workload Identity and clear env.aws_access_key and\n    env.aws_secret_access_key — the chart then omits those env vars so the SDK's default\n    credential chain picks up the pod's role." }}
+{{- end }}
+
+{{- /*
+An attached cloud identity reaches every container on the ServiceAccount, so it changes
+behaviour beyond object storage. The chart cannot detect the association — it is an EKS
+API object keyed on cluster + namespace + service account — hence the declared flag.
+*/}}
+{{- $hasIdentity := or .Values.serviceAccount.cloudIdentity .Values.serviceAccount.annotations }}
+{{- if $hasIdentity }}
+
+{{- /* A static key beats the identity in the SDK credential chain. */}}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) }}
+{{- $warnings = append $warnings "A cloud identity is configured, but env.aws_access_key is also set. Environment\n    credentials take precedence over the identity in every AWS SDK's chain, so the\n    static key is what will be used. Clear env.aws_access_key and\n    env.aws_secret_access_key to let the identity apply." }}
+{{- end }}
+
+{{- if .Values.services.pi.ai_providers.embedding_model.aws_access_key }}
+{{- $warnings = append $warnings "A cloud identity is configured, but\n    services.pi.ai_providers.embedding_model.aws_access_key is also set. Plane AI falls\n    back to the identity when the BR_AWS_* keys are absent, so clear them to use it." }}
+{{- end }}
+
+{{- /*
+The one that is genuinely surprising: an identity attached for S3 silently changes how
+OpenSearch is authenticated, because both services read "AWS credentials are present"
+as "sign with SigV4".
+*/}}
+{{- if and .Values.env.opensearch_remote_url (not (include "plane.externalOpensearch" .)) (not .Values.env.opensearch_remote_username) }}
+{{- $warnings = append $warnings "A cloud identity is configured and the remote OpenSearch has no credentials, so the\n    API and Plane AI will authenticate to it with SigV4 — an identity injects AWS\n    credentials into every container, and both read that as a request to sign.\n    That is correct for Amazon OpenSearch Service and wrong for any other OpenSearch.\n    Either set external_secrets.opensearch.secretName, or set OPENSEARCH_AUTH_MODE=basic\n    through extraEnv (needs planeVersion v3.2.0 or newer)." }}
+{{- end }}
 {{- end }}
 
 {{- if $warnings }}
