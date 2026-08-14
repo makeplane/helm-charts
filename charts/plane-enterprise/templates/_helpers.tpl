@@ -405,6 +405,47 @@ Indentation is baked in for the container envFrom position, so call it bare:
 {{- end -}}
 
 {{/*
+envFrom entry for the Secret carrying the AI/LLM provider keys. Renders nothing
+unless external_secrets.ai_providers_existingSecret is set.
+
+Separate from the Plane AI Secret because provider accounts are shared across
+environments while everything else in that Secret is per-environment. Mounted on the
+Plane AI workloads and on live (whose AI_OPENAI_API_KEY has no values key at all).
+
+Placed before the chart's own Secret so an operator who has already externalized
+pi_api_env keeps that precedence. While this is set the chart emits none of these
+keys itself — including the empty-string branches, which would otherwise overwrite
+this Secret's values, since envFrom resolves later-source-wins.
+
+Indentation is baked in for the container envFrom position, so call it bare.
+*/}}
+{{- define "plane.aiProvidersSecretRef" -}}
+{{- with .Values.external_secrets.ai_providers_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
+envFrom entry for the Secret carrying the silo connector credentials. Renders nothing
+unless external_secrets.silo_connectors_existingSecret is set.
+
+Mounted on every workload that mounts silo-secrets today, not just silo: the Django
+auth adapter reads GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET from that Secret on the api
+family, so mounting this only on silo would drop those variables there.
+
+Indentation is baked in for the container envFrom position, so call it bare.
+*/}}
+{{- define "plane.siloConnectorsSecretRef" -}}
+{{- with .Values.external_secrets.silo_connectors_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
 Returns "true" when an externally managed Secret supplies the Postgres credentials,
 in which case the chart must not render a composed DATABASE_URL that would take
 precedence over the discrete POSTGRES_* parts.
@@ -503,6 +544,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.redisCredsEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
 {{- end -}}
 
 {{/*
@@ -529,6 +571,93 @@ the live server needs Redis and nothing else.
 {{- end }}
 {{- with $db.dbNameKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_DB" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- include "plane.postgresReadReplicaCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Returns "true" when object-storage credentials come from an externally managed Secret.
+Never true while the bundled MinIO is deployed — that supplies its own credentials, and
+overriding them would break the in-cluster client.
+*/}}
+{{- define "plane.externalStorage" -}}
+{{- if and .Values.external_secrets.storage.secretName (not (include "plane.minioEnabled" .)) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Object-storage credentials as explicit env entries, so they win over the doc-store
+Secret mounted via envFrom.
+
+Only the keys the operator names are emitted: an S3 deployment sets the two access-key
+keys, a GCS deployment sets gcsCredentialsJsonKey, and a deployment using a pod identity
+sets none of them and relies on the SDK credential chain.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.storageCredsEnv" -}}
+{{- $st := .Values.external_secrets.storage -}}
+{{- if include "plane.externalStorage" . }}
+{{- with $st.accessKeyIdKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AWS_ACCESS_KEY_ID" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- with $st.secretAccessKeyKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AWS_SECRET_ACCESS_KEY" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- with $st.gcsCredentialsJsonKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "GCS_CREDENTIALS_JSON" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Returns "true" when the read replica's credentials come from an externally managed
+Secret. Falls back to the primary's Secret, since a replica normally accepts the same
+credential — set readReplica.secretName only when it has its own user.
+*/}}
+{{- define "plane.externalReadReplica" -}}
+{{- if .Values.services.postgres.read_replica.enabled -}}
+{{- if or .Values.external_secrets.database.readReplica.secretName .Values.external_secrets.database.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Read-replica credentials as discrete parts.
+
+services.postgres.read_replica.remote_url is a DSN carrying the password, so a managed
+rotation can never update it. The API reads POSTGRES_READ_REPLICA_* natively — Django
+takes the parts straight into a config dict, so nothing composes a URL — which makes
+this a chart-only change.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.postgresReadReplicaCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- $rr := $db.readReplica -}}
+{{- $secret := $rr.secretName | default $db.secretName -}}
+{{/* The newline after this `if` is deliberate: call sites use a left-trim marker, so
+     the output has to open with one to keep this entry off the previous line. */}}
+{{- if include "plane.externalReadReplica" . }}
+- name: POSTGRES_READ_REPLICA_HOST
+  value: {{ .Values.env.pgdb_read_replica_host | quote }}
+- name: POSTGRES_READ_REPLICA_PORT
+  value: {{ .Values.env.pgdb_read_replica_port | default "5432" | quote }}
+- name: POSTGRES_READ_REPLICA_DB
+  value: {{ .Values.env.pgdb_read_replica_name | default .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_USER" "secret" $secret "key" ($rr.usernameKey | default $db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_PASSWORD" "secret" $secret "key" ($rr.passwordKey | default $db.passwordKey | default "password")) }}
+{{- with $rr.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_HOST" "secret" $secret "key" .) }}
+{{- end }}
+{{- with $rr.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_PORT" "secret" $secret "key" .) }}
+{{- end }}
+{{- with $rr.dbNameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_DB" "secret" $secret "key" .) }}
 {{- end }}
 {{- end }}
 {{- end -}}
@@ -615,6 +744,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.postgresCredsEnv" . }}
 {{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.redisCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
 {{- end -}}
 
 {{/*
@@ -661,4 +791,5 @@ Caller must indent to the correct depth (env list items).
 {{- end }}
 {{- include "plane.redisCredsEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
 {{- end -}}

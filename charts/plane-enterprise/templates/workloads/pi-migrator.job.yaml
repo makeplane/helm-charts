@@ -43,6 +43,7 @@ spec:
             exec ./bin/entrypoint-migrator.sh
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.aiProvidersSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-pi-api-vars
               optional: false

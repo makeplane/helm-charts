@@ -52,6 +52,7 @@ spec:
           - ./bin/docker-entrypoint-webhook-consumer.sh
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-webhook-consumer-vars
               optional: false

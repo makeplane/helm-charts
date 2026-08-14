@@ -52,6 +52,7 @@ spec:
           - ./bin/docker-entrypoint-agent-consumer.sh
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-agent-consumer-vars
               optional: false

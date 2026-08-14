@@ -116,6 +116,7 @@ spec:
         {{- end }}
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
               optional: false

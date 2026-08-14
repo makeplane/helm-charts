@@ -39,6 +39,7 @@ spec:
           - ./bin/docker-entrypoint-beat.sh
         envFrom:
           {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
