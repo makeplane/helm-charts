@@ -111,7 +111,7 @@ spec:
           args:
             - '-c'
             - >-
-              /usr/bin/mc config host add plane-app-minio
+              /usr/bin/mc alias set plane-app-minio
               http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"; 
               /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME; 
               /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
