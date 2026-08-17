@@ -11,12 +11,13 @@ stringData:
   PLANE_BASE_URL: {{ .Values.services.api.plane_base_url | quote }}
   PLANE_INTERNAL_BASE_URL: {{ .Values.services.api.plane_internal_base_url | quote }}
   {{- if .Values.valkey.local_setup }}
-  REDIS_HOST: {{ .Release.Name }}-valkey
+  {{- $valkeyName := printf "%s-%s" .Release.Name (default "valkey" .Values.valkey.nameOverride) }}
+  REDIS_HOST: {{ $valkeyName }}
   REDIS_PORT: "6379"
   {{- if .Values.valkey.auth.enabled }}
-  REDIS_URL: {{ printf "redis://default:%s@%s-valkey.%s.svc.cluster.local:6379/" (index .Values.valkey.auth.aclUsers "default" "password") .Release.Name .Release.Namespace | quote }}
+  REDIS_URL: {{ printf "redis://default:%s@%s.%s.svc.cluster.local:6379/" (index .Values.valkey.auth.aclUsers "default" "password") $valkeyName .Release.Namespace | quote }}
   {{- else }}
-  REDIS_URL: {{ printf "redis://%s-valkey.%s.svc.cluster.local:6379/" .Release.Name .Release.Namespace | quote }}
+  REDIS_URL: {{ printf "redis://%s.%s.svc.cluster.local:6379/" $valkeyName .Release.Namespace | quote }}
   {{- end }}
   {{- else }}
   REDIS_URL: {{ .Values.valkey.external_redis_url | default "" | quote }}

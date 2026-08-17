@@ -36,6 +36,7 @@ services:
 valkey:
   local_setup: true
   external_redis_url: '' # used when local_setup is false
+  nameOverride: ''
   image:
     repository: valkey/valkey
     tag: '9.1.1'

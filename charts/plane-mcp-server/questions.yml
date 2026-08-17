@@ -68,6 +68,11 @@ questions:
   default: true
   group: "Valkey Setup"
   subquestions:
+  - variable: valkey.nameOverride
+    label: "Service Name Override"
+    type: string
+    default: ""
+    show_if: "valkey.local_setup=true"
   - variable: valkey.image.repository
     label: "Docker Image"
     type: string
