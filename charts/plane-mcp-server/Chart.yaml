@@ -17,4 +17,4 @@ dependencies:
   - name: valkey
     version: "~0.11.0"
     repository: https://valkey.io/valkey-helm/
-    condition: valkey.local_setup
+    condition: services.valkey.local_setup
