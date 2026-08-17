@@ -26,4 +26,3 @@ stringData:
   REDIS_PASSWORD: {{ .Values.services.valkey.remote_password | quote }}
   {{- end }}
   {{- end }}
-  PORT: "8211"
