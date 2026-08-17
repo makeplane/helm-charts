@@ -14,7 +14,7 @@ ingress:
     issuer: cloudflare # Allowed : cloudflare, digitalocean, http
     token: '' # not required for http
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: engineering@plane.so
+    email: admin@example.com
 
 services:
   api:
@@ -27,15 +27,18 @@ services:
     cpuRequest: 50m
     plane_base_url: ''
     plane_internal_base_url: ''
+    path_prefix: '' # HTTP route prefix when mounted behind a proxy (e.g. /plane serves /plane/http/mcp)
     plane_oauth:
       enabled: false
       client_id: ''
       client_secret: ''
       provider_base_url: ''
 
+  valkey:
+    local_setup: true
+    remote_url: '' # used when local_setup is false
+
 valkey:
-  local_setup: true
-  external_redis_url: '' # used when local_setup is false
   nameOverride: ''
   image:
     repository: valkey/valkey
@@ -43,12 +46,12 @@ valkey:
   replica:
     enabled: false  # standalone mode
   auth:
-    enabled: false
+    enabled: true
     aclUsers:
       default:
         permissions: "~* &* +@all"
-        password: ''
+        password: 'pleasechangeme'
   dataStorage:
-    enabled: false
+    enabled: true
     className: ''
     requestedSize: '500Mi'
