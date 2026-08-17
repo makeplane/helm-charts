@@ -1,5 +1,10 @@
 {{- if and .Values.ingress.enabled .Values.ingress.ssl.enabled .Values.ingress.host }}
 
+{{- $validIssuers := list "cloudflare" "digitalocean" "http" }}
+{{- if not (has .Values.ingress.ssl.issuer $validIssuers) }}
+  {{- fail (printf "ingress.ssl.issuer '%s' is not supported. Allowed values: cloudflare, digitalocean, http" .Values.ingress.ssl.issuer) }}
+{{- end }}
+
 {{- if ne .Values.ingress.ssl.issuer "http" }}
 apiVersion: v1
 kind: Secret
