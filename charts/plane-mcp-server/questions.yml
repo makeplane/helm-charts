@@ -9,7 +9,7 @@ questions:
   - variable: services.api.tag
     label: "Image Tag"
     type: string
-    default: "v0.2.11"
+    default: "v0.3.0"
 
 - variable: services.api.replicas
   label: "MCP Server Replicas"

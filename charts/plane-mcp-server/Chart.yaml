@@ -6,7 +6,7 @@ description: plane-mcp-server Setup
 type: application
 
 version: 1.0.0
-appVersion: "v0.2.11"
+appVersion: "v0.3.0"
 
 home: https://plane.so
 icon: https://plane.so/favicon/favicon-32x32.png
