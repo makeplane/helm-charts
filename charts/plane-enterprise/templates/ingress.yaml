@@ -1,4 +1,11 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "nginx") .Values.license.licenseDomain }}
+{{/*
+Standard networking.k8s.io/v1 Ingress. Rendered for every ingressClass EXCEPT:
+  - "traefik*" -> templates/ingress-traefik.yaml (Traefik IngressRoute CRD)
+  - "openshift" -> templates/ingress-openshift.yaml (OpenShift Route)
+Previously this was gated on `eq ... "nginx"`, which silently rendered nothing for
+any other controller even though the README documented otherwise.
+*/}}
+{{- if and .Values.ingress.enabled (not (hasPrefix "traefik" .Values.ingress.ingressClass)) (ne .Values.ingress.ingressClass "openshift") .Values.license.licenseDomain }}
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -7,9 +14,9 @@ metadata:
   name: {{ .Release.Name }}-ingress
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
-  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
+  {{- with .Values.ingress.ingress_annotations }}
   annotations:
-    {{- range $key, $value := .Values.ingress.ingress_annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}

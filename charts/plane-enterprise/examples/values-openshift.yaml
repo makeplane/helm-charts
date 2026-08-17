@@ -1,0 +1,98 @@
+# =============================================================================
+# OpenShift (restricted-v2 SCC)
+# =============================================================================
+# Overlay these on top of your own values:
+#
+#   helm upgrade --install plane-ee plane/plane-enterprise \
+#     -f my-values.yaml -f examples/values-openshift.yaml
+#
+# WHY THIS FILE EXISTS
+#
+# OpenShift's default `restricted-v2` SCC ignores the image's USER and runs every
+# container as an arbitrary UID from the namespace's range, always in group 0. It
+# also validates the pod's own request with MustRunAsRange: a manifest that asks
+# for a *specific* runAsUser or fsGroup outside that range is REJECTED at
+# admission, so `securityContext.enabled: true` with the chart's defaults means no
+# pod ever schedules.
+#
+# The fix is not to disable hardening — it is to keep everything except the IDs
+# and let the platform assign those. Setting a key to `null` in a values file
+# removes it during Helm's coalescing, so the rendered securityContext keeps
+# runAsNonRoot, seccompProfile and the dropped capabilities but carries no UID.
+#
+# REQUIRES the images that grant group 0 write access to their runtime paths
+# (plane-ee #9018). Older images crash under an arbitrary UID — nginx exits with
+# `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+# =============================================================================
+
+securityContext:
+  enabled: true
+  podSecurityContext:
+    runAsUser: null # assigned by the SCC from the namespace's UID range
+    runAsGroup: null # the SCC always places the process in group 0
+    fsGroup: null # assigned by the SCC; still applied to PVCs on mount
+  containerSecurityContext:
+    runAsUser: null
+
+# -----------------------------------------------------------------------------
+# Services that pin their own UID outside the block above
+# -----------------------------------------------------------------------------
+services:
+  email_service:
+    # The image's app-user is uid 100; let the SCC choose instead.
+    runAsUser: null
+
+  # ---------------------------------------------------------------------------
+  # Bundled datastores MUST be external on OpenShift.
+  #
+  # postgres / redis / rabbitmq / minio / opensearch are third-party images with
+  # baked-in UID and data-directory ownership assumptions. They cannot run under
+  # an arbitrary UID, and the chart deliberately does not apply the hardened
+  # securityContext to them. Point the chart at managed services (RDS,
+  # ElastiCache, Amazon MQ, S3, OpenSearch Service) and leave local_setup off.
+  #
+  # If you must run them in-cluster, they need a relaxed SCC (e.g. `oc adm
+  # policy add-scc-to-user anyuid -z <serviceaccount>`), which defeats the point.
+  # ---------------------------------------------------------------------------
+  postgres:
+    local_setup: false
+  redis:
+    local_setup: false
+  rabbitmq:
+    local_setup: false
+  minio:
+    local_setup: false
+  opensearch:
+    local_setup: false
+
+# -----------------------------------------------------------------------------
+# Ingress
+# -----------------------------------------------------------------------------
+# 'openshift' renders one route.openshift.io/v1 Route per path, with the HAProxy
+# timeout set explicitly. The alternative is 'openshift-default', which emits a
+# plain Ingress for OpenShift's ingress-to-route controller to convert — simpler,
+# but whether the per-route annotations survive the conversion varies by version.
+ingress:
+  enabled: true
+  ingressClass: 'openshift'
+  openshift:
+    # The router default is 30s, which severs /live/'s collaborative-editing
+    # WebSockets and /pi/'s streaming responses. Do not lower this.
+    timeout: '300s'
+    termination: 'edge'
+    insecureEdgeTerminationPolicy: 'Redirect'
+    # Leave empty to serve the Ingress Operator's wildcard certificate.
+    externalCertificate: ''
+
+# The router terminates TLS, so the chart's own cert-manager wiring is not used.
+ssl:
+  createIssuer: false
+  generateCerts: false
+
+# -----------------------------------------------------------------------------
+# NOT handled by this file
+# -----------------------------------------------------------------------------
+# - Traefik's body-size Middleware (ingress.traefik.maxRequestBodyBytes) has NO
+#   OpenShift Route equivalent. Enforce upload limits in the app or at a WAF.
+# - A path that needs prefix stripping requires
+#   `haproxy.router.openshift.io/rewrite-target` via ingress.openshift.route_annotations.

@@ -38,6 +38,12 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
+  # Selects which ingress template is rendered:
+  #   'traefik*'          -> Traefik IngressRoute CRD  (templates/ingress-traefik.yaml)
+  #   'openshift'         -> OpenShift Route per path  (templates/ingress-openshift.yaml)
+  #   anything else       -> networking.k8s.io/v1 Ingress (templates/ingress.yaml),
+  #                          e.g. 'nginx', or 'openshift-default' to let OpenShift's
+  #                          ingress-to-route controller do the conversion instead.
   ingressClass: 'traefik'
   # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
   # These annotations are ONLY rendered when ingressClass is 'nginx' (the nginx Ingress template is gated on
@@ -58,6 +64,21 @@ ingress:
     # Set explicitly only if your Traefik install renamed the default entrypoints,
     # e.g. entryPoints: ['websecure', 'web'] or ['https'].
     entryPoints: []
+  # Only read when ingressClass is 'openshift'.
+  openshift:
+    # HAProxy's per-route timeout. The router default is 30s, which severs
+    # /live/'s collaborative-editing WebSockets and /pi/'s streaming responses.
+    timeout: '300s'
+    termination: 'edge' # edge | reencrypt (passthrough cannot do path routing)
+    insecureEdgeTerminationPolicy: 'Redirect'
+    # Name of a TLS Secret for the router to serve instead of its wildcard cert.
+    # Requires OpenShift 4.16+ and a RoleBinding letting the router read it.
+    externalCertificate: ''
+    # Extra annotations applied to every Route, e.g. rate limiting or
+    # haproxy.router.openshift.io/rewrite-target on a path that needs stripping.
+    route_annotations: {}
+    # NOTE: OpenShift Routes have NO equivalent of Traefik's body-limit
+    # Middleware. maxRequestBodyBytes above is not enforced on this path.
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
@@ -177,6 +198,12 @@ services:
 
   opensearch:
     local_setup: false
+    # The OpenSearch image needs uid/gid 1000 to own its data dir. Set both to
+    # null where the platform assigns them — but the image does not run under an
+    # arbitrary UID either, so on OpenShift use an external OpenSearch instead
+    # and leave local_setup off.
+    runAsUser: 1000
+    fsGroup: 1000
     image: opensearchproject/opensearch:3.3.2
     servicePort: 9200
     volumeSize: 5Gi
@@ -438,6 +465,10 @@ services:
 
   email_service:
     enabled: false
+    # The image's app-user is uid 100 and owns /opt/email, so this service pins
+    # its own UID rather than following the shared securityContext block above.
+    # Set to null where the platform assigns the UID (OpenShift restricted-v2).
+    runAsUser: 100
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m

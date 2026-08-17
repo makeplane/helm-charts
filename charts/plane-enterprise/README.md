@@ -27,12 +27,23 @@ If you plan to use Traefik as your ingress controller, install it before deployi
 
 ## Migrating the Ingress Controller
 
-The chart selects between two ingress templates based on `ingress.ingressClass`:
+The chart selects between three ingress templates based on `ingress.ingressClass`:
 
-| `ingressClass` value           | Template rendered                | Resource kind                      |
-| ------------------------------ | -------------------------------- | ---------------------------------- |
-| `traefik` (or starts with it)  | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
-| Any other value (e.g. `nginx`) | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+| `ingressClass` value                          | Template rendered                  | Resource kind                      |
+| --------------------------------------------- | ---------------------------------- | ---------------------------------- |
+| `traefik` (or starts with it)                 | `templates/ingress-traefik.yaml`   | `traefik.io/v1alpha1 IngressRoute` |
+| `openshift`                                   | `templates/ingress-openshift.yaml` | `route.openshift.io/v1 Route` (one per path) |
+| Any other value (e.g. `nginx`, `openshift-default`) | `templates/ingress.yaml`     | `networking.k8s.io/v1 Ingress`     |
+
+On OpenShift you have both options: `openshift` declares the Routes directly (so the
+per-route HAProxy annotations Plane needs are guaranteed to land), while
+`openshift-default` emits a plain `Ingress` and lets OpenShift's ingress-to-route
+controller convert it. Note that the controller only converts an `Ingress` whose class
+maps to `openshift.io/ingress-to-route` — `nginx` will not be picked up.
+
+> **No body-size limit on Routes.** `ingress.traefik.maxRequestBodyBytes` has no
+> OpenShift equivalent; HAProxy Routes cannot cap request bodies. Enforce upload
+> limits in the application or at a WAF/CDN in front of the router.
 
 The default value is `"traefik"`. If you are switching to a standard ingress controller such as nginx, follow the migration steps below.
 
@@ -91,6 +102,10 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
 | `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
 | `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+| `ingress.openshift.timeout`           | `300s`     | HAProxy per-route timeout. The router default of 30s severs `/live/` WebSockets and `/pi/` streaming. |
+| `ingress.openshift.termination`       | `edge`     | Route TLS termination (`edge` or `reencrypt`; `passthrough` cannot do path routing).      |
+| `ingress.openshift.externalCertificate` | `''`     | Name of a TLS Secret for the router to serve instead of its wildcard cert. OpenShift 4.16+. |
+| `ingress.openshift.route_annotations`  | `{}`      | Extra annotations on every Route, e.g. `haproxy.router.openshift.io/rewrite-target`.      |
 
 ### TLS options: choosing how HTTPS is handled
 
@@ -435,6 +450,43 @@ securityContext:
   containerSecurityContext:
     runAsUser: 10001
 ```
+
+### OpenShift (`restricted-v2` SCC)
+
+OpenShift is the inverse case: it refuses to let you choose the UID at all. The
+`restricted-v2` SCC ignores the image's `USER`, assigns an arbitrary UID from the
+namespace's range, and places the process in group 0. It also validates the pod's
+own request with `MustRunAsRange` — so a manifest asking for a *specific*
+`runAsUser` or `fsGroup` outside that range is **rejected at admission**. Enabling
+the block above with its defaults means nothing schedules.
+
+Keep the hardening and drop only the IDs. A `null` in a values file removes the key
+during Helm's coalescing, so the rendered `securityContext` keeps `runAsNonRoot`,
+`seccompProfile` and the dropped capabilities while carrying no UID:
+
+```bash
+helm upgrade --install plane-app plane/plane-enterprise \
+    --namespace plane \
+    -f my-values.yaml \
+    -f examples/values-openshift.yaml
+```
+
+[`examples/values-openshift.yaml`](examples/values-openshift.yaml) applies that,
+un-pins the email service's uid 100, selects the OpenShift ingress path, and forces
+the bundled datastores off. Three things to know before you use it:
+
+- **Image requirement.** The images must grant group 0 write access to the paths
+  they write at runtime. Older images crash under an arbitrary UID — nginx exits
+  with `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+- **Datastores must be external.** `postgres`, `redis`, `rabbitmq`, `minio` and
+  `opensearch` are third-party images with baked-in UID and data-directory
+  ownership; they cannot run under an arbitrary UID and the chart deliberately does
+  not apply the hardened context to them. Use managed services and leave
+  `local_setup` off, or grant those ServiceAccounts a relaxed SCC.
+- **Upgrading an existing deployment is safe.** Moving a running install from the
+  pinned-uid-1000 posture to this one does not require a data migration: kubelet
+  re-applies `fsGroup` to PVC contents on mount, so data written by the old
+  deployment stays readable and writable by the new UID.
 
 ### Docker Registry
 

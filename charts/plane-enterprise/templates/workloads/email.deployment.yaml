@@ -54,8 +54,15 @@ spec:
       - name: {{ .Release.Name }}-email-app
         imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
         image: {{ .Values.services.email_service.image | default "makeplane/email-commercial" }}:{{ .Values.planeVersion }}
+        {{- /* The email image's app-user really is uid 100 and owns /opt/email, so
+             this stays pinned rather than following the shared securityContext
+             block. Set services.email_service.runAsUser to null on platforms that
+             assign the UID themselves (OpenShift's restricted-v2 SCC rejects any
+             runAsUser outside the namespace's range). */}}
+        {{- with .Values.services.email_service.runAsUser }}
         securityContext:
-          runAsUser: 100
+          runAsUser: {{ . }}
+        {{- end }}
         stdin: true
         tty: true
         readinessProbe:
