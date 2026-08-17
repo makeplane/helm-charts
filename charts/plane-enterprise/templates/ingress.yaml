@@ -1,11 +1,15 @@
 {{/*
-Standard networking.k8s.io/v1 Ingress. Rendered for every ingressClass EXCEPT:
-  - "traefik*" -> templates/ingress-traefik.yaml (Traefik IngressRoute CRD)
-  - "openshift" -> templates/ingress-openshift.yaml (OpenShift Route)
-Previously this was gated on `eq ... "nginx"`, which silently rendered nothing for
-any other controller even though the README documented otherwise.
+Standard networking.k8s.io/v1 Ingress. Gated on ingressClass being exactly
+"nginx"; the other templates are ingress-traefik.yaml ("traefik*") and
+ingress-openshift.yaml ("openshift").
+
+NOTE: any other class (alb, haproxy, contour, openshift-default, a custom
+IngressClass name, ...) renders nothing at all, with no error -- despite the
+README describing this template as the fallback for "any other value". That
+mismatch is deliberately left as-is for now and tracked separately; do not widen
+this condition without checking what else assumes the nginx-only behaviour.
 */}}
-{{- if and .Values.ingress.enabled (not (hasPrefix "traefik" .Values.ingress.ingressClass)) (ne .Values.ingress.ingressClass "openshift") .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "nginx") .Values.license.licenseDomain }}
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress

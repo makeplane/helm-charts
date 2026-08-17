@@ -39,18 +39,15 @@ ingress:
   minioHost: ''
   rabbitmqHost: ''
   # Selects which ingress template is rendered:
-  #   'traefik*'          -> Traefik IngressRoute CRD  (templates/ingress-traefik.yaml)
-  #   'openshift'         -> OpenShift Route per path  (templates/ingress-openshift.yaml)
-  #   anything else       -> networking.k8s.io/v1 Ingress (templates/ingress.yaml),
-  #                          e.g. 'nginx', or 'openshift-default' to let OpenShift's
-  #                          ingress-to-route controller do the conversion instead.
+  #   'traefik*'          -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
+  #   'openshift'         -> OpenShift Route per path      (templates/ingress-openshift.yaml)
+  #   'nginx'             -> networking.k8s.io/v1 Ingress  (templates/ingress.yaml)
+  # Any OTHER value renders no ingress at all -- see the note in templates/ingress.yaml.
   ingressClass: 'traefik'
   # Annotations for the standard Ingress — e.g. to set the proxy body size limit on
-  # the nginx controller. Rendered whenever templates/ingress.yaml is the active
-  # template, i.e. for every ingressClass EXCEPT a 'traefik*' one (which uses
-  # ingress-traefik.yaml) and 'openshift' (which uses ingress-openshift.yaml and
-  # takes its annotations from ingress.openshift.route_annotations instead).
-  # Example:
+  # the nginx controller. ONLY rendered when ingressClass is exactly 'nginx'; they
+  # have no effect with traefik, and the 'openshift' Route path takes its
+  # annotations from ingress.openshift.route_annotations instead. Example:
   # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
   # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
   #   "502 upstream sent too big header" errors.

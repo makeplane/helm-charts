@@ -69,9 +69,9 @@ services:
 # Ingress
 # -----------------------------------------------------------------------------
 # 'openshift' renders one route.openshift.io/v1 Route per path, with the HAProxy
-# timeout set explicitly. The alternative is 'openshift-default', which emits a
-# plain Ingress for OpenShift's ingress-to-route controller to convert — simpler,
-# but whether the per-route annotations survive the conversion varies by version.
+# timeout set explicitly. This is the only OpenShift ingress path the chart offers
+# — 'openshift-default' (letting the ingress-to-route controller convert a plain
+# Ingress) renders nothing, because templates/ingress.yaml is gated on 'nginx'.
 ingress:
   enabled: true
   ingressClass: 'openshift'

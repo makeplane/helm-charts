@@ -29,17 +29,17 @@ If you plan to use Traefik as your ingress controller, install it before deployi
 
 The chart selects between three ingress templates based on `ingress.ingressClass`:
 
-| `ingressClass` value                          | Template rendered                  | Resource kind                      |
-| --------------------------------------------- | ---------------------------------- | ---------------------------------- |
-| `traefik` (or starts with it)                 | `templates/ingress-traefik.yaml`   | `traefik.io/v1alpha1 IngressRoute` |
-| `openshift`                                   | `templates/ingress-openshift.yaml` | `route.openshift.io/v1 Route` (one per path) |
-| Any other value (e.g. `nginx`, `openshift-default`) | `templates/ingress.yaml`     | `networking.k8s.io/v1 Ingress`     |
+| `ingressClass` value          | Template rendered                  | Resource kind                                |
+| ----------------------------- | ---------------------------------- | -------------------------------------------- |
+| `traefik` (or starts with it) | `templates/ingress-traefik.yaml`   | `traefik.io/v1alpha1 IngressRoute`           |
+| `openshift`                   | `templates/ingress-openshift.yaml` | `route.openshift.io/v1 Route` (one per path) |
+| `nginx`                       | `templates/ingress.yaml`           | `networking.k8s.io/v1 Ingress`               |
 
-On OpenShift you have both options: `openshift` declares the Routes directly (so the
-per-route HAProxy annotations Plane needs are guaranteed to land), while
-`openshift-default` emits a plain `Ingress` and lets OpenShift's ingress-to-route
-controller convert it. Note that the controller only converts an `Ingress` whose class
-maps to `openshift.io/ingress-to-route` — `nginx` will not be picked up.
+> **Any other value renders no ingress at all**, silently. `templates/ingress.yaml` is
+> gated on `ingressClass` being exactly `nginx`, so `alb`, `haproxy`, `contour`,
+> `openshift-default` or a custom IngressClass name produce a successful-looking
+> install with nothing reachable. Use one of the three values above, or create the
+> Ingress yourself.
 
 > **No body-size limit on Routes.** `ingress.traefik.maxRequestBodyBytes` has no
 > OpenShift equivalent; HAProxy Routes cannot cap request bodies. Enforce upload
@@ -101,7 +101,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
 | `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
-| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik` or is `openshift` (Routes use `ingress.openshift.route_annotations`). |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Only rendered when `ingressClass` is exactly `nginx`; the `openshift` Route path uses `ingress.openshift.route_annotations`. |
 | `ingress.openshift.timeout`           | `300s`     | HAProxy per-route timeout. The router default of 30s severs `/live/` WebSockets and `/pi/` streaming. |
 | `ingress.openshift.termination`       | `edge`     | Route TLS termination (`edge` or `reencrypt`; `passthrough` cannot do path routing).      |
 | `ingress.openshift.externalCertificate` | `''`     | Name of a TLS Secret for the router to serve instead of its wildcard cert. OpenShift 4.16+. |
