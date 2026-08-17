@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-api
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+    {{- include "plane-mcp-server.commonLabels" $ | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -23,6 +24,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
+  {{- include "plane-mcp-server.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
 spec:
   replicas: {{ .Values.services.api.replicas | default 1}}
   selector:
@@ -33,6 +35,7 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+        {{- include "plane-mcp-server.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:

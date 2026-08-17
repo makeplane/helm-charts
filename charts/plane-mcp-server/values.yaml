@@ -33,6 +33,8 @@ services:
       client_id: ''
       client_secret: ''
       provider_base_url: ''
+    labels: {}
+    annotations: {}
     tolerations: []
     affinity: {}
     nodeSelector: {}
