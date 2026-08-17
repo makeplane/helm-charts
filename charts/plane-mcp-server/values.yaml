@@ -33,10 +33,21 @@ services:
       client_secret: ''
       provider_base_url: ''
 
-  redis:
-    local_setup: true
-    image: valkey/valkey:7.2.11-alpine
-    storage_class: ''
-    volume_size: 500Mi
-    password: '' # sets --requirepass on local Redis and embeds password in REDIS_URL (redis://:password@host:6379/)
-    external_redis_url: '' # INCASE OF REMOTE REDIS ONLY
+valkey:
+  local_setup: true
+  external_redis_url: '' # used when local_setup is false
+  image:
+    repository: valkey/valkey
+    tag: '9.1.1'
+  replica:
+    enabled: false  # standalone mode
+  auth:
+    enabled: false
+    aclUsers:
+      default:
+        permissions: "~* &* +@all"
+        password: ''
+  dataStorage:
+    enabled: false
+    className: ''
+    requestedSize: '500Mi'

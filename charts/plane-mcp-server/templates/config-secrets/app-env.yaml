@@ -10,15 +10,15 @@ stringData:
   PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.api.plane_oauth.provider_base_url | quote }}
   PLANE_BASE_URL: {{ .Values.services.api.plane_base_url | quote }}
   PLANE_INTERNAL_BASE_URL: {{ .Values.services.api.plane_internal_base_url | quote }}
-  {{- if .Values.services.redis.local_setup }}
-  REDIS_HOST: {{ .Release.Name }}-redis
+  {{- if .Values.valkey.local_setup }}
+  REDIS_HOST: {{ .Release.Name }}-valkey
   REDIS_PORT: "6379"
-  {{- if .Values.services.redis.password }}
-  REDIS_URL: {{ printf "redis://:%s@%s-redis.%s.svc.cluster.local:6379/" .Values.services.redis.password .Release.Name .Release.Namespace | quote }}
+  {{- if .Values.valkey.auth.enabled }}
+  REDIS_URL: {{ printf "redis://default:%s@%s-valkey.%s.svc.cluster.local:6379/" (index .Values.valkey.auth.aclUsers "default" "password") .Release.Name .Release.Namespace | quote }}
   {{- else }}
-  REDIS_URL: {{ printf "redis://%s-redis.%s.svc.cluster.local:6379/" .Release.Name .Release.Namespace | quote }}
+  REDIS_URL: {{ printf "redis://%s-valkey.%s.svc.cluster.local:6379/" .Release.Name .Release.Namespace | quote }}
   {{- end }}
   {{- else }}
-  REDIS_URL: {{ .Values.services.redis.external_redis_url | default "" | quote }}
+  REDIS_URL: {{ .Values.valkey.external_redis_url | default "" | quote }}
   {{- end }}
   PORT: "8211"

@@ -12,3 +12,9 @@ home: https://plane.so
 icon: https://plane.so/favicon/favicon-32x32.png
 sources:
   - https://github.com/makeplane/plane-mcp-server
+
+dependencies:
+  - name: valkey
+    version: "~0.11.0"
+    repository: https://valkey.io/valkey-helm/
+    condition: valkey.local_setup
