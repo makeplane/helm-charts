@@ -4,6 +4,7 @@
 
 - A working Kubernetes cluster
 - `kubectl` and `helm` on the client system that you will use to install our Helm charts
+- [cert-manager](https://cert-manager.io/) installed in the cluster (required when `ingress.ssl.enabled=true`)
 
 ## Installing Plane MCP Server
 

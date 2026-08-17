@@ -55,7 +55,7 @@ questions:
 - variable: services.api.plane_oauth.enabled
   label: "Enable Plane OAuth"
   type: boolean
-  default: true
+  default: false
   group: "MCP Server Setup"
   show_subquestion_if: true
   subquestions:
@@ -137,6 +137,12 @@ questions:
     type: boolean
     default: false
     show_if: "services.valkey.local_setup=false"
+
+- variable: ingress.enabled
+  label: "Enable Ingress"
+  type: boolean
+  default: true
+  group: "Ingress Setup"
 
 - variable: ingress.host
   label: "MCP Server Hostname"

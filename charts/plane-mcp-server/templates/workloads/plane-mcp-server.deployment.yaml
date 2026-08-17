@@ -51,7 +51,7 @@ spec:
             cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote }}
         envFrom:
           - secretRef:
-              name: {{ .Release.Name }}-app-secrets 
+              name: {{ .Release.Name }}-app-secrets
               optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
