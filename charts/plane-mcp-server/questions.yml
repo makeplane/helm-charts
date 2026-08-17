@@ -117,10 +117,25 @@ questions:
     type: password
     default: "pleasechangeme"
     show_if: "services.valkey.local_setup=true"
-  - variable: services.valkey.remote_url
-    label: "Remote Valkey/Redis URL"
+  - variable: services.valkey.remote_host
+    label: "Remote Host"
     type: string
     default: ""
+    show_if: "services.valkey.local_setup=false"
+  - variable: services.valkey.remote_port
+    label: "Remote Port"
+    type: int
+    default: 6379
+    show_if: "services.valkey.local_setup=false"
+  - variable: services.valkey.remote_password
+    label: "Remote Password"
+    type: password
+    default: ""
+    show_if: "services.valkey.local_setup=false"
+  - variable: services.valkey.remote_ssl
+    label: "Enable SSL"
+    type: boolean
+    default: false
     show_if: "services.valkey.local_setup=false"
 
 - variable: ingress.host

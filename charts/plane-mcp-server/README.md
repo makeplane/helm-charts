@@ -68,7 +68,10 @@ Plane MCP Server uses [Valkey](https://valkey.io) (via the upstream [valkey-helm
 | Setting                               |        Default         | Required | Description                                                                                          |
 | ------------------------------------- | :--------------------: | :------: | ---------------------------------------------------------------------------------------------------- |
 | services.valkey.local_setup           |          true          |          | Set to `true` to deploy Valkey in-cluster. Set to `false` to use an external Valkey/Redis instance.  |
-| services.valkey.remote_url            |                        |          | Full connection URL to an external Valkey/Redis instance (used when `services.valkey.local_setup=false`) |
+| services.valkey.remote_host                    |                        |          | Hostname of the external Valkey/Redis instance (used when `services.valkey.local_setup=false`)           |
+| services.valkey.remote_port                    |         6379           |          | Port of the external Valkey/Redis instance                                                               |
+| services.valkey.remote_password                |                        |          | Password for the external Valkey/Redis instance                                                          |
+| services.valkey.remote_ssl                     |         false          |          | Enable TLS for the external Valkey/Redis connection                                                      |
 | valkey.nameOverride                   |                        |          | Override the Valkey service name. Defaults to `<release>-valkey`                                     |
 | valkey.image.repository               |     valkey/valkey      |          | Valkey Docker image repository                                                                        |
 | valkey.image.tag                      |         9.1.1          |          | Valkey Docker image tag                                                                               |
@@ -114,7 +117,7 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 
 - Ensure `ingress.host` resolves to your ingress controller
 - For TLS issues, check cert-manager events and Issuer/Certificate resources in the install namespace
-- If using external Valkey/Redis, verify `services.valkey.remote_url` is reachable from the cluster
+- If using external Valkey/Redis, verify `services.valkey.remote_host` is reachable from the cluster
 - Confirm Valkey pod is Ready; caching depends on it
 - Ensure all Plane OAuth configuration values are correctly set (client_id, client_secret, provider_base_url)
 - For Traefik: ensure Traefik CRDs (`IngressRoute`) are installed in your cluster before deploying

@@ -33,13 +33,23 @@ services:
       client_id: ''
       client_secret: ''
       provider_base_url: ''
+    tolerations: []
+    affinity: {}
+    nodeSelector: {}
 
   valkey:
     local_setup: true
-    remote_url: '' # used when local_setup is false
+    # remote connection — used when local_setup is false
+    remote_host: ''
+    remote_port: 6379
+    remote_password: ''
+    remote_ssl: false
 
 valkey:
   nameOverride: ''
+  tolerations: []
+  affinity: {}
+  nodeSelector: {}
   image:
     repository: valkey/valkey
     tag: '9.1.1'

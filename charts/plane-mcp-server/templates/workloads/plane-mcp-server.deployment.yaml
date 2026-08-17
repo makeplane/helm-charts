@@ -55,4 +55,5 @@ spec:
               optional: false
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
+      {{- include "plane-mcp-server.podScheduling" .Values.services.api }}
 ---
