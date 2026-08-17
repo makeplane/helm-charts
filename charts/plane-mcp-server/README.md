@@ -16,7 +16,7 @@
 
    ```bash
    # Extract the Helm chart to access the values file
-   helm show values plane-mcp-server --repo https://private-helm.plane.tools > custom-values.yaml
+   helm show values plane-mcp-server --repo https://helm.plane.so/ > custom-values.yaml
    vi custom-values.yaml
    ```
 
@@ -26,7 +26,7 @@
 
    ```bash
    helm upgrade plane-mcp-server-app plane-mcp-server  \
-       --repo https://private-helm.plane.tools \
+       --repo https://helm.plane.so \
        --install \
        --create-namespace \
        --namespace plane-mcp-server \
