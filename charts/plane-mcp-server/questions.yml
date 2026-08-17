@@ -10,9 +10,6 @@ questions:
     label: "Image Tag"
     type: string
     default: "v0.2.11"
-  - variable: services.redis.storage_class
-    label: "Storage Class"
-    type: storageclass
 
 - variable: services.api.replicas
   label: "MCP Server Replicas"
@@ -65,32 +62,51 @@ questions:
     type: string
     default: ""
 
-- variable: services.redis.local_setup
-  label: "Install Redis"
+- variable: valkey.local_setup
+  label: "Install Valkey"
   type: boolean
   default: true
-  group: "Redis Setup"
+  group: "Valkey Setup"
   subquestions:
-  - variable: services.redis.image
+  - variable: valkey.image.repository
     label: "Docker Image"
     type: string
-    default: "valkey/valkey:7.2.11-alpine"
-    show_if: "services.redis.local_setup=true"
-  - variable: services.redis.volume_size
+    default: "valkey/valkey"
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.image.tag
+    label: "Image Tag"
+    type: string
+    default: "9.1.1"
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.dataStorage.enabled
+    label: "Enable Persistent Storage"
+    type: boolean
+    default: false
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.dataStorage.className
+    label: "Storage Class"
+    type: storageclass
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.dataStorage.requestedSize
     label: "Volume Size"
     type: string
     default: "500Mi"
-    show_if: "services.redis.local_setup=true"
-  - variable: services.redis.password
-    label: "Redis Password"
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.auth.enabled
+    label: "Enable Authentication"
+    type: boolean
+    default: false
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.auth.aclUsers.default.password
+    label: "Valkey Password"
     type: password
     default: ""
-    show_if: "services.redis.local_setup=true"
-  - variable: services.redis.external_redis_url
-    label: "Remote Redis URL"
+    show_if: "valkey.local_setup=true"
+  - variable: valkey.external_redis_url
+    label: "Remote Valkey/Redis URL"
     type: string
     default: ""
-    show_if: "services.redis.local_setup=false"
+    show_if: "valkey.local_setup=false"
 
 - variable: ingress.host
   label: "MCP Server Hostname"

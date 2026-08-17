@@ -48,7 +48,6 @@
 | services.api.cpuLimit        |         500m                  |          | CPU limit for MCP Server pods                                               |
 | services.api.memoryRequest   |         50Mi                  |          | Memory request for MCP Server pods                                          |
 | services.api.cpuRequest      |         50m                   |          | CPU request for MCP Server pods                                             |
-| services.storage_class       |                               |          | Kubernetes storage class for persistent volumes                             |
 
 ### Plane OAuth Configuration
 
@@ -61,14 +60,21 @@
 | services.api.plane_base_url              |             |    Yes   | Public base URL of your Plane instance                                      |
 | services.api.plane_internal_base_url     |             |          | Internal base URL of your Plane instance (for in-cluster communication)     |
 
-### Redis/Valkey Setup
+### Valkey Setup
 
-| Setting                          |              Default              | Required | Description                                                                                                                                                                                                                                                                                                                                                                     |
-| -------------------------------- | :-------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| services.redis.local_setup       |               true                |          | Plane MCP Server uses `redis` to cache session data. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely. Set this to `true` when you choose to setup stateful deployment of `redis`. Mark it as `false` when using a remotely hosted database |
-| services.redis.image             |    valkey/valkey:7.2.11-alpine    |          | Using this key, user must provide the docker image name to setup the stateful deployment of `redis`. (must be set when `services.redis.local_setup=true`)                                                                                                                                                                                                                        |
-| services.redis.volume_size       |              500Mi                |          | While setting up the stateful deployment, while creating the persistent volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                                                     |
-| services.redis.external_redis_url|                                   |          | Users can also decide to use the remote hosted database and link to Plane MCP Server deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url                                                                                                 |
+Plane MCP Server uses [Valkey](https://valkey.io) (via the upstream [valkey-helm](https://github.com/valkey-io/valkey-helm) chart) to cache session data. It can be deployed in-cluster or pointed at an external Valkey/Redis instance.
+
+| Setting                               |        Default         | Required | Description                                                                                          |
+| ------------------------------------- | :--------------------: | :------: | ---------------------------------------------------------------------------------------------------- |
+| valkey.local_setup                    |          true          |          | Set to `true` to deploy Valkey in-cluster. Set to `false` to use an external Valkey/Redis instance.  |
+| valkey.image.repository               |     valkey/valkey      |          | Valkey Docker image repository                                                                        |
+| valkey.image.tag                      |         9.1.1          |          | Valkey Docker image tag                                                                               |
+| valkey.dataStorage.enabled            |         false          |          | Enable persistent storage for Valkey data                                                             |
+| valkey.dataStorage.className          |                        |          | Kubernetes storage class for the Valkey persistent volume                                             |
+| valkey.dataStorage.requestedSize      |         500Mi          |          | Persistent volume size. Unit must be in Mi or Gi                                                      |
+| valkey.auth.enabled                   |         false          |          | Enable ACL-based authentication for Valkey                                                            |
+| valkey.auth.aclUsers.default.password |                        |          | Password for the default Valkey user (required when `valkey.auth.enabled=true`)                       |
+| valkey.external_redis_url             |                        |          | Full connection URL to an external Valkey/Redis instance (used when `valkey.local_setup=false`)       |
 
 ### Ingress Configuration
 
@@ -105,7 +111,7 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 
 - Ensure `ingress.host` resolves to your ingress controller
 - For TLS issues, check cert-manager events and Issuer/Certificate resources in the install namespace
-- If using external Redis, verify `services.redis.external_redis_url` is reachable from the cluster
-- Confirm Redis/Valkey pods are Ready; caching depends on it
+- If using external Valkey/Redis, verify `valkey.external_redis_url` is reachable from the cluster
+- Confirm Valkey pod is Ready; caching depends on it
 - Ensure all Plane OAuth configuration values are correctly set (client_id, client_secret, provider_base_url)
 - For Traefik: ensure Traefik CRDs (`IngressRoute`) are installed in your cluster before deploying
