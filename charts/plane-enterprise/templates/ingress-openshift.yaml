@@ -54,6 +54,19 @@ Differences from the Traefik IngressRoute this mirrors:
 {{/* Catch-all LAST, purely for readability. */}}
 {{- $routes = append $routes (dict "slug" "web" "path" "/" "svc" (printf "%s-web" $name) "port" 3000) }}
 
+{{/* The bundled MinIO console and RabbitMQ management UI live on their own hosts,
+     matching templates/ingress.yaml. Both are gated on the corresponding
+     local_setup, so neither renders in the recommended OpenShift configuration
+     (where the bundled datastores are off because they cannot run under an
+     arbitrary UID) -- they are here for a cluster that grants those workloads a
+     relaxed SCC. */}}
+{{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+{{- $routes = append $routes (dict "slug" "minio-console" "host" .Values.ingress.minioHost "path" "/" "svc" (printf "%s-minio" $name) "port" 9090) }}
+{{- end }}
+{{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+{{- $routes = append $routes (dict "slug" "rabbitmq-console" "host" .Values.ingress.rabbitmqHost "path" "/" "svc" (printf "%s-rabbitmq" $name) "port" 15672) }}
+{{- end }}
+
 {{- range $r := $routes }}
 ---
 apiVersion: route.openshift.io/v1
@@ -73,7 +86,7 @@ metadata:
     {{- end }}
     {{- end }}
 spec:
-  host: {{ $host }}
+  host: {{ $r.host | default $host }}
   path: {{ $r.path }}
   to:
     kind: Service

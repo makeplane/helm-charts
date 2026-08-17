@@ -101,7 +101,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
 | `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
-| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik` or is `openshift` (Routes use `ingress.openshift.route_annotations`). |
 | `ingress.openshift.timeout`           | `300s`     | HAProxy per-route timeout. The router default of 30s severs `/live/` WebSockets and `/pi/` streaming. |
 | `ingress.openshift.termination`       | `edge`     | Route TLS termination (`edge` or `reencrypt`; `passthrough` cannot do path routing).      |
 | `ingress.openshift.externalCertificate` | `''`     | Name of a TLS Secret for the router to serve instead of its wildcard cert. OpenShift 4.16+. |

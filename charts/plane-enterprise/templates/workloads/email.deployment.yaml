@@ -55,13 +55,23 @@ spec:
         imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
         image: {{ .Values.services.email_service.image | default "makeplane/email-commercial" }}:{{ .Values.planeVersion }}
         {{- /* The email image's app-user really is uid 100 and owns /opt/email, so
-             this stays pinned rather than following the shared securityContext
-             block. Set services.email_service.runAsUser to null on platforms that
-             assign the UID themselves (OpenShift's restricted-v2 SCC rejects any
-             runAsUser outside the namespace's range). */}}
+             this service pins its own UID instead of taking runAsUser from the
+             shared block. It still takes everything else from that block when
+             securityContext.enabled is set -- runAsNonRoot, dropped capabilities
+             and seccompProfile are not UID-specific, and omitting them would
+             leave this the one unhardened workload. Set
+             services.email_service.runAsUser to null on platforms that assign the
+             UID themselves (OpenShift's restricted-v2 SCC rejects any runAsUser
+             outside the namespace's range). */}}
+        {{- $emailCtx := dict }}
+        {{- if .Values.securityContext.enabled }}
+        {{- $emailCtx = omit .Values.securityContext.containerSecurityContext "runAsUser" }}
+        {{- end }}
         {{- with .Values.services.email_service.runAsUser }}
-        securityContext:
-          runAsUser: {{ . }}
+        {{- $emailCtx = merge (dict "runAsUser" .) $emailCtx }}
+        {{- end }}
+        {{- with $emailCtx }}
+        securityContext: {{- toYaml . | nindent 10 }}
         {{- end }}
         stdin: true
         tty: true
