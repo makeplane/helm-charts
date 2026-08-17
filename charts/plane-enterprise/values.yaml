@@ -119,15 +119,76 @@ ssl:
 # init containers). Plane's images run fine as non-root, so these defaults
 # satisfy the PSA "restricted" profile.
 #
-# NOT applied to:
+# ------------------------------------------------------------------
+# WHICH RECIPE DO I WANT?
+# ------------------------------------------------------------------
+#
+# 1) Leave it off (the default). Containers start as root and each entrypoint
+#    drops to the `plane` user (uid 1000) itself. Fine for Docker Compose and
+#    for clusters with no Pod Security Admission policy.
+#
+#      securityContext:
+#        enabled: false
+#
+# 2) Non-root, uid 1000. Satisfies the PSA "restricted" profile. This is the
+#    common Kubernetes choice and needs nothing but the toggle:
+#
+#      securityContext:
+#        enabled: true
+#
+# 3) Non-root, but YOUR platform pins a specific UID (e.g. 10001):
+#
+#      securityContext:
+#        enabled: true
+#        podSecurityContext:
+#          runAsUser: 10001
+#          runAsGroup: 10001
+#          fsGroup: 10001
+#        containerSecurityContext:
+#          runAsUser: 10001
+#
+# 4) OpenShift, or any platform that ASSIGNS the UID for you.
+#    Set the three id fields to `null`. A null in your values file removes the
+#    key entirely during Helm's value merge, so the rendered securityContext
+#    keeps runAsNonRoot / seccompProfile / dropped capabilities but names no
+#    UID -- which is exactly what OpenShift's `restricted-v2` SCC requires:
+#
+#      securityContext:
+#        enabled: true
+#        podSecurityContext:
+#          runAsUser: null
+#          runAsGroup: null
+#          fsGroup: null
+#        containerSecurityContext:
+#          runAsUser: null
+#      services:
+#        email_service:
+#          runAsUser: null       # this service pins its own; see below
+#
+#    Do NOT instead leave the 1000s in place: `restricted-v2` validates with
+#    MustRunAsRange and REJECTS any pod requesting an id outside the namespace's
+#    assigned range, so every pod would fail admission and nothing would
+#    schedule. Ready-made: `-f examples/values-openshift.yaml`, which also
+#    selects the OpenShift ingress path and forces the bundled datastores off.
+#
+#    Requires images that grant group 0 write access to their runtime paths.
+#    Older images crash under an assigned UID, e.g. nginx exits with
+#    `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+#
+# ------------------------------------------------------------------
+# WHAT THIS DOES NOT COVER
+# ------------------------------------------------------------------
 #   - The bundled local infrastructure (postgres, redis, rabbitmq, minio,
 #     opensearch): third-party images with their own UID/GID requirements,
 #     intended for local/dev use. In hardened clusters run those externally
-#     (managed RDS, ElastiCache, etc.) and leave local_setup off.
-#   - The email service: its image pins UID 100 and keeps its own securityContext.
+#     (managed RDS, ElastiCache, etc.) and leave local_setup off. They cannot
+#     run under an assigned UID at all.
+#   - The email service's UID only. Its image's app-user is uid 100 and owns
+#     /opt/email, so it keeps its own `services.email_service.runAsUser`; it
+#     still takes runAsNonRoot / capabilities / seccomp from the block below.
 #
-# Mirrors the kustomize `nonroot-security-context` component. Override runAsUser/
-# runAsGroup/fsGroup below if your environment pins a specific UID (e.g. 10001).
+# Mirrors the kustomize `nonroot-security-context` component (and, for recipe 4,
+# `openshift-security-context`).
 securityContext:
   enabled: false
   # Rendered at spec.template.spec.securityContext (pod level).
