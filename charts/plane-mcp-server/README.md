@@ -47,8 +47,8 @@
 | services.api.replicas        |           1                   |          | Number of MCP Server replicas                                               |
 | services.api.memoryLimit     |        1000Mi                 |          | Memory limit for MCP Server pods                                            |
 | services.api.cpuLimit        |         500m                  |          | CPU limit for MCP Server pods                                               |
-| services.api.memoryRequest   |         50Mi                  |          | Memory request for MCP Server pods                                          |
-| services.api.cpuRequest      |         50m                   |          | CPU request for MCP Server pods                                             |
+| services.api.memoryRequest   |        150Mi                  |          | Memory request for MCP Server pods                                          |
+| services.api.cpuRequest      |        100m                   |          | CPU request for MCP Server pods                                             |
 
 ### Plane OAuth Configuration
 

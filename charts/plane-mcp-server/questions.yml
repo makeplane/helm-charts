@@ -28,11 +28,11 @@ questions:
   - variable: services.api.memoryRequest
     label: "Memory Request"
     type: string
-    default: "50Mi"
+    default: "150Mi"
   - variable: services.api.cpuRequest
     label: "CPU Request"
     type: string
-    default: "50m"
+    default: "100m"
 
 - variable: services.api.plane_base_url
   label: "Plane Base URL"

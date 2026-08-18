@@ -23,8 +23,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 150Mi
+    cpuRequest: 100m
     plane_base_url: ''
     plane_internal_base_url: ''
     path_prefix: '' # HTTP route prefix when mounted behind a proxy (e.g. /plane serves /plane/http/mcp)
