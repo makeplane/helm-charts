@@ -1,0 +1,62 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-api
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+    {{- include "plane-mcp-server.commonLabels" $ | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+  - name: api-8211
+    port: 8211
+    protocol: TCP
+    targetPort: 8211
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-api-wl
+  {{- include "plane-mcp-server.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
+spec:
+  replicas: {{ .Values.services.api.replicas | default 1}}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
+        {{- include "plane-mcp-server.commonLabels" $ | nindent 8 }}
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-api
+        imagePullPolicy: Always
+        image: {{ .Values.services.api.image | default "makeplane/plane-mcp-server" }}:{{ .Values.services.api.tag | default "v0.3.0" }}
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: {{ .Values.services.api.memoryRequest | default "150Mi" | quote }}
+            cpu: {{ .Values.services.api.cpuRequest | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.services.api.memoryLimit | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote }}
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-app-secrets
+              optional: false
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+      {{- include "plane-mcp-server.podScheduling" .Values.services.api }}
+---

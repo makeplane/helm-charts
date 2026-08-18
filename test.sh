@@ -29,6 +29,7 @@ HELM_CHART=$(dialog \
     --menu "Select the Helm Chart to test" 25 50 20 \
     "1" "Plane-CE" \
     "2" "Plane-Enterprise" \
+    "3" "Plane-MCP-Server" \
     3>&1 1>&2 2>&3)
 
 
@@ -46,6 +47,15 @@ elif [ "$HELM_CHART" == "2" ]; then
         clear
         printSuccess
         code test-enterprise.yaml
+    else
+        printFailed
+    fi
+elif [ "$HELM_CHART" == "3" ]; then
+    helm template plane-mcp-server-app-$(date +%s) charts/plane-mcp-server -n myns > test-mcp-server.yaml
+    if [ $? -eq 0 ]; then
+        clear
+        printSuccess
+        code test-mcp-server.yaml
     else
         printFailed
     fi
