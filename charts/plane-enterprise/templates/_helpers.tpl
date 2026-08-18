@@ -316,13 +316,22 @@ Honours an explicit ingress.traefik.entryPoints override (some clusters rename
 the defaults); otherwise derives them from whether TLS is configured, so an
 install with SSL left off is reachable over plain HTTP instead of serving
 Traefik's fallback self-signed certificate.
+
+An empty value is the "derive it" sentinel, never a literal empty list -- the
+CRD requires at least one entrypoint. A bare string is accepted and wrapped into
+a single-item list, since `--set ingress.traefik.entryPoints=websecure` yields a
+scalar and would otherwise render a list-less mapping the CRD rejects.
 Caller must nindent to the correct depth.
 */}}
 {{- define "plane.traefikEntryPoints" -}}
   {{- with .Values.ingress.traefik.entryPoints -}}
-    {{- toYaml . -}}
+    {{- if kindIs "string" . -}}
+      {{- toYaml (list .) -}}
+    {{- else -}}
+      {{- toYaml . -}}
+    {{- end -}}
   {{- else -}}
-    {{- if eq (include "plane.tlsEnabled" .) "true" -}}
+    {{- if eq (include "plane.tlsEnabled" $) "true" -}}
 - websecure
     {{- else -}}
 - web
