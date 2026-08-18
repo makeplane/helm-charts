@@ -173,7 +173,7 @@ questions:
   - variable: services.space.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.space.cpuRequest
     label: "CPU Request"
     type: string
@@ -243,7 +243,7 @@ questions:
   - variable: services.live.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.live.cpuRequest
     label: "CPU Request"
     type: string
@@ -336,7 +336,7 @@ questions:
   - variable: services.silo.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.silo.cpuRequest
     label: "CPU Request"
     type: string
@@ -589,7 +589,7 @@ questions:
   - variable: services.api.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.api.cpuRequest
     label: "CPU Request"
     type: string
@@ -686,7 +686,7 @@ questions:
   - variable: services.external_api.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.external_api.cpuRequest
     label: "CPU Request"
     type: string
@@ -712,11 +712,11 @@ questions:
   - variable: services.worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 500Mi
   - variable: services.worker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
 - variable: services.worker_importers.enabled
   label: "Enable Importer Worker"
   type: boolean
@@ -739,11 +739,11 @@ questions:
   - variable: services.worker_importers.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 500Mi
   - variable: services.worker_importers.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
 - variable: services.beatworker.replicas
   label: "Default Replica Count"
   type: int
@@ -761,7 +761,7 @@ questions:
   - variable: services.beatworker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.beatworker.cpuRequest
     label: "CPU Request"
     type: string
@@ -847,7 +847,7 @@ questions:
   - variable: services.outbox_poller.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.outbox_poller.cpuRequest
     label: "CPU Request"
     type: string
@@ -931,7 +931,7 @@ questions:
   - variable: services.automation_consumer.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.automation_consumer.cpuRequest
     label: "CPU Request"
     type: string
@@ -979,11 +979,11 @@ questions:
   - variable: services.webhook_consumer.memoryRequest
     label: "Memory Request"
     type: string
-    default: 500Mi
+    default: 250Mi
   - variable: services.webhook_consumer.cpuRequest
     label: "CPU Request"
     type: string
-    default: 250m
+    default: 50m
   - variable: services.webhook_consumer.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -1019,11 +1019,11 @@ questions:
   - variable: services.agent_consumer.memoryRequest
     label: "Memory Request"
     type: string
-    default: 500Mi
+    default: 250Mi
   - variable: services.agent_consumer.cpuRequest
     label: "CPU Request"
     type: string
-    default: 250m
+    default: 50m
   - variable: services.agent_consumer.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -1071,7 +1071,7 @@ questions:
   - variable: services.iframely.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.iframely.cpuRequest
     label: "CPU Request"
     type: string
@@ -1103,11 +1103,11 @@ questions:
   - variable: services.pi.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 500Mi
   - variable: services.pi.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.pi.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -1186,7 +1186,7 @@ questions:
   - variable: services.pi_worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.pi_worker.cpuRequest
     label: "CPU Request"
     type: string
@@ -1208,7 +1208,7 @@ questions:
   - variable: services.pi_beat_worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 250Mi
   - variable: services.pi_beat_worker.cpuRequest
     label: "CPU Request"
     type: string
