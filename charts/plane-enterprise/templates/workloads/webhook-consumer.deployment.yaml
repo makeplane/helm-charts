@@ -30,8 +30,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.webhook_consumer.memoryRequest | default "500Mi" | quote }}
-            cpu: {{ .Values.services.webhook_consumer.cpuRequest | default "250m" | quote }}
+            memory: {{ .Values.services.webhook_consumer.memoryRequest | default "250Mi" | quote }}
+            cpu: {{ .Values.services.webhook_consumer.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.webhook_consumer.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.webhook_consumer.cpuLimit | default "500m" | quote}}

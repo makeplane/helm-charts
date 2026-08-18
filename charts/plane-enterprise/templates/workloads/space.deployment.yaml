@@ -53,7 +53,7 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.space.memoryRequest | default "50Mi" | quote }}
+            memory: {{ .Values.services.space.memoryRequest | default "250Mi" | quote }}
             cpu: {{ .Values.services.space.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.space.memoryLimit  | default "1000Mi" | quote }}

@@ -104,7 +104,7 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.silo.memoryRequest | default "50Mi" | quote }}
+            memory: {{ .Values.services.silo.memoryRequest | default "250Mi" | quote }}
             cpu: {{ .Values.services.silo.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}

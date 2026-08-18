@@ -57,7 +57,7 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.external_api.memoryRequest | default "50Mi" | quote }}
+            memory: {{ .Values.services.external_api.memoryRequest | default "250Mi" | quote }}
             cpu: {{ .Values.services.external_api.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.external_api.memoryLimit  | default "1000Mi" | quote }}

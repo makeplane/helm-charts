@@ -50,7 +50,7 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.iframely.memoryRequest | default "50Mi" | quote }}
+            memory: {{ .Values.services.iframely.memoryRequest | default "250Mi" | quote }}
             cpu: {{ .Values.services.iframely.cpuRequest | default "50m" | quote }}
           limits:
             memory: {{ .Values.services.iframely.memoryLimit | default "1000Mi" | quote }}
