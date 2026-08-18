@@ -187,7 +187,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     image: makeplane/iframely:v1.2.0
     pullPolicy: Always
@@ -232,7 +232,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     image: makeplane/space-commercial
     pullPolicy: Always
@@ -262,7 +262,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     image: makeplane/live-commercial
     pullPolicy: Always
@@ -293,7 +293,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     image: makeplane/backend-commercial
     pullPolicy: Always
@@ -309,7 +309,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     assign_cluster_ip: false
     nodeSelector: {}
@@ -322,8 +322,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 500Mi
+    cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -335,8 +335,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 500Mi
+    cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -347,7 +347,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     nodeSelector: {}
     tolerations: []
@@ -360,7 +360,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     image: makeplane/silo-commercial
     pullPolicy: Always
@@ -426,7 +426,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     pullPolicy: Always
     assign_cluster_ip: false
@@ -441,7 +441,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     assign_cluster_ip: false
     nodeSelector: {}
@@ -455,8 +455,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 500Mi
-    cpuRequest: 250m
+    memoryRequest: 250Mi
+    cpuRequest: 50m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -469,8 +469,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 500Mi
-    cpuRequest: 250m
+    memoryRequest: 250Mi
+    cpuRequest: 50m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -483,8 +483,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 500Mi
+    cpuRequest: 100m
     image: makeplane/plane-pi-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -533,7 +533,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     nodeSelector: {}
     tolerations: []
@@ -545,7 +545,7 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
+    memoryRequest: 250Mi
     cpuRequest: 50m
     nodeSelector: {}
     tolerations: []
