@@ -294,17 +294,35 @@ reports its own service.name). Call with a dict and nindent, e.g.
 {{- end -}}
 
 {{/*
-Returns "true" when the chart has an actual TLS certificate to serve: either the
-user pointed at their own Secret via ssl.tls_secret_name, or cert-manager is set
-up to mint one (ssl.generateCerts + ssl.createIssuer, which is what gates
+Returns "true" when THIS CHART has a TLS Secret to point an ingress at: either
+the user supplied one via ssl.tls_secret_name, or cert-manager is set up to mint
+one (ssl.generateCerts + ssl.createIssuer, which is what gates
 templates/certs/certs.yaml).
 
-This is the same condition templates/ingress.yaml uses to decide whether to emit
-a `tls:` block, factored out so the Traefik path stays in step with it. Without
-it, ingress-traefik.yaml would advertise a Secret that nothing ever creates.
+Gates the `tls:` blocks. Never widen this to cover externally-terminated TLS --
+referencing a Secret that nothing creates is the bug this helper exists to stop.
+*/}}
+{{- define "plane.chartManagedCert" -}}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.generateCerts .Values.ssl.createIssuer) -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when users reach Plane over https://, whoever terminates it.
+
+That is either a chart-managed certificate, or ssl.externalTermination for TLS
+handled in front of Plane -- a cloud load balancer, Cloudflare, a service mesh,
+or a Traefik entrypoint with its own certificate (`websecure.http.tls=true`).
+The chart owns no Secret in that second case, so this must NOT be used to emit a
+`tls:` block; use plane.chartManagedCert for that.
+
+Drives the ingress entrypoint and the scheme of every self-referential URL
+handed to the app (APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
+EXPORT_DOWNLOAD_BASE_URL, ...), so the two can never disagree.
 */}}
 {{- define "plane.tlsEnabled" -}}
-  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.generateCerts .Values.ssl.createIssuer) -}}
+  {{- if or (eq (include "plane.chartManagedCert" .) "true") .Values.ssl.externalTermination -}}
     true
   {{- end -}}
 {{- end -}}

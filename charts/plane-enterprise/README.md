@@ -127,9 +127,48 @@ ingress:
     entryPoints: ['websecure', 'web']
 ```
 
-> Plain HTTP is fine for a quick trial, an internal network, or when TLS is
-> terminated in front of Plane by a cloud load balancer, Cloudflare, or a service
-> mesh. Terminate TLS somewhere before exposing Plane on the public internet.
+> Plain HTTP is fine for a quick trial or an internal network. Terminate TLS
+> somewhere before exposing Plane on the public internet.
+
+**Check your Traefik entrypoints before relying on the HTTP default.** Many
+installations redirect `web` to HTTPS in Traefik's own static config:
+
+```
+--entryPoints.web.http.redirections.entryPoint.to=:443
+--entryPoints.web.http.redirections.entryPoint.scheme=https
+--entryPoints.websecure.http.tls=true
+```
+
+On such a cluster every plain-HTTP request is answered with a permanent redirect
+before it ever reaches a route, so the `web` entrypoint cannot serve Plane. Either
+drop the redirection, or use `ssl.externalTermination` below.
+
+### TLS terminated outside the chart
+
+Set `ssl.externalTermination: true` when something in front of Plane terminates
+TLS and this chart manages no certificate — a cloud load balancer, Cloudflare, a
+service mesh, or a Traefik entrypoint carrying its own certificate:
+
+```yaml
+ssl:
+  externalTermination: true
+```
+
+The `IngressRoute` then binds to `websecure` and every self-referential URL given
+to the app (`APP_BASE_URL`, `PLANE_FRONTEND_URL`, `PLANE_OAUTH_REDIRECT_URI`,
+`EXPORT_DOWNLOAD_BASE_URL`, …) is rendered `https://`. No `tls:` block is emitted,
+because there is no Secret for the chart to reference — Traefik serves whatever
+certificate its entrypoint is configured with.
+
+Leave it `false` if you set `ssl.tls_secret_name` or `ssl.generateCerts`; those
+already imply HTTPS. Use it only for TLS this chart cannot see.
+
+| `ssl` configuration | Traefik entrypoint | `tls:` block | App URL scheme |
+| --- | --- | --- | --- |
+| nothing set | `web` | — | `http://` |
+| `tls_secret_name` | `websecure` | your Secret | `https://` |
+| `generateCerts` + `createIssuer` | `websecure` | `<release>-ssl-cert` | `https://` |
+| `externalTermination: true` | `websecure` | — | `https://` |
 
 ## Installing Plane
 
