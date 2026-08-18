@@ -292,3 +292,40 @@ reports its own service.name). Call with a dict and nindent, e.g.
   value: {{ .service | quote }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Returns "true" when the chart has an actual TLS certificate to serve: either the
+user pointed at their own Secret via ssl.tls_secret_name, or cert-manager is set
+up to mint one (ssl.generateCerts + ssl.createIssuer, which is what gates
+templates/certs/certs.yaml).
+
+This is the same condition templates/ingress.yaml uses to decide whether to emit
+a `tls:` block, factored out so the Traefik path stays in step with it. Without
+it, ingress-traefik.yaml would advertise a Secret that nothing ever creates.
+*/}}
+{{- define "plane.tlsEnabled" -}}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.generateCerts .Values.ssl.createIssuer) -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Traefik entrypoint names for the IngressRoute.
+
+Honours an explicit ingress.traefik.entryPoints override (some clusters rename
+the defaults); otherwise derives them from whether TLS is configured, so an
+install with SSL left off is reachable over plain HTTP instead of serving
+Traefik's fallback self-signed certificate.
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.traefikEntryPoints" -}}
+  {{- with .Values.ingress.traefik.entryPoints -}}
+    {{- toYaml . -}}
+  {{- else -}}
+    {{- if eq (include "plane.tlsEnabled" .) "true" -}}
+- websecure
+    {{- else -}}
+- web
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

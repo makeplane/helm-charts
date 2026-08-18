@@ -89,7 +89,47 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | `ingress.enabled`                     | `true`     | Master switch — set to `false` to render neither template.                                |
 | `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
+| `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
 | `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+
+### Running Traefik without TLS
+
+SSL is optional. When no certificate is configured — that is, `ssl.tls_secret_name`
+is empty **and** `ssl.generateCerts`/`ssl.createIssuer` are `false` — the
+`IngressRoute` is published on Traefik's plain-HTTP `web` entrypoint and no `tls:`
+block is emitted, so Plane is reachable over `http://<licenseDomain>`. The rest of
+the chart already follows the same rule: `APP_BASE_URL`, `PLANE_FRONTEND_URL`,
+`EXPORT_DOWNLOAD_BASE_URL` and friends are rendered with an `http://` scheme in
+this configuration.
+
+Configure a certificate by either route and the `IngressRoute` moves back to the
+`websecure` entrypoint with its `tls:` block, unchanged from previous releases:
+
+```yaml
+# Bring your own certificate...
+ssl:
+  tls_secret_name: my-tls-secret
+
+# ...or have cert-manager mint one
+ssl:
+  createIssuer: true
+  generateCerts: true
+  issuer: http
+  email: you@example.com
+```
+
+Override the entrypoint names only if your Traefik installation renamed the
+defaults, or if you want to serve both schemes at once:
+
+```yaml
+ingress:
+  traefik:
+    entryPoints: ['websecure', 'web']
+```
+
+> Plain HTTP is fine for a quick trial, an internal network, or when TLS is
+> terminated in front of Plane by a cloud load balancer, Cloudflare, or a service
+> mesh. Terminate TLS somewhere before exposing Plane on the public internet.
 
 ## Installing Plane
 

@@ -9,7 +9,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-    - websecure
+    {{- include "plane.traefikEntryPoints" . | nindent 4 }}
 
   routes:
 
@@ -117,7 +117,9 @@ spec:
       - name: {{ .Release.Name }}-web
         port: 3000
 
+  {{- if eq (include "plane.tlsEnabled" .) "true" }}
   tls:
     secretName: {{ default (printf "%s-ssl-cert" .Release.Name) .Values.ssl.tls_secret_name }}
+  {{- end }}
 
 {{- end }}

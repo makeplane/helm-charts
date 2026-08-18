@@ -48,6 +48,16 @@ ingress:
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m", "nginx.ingress.kubernetes.io/proxy-buffer-size": "16k" }
   traefik:
     maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
+    # Traefik entrypoints the IngressRoute attaches to. Leave empty to derive them
+    # from your SSL settings, which is what you want in almost every case:
+    #   - TLS configured (ssl.tls_secret_name, or generateCerts + createIssuer)
+    #     -> ['websecure'], and a `tls:` block is emitted.
+    #   - No TLS configured -> ['web'], plain HTTP, and NO `tls:` block. Use this
+    #     to reach Plane over http:// while you are still sorting out DNS/certs,
+    #     or when TLS is terminated upstream (cloud LB, Cloudflare, a service mesh).
+    # Set explicitly only if your Traefik install renamed the default entrypoints,
+    # e.g. entryPoints: ['websecure', 'web'] or ['https'].
+    entryPoints: []
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
