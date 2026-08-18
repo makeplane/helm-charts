@@ -1879,4 +1879,24 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-1.0.4/plane-enterprise-1.0.4.tgz
     version: 1.0.4
-generated: "2026-08-12T15:55:18.451942918Z"
+  plane-mcp-server:
+  - apiVersion: v2
+    appVersion: v0.3.0
+    created: "2026-08-18T11:33:08.524665579Z"
+    dependencies:
+    - condition: services.valkey.local_setup
+      name: valkey
+      repository: https://valkey.io/valkey-helm/
+      version: ~0.11.0
+    description: plane-mcp-server Setup
+    digest: 1d422d03e3923d56e6c24eb6d2665a64344bfe3a63f53765f0120d5f853b0819
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-mcp-server
+    sources:
+    - https://github.com/makeplane/plane-mcp-server
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-mcp-server-1.0.0/plane-mcp-server-1.0.0.tgz
+    version: 1.0.0
+generated: "2026-08-18T11:33:08.525025159Z"
