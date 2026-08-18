@@ -639,6 +639,11 @@ questions:
     label: "Webhook Allowed Hosts"
     type: string
     default: ""
+  - variable: env.gunicorn_workers
+    label: "Gunicorn Workers"
+    description: "Number of Gunicorn worker processes for the API server. Recommended: 2 * CPU cores + 1."
+    type: int
+    default: 1
   - variable: env.gunicorn_max_requests
     label: "Gunicorn Max Requests"
     description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation."
