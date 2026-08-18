@@ -640,7 +640,8 @@ env:
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
-  # Gunicorn worker rotation settings.
+  # Gunicorn settings.
+  gunicorn_workers: 1
   gunicorn_max_requests: 1000
   gunicorn_max_requests_jitter: 150
 
