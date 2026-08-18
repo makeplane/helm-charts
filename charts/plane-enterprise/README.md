@@ -92,46 +92,118 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
 | `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
 
-### Running Traefik without TLS
+### TLS options: choosing how HTTPS is handled
 
-SSL is optional. When no certificate is configured — that is, `ssl.tls_secret_name`
-is empty **and** `ssl.generateCerts`/`ssl.createIssuer` are `false` — the
-`IngressRoute` is published on Traefik's plain-HTTP `web` entrypoint and no `tls:`
-block is emitted, so Plane is reachable over `http://<licenseDomain>`. The rest of
-the chart already follows the same rule: `APP_BASE_URL`, `PLANE_FRONTEND_URL`,
-`EXPORT_DOWNLOAD_BASE_URL` and friends are rendered with an `http://` scheme in
-this configuration.
+TLS is **optional**. From your `ssl.*` settings the chart derives two things at
+once, so they can never disagree:
 
-Configure a certificate by either route and the `IngressRoute` moves back to the
-`websecure` entrypoint with its `tls:` block, unchanged from previous releases:
+1. which Traefik entrypoint the `IngressRoute` binds to, and whether a `tls:`
+   block is emitted;
+2. the scheme of every URL Plane is told about itself — `WEB_URL`,
+   `APP_BASE_URL`, `PI_BASE_URL`, `PLANE_FRONTEND_URL`, `PLANE_API_HOST`,
+   `PLANE_OAUTH_REDIRECT_URI`, `SILO_API_BASE_URL`, `EXPORT_DOWNLOAD_BASE_URL`.
+   (`CORS_ALLOWED_ORIGINS` always lists both schemes and is unaffected.)
+
+Find the row that matches your environment:
+
+| Your setup | Set | Entrypoint | `tls:` block | App URLs |
+| --- | --- | :---: | :---: | :---: |
+| No certificate yet — trial, internal network | *nothing* (default) | `web` | — | `http://` |
+| You already hold a TLS Secret | `ssl.tls_secret_name` | `websecure` | your Secret | `https://` |
+| Let cert-manager issue one | `ssl.createIssuer` + `ssl.generateCerts` | `websecure` | `<release>-ssl-cert` | `https://` |
+| TLS terminated in front of Plane | `ssl.externalTermination: true` | `websecure` | — | `https://` |
+
+Only the `tls:` block requires a Secret this chart can actually see, which is why
+the last row emits none — the chart never names a Secret it does not create.
+
+#### Option 1 — No TLS, plain HTTP
+
+The default. Nothing to set; leave the `ssl` block alone and Plane is reachable at
+`http://<licenseDomain>`:
 
 ```yaml
-# Bring your own certificate...
+license:
+  licenseDomain: plane.example.com
+ingress:
+  ingressClass: traefik
+```
+
+Good for a quick trial, an air-gapped or internal network, or while you are still
+sorting out DNS and certificates. **Read the entrypoint caveat below before
+relying on it** — and terminate TLS somewhere before exposing Plane on the public
+internet.
+
+#### Option 2 — Bring your own certificate
+
+Create a `kubernetes.io/tls` Secret in the release namespace and name it:
+
+```bash
+kubectl create secret tls my-tls-secret \
+  --cert=fullchain.pem --key=privkey.pem -n plane-ns
+```
+
+```yaml
 ssl:
   tls_secret_name: my-tls-secret
+```
 
-# ...or have cert-manager mint one
+#### Option 3 — Let cert-manager issue the certificate
+
+Requires cert-manager in the cluster. **Both** flags are needed — `createIssuer`
+alone creates an Issuer but no Certificate, and the chart then treats the install
+as having no certificate at all:
+
+```yaml
 ssl:
   createIssuer: true
   generateCerts: true
-  issuer: http
+  issuer: http          # or cloudflare / digitalocean
   email: you@example.com
+  # token: <dns-provider-api-token>   # required for cloudflare / digitalocean
 ```
 
-Override the entrypoint names only if your Traefik installation renamed the
-defaults, or if you want to serve both schemes at once:
+The Certificate is written to `<release-name>-ssl-cert` and the `IngressRoute`
+references it.
+
+#### Option 4 — TLS terminated in front of Plane
+
+Use this when something ahead of Plane already terminates TLS and this chart
+manages no certificate: a cloud load balancer, Cloudflare, a service mesh, or a
+Traefik entrypoint carrying its own certificate (`websecure.http.tls=true`).
+
+```yaml
+ssl:
+  externalTermination: true
+```
+
+The `IngressRoute` binds to `websecure` and all app URLs are rendered `https://`,
+but no `tls:` block is emitted — Traefik serves whatever certificate its
+entrypoint is configured with.
+
+Leave it `false` if you set `ssl.tls_secret_name` or `ssl.generateCerts`; those
+already imply HTTPS. Use it *only* for TLS this chart cannot see. Without it, such
+an install would advertise `http://` URLs to itself while being served over HTTPS,
+breaking OAuth callbacks and export download links.
+
+#### Overriding the entrypoint names
+
+Only needed if your Traefik installation renamed the default `web` / `websecure`
+entrypoints, or you want to serve both schemes at once:
 
 ```yaml
 ingress:
   traefik:
-    entryPoints: ['websecure', 'web']
+    entryPoints: ['websecure', 'web']   # a bare string also works
 ```
 
-> Plain HTTP is fine for a quick trial or an internal network. Terminate TLS
-> somewhere before exposing Plane on the public internet.
+Leave it empty (the default) to derive the entrypoint from the table above. This
+setting controls the entrypoint *only* — whether a `tls:` block is emitted still
+follows your `ssl.*` configuration.
 
-**Check your Traefik entrypoints before relying on the HTTP default.** Many
-installations redirect `web` to HTTPS in Traefik's own static config:
+#### Caveat: check your Traefik entrypoints before relying on plain HTTP
+
+Many Traefik installations redirect `web` to HTTPS in Traefik's own static
+configuration:
 
 ```
 --entryPoints.web.http.redirections.entryPoint.to=:443
@@ -139,36 +211,32 @@ installations redirect `web` to HTTPS in Traefik's own static config:
 --entryPoints.websecure.http.tls=true
 ```
 
-On such a cluster every plain-HTTP request is answered with a permanent redirect
-before it ever reaches a route, so the `web` entrypoint cannot serve Plane. Either
-drop the redirection, or use `ssl.externalTermination` below.
+Check yours with:
 
-### TLS terminated outside the chart
+```bash
+kubectl get deploy -n traefik <traefik-deployment> \
+  -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n' | grep -i redirect
+```
 
-Set `ssl.externalTermination: true` when something in front of Plane terminates
-TLS and this chart manages no certificate — a cloud load balancer, Cloudflare, a
-service mesh, or a Traefik entrypoint carrying its own certificate:
+If the redirection is present, every plain-HTTP request is answered with a
+permanent redirect *before* it reaches a route, so Option 1 cannot serve Plane on
+that cluster. Either drop the redirection, or use Option 2/3/4.
+
+#### Upgrading from 3.2.1 or earlier
+
+If you configure TLS through `ssl.tls_secret_name` or `ssl.generateCerts` +
+`ssl.createIssuer`, the rendered ingress is unchanged and no action is needed.
+
+One case needs a value added. Earlier releases always bound the Traefik
+`IngressRoute` to `websecure` and always emitted a `tls:` block, even when no
+certificate was configured — pointing at a `<release>-ssl-cert` Secret that was
+never created, so Traefik fell back to its built-in self-signed certificate. If
+you relied on that, or on TLS terminated at Traefik itself, adopt Option 4:
 
 ```yaml
 ssl:
   externalTermination: true
 ```
-
-The `IngressRoute` then binds to `websecure` and every self-referential URL given
-to the app (`APP_BASE_URL`, `PLANE_FRONTEND_URL`, `PLANE_OAUTH_REDIRECT_URI`,
-`EXPORT_DOWNLOAD_BASE_URL`, …) is rendered `https://`. No `tls:` block is emitted,
-because there is no Secret for the chart to reference — Traefik serves whatever
-certificate its entrypoint is configured with.
-
-Leave it `false` if you set `ssl.tls_secret_name` or `ssl.generateCerts`; those
-already imply HTTPS. Use it only for TLS this chart cannot see.
-
-| `ssl` configuration | Traefik entrypoint | `tls:` block | App URL scheme |
-| --- | --- | --- | --- |
-| nothing set | `web` | — | `http://` |
-| `tls_secret_name` | `websecure` | your Secret | `https://` |
-| `generateCerts` + `createIssuer` | `websecure` | `<release>-ssl-cert` | `https://` |
-| `externalTermination: true` | `websecure` | — | `https://` |
 
 ## Installing Plane
 
@@ -949,6 +1017,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
 | ingress.ingressClass        |                           nginx                           |   Yes    | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.                                                                                                                                                                                               |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
+| ingress.traefik.entryPoints |                           `[]`                            |          | Traefik entrypoints the `IngressRoute` binds to. Leave empty to derive them from your `ssl.*` settings (`websecure` when TLS is configured, otherwise `web`). Set explicitly only if your Traefik renamed the default entrypoints, e.g. `['websecure','web']`. Ignored unless `ingressClass` starts with `traefik` |
+| ingress.traefik.maxRequestBodyBytes |                    20971520                     |          | Max request body size in bytes for Traefik's buffering middleware (upload size limit). Ignored unless `ingressClass` starts with `traefik` |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -956,6 +1026,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ssl.email                   |                    <plane@example.com>                    |          | Certificate generation authority needs a valid email id before generating certificate. Required when `ssl.createIssuer=true`                                                                                                                                                                                                                                                                                              |
 | ssl.generateCerts           |                           false                           |          | After creating the issuers, user can still not create the certificate untill sure of configuration. Setting this to `true` will try to generate SSL certificate and associate with ingress. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=true`                                                                                                                                                       |
 | ssl.tls_secret_name         |                                                           |          | If you have a custom TLS secret name, set this to the name of the secret. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=false`                                                                                                                                                                                                                                                                        |
+| ssl.externalTermination     |                           false                           |          | Set to `true` when TLS is terminated in front of Plane and this chart manages no certificate (cloud load balancer, Cloudflare, service mesh, or a Traefik entrypoint carrying its own cert). The Traefik `IngressRoute` binds to `websecure` and all app URLs are rendered `https://`, but no `tls:` block is emitted. Leave `false` if you set `ssl.tls_secret_name` or `ssl.generateCerts`. See [TLS options](#tls-options-choosing-how-https-is-handled) |
 
 ### Common Environment Settings
 
