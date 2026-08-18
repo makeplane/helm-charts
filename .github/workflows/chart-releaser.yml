@@ -110,6 +110,11 @@ jobs:
           echo "MARK_AS_PRERELASE=true" >> $GITHUB_ENV
           echo "PAGES_INDEX_PATH=${flatBranchName}" >> $GITHUB_ENV
 
+      - name: Add Helm repos
+        run: |
+          helm repo add valkey https://valkey.io/valkey-helm/
+          helm repo update
+
       - name: Update chart dependencies
         run: |
           for chart in charts/*/; do
