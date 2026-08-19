@@ -31,6 +31,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi) }}
 spec:
   replicas: {{ .Values.services.pi.replicas | default 1 }}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
@@ -40,8 +41,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi }}
       {{- include "plane.podSecurityContext" . }}
@@ -76,6 +78,8 @@ spec:
 
             exec ./bin/entrypoint-api.sh
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.aiProvidersSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-pi-api-vars
               optional: false
@@ -89,10 +93,13 @@ spec:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.piInfraCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.piInfraCredsEnv" .) }}
+{{ trim . | indent 10 }}
           {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "pi-api")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
@@ -108,8 +115,8 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 
 ---
 {{- end }}

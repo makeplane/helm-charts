@@ -7,37 +7,73 @@ metadata:
   name: {{ .Release.Name }}-doc-store-secrets
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
-stringData:
-  FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "20971520" | quote }}
-  AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
-  STORAGE_PROVIDER: {{ .Values.env.storage_provider | default "S3" | upper | quote }}
+{{/* `data` with b64enc, not `stringData`. This is the one Secret in the chart whose key
+     SET changes between valid configurations — bundled MinIO renders MINIO_ROOT_USER,
+     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_ENDPOINT_URL, and external
+     storage renders none of them. Helm cannot remove a key it stops rendering when the
+     manifest writes `stringData` and the live object stores `data`: the three-way merge
+     patches stringData, the API server keeps data, and the old key survives the upgrade.
+     For this Secret that is not cosmetic — a leftover AWS_ACCESS_KEY_ID is found first in
+     boto3's credential chain and shadows the pod's IAM identity, so every S3 call fails
+     with InvalidClientTokenId while the configuration looks correct. Writing `data`
+     directly makes the removal a real deletion.
+     One-time note for releases upgrading FROM a chart version that used stringData: the
+     already-stale keys still have to go once, with
+       kubectl delete secret <release>-doc-store-secrets
+     followed by `helm upgrade`, which recreates it. Afterwards this never recurs. */}}
+data:
+  FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "20971520" | toString | b64enc | quote }}
+  AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | toString | b64enc | quote }}
+  STORAGE_PROVIDER: {{ .Values.env.storage_provider | default "S3" | upper | b64enc | quote }}
   {{- if eq (.Values.env.storage_provider | default "S3" | upper) "GCS" }}
   # Google Cloud Storage (GCS) native mode. Browser uploads are proxied through
   # the API (set env.use_storage_proxy=true), so the bucket needs no CORS config.
-  USE_MINIO: "0"
-  GCS_BUCKET_NAME: {{ .Values.env.gcs_bucket_name | default .Values.env.docstore_bucket | default "" | quote }}
+  USE_MINIO: {{ "0" | b64enc | quote }}
+  GCS_BUCKET_NAME: {{ .Values.env.gcs_bucket_name | default .Values.env.docstore_bucket | default "" | toString | b64enc | quote }}
   {{- with .Values.env.gcs_project_id }}
-  GCS_PROJECT_ID: {{ . | quote }}
+  GCS_PROJECT_ID: {{ . | b64enc | quote }}
   {{- end }}
   {{- with .Values.env.gcs_credentials_path }}
-  GCS_CREDENTIALS_PATH: {{ . | quote }}
+  GCS_CREDENTIALS_PATH: {{ . | b64enc | quote }}
   {{- end }}
+  {{- if not (include "plane.externalStorage" .) }}
   {{- with .Values.env.gcs_credentials_json }}
-  GCS_CREDENTIALS_JSON: {{ . | quote }}
+  GCS_CREDENTIALS_JSON: {{ . | b64enc | quote }}
+  {{- end }}
   {{- end }}
   {{- else if .Values.services.minio.local_setup }}
-  USE_MINIO: "1"
-  MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | quote }}
-  MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | quote}}
-  AWS_ACCESS_KEY_ID: {{ .Values.services.minio.root_user | default "admin" | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.services.minio.root_password | default "password" | quote  }}
-  AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000
+  USE_MINIO: {{ "1" | b64enc | quote }}
+  MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | b64enc | quote }}
+  MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | b64enc | quote }}
+  AWS_ACCESS_KEY_ID: {{ .Values.services.minio.root_user | default "admin" | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ .Values.services.minio.root_password | default "password" | b64enc | quote }}
+  AWS_S3_ENDPOINT_URL: {{ printf "http://%s-minio.%s.svc.%s:9000" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") | b64enc | quote }}
   {{- else }}
-  USE_MINIO: "0"
-  AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | quote  }}
-  AWS_REGION: {{ .Values.env.aws_region | default "" | quote  }}
-  AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
+  USE_MINIO: {{ "0" | b64enc | quote }}
+  {{/* Static access keys are rendered only when supplied. Leaving them unset is the
+       preferred configuration on a cloud: boto3 then walks its default credential
+       chain and picks up the pod's identity (IRSA, EKS Pod Identity, GKE/Azure
+       Workload Identity) — see serviceAccount.annotations in values.yaml. An empty
+       AWS_ACCESS_KEY_ID would derail that chain, so the key is omitted rather than
+       rendered blank. */}}
+  {{- with .Values.env.aws_access_key }}
+  AWS_ACCESS_KEY_ID: {{ . | b64enc | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_secret_access_key }}
+  AWS_SECRET_ACCESS_KEY: {{ . | b64enc | quote }}
+  {{- end }}
+  {{/* Also omitted rather than blank, for a subtler reason than the keys above. When a
+       pod identity is attached and OpenSearch has no basic auth, the API signs its
+       OpenSearch requests with SigV4 — and it reads the region as
+       os.environ.get("AWS_REGION") or a default. An empty string is *present*, so the
+       default never applies and every signed request goes out with an empty region and
+       is rejected. Absent is the only safe representation of "unset". */}}
+  {{- with .Values.env.aws_region }}
+  AWS_REGION: {{ . | b64enc | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_s3_endpoint_url }}
+  AWS_S3_ENDPOINT_URL: {{ . | b64enc | quote }}
+  {{- end }}
   {{- end }}
 {{- end }}
 ---
