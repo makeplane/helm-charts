@@ -18,6 +18,15 @@ ingress:
   # Traefik-specific options (only used when ingressClass starts with "traefik")
   traefik:
     maxRequestBodyBytes: 20971520   # in bytes (default: 20 MiB)
+    # Traefik entrypoints the IngressRoutes attach to. Leave empty to derive them
+    # from your SSL settings, which is what you want in almost every case:
+    #   - TLS configured (ssl.tls_secret_name, or generateCerts + createIssuer,
+    #     or externalTermination) -> ['websecure']
+    #   - No TLS configured -> ['web'], plain HTTP, and NO `tls:` block. Use this
+    #     to reach Plane over http:// while you are still sorting out DNS/certs.
+    # Set explicitly only if your Traefik install renamed the default entrypoints,
+    # e.g. entryPoints: ["websecure", "web"] or ["https"].
+    entryPoints: []
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
@@ -30,6 +39,16 @@ ssl:
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
   generateCerts: false
+  # Set true when TLS is terminated IN FRONT of Plane and this chart manages no
+  # certificate of its own -- a cloud load balancer, Cloudflare, a service mesh,
+  # or a Traefik entrypoint that carries its own cert (websecure.http.tls=true).
+  #
+  # The Traefik IngressRoutes then bind to the websecure entrypoint, but NO `tls:`
+  # block is emitted, because there is no Secret for this chart to reference.
+  #
+  # Leave false if you set tls_secret_name or generateCerts -- those already
+  # imply https. This is only for TLS this chart cannot see.
+  externalTermination: false
 
 redis:
   local_setup: true

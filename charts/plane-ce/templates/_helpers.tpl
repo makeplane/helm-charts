@@ -56,3 +56,62 @@ Call with a dict carrying the root context and the component values:
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+{{/*
+Returns "true" when THIS CHART has a TLS Secret to point an ingress at: either
+the user supplied one via ssl.tls_secret_name, or cert-manager is set up to mint
+one (ssl.generateCerts + ssl.createIssuer, which is what gates
+templates/certs/certs.yaml).
+
+Gates the `tls:` blocks. Never widen this to cover externally-terminated TLS --
+referencing a Secret that nothing creates is the bug this helper exists to stop.
+*/}}
+{{- define "plane.chartManagedCert" -}}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.generateCerts .Values.ssl.createIssuer) -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when users reach Plane over https://, whoever terminates it.
+
+That is either a chart-managed certificate, or ssl.externalTermination for TLS
+handled in front of Plane -- a cloud load balancer, Cloudflare, a service mesh,
+or a Traefik entrypoint with its own certificate (`websecure.http.tls=true`).
+The chart owns no Secret in that second case, so this must NOT be used to emit a
+`tls:` block; use plane.chartManagedCert for that.
+*/}}
+{{- define "plane.tlsEnabled" -}}
+  {{- if or (eq (include "plane.chartManagedCert" .) "true") .Values.ssl.externalTermination -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Traefik entrypoint names for the IngressRoutes.
+
+Honours an explicit ingress.traefik.entryPoints override (some clusters rename
+the defaults); otherwise derives them from whether TLS is configured, so an
+install with SSL left off is reachable over plain HTTP instead of serving
+Traefik's fallback self-signed certificate.
+
+An empty value is the "derive it" sentinel, never a literal empty list -- the
+CRD requires at least one entrypoint. A bare string is accepted and wrapped into
+a single-item list, since `--set ingress.traefik.entryPoints=websecure` yields a
+scalar and would otherwise render a list-less mapping the CRD rejects.
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.traefikEntryPoints" -}}
+  {{- with .Values.ingress.traefik.entryPoints -}}
+    {{- if kindIs "string" . -}}
+      {{- toYaml (list .) -}}
+    {{- else -}}
+      {{- toYaml . -}}
+    {{- end -}}
+  {{- else -}}
+    {{- if eq (include "plane.tlsEnabled" $) "true" -}}
+- websecure
+    {{- else -}}
+- web
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
