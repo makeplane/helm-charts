@@ -242,3 +242,53 @@ Caller must nindent to the correct depth.
   value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
 {{- end -}}
+
+{{/*
+OpenTelemetry — returns "true" when observability.otel.enabled is set, else "".
+*/}}
+{{- define "plane.otel.enabled" -}}
+{{- if and .Values.observability .Values.observability.otel .Values.observability.otel.enabled -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when the OTLP exporter headers are sourced from a Secret — either
+because observability.otel.headers is set (chart-managed Secret) or because an
+existing Secret was supplied. Empty otherwise, so no secretRef is emitted for a
+deployment that needs no ingestion credentials.
+*/}}
+{{- define "plane.otel.secretEnabled" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+{{- if or .Values.observability.otel.headers .Values.external_secrets.otel_env_existingSecret -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+envFrom entries for the shared OTEL ConfigMap (+ the OTLP headers Secret, when
+one is in play). Call with the root context and nindent to the envFrom list
+depth, e.g.
+  {{- include "plane.otel.envFrom" $ | nindent 10 }}
+*/}}
+{{- define "plane.otel.envFrom" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+- configMapRef:
+    name: {{ .Release.Name }}-otel-vars
+    optional: false
+{{- if eq (include "plane.otel.secretEnabled" .) "true" }}
+- secretRef:
+    name: {{ if not (empty .Values.external_secrets.otel_env_existingSecret) }}{{ .Values.external_secrets.otel_env_existingSecret }}{{ else }}{{ .Release.Name }}-otel-secrets{{ end }}
+    optional: false
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Per-workload OTEL_SERVICE_NAME (overrides the shared ConfigMap so each workload
+reports its own service.name). Call with a dict and nindent, e.g.
+  {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "api") | nindent 10 }}
+*/}}
+{{- define "plane.otel.serviceEnv" -}}
+{{- if eq (include "plane.otel.enabled" .ctx) "true" -}}
+- name: OTEL_SERVICE_NAME
+  value: {{ .service | quote }}
+{{- end -}}
+{{- end -}}
