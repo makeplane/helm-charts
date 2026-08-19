@@ -15,6 +15,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-beat-worker
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -34,6 +35,7 @@ spec:
         command:
           - ./bin/docker-entrypoint-beat.sh
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
@@ -44,7 +46,11 @@ spec:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
           
+        {{- with (include "plane.storageCredsEnv" .) }}
+        env:
+{{ trim . | indent 10 }}
+        {{- end }}
       {{- include "plane.podScheduling" .Values.beatworker }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---

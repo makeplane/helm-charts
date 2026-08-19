@@ -37,6 +37,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       containers:
       - image: {{ .Values.postgres.image }}
@@ -55,8 +56,8 @@ spec:
           name: pvc-{{ .Release.Name }}-pgdb-vol
           subPath: ''
       {{- include "plane.podScheduling" .Values.postgres }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim

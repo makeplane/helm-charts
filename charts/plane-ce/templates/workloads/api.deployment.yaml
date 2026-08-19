@@ -38,6 +38,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -57,6 +58,7 @@ spec:
         command:
           - ./bin/docker-entrypoint-api.sh
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
@@ -66,6 +68,10 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+        {{- with (include "plane.storageCredsEnv" .) }}
+        env:
+{{ trim . | indent 10 }}
+        {{- end }}
         readinessProbe:
           failureThreshold: 30
           httpGet:
@@ -77,6 +83,6 @@ spec:
           timeoutSeconds: 1
 
       {{- include "plane.podScheduling" .Values.api }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---

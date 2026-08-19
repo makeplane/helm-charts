@@ -38,6 +38,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -55,6 +56,7 @@ spec:
             memory: {{ .Values.live.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.live.cpuLimit | default "500m" | quote}}
         envFrom:
+          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
               optional: false
@@ -62,6 +64,6 @@ spec:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
       {{- include "plane.podScheduling" .Values.live }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
