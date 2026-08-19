@@ -1071,6 +1071,20 @@ env:
 
 # Global extra environment variables that will be applied to all workloads
 extraEnv: []
+
+# Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
+# things that let an environment hold no credentials — an ESO SecretStore and the
+# ExternalSecrets producing the Secrets referenced by external_secrets.* above — which
+# belong to the operator rather than to this chart, but have nowhere to live when a GitOps
+# tool treats one directory as one unit.
+#
+# Passed through verbatim (toYaml, not tpl) so that ESO's own {{ }} placeholders inside a
+# target.template survive. Add the standard Helm hook annotations to have an object applied
+# BEFORE the workloads; the Secret references in this chart are optional: false, so a pod
+# that starts before its Secret exists waits in CreateContainerConfigError until it appears.
+#
+# See the "Keeping credentials out of values.yaml" section of the README for a worked example.
+extraObjects: []
   # - name: HTTP_PROXY
   #   value: "http://proxy.example.com:8080"
   # - name: HTTPS_PROXY
