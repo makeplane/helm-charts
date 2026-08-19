@@ -52,7 +52,13 @@ data:
   MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
   API_KEY_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "60/minute" | quote }}
 
-  {{- if .Values.ingress.appHost }}
+  {{- /* Prefer explicit env.web_url. Otherwise use https when TLS is configured
+       (tls_secret_name or cert-manager generated certs), matching plane-enterprise. */}}
+  {{- if .Values.env.web_url }}
+  WEB_URL: {{ .Values.env.web_url | quote }}
+  {{- else if and .Values.ingress.appHost (or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) (hasPrefix "traefik" (.Values.ingress.ingressClass | default ""))) }}
+  WEB_URL: "https://{{ .Values.ingress.appHost }}"
+  {{- else if .Values.ingress.appHost }}
   WEB_URL: "http://{{ .Values.ingress.appHost }}"
   {{- else }}
   WEB_URL: ""
