@@ -101,10 +101,16 @@ spec:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.redisCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.redisCredsEnv" .) (include "plane.rabbitmqCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
 {{ . | indent 10 }}
+          {{- end }}
+          {{/* live reads the broker as discrete parts from the release that added
+               composeAmqpUrlFromParts(); before that it read only AMQP_URL, so the mirror
+               reached every service except this one and only exports failed. */}}
+          {{- with (include "plane.rabbitmqCredsEnv" .) }}
+{{ trim . | indent 10 }}
           {{- end }}
           {{- with (include "plane.redisCredsEnv" .) }}
 {{ trim . | indent 10 }}

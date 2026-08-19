@@ -32,7 +32,7 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
        DSN into live-secrets and live is then left with no broker. Not fatal — live boots
        and only exports fail, lazily — but it fails quietly, which is worse. */}}
 {{- if and .Values.external_secrets.rabbitmq.secretName (empty .Values.external_secrets.live_env_existingSecret) }}
-{{- $warnings = append $warnings "The RabbitMQ mirror does not reach live. live reads only AMQP_URL and has no\n    broker parts, so with external_secrets.rabbitmq.secretName set its export queue is\n    unconfigured: live still serves collaborative editing, but exports fail. Supply\n    external_secrets.live_env_existingSecret with a templated AMQP_URL, or keep the\n    broker credential in services.rabbitmq.external_rabbitmq_url until live learns parts." }}
+{{- $warnings = append $warnings "The RabbitMQ mirror reaches live only from the app release that added discrete\n    broker parts to it. Before that, live read only AMQP_URL, so with\n    external_secrets.rabbitmq.secretName set its export queue is unconfigured — live still\n    serves collaborative editing and only exports fail, which is easy to miss. On an older\n    planeVersion, supply external_secrets.live_env_existingSecret with a templated AMQP_URL,\n    or keep the broker credential in services.rabbitmq.external_rabbitmq_url." }}
 {{- end }}
 
 {{- /*

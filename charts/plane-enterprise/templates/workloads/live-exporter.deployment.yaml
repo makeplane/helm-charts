@@ -48,6 +48,16 @@ spec:
         env:
           - name: LIVE_MODE
             value: "exporter"
+          {{/* The export worker is the whole reason the broker credential matters here, and it
+               had no credential helper at all — it inherited whatever AMQP_URL the live Secret
+               carried, which the mirror blanks on purpose. Redis comes too: the exporter shares
+               live's RedisManager for job state. */}}
+          {{- with (include "plane.rabbitmqCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.redisCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live-exporter")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
