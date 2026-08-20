@@ -94,11 +94,12 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 ### TLS options: choosing how HTTPS is handled
 
-TLS is **optional**. From your `ssl.*` settings the chart derives two things at
-once, so they can never disagree:
+TLS is **optional**. Your `ssl.*` settings drive two *separate* derivations —
+separate because "users are on HTTPS" and "this chart holds the certificate" are
+different facts:
 
-1. which Traefik entrypoint the `IngressRoute` binds to, and whether a `tls:`
-   block is emitted;
+1. whether a `tls:` block is emitted, and which Traefik entrypoint the
+   `IngressRoute` binds to — both from whether **this chart** terminates TLS;
 2. the scheme of every URL Plane is told about itself — `WEB_URL`,
    `APP_BASE_URL`, `PI_BASE_URL`, `PLANE_FRONTEND_URL`, `PLANE_API_HOST`,
    `PLANE_OAUTH_REDIRECT_URI`, `SILO_API_BASE_URL`, `EXPORT_DOWNLOAD_BASE_URL`.
@@ -111,10 +112,17 @@ Find the row that matches your environment:
 | No certificate yet — trial, internal network | *nothing* (default) | `web` | — | `http://` |
 | You already hold a TLS Secret | `ssl.tls_secret_name` | `websecure` | your Secret | `https://` |
 | Let cert-manager issue one | `ssl.createIssuer` + `ssl.generateCerts` | `websecure` | `<release>-ssl-cert` | `https://` |
-| TLS terminated in front of Plane | `ssl.externalTermination: true` | `websecure` | — | `https://` |
+| TLS terminated upstream (ALB, NLB TLS listener, Cloudflare) | `ssl.externalTermination: true` | `web` | — | `https://` |
+| TLS terminated by Traefik's own entrypoint | `ssl.externalTermination: true` + `ingress.traefik.entryPoints: ['websecure']` | `websecure` | — | `https://` |
 
 Only the `tls:` block requires a Secret this chart can actually see, which is why
-the last row emits none — the chart never names a Secret it does not create.
+the last two rows emit none — the chart never names a Secret it does not create.
+
+Note the last two rows share a scheme but need **opposite entrypoints**: an
+upstream terminator forwards cleartext, which arrives on `web`, whereas a Traefik
+entrypoint carrying its own certificate serves TLS on `websecure`. That is why
+`ssl.externalTermination` sets the URL scheme only and never moves the
+entrypoint.
 
 #### Option 1 — No TLS, plain HTTP
 
@@ -168,22 +176,40 @@ references it.
 #### Option 4 — TLS terminated in front of Plane
 
 Use this when something ahead of Plane already terminates TLS and this chart
-manages no certificate: a cloud load balancer, Cloudflare, a service mesh, or a
-Traefik entrypoint carrying its own certificate (`websecure.http.tls=true`).
+manages no certificate. `ssl.externalTermination` renders every app URL
+`https://` and emits no `tls:` block. It does **not** move the entrypoint, so
+pick the sub-case that matches where TLS actually ends.
+
+**4a — an upstream terminator forwards cleartext** (ALB with an ACM cert, NLB
+with a TLS listener, Cloudflare, most service meshes). Traffic reaches Traefik as
+plain HTTP, so the route stays on `web` — the default:
 
 ```yaml
 ssl:
   externalTermination: true
 ```
 
-The `IngressRoute` binds to `websecure` and all app URLs are rendered `https://`,
-but no `tls:` block is emitted — Traefik serves whatever certificate its
-entrypoint is configured with.
+**4b — Traefik's own entrypoint terminates TLS** (`websecure.http.tls=true`, an
+ACME `certResolver`, or a default `TLSStore`). Traffic reaches Traefik as TLS, so
+the route must bind `websecure` as well:
 
-Leave it `false` if you set `ssl.tls_secret_name` or `ssl.generateCerts`; those
-already imply HTTPS. Use it *only* for TLS this chart cannot see. Without it, such
-an install would advertise `http://` URLs to itself while being served over HTTPS,
-breaking OAuth callbacks and export download links.
+```yaml
+ssl:
+  externalTermination: true
+ingress:
+  traefik:
+    entryPoints: ['websecure']
+```
+
+Getting the sub-case wrong is a routing failure, not a certificate failure: a
+route bound only to `websecure` never matches cleartext arriving on `web`, so
+requests 404 instead of reaching Plane.
+
+Leave `externalTermination` `false` if you set `ssl.tls_secret_name` or
+`ssl.generateCerts`; those already imply HTTPS. Use it *only* for TLS this chart
+cannot see. Without it, such an install would advertise `http://` URLs to itself
+while being served over HTTPS, breaking OAuth callbacks and export download
+links.
 
 #### Overriding the entrypoint names
 
@@ -198,14 +224,15 @@ ingress:
 
 Leave it empty (the default) to derive the entrypoint from the table above. This
 setting controls the entrypoint *only* — whether a `tls:` block is emitted still
-follows your `ssl.*` configuration.
+follows your `ssl.*` configuration. It is also how you select `websecure` for
+option 4b, where TLS ends at Traefik itself.
 
 #### Caveat: check your Traefik entrypoints before relying on plain HTTP
 
 Many Traefik installations redirect `web` to HTTPS in Traefik's own static
 configuration:
 
-```
+```text
 --entryPoints.web.http.redirections.entryPoint.to=:443
 --entryPoints.web.http.redirections.entryPoint.scheme=https
 --entryPoints.websecure.http.tls=true
@@ -231,11 +258,15 @@ One case needs a value added. Earlier releases always bound the Traefik
 `IngressRoute` to `websecure` and always emitted a `tls:` block, even when no
 certificate was configured — pointing at a `<release>-ssl-cert` Secret that was
 never created, so Traefik fell back to its built-in self-signed certificate. If
-you relied on that, or on TLS terminated at Traefik itself, adopt Option 4:
+you relied on that, or on TLS terminated at Traefik itself, adopt Option 4b —
+both settings, since `externalTermination` alone leaves the route on `web`:
 
 ```yaml
 ssl:
   externalTermination: true
+ingress:
+  traefik:
+    entryPoints: ['websecure']
 ```
 
 ## Installing Plane

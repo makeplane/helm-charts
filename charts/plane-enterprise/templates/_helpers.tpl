@@ -317,9 +317,16 @@ or a Traefik entrypoint with its own certificate (`websecure.http.tls=true`).
 The chart owns no Secret in that second case, so this must NOT be used to emit a
 `tls:` block; use plane.chartManagedCert for that.
 
-Drives the ingress entrypoint and the scheme of every self-referential URL
-handed to the app (APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
-EXPORT_DOWNLOAD_BASE_URL, ...), so the two can never disagree.
+Drives ONLY the scheme of every self-referential URL handed to the app
+(APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
+EXPORT_DOWNLOAD_BASE_URL, ...).
+
+Deliberately NOT the Traefik entrypoint. "Users are on https" says nothing about
+which entrypoint traffic arrives on: an upstream terminator (ALB, NLB TLS
+listener, Cloudflare) forwards cleartext, which lands on `web`, while a Traefik
+entrypoint carrying its own certificate lands on `websecure`. Those need
+opposite entrypoints from the same value, so the entrypoint derives from
+plane.chartManagedCert instead and ingress.traefik.entryPoints overrides it.
 */}}
 {{- define "plane.tlsEnabled" -}}
   {{- if or (eq (include "plane.chartManagedCert" .) "true") .Values.ssl.externalTermination -}}
@@ -331,9 +338,14 @@ EXPORT_DOWNLOAD_BASE_URL, ...), so the two can never disagree.
 Traefik entrypoint names for the IngressRoute.
 
 Honours an explicit ingress.traefik.entryPoints override (some clusters rename
-the defaults); otherwise derives them from whether TLS is configured, so an
-install with SSL left off is reachable over plain HTTP instead of serving
-Traefik's fallback self-signed certificate.
+the defaults, and it is the way to select `websecure` when Traefik's own
+entrypoint terminates TLS); otherwise derives them from whether THIS CHART
+terminates TLS, so an install with SSL left off is reachable over plain HTTP
+instead of serving Traefik's fallback self-signed certificate.
+
+Keyed on plane.chartManagedCert, NOT plane.tlsEnabled: with TLS terminated
+upstream the chart must still bind `web`, because the terminator forwards
+cleartext and a route attached only to `websecure` would never match it.
 
 An empty value is the "derive it" sentinel, never a literal empty list -- the
 CRD requires at least one entrypoint. A bare string is accepted and wrapped into
@@ -349,7 +361,7 @@ Caller must nindent to the correct depth.
       {{- toYaml . -}}
     {{- end -}}
   {{- else -}}
-    {{- if eq (include "plane.tlsEnabled" $) "true" -}}
+    {{- if eq (include "plane.chartManagedCert" $) "true" -}}
 - websecure
     {{- else -}}
 - web

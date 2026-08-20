@@ -72,11 +72,17 @@ ssl:
   # certificate of its own -- a cloud load balancer, Cloudflare, a service mesh,
   # or a Traefik entrypoint that carries its own cert (websecure.http.tls=true).
   #
-  # The chart then treats traffic as https://: the Traefik IngressRoute binds to
-  # the websecure entrypoint and every self-referential URL handed to the app
+  # The chart then renders every self-referential URL handed to the app
   # (APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
-  # EXPORT_DOWNLOAD_BASE_URL, ...) is rendered with an https:// scheme. No `tls:`
-  # block is emitted, because there is no Secret for this chart to reference.
+  # EXPORT_DOWNLOAD_BASE_URL, ...) with an https:// scheme. No `tls:` block is
+  # emitted, because there is no Secret for this chart to reference.
+  #
+  # This does NOT change the Traefik entrypoint. An upstream terminator (ALB,
+  # NLB TLS listener, Cloudflare) forwards cleartext, which arrives on `web` --
+  # the default. If TLS is instead terminated by Traefik's own entrypoint
+  # (websecure.http.tls=true), also set:
+  #   ingress.traefik.entryPoints: ['websecure']
+  # otherwise the route binds `web` and never matches the TLS traffic.
   #
   # Leave false if you set tls_secret_name or generateCerts -- those already
   # imply https. This is only for TLS this chart cannot see.
