@@ -100,7 +100,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: init
-          image: {{ .Values.services.minio.image_busybox | default "busybox" }}
+          image: {{ .Values.services.minio.init_image | default "busybox" }}
           command: ['sh', '-c', "until nslookup  {{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}; do echo waiting for  {{ .Release.Name }}-minio; sleep 2; done"]
       containers:
         - name: {{ .Release.Name }}-minio-bucket
