@@ -712,7 +712,7 @@ questions:
   - variable: services.worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 512Mi
+    default: 1Gi
   - variable: services.worker.cpuRequest
     label: "CPU Request"
     type: string
@@ -753,7 +753,7 @@ questions:
   - variable: services.beatworker.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2Gi
   - variable: services.beatworker.cpuLimit
     label: "CPU Limit"
     type: string
@@ -761,7 +761,7 @@ questions:
   - variable: services.beatworker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 256Mi
+    default: 512Mi
   - variable: services.beatworker.cpuRequest
     label: "CPU Request"
     type: string
