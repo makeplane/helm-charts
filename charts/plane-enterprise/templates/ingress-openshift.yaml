@@ -31,6 +31,15 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- $name := .Release.Name }}
 {{- $oc := .Values.ingress.openshift | default dict }}
 
+{{/* Every Route below carries a spec.path, and OpenShift rejects a Route that
+     combines a path with passthrough termination -- the router cannot inspect
+     the URL of a connection it never decrypts. Caught here rather than at
+     admission, so a bad value fails the render instead of half-applying. */}}
+{{- $termination := $oc.termination | default "edge" }}
+{{- if not (has $termination (list "edge" "reencrypt")) }}
+{{- fail (printf "ingress.openshift.termination must be \"edge\" or \"reencrypt\", got %q. Path-based Routes cannot use passthrough termination; see charts/plane-enterprise/README.md." $termination) }}
+{{- end }}
+
 {{/* Same path -> service mapping as templates/ingress.yaml, most specific first
      (ordering is cosmetic here, kept aligned so the two are easy to diff). */}}
 {{- $routes := list
@@ -95,7 +104,7 @@ spec:
   port:
     targetPort: {{ $r.port }}
   tls:
-    termination: {{ $oc.termination | default "edge" }}
+    termination: {{ $termination }}
     insecureEdgeTerminationPolicy: {{ $oc.insecureEdgeTerminationPolicy | default "Redirect" }}
     {{- if $oc.externalCertificate }}
     {{/* Serve a cert from a namespace Secret instead of the router's wildcard.

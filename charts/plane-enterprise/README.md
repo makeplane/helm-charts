@@ -55,7 +55,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
    ```yaml
    ingress:
-     ingressClass: "nginx"   # or whichever class your controller exposes
+     ingressClass: "nginx"   # supported: nginx | traefik* | openshift
    ```
 
 3. **Run `helm upgrade`**:
@@ -456,9 +456,17 @@ securityContext:
 OpenShift is the inverse case: it refuses to let you choose the UID at all. The
 `restricted-v2` SCC ignores the image's `USER`, assigns an arbitrary UID from the
 namespace's range, and places the process in group 0. It also validates the pod's
-own request with `MustRunAsRange` — so a manifest asking for a *specific*
-`runAsUser` or `fsGroup` outside that range is **rejected at admission**. Enabling
-the block above with its defaults means nothing schedules.
+own request, using a *different* strategy for each field:
+
+- **`runAsUser` — `MustRunAsRange`.** Must fall inside the namespace's
+  `openshift.io/sa.scc.uid-range` annotation.
+- **`fsGroup` — `MustRunAs`.** Must match the range or value derived from
+  `openshift.io/sa.scc.supplemental-groups`, falling back to the UID range when
+  that annotation is absent.
+
+Either way, a manifest naming a *specific* `runAsUser` or `fsGroup` outside what
+the namespace allows is **rejected at admission**, so enabling the block above
+with its defaults means nothing schedules.
 
 Keep the hardening and drop only the IDs. A `null` in a values file removes the key
 during Helm's coalescing, so the rendered `securityContext` keeps `runAsNonRoot`,
@@ -483,10 +491,24 @@ the bundled datastores off. Three things to know before you use it:
   ownership; they cannot run under an arbitrary UID and the chart deliberately does
   not apply the hardened context to them. Use managed services and leave
   `local_setup` off, or grant those ServiceAccounts a relaxed SCC.
-- **Upgrading an existing deployment is safe.** Moving a running install from the
-  pinned-uid-1000 posture to this one does not require a data migration: kubelet
-  re-applies `fsGroup` to PVC contents on mount, so data written by the old
-  deployment stays readable and writable by the new UID.
+- **Upgrading an existing deployment: verify before you rely on it.** Moving a
+  running install from the pinned-uid-1000 posture to this one *often* needs no
+  data migration, because kubelet re-applies `fsGroup` to volume contents on
+  mount — but that is not guaranteed, and a PVC left owned by uid/gid 1000 is
+  unwritable by the SCC-assigned identity. Whether it happens depends on the CSI
+  driver:
+  - `fsGroupPolicy: ReadWriteOnceWithFSType` (the default) only relabels
+    `ReadWriteOnce` volumes with a defined `fsType` — an **RWX** volume (NFS,
+    EFS, Azure Files) gets nothing.
+  - `fsGroupPolicy: None` disables it entirely.
+  - A driver advertising `VOLUME_MOUNT_GROUP` takes ownership over itself, and
+    both `fsGroupPolicy` and `fsGroupChangePolicy` are ignored.
+
+  Check yours with
+  `kubectl get csidriver <driver> -o jsonpath='{.spec.fsGroupPolicy}'`, and
+  rehearse the upgrade against a **snapshot or clone** of the real PVCs before
+  doing it in production. If ownership is not relabelled, `chown -R` the volume
+  to the namespace's assigned GID from a maintenance pod.
 
 ### Docker Registry
 
