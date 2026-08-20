@@ -891,6 +891,39 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
 
+### Observability (OpenTelemetry)
+
+Opt-in OpenTelemetry (traces, logs and metrics) for the backend services. Nothing is
+injected unless `observability.otel.enabled=true`.
+
+When enabled, the chart renders a shared `<release>-otel-vars` ConfigMap and mounts it
+via `envFrom` into `api`, `external-api`, `worker`, `worker-importers`, `beat-worker`,
+`automation-consumer`, `agent-consumer`, `webhook-consumer`, `outbox-poller`, `silo`,
+`live`, `live-exporter`, `space`, `pi-api`, `pi-beat` and `pi-worker`. Each workload also
+gets an inline `OTEL_SERVICE_NAME` so it reports its own `service.name`. `web` and
+`admin` are deliberately not wired — their only telemetry is browser tracing, which the
+API serves to browsers from its instance config via the `frontend.*` keys below.
+
+`observability.otel.headers` usually carries a collector ingestion credential, so it is
+rendered into a `<release>-otel-secrets` Secret rather than the ConfigMap. Set
+`external_secrets.otel_env_existingSecret` to supply `OTEL_EXPORTER_OTLP_HEADERS` from a
+Secret you manage yourself (External Secrets Operator, Vault, sealed-secrets, ...).
+
+| Setting                                |       Default        | Required | Description                                                                                                                                                                                                                                                     |
+| -------------------------------------- | :------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| observability.otel.enabled             |        false         |          | Master switch. When `false` no OTel ConfigMap, Secret or env var is rendered at all.                                                                                                                                                                            |
+| observability.otel.endpoint            |         `''`         |   Yes    | OTLP collector endpoint (required when enabled — the services skip OTel bootstrap without it). An `https://` endpoint uses secure gRPC.                                                                                                                          |
+| observability.otel.protocol            |        `grpc`        |          | OTLP transport: `grpc` or `http/protobuf`.                                                                                                                                                                                                                      |
+| observability.otel.headers             |         `''`         |          | Extra OTLP exporter headers as `k1=v1,k2=v2` (e.g. a collector ingestion key). Rendered into the `<release>-otel-secrets` Secret.                                                                                                                                |
+| observability.otel.environment         |         `''`         |          | Deployment environment tag (e.g. `prod`, `staging`). Emitted by every service as the `deployment.environment.name` resource attribute, so cross-service environment filtering lines up.                                                                          |
+| observability.otel.resourceAttributes  |         `''`         |          | Additional OTel resource attributes as `k1=v1,k2=v2`.                                                                                                                                                                                                           |
+| observability.otel.debugConsole        |        false         |          | Also print spans to stdout. Debug only.                                                                                                                                                                                                                         |
+| observability.otel.sampler             |     `always_on`      |          | Trace sampler. `always_on` exports every span the service sees and ignores an upstream `traceparent`'s sampling decision — use it for test/debug so browser-initiated POST traces aren't dropped. For production prefer `parentbased_traceidratio` with a ratio. |
+| observability.otel.samplerArg          |       `'1.0'`        |          | Sampling ratio (0.0–1.0) for the ratio-based samplers. Ignored by `always_on`.                                                                                                                                                                                  |
+| observability.otel.frontend.enabled    |        false         |          | Browser/client tracing for `web`, `admin` and `space`. Read only by the API, which serves it to browsers over its public instance endpoint. Takes effect only when `frontend.endpoint` is also set.                                                              |
+| observability.otel.frontend.endpoint   |         `''`         |          | Public OTLP/HTTP endpoint the browser posts to. Must be internet-reachable and CORS-enabled for the Plane web origin; the client appends `/v1/traces`.                                                                                                           |
+| observability.otel.frontend.headers    | `x-otlp-browser=1`   |          | Must be non-empty cross-origin: a header forces the browser exporter onto XHR instead of `navigator.sendBeacon`, which sends credentials and is rejected by CORS against a wildcard `Access-Control-Allow-Origin`. The value is arbitrary and public.            |
+
 ## External Secrets Config
 
 To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
@@ -957,6 +990,7 @@ To configure the external secrets for your application, you need to define speci
 |                          | `CUSTOM_LLM_API_KEY`   | required if `services.pi.ai_providers.custom_llm.enabled` is `true` | Custom LLM API key                       | `your_custom_llm_api_key`                                                                                                                                                                            |
 |                          | `BR_AWS_SECRET_ACCESS_KEY` | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | AWS secret for embedding model      | `your_aws_secret_access_key`                                                                                                                                                                         |
 |                          | `BR_AWS_SESSION_TOKEN` | required if embedding model uses temporary credentials          | AWS session token for embedding model       | `your_aws_session_token`                                                                                                                                                                             |
+| otel_env_existingSecret  | `OTEL_EXPORTER_OTLP_HEADERS` | Optional (only if `observability.otel.enabled=true`)      | OTLP exporter headers, e.g. a collector ingestion key. Leave `otel_env_existingSecret` blank to let the chart create this Secret from `observability.otel.headers`. | `x-api-key=your_collector_key`                                                                                                                                                                       |
 
 ## Custom Ingress Routes
 
