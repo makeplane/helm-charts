@@ -124,7 +124,7 @@ jobs:
           done
 
       - name: Release Charts
-        uses: mguptahub/chart-releaser-action@v1.6.2
+        uses: makeplane/chart-releaser-action@v1.7.0-plane.1
         with:
           charts_dir: charts
           config: cr.yaml
