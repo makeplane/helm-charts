@@ -9,7 +9,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-    - websecure
+    {{- include "plane.traefikEntryPoints" . | nindent 4 }}
 
   routes:
 
@@ -74,8 +74,10 @@ spec:
       - name: {{ .Release.Name }}-web
         port: 3000
 
+  {{- if eq (include "plane.chartManagedCert" .) "true" }}
   tls:
     secretName: {{ default (printf "%s-ssl-cert" .Release.Name) .Values.ssl.tls_secret_name }}
+  {{- end }}
 
 {{- end }}
 
@@ -90,7 +92,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-    - websecure
+    {{- include "plane.traefikEntryPoints" . | nindent 4 }}
   routes:
     - match: Host(`{{ .Values.ingress.minioHost }}`)
       kind: Rule
@@ -99,8 +101,10 @@ spec:
       services:
         - name: {{ .Release.Name }}-minio
           port: 9090
+  {{- if eq (include "plane.chartManagedCert" .) "true" }}
   tls:
     secretName: {{ default (printf "%s-ssl-cert" .Release.Name) .Values.ssl.tls_secret_name }}
+  {{- end }}
 {{- end }}
 
 {{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
@@ -114,7 +118,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-    - websecure
+    {{- include "plane.traefikEntryPoints" . | nindent 4 }}
   routes:
     - match: Host(`{{ .Values.ingress.rabbitmqHost }}`)
       kind: Rule
@@ -123,6 +127,8 @@ spec:
       services:
         - name: {{ .Release.Name }}-rabbitmq
           port: 15672
+  {{- if eq (include "plane.chartManagedCert" .) "true" }}
   tls:
     secretName: {{ default (printf "%s-ssl-cert" .Release.Name) .Values.ssl.tls_secret_name }}
+  {{- end }}
 {{- end }}

@@ -7,9 +7,9 @@ metadata:
   name: {{ .Release.Name }}-ingress
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
-  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
+  {{- with .Values.ingress.ingress_annotations }}
   annotations:
-    {{- range $key, $value := .Values.ingress.ingress_annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
