@@ -222,7 +222,7 @@ If the redirection is present, every plain-HTTP request is answered with a
 permanent redirect *before* it reaches a route, so Option 1 cannot serve Plane on
 that cluster. Either drop the redirection, or use Option 2/3/4.
 
-#### Upgrading from 3.2.1 or earlier
+#### Upgrading from 3.3.0 or earlier
 
 If you configure TLS through `ssl.tls_secret_name` or `ssl.generateCerts` +
 `ssl.createIssuer`, the rendered ingress is unchanged and no action is needed.
