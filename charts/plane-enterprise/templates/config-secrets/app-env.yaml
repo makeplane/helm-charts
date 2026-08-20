@@ -75,7 +75,7 @@ data:
   SENTRY_ENVIRONMENT: {{ .Values.env.sentry_environment | default "" | quote}}
   DEBUG: "0"
   DOCKERIZED: "1"
-  GUNICORN_WORKERS: "1"
+  GUNICORN_WORKERS: {{ .Values.env.gunicorn_workers | default 1 | quote }}
   GUNICORN_MAX_REQUESTS: {{ .Values.env.gunicorn_max_requests | quote }}
   GUNICORN_MAX_REQUESTS_JITTER: {{ .Values.env.gunicorn_max_requests_jitter | quote }}
   CELERY_TASK_PUBLISH_RETRY: {{ .Values.env.celery_task_publish_retry | ternary "1" "0" | quote }}
