@@ -603,11 +603,11 @@ ssl:
   externalTermination: true    # ALB/NLB/Cloudflare terminates; no Secret here
 ```
 
-> **Known issue, unrelated to TLS:** `ingress.ingress_annotations` is commented
-> out in the shipped `values.yaml`, and the `Ingress` template calls `len` on it,
-> so `ingressClass: nginx` fails to render with
-> `error calling len: len of nil pointer` unless you set at least one annotation.
-> Passing any annotation — as above — works around it.
+`ingress.ingress_annotations` is optional here — earlier releases called `len` on
+it and failed to render with `error calling len: len of nil pointer` when it was
+left commented out, so `ingressClass: nginx` needed at least one annotation to
+work at all. That is fixed; the annotation above is shown because it is useful,
+not because it is required.
 
 ##### Upgrading from 1.6.3 or earlier
 
