@@ -249,6 +249,30 @@ If the redirection is present, every plain-HTTP request is answered with a
 permanent redirect *before* it reaches a route, so Option 1 cannot serve Plane on
 that cluster. Either drop the redirection, or use Option 2/3/4.
 
+#### A note on nginx (`ingress.ingressClass: nginx`)
+
+The `ssl.*` settings above drive the standard `Ingress` path too — everything in
+the table applies except the **Entrypoint** column, which is Traefik-only:
+
+- Options 2 and 3 emit the `Ingress` `tls:` block, exactly as before.
+- Option 4 (`ssl.externalTermination`) emits **no** `tls:` block and only sets
+  the URL scheme — which is what you want when an ALB, an NLB TLS listener, or
+  nginx-ingress in front of Plane holds the certificate.
+
+```yaml
+ingress:
+  ingressClass: nginx
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+ssl:
+  externalTermination: true    # ALB/NLB/Cloudflare terminates; no Secret here
+```
+
+`ingress.ingress_annotations` is optional here — earlier releases called `len` on
+it and failed to render with `error calling len: len of nil pointer` when it was
+left commented out, so `ingressClass: nginx` needed at least one annotation to
+work at all. That is fixed; the annotation above is shown because it is useful,
+not because it is required.
+
 #### Upgrading from 3.3.0 or earlier
 
 If you configure TLS through `ssl.tls_secret_name` or `ssl.generateCerts` +
