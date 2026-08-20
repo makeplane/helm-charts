@@ -242,3 +242,129 @@ Caller must nindent to the correct depth.
   value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
 {{- end -}}
+
+{{/*
+OpenTelemetry — returns "true" when observability.otel.enabled is set, else "".
+*/}}
+{{- define "plane.otel.enabled" -}}
+{{- if and .Values.observability .Values.observability.otel .Values.observability.otel.enabled -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when the OTLP exporter headers are sourced from a Secret — either
+because observability.otel.headers is set (chart-managed Secret) or because an
+existing Secret was supplied. Empty otherwise, so no secretRef is emitted for a
+deployment that needs no ingestion credentials.
+*/}}
+{{- define "plane.otel.secretEnabled" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+{{- if or .Values.observability.otel.headers .Values.external_secrets.otel_env_existingSecret -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+envFrom entries for the shared OTEL ConfigMap (+ the OTLP headers Secret, when
+one is in play). Call with the root context and nindent to the envFrom list
+depth, e.g.
+  {{- include "plane.otel.envFrom" $ | nindent 10 }}
+*/}}
+{{- define "plane.otel.envFrom" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+- configMapRef:
+    name: {{ .Release.Name }}-otel-vars
+    optional: false
+{{- if eq (include "plane.otel.secretEnabled" .) "true" }}
+- secretRef:
+    name: {{ if not (empty .Values.external_secrets.otel_env_existingSecret) }}{{ .Values.external_secrets.otel_env_existingSecret }}{{ else }}{{ .Release.Name }}-otel-secrets{{ end }}
+    optional: false
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Per-workload OTEL_SERVICE_NAME (overrides the shared ConfigMap so each workload
+reports its own service.name). Call with a dict and nindent, e.g.
+  {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "api") | nindent 10 }}
+*/}}
+{{- define "plane.otel.serviceEnv" -}}
+{{- if eq (include "plane.otel.enabled" .ctx) "true" -}}
+- name: OTEL_SERVICE_NAME
+  value: {{ .service | quote }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when THIS CHART has a TLS Secret to point an ingress at: either
+the user supplied one via ssl.tls_secret_name, or cert-manager is set up to mint
+one (ssl.generateCerts + ssl.createIssuer, which is what gates
+templates/certs/certs.yaml).
+
+Gates the `tls:` blocks. Never widen this to cover externally-terminated TLS --
+referencing a Secret that nothing creates is the bug this helper exists to stop.
+*/}}
+{{- define "plane.chartManagedCert" -}}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.generateCerts .Values.ssl.createIssuer) -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when users reach Plane over https://, whoever terminates it.
+
+That is either a chart-managed certificate, or ssl.externalTermination for TLS
+handled in front of Plane -- a cloud load balancer, Cloudflare, a service mesh,
+or a Traefik entrypoint with its own certificate (`websecure.http.tls=true`).
+The chart owns no Secret in that second case, so this must NOT be used to emit a
+`tls:` block; use plane.chartManagedCert for that.
+
+Drives ONLY the scheme of every self-referential URL handed to the app
+(APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
+EXPORT_DOWNLOAD_BASE_URL, ...).
+
+Deliberately NOT the Traefik entrypoint. "Users are on https" says nothing about
+which entrypoint traffic arrives on: an upstream terminator (ALB, NLB TLS
+listener, Cloudflare) forwards cleartext, which lands on `web`, while a Traefik
+entrypoint carrying its own certificate lands on `websecure`. Those need
+opposite entrypoints from the same value, so the entrypoint derives from
+plane.chartManagedCert instead and ingress.traefik.entryPoints overrides it.
+*/}}
+{{- define "plane.tlsEnabled" -}}
+  {{- if or (eq (include "plane.chartManagedCert" .) "true") .Values.ssl.externalTermination -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Traefik entrypoint names for the IngressRoute.
+
+Honours an explicit ingress.traefik.entryPoints override (some clusters rename
+the defaults, and it is the way to select `websecure` when Traefik's own
+entrypoint terminates TLS); otherwise derives them from whether THIS CHART
+terminates TLS, so an install with SSL left off is reachable over plain HTTP
+instead of serving Traefik's fallback self-signed certificate.
+
+Keyed on plane.chartManagedCert, NOT plane.tlsEnabled: with TLS terminated
+upstream the chart must still bind `web`, because the terminator forwards
+cleartext and a route attached only to `websecure` would never match it.
+
+An empty value is the "derive it" sentinel, never a literal empty list -- the
+CRD requires at least one entrypoint. A bare string is accepted and wrapped into
+a single-item list, since `--set ingress.traefik.entryPoints=websecure` yields a
+scalar and would otherwise render a list-less mapping the CRD rejects.
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.traefikEntryPoints" -}}
+  {{- with .Values.ingress.traefik.entryPoints -}}
+    {{- if kindIs "string" . -}}
+      {{- toYaml (list .) -}}
+    {{- else -}}
+      {{- toYaml . -}}
+    {{- end -}}
+  {{- else -}}
+    {{- if eq (include "plane.chartManagedCert" $) "true" -}}
+- websecure
+    {{- else -}}
+- web
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

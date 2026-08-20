@@ -82,7 +82,7 @@ data:
   CELERY_BROKER_POOL_LIMIT: {{ .Values.env.celery_broker_pool_limit | quote }}
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
-  {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  {{- else if eq (include "plane.tlsEnabled" .) "true" }}
   WEB_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
@@ -90,7 +90,7 @@ data:
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000/"
   LIVE_BASE_PATH: "/live"
-  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  {{- if eq (include "plane.tlsEnabled" .) "true" }}
   PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
