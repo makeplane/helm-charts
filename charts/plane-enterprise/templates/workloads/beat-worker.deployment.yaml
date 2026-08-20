@@ -29,8 +29,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.beatworker.memoryRequest | default "250Mi" | quote }}
-            cpu: {{ .Values.services.beatworker.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.beatworker.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.beatworker.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.beatworker.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.beatworker.cpuLimit | default "500m" | quote}}

@@ -56,8 +56,8 @@ spec:
         {{- end }}
         resources:
           requests:
-            memory: {{ .Values.services.monitor.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.monitor.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.monitor.memoryRequest | default "128Mi" | quote }}
+            cpu: {{ .Values.services.monitor.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.monitor.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.monitor.cpuLimit | default "500m" | quote}}
