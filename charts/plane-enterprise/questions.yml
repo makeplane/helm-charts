@@ -1753,6 +1753,22 @@ questions:
   group: "Ingress"
   show_if: "ssl.createIssuer=false"
 
+- variable: ssl.externalTermination
+  label: "TLS Terminated in Front of Plane"
+  description: "Enable when TLS is terminated before traffic reaches Plane (cloud load balancer, Cloudflare, service mesh, or a Traefik entrypoint carrying its own cert) and this chart manages no certificate. App URLs are rendered https:// but no tls block is emitted. Leave off if you set a TLS secret name or generate certificates. See the chart README's 'TLS options' section."
+  type: boolean
+  default: false
+  group: "Ingress"
+  show_if: "ingress.enabled=true"
+
+- variable: ingress.traefik.entryPoints
+  label: "Traefik Entrypoints Override"
+  description: "Traefik entrypoints the IngressRoute binds to, e.g. 'websecure'. Leave empty to derive from the SSL settings (websecure when this chart manages a certificate, otherwise web). Required as 'websecure' when TLS is terminated by Traefik's own entrypoint. Ignored unless the ingress class is traefik."
+  type: string
+  default: ""
+  group: "Ingress"
+  show_if: "ingress.enabled=true"
+
 - variable: external_secrets.rabbitmq_existingSecret
   label: "RabbitMQ Secrets File Name"
   type: string
