@@ -48,6 +48,16 @@ ingress:
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m", "nginx.ingress.kubernetes.io/proxy-buffer-size": "16k" }
   traefik:
     maxRequestBodyBytes: 20971520 # in bytes (default: 20 MiB)
+    # Traefik entrypoints the IngressRoute attaches to. Leave empty to derive them
+    # from your SSL settings, which is what you want in almost every case:
+    #   - TLS configured (ssl.tls_secret_name, or generateCerts + createIssuer)
+    #     -> ['websecure'], and a `tls:` block is emitted.
+    #   - No TLS configured -> ['web'], plain HTTP, and NO `tls:` block. Use this
+    #     to reach Plane over http:// while you are still sorting out DNS/certs,
+    #     or when TLS is terminated upstream (cloud LB, Cloudflare, a service mesh).
+    # Set explicitly only if your Traefik install renamed the default entrypoints,
+    # e.g. entryPoints: ['websecure', 'web'] or ['https'].
+    entryPoints: []
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
@@ -58,6 +68,25 @@ ssl:
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
   generateCerts: false
+  # Set true when TLS is terminated IN FRONT of Plane and this chart manages no
+  # certificate of its own -- a cloud load balancer, Cloudflare, a service mesh,
+  # or a Traefik entrypoint that carries its own cert (websecure.http.tls=true).
+  #
+  # The chart then renders every self-referential URL handed to the app
+  # (APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
+  # EXPORT_DOWNLOAD_BASE_URL, ...) with an https:// scheme. No `tls:` block is
+  # emitted, because there is no Secret for this chart to reference.
+  #
+  # This does NOT change the Traefik entrypoint. An upstream terminator (ALB,
+  # NLB TLS listener, Cloudflare) forwards cleartext, which arrives on `web` --
+  # the default. If TLS is instead terminated by Traefik's own entrypoint
+  # (websecure.http.tls=true), also set:
+  #   ingress.traefik.entryPoints: ['websecure']
+  # otherwise the route binds `web` and never matches the TLS traffic.
+  #
+  # Leave false if you set tls_secret_name or generateCerts -- those already
+  # imply https. This is only for TLS this chart cannot see.
+  externalTermination: false
 
 # ============================================================
 # Pod Security (Kubernetes Pod Security Admission "restricted")
