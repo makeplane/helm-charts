@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-opensearch
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.opensearch.assign_cluster_ip }}
@@ -25,7 +26,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-opensearch-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.opensearch }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.opensearch) }}
 spec:
   selector:
     matchLabels:
@@ -35,6 +36,7 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-opensearch
+        {{- include "plane.commonLabels" $ | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.opensearch }}
       securityContext:

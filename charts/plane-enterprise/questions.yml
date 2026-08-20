@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.5.4
+  default: v3.1.1
   required: true
   group: "Docker Registry"
   subquestions:
@@ -80,6 +80,11 @@ questions:
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
+  - variable: env.default_cluster_domain
+    label: "Default Cluster Domain"
+    description: "Kubernetes internal cluster domain used to build in-cluster service URLs"
+    type: string
+    default: "cluster.local"
 
 - variable: license.licenseServer
   label: "License Server"
@@ -262,6 +267,52 @@ questions:
     label: "Live Server Secret Key"
     type: string
     default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  - variable: env.export_queue_name
+    label: "Export Queue Name"
+    description: "RabbitMQ queue name for background PDF/DOCX export jobs consumed by the live-exporter service."
+    type: string
+    default: "plane-exports"
+  - variable: env.export_download_base_url
+    label: "Export Download Base URL"
+    description: "Base URL for export download redirects. Defaults to licenseDomain with protocol inferred from SSL settings."
+    type: string
+    default: ""
+
+- variable: services.live_exporter.enabled
+  label: "Install Live Exporter Service"
+  type: boolean
+  default: true
+  group: "Live Exporter Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.live_exporter.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.live_exporter.pullPolicy
+    label: "Live Exporter Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
+  - variable: services.live_exporter.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: services.live_exporter.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 1000m
+  - variable: services.live_exporter.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.live_exporter.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
 
 - variable: services.silo.enabled
   label: "Install Silo Service"
@@ -306,6 +357,10 @@ questions:
     label: "Request Interval"
     type: int
     default: 400
+  - variable: env.silo_envs.importers_queue_name
+    label: "Importers Queue Name"
+    type: string
+    default: "celery"
   - variable: env.silo_envs.sentry_dsn
     label: "Silo Sentry DSN"
     type: string
@@ -330,7 +385,18 @@ questions:
     label: "Silo CORS Allowed Origins"
     type: string
     default: ""
-
+  - variable: env.silo_envs.jira_server_issues_page_size
+    label: "Jira Server Issues Page Size"
+    type: int
+    default: 50
+  - variable: env.silo_envs.jira_server_issues_parallel_pages
+    label: "Jira Server Issues Parallel Pages"
+    type: int
+    default: 1
+  - variable: env.silo_envs.cursor_webhook_secret
+    label: "Cursor Webhook Secret"
+    type: string
+    default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
   type: boolean
@@ -344,6 +410,14 @@ questions:
     default: ""
   - variable: services.silo.connectors.slack.client_secret
     label: "Slack Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.base_url
+    label: "Slack Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.signing_secret
+    label: "Slack Signing Secret"
     type: string
     default: ""
 
@@ -374,6 +448,10 @@ questions:
     label: "Github Private Key"
     type: string
     default: ""
+  - variable: services.silo.connectors.github.webhook_secret
+    label: "Github Webhook Secret"
+    type: string
+    default: ""
 
 - variable: services.silo.connectors.gitlab.enabled
   label: "Gitlab App Integration"
@@ -388,6 +466,66 @@ questions:
     default: ""
   - variable: services.silo.connectors.gitlab.client_secret
     label: "Gitlab Client Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.sentry.enabled
+  label: "Sentry App Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.sentry.base_url
+    label: "Sentry Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.client_id
+    label: "Sentry Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.client_secret
+    label: "Sentry Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.sentry.integration_slug
+    label: "Sentry Integration Slug"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.bitbucket.enabled
+  label: "Bitbucket Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.bitbucket.client_id
+    label: "Bitbucket Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.client_secret
+    label: "Bitbucket Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.webhook_secret
+    label: "Bitbucket Webhook Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.hubspot.enabled
+  label: "HubSpot Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.hubspot.client_id
+    label: "HubSpot Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.hubspot.client_secret
+    label: "HubSpot Client Secret"
     type: string
     default: ""
 
@@ -493,6 +631,65 @@ questions:
     label: "Web URL"
     type: string
     default: ""
+  - variable: env.webhook_allowed_ips
+    label: "Webhook Allowed IPs"
+    type: string
+    default: ""
+  - variable: env.webhook_allowed_hosts
+    label: "Webhook Allowed Hosts"
+    type: string
+    default: ""
+  - variable: env.gunicorn_max_requests
+    label: "Gunicorn Max Requests"
+    description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation."
+    type: int
+    default: 1000
+  - variable: env.gunicorn_max_requests_jitter
+    label: "Gunicorn Max Requests Jitter"
+    description: "Random jitter added to GUNICORN_MAX_REQUESTS to stagger worker restarts. Set to 0 when rotation is disabled."
+    type: int
+    default: 150
+  - variable: env.celery_task_publish_retry
+    label: "Celery Task Publish Retry"
+    description: "Retry task publishing on transient AMQP failures instead of silently dropping tasks."
+    type: boolean
+    default: true
+  - variable: env.celery_broker_pool_limit
+    label: "Celery Broker Pool Limit"
+    description: "Maximum number of connections in the Celery broker connection pool. Limits stale connection accumulation."
+    type: int
+    default: 10
+- variable: services.external_api.enabled
+  label: "Enable External API"
+  type: boolean
+  default: false
+  group: "External API Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.external_api.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.external_api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.external_api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.external_api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.external_api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.external_api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
@@ -512,6 +709,33 @@ questions:
     type: string
     default: 50Mi
   - variable: services.worker.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+- variable: services.worker_importers.enabled
+  label: "Enable Importer Worker"
+  type: boolean
+  default: false
+  group: "Importer Worker Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.worker_importers.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.worker_importers.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.worker_importers.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.worker_importers.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 50Mi
+  - variable: services.worker_importers.cpuRequest
     label: "CPU Request"
     type: string
     default: 50m
@@ -728,6 +952,86 @@ questions:
     type: string
     default: "issue"
 
+- variable: services.webhook_consumer.enabled
+  label: "Enable Webhook Consumer"
+  type: boolean
+  default: false
+  group: "Webhook Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.webhook_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.webhook_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.webhook_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.webhook_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.webhook_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.webhook_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.webhook_consumer_envs.queue_name
+    label: "Webhook Queue Name"
+    type: string
+    default: "plane.webhook"
+  - variable: env.webhook_consumer_envs.prefetch_count
+    label: "Webhook Prefetch Count"
+    type: int
+    default: 10
+
+- variable: services.agent_consumer.enabled
+  label: "Enable Agent Consumer"
+  type: boolean
+  default: false
+  group: "Agent Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.agent_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.agent_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.agent_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.agent_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 500Mi
+  - variable: services.agent_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 250m
+  - variable: services.agent_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.agent_consumer_envs.queue_name
+    label: "Agent Queue Name"
+    type: string
+    default: "plane.agent"
+  - variable: env.agent_consumer_envs.prefetch_count
+    label: "Agent Prefetch Count"
+    type: int
+    default: 10
+
 - variable: services.iframely.enabled
   label: "Enable Iframely"
   type: boolean
@@ -815,6 +1119,14 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.pi_envs.ai_usage_agent_max_tokens_budget
+    label: "AI Usage Agent Max Tokens Budget"
+    type: string
+    default: ""
+  - variable: env.pi_envs.ai_usage_enforcement_enabled
+    label: "AI Usage Enforcement Enabled"
+    type: boolean
+    default: true
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean
@@ -1340,6 +1652,40 @@ questions:
     default: false
     show_if: "services.minio.local_setup=true"
 
+- variable: env.storage_provider
+  label: "Storage Provider"
+  description: "S3 (default; covers MinIO and S3-compatible services) or GCS (Google Cloud Storage native mode)."
+  type: enum
+  options:
+  - "S3"
+  - "GCS"
+  default: "S3"
+  group: "Storage Setup"
+  subquestions:
+  - variable: env.gcs_bucket_name
+    label: "GCS Bucket Name"
+    description: "Falls back to the Doc Store bucket name when left empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_project_id
+    label: "GCP Project ID"
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_json
+    label: "GCS Service Account JSON"
+    description: "Inline service-account JSON. Highest-priority credential source. Leave empty to use a mounted file path or GKE Workload Identity."
+    type: password
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_path
+    label: "GCS Credentials File Path"
+    description: "In-container path to a service-account file you mount yourself (e.g. /etc/gcs/service-account.json). Used when the inline JSON is empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+
 - variable: ingress.enabled
   label: "Enable Ingress"
   type: boolean
@@ -1447,3 +1793,82 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+- variable: external_secrets.otel_env_existingSecret
+  label: "OpenTelemetry Envs Secrets File Name"
+  description: "Supplies OTEL_EXPORTER_OTLP_HEADERS. Leave blank to let the chart create the Secret from the OTLP Exporter Headers value."
+  type: string
+  default: ""
+  group: "External Secrets"
+
+- variable: observability.otel.enabled
+  label: "Enable OpenTelemetry"
+  description: "Export traces, logs and metrics from the backend services over OTLP. Off by default."
+  type: boolean
+  default: false
+  group: "OpenTelemetry"
+  show_subquestion_if: true
+  subquestions:
+  - variable: observability.otel.endpoint
+    label: "OTLP Endpoint"
+    description: "OTLP collector endpoint. An https:// endpoint uses secure gRPC."
+    type: string
+    default: ""
+  - variable: observability.otel.protocol
+    label: "OTLP Protocol"
+    type: enum
+    options:
+    - "grpc"
+    - "http/protobuf"
+    default: "grpc"
+  - variable: observability.otel.headers
+    label: "OTLP Exporter Headers"
+    description: "Extra OTLP exporter headers as k1=v1,k2=v2 (e.g. a collector ingestion/auth key). Stored in a Secret, not a ConfigMap."
+    type: string
+    default: ""
+  - variable: observability.otel.environment
+    label: "Deployment Environment"
+    description: "Emitted as deployment.environment.name (e.g. prod, staging). Use for cross-service environment filtering."
+    type: string
+    default: ""
+  - variable: observability.otel.resourceAttributes
+    label: "Extra Resource Attributes"
+    description: "Additional OTel resource attributes as k1=v1,k2=v2."
+    type: string
+    default: ""
+  - variable: observability.otel.sampler
+    label: "Trace Sampler"
+    description: "always_on captures every trace (recommended for test/debug). In production use parentbased_traceidratio; unlike always_on it honours an upstream traceparent's sampling decision."
+    type: enum
+    options:
+    - "always_on"
+    - "parentbased_traceidratio"
+    - "traceidratio"
+    - "always_off"
+    default: "always_on"
+  - variable: observability.otel.samplerArg
+    label: "Trace Sampler Ratio"
+    description: "Sampling ratio 0.0-1.0 for ratio-based samplers. Ignored by always_on."
+    type: string
+    default: "1.0"
+    show_if: "observability.otel.sampler=parentbased_traceidratio || observability.otel.sampler=traceidratio"
+  - variable: observability.otel.debugConsole
+    label: "Print Spans to Stdout (debug)"
+    type: boolean
+    default: false
+  - variable: observability.otel.frontend.enabled
+    label: "Enable Browser Tracing"
+    description: "Browser tracing for web/admin/space, served to browsers by the API. Requires a browser OTLP endpoint below."
+    type: boolean
+    default: false
+  - variable: observability.otel.frontend.endpoint
+    label: "Browser OTLP Endpoint"
+    description: "Public OTLP/HTTP endpoint the browser posts to (must be internet-reachable and CORS-enabled)."
+    type: string
+    default: ""
+    show_if: "observability.otel.frontend.enabled=true"
+  - variable: observability.otel.frontend.headers
+    label: "Browser OTLP Headers"
+    description: "A non-empty value forces the browser exporter onto XHR (required cross-origin; sendBeacon fails CORS)."
+    type: string
+    default: "x-otlp-browser=1"
+    show_if: "observability.otel.frontend.enabled=true"

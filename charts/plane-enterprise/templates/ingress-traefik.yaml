@@ -4,6 +4,8 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-ingress
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
@@ -80,16 +82,23 @@ spec:
   {{- end }}
 
   {{- if .Values.services.pi.enabled }}
-  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/`)
+  # File uploads in pi: keep the body-size limit (more specific path matches first)
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/attachments/`)
     kind: Rule
     middlewares:
       - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-pi-api
         port: 8000
+  # Everything else in pi (incl. streaming/SSE): no buffering middleware
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-pi-api
+        port: 8000
   {{- end }}
 
-  {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
+  {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
     kind: Rule
     middlewares:

@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-worker-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.pi_worker }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi_worker) }}
 spec:
   replicas: {{ .Values.services.pi_worker.replicas | default 1}}
   selector:
@@ -15,15 +15,18 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi_worker }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-pi-worker
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
         image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
@@ -61,11 +64,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "pi-worker")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

@@ -1,0 +1,13 @@
+{{- if .Values.services.agent_consumer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-agent-consumer-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+data:
+  AGENT_QUEUE_NAME: {{ .Values.env.agent_consumer_envs.queue_name | default "plane.agent" | quote }}
+  AGENT_PREFETCH_COUNT: {{ .Values.env.agent_consumer_envs.prefetch_count | default 10 | quote }}
+---
+{{- end }}

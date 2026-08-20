@@ -1,0 +1,207 @@
+questions:
+
+- variable: services.api.image
+  label: "MCP Server Docker Image (without tag)"
+  type: string
+  default: "makeplane/plane-mcp-server"
+  group: "MCP Server Setup"
+  subquestions:
+  - variable: services.api.tag
+    label: "Image Tag"
+    type: string
+    default: "v0.3.0"
+
+- variable: services.api.replicas
+  label: "MCP Server Replicas"
+  type: int
+  default: 1
+  group: "MCP Server Setup"
+  subquestions:
+  - variable: services.api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: "1000Mi"
+  - variable: services.api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: "500m"
+  - variable: services.api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: "150Mi"
+  - variable: services.api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: "100m"
+
+- variable: services.api.plane_base_url
+  label: "Plane Base URL"
+  type: string
+  required: true
+  default: ""
+  group: "MCP Server Setup"
+  subquestions:
+  - variable: services.api.plane_internal_base_url
+    label: "Plane Internal Base URL"
+    description: "Internal base URL of your Plane instance for in-cluster communication. Defaults to plane_base_url if not set."
+    type: string
+    default: ""
+  - variable: services.api.path_prefix
+    label: "MCP Path Prefix"
+    description: "HTTP route prefix when mounted behind a proxy. E.g. /plane serves /plane/http/mcp"
+    type: string
+    default: ""
+
+- variable: services.api.plane_oauth.enabled
+  label: "Enable Plane OAuth"
+  type: boolean
+  default: false
+  group: "MCP Server Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.api.plane_oauth.client_id
+    label: "Plane OAuth Client ID"
+    type: string
+    default: ""
+  - variable: services.api.plane_oauth.client_secret
+    label: "Plane OAuth Client Secret"
+    type: password
+    default: ""
+  - variable: services.api.plane_oauth.provider_base_url
+    label: "Plane OAuth Provider Base URL"
+    type: string
+    default: ""
+
+- variable: services.valkey.local_setup
+  label: "Install Valkey"
+  type: boolean
+  default: true
+  group: "Valkey Setup"
+  subquestions:
+  - variable: valkey.nameOverride
+    label: "Service Name Override"
+    type: string
+    default: ""
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.image.repository
+    label: "Docker Image"
+    type: string
+    default: "valkey/valkey"
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.image.tag
+    label: "Image Tag"
+    type: string
+    default: "9.1.1"
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.dataStorage.enabled
+    label: "Enable Persistent Storage"
+    type: boolean
+    default: true
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.dataStorage.className
+    label: "Storage Class"
+    type: storageclass
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.dataStorage.requestedSize
+    label: "Volume Size"
+    type: string
+    default: "500Mi"
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.auth.enabled
+    label: "Enable Authentication"
+    type: boolean
+    default: true
+    show_if: "services.valkey.local_setup=true"
+  - variable: valkey.auth.aclUsers.default.password
+    label: "Valkey Password"
+    type: password
+    default: "pleasechangeme"
+    show_if: "services.valkey.local_setup=true"
+  - variable: services.valkey.remote_host
+    label: "Remote Host"
+    type: string
+    default: ""
+    show_if: "services.valkey.local_setup=false"
+  - variable: services.valkey.remote_port
+    label: "Remote Port"
+    type: int
+    default: 6379
+    show_if: "services.valkey.local_setup=false"
+  - variable: services.valkey.remote_password
+    label: "Remote Password"
+    type: password
+    default: ""
+    show_if: "services.valkey.local_setup=false"
+  - variable: services.valkey.remote_ssl
+    label: "Enable SSL"
+    type: boolean
+    default: false
+    show_if: "services.valkey.local_setup=false"
+
+- variable: ingress.enabled
+  label: "Enable Ingress"
+  type: boolean
+  default: true
+  group: "Ingress Setup"
+
+- variable: ingress.host
+  label: "MCP Server Hostname"
+  type: string
+  required: true
+  default: "mcp.example.com"
+  group: "Ingress Setup"
+  subquestions:
+  - variable: ingress.ingressController
+    label: "Ingress Controller"
+    description: "Select the ingress controller type. 'traefik' deploys a native Traefik IngressRoute CRD; 'nginx' deploys a standard Kubernetes Ingress."
+    type: enum
+    options:
+    - "traefik"
+    - "nginx"
+    default: "traefik"
+  - variable: ingress.traefik.ingressClassName
+    label: "Traefik Ingress Class Name"
+    type: string
+    default: "traefik"
+    show_if: "ingress.ingressController=traefik"
+  - variable: ingress.traefik.maxRequestBodyBytes
+    label: "Max Request Body Size (bytes)"
+    description: "Traefik only: maximum request body size in bytes enforced via the buffering Middleware. Default: 10485760 (10 MiB)."
+    type: int
+    default: 10485760
+    show_if: "ingress.ingressController=traefik"
+  - variable: ingress.nginx.ingressClassName
+    label: "Nginx Ingress Class Name"
+    type: string
+    default: "nginx"
+    show_if: "ingress.ingressController=nginx"
+
+- variable: ingress.ssl.enabled
+  label: "Enable SSL"
+  type: boolean
+  default: false
+  group: "Ingress Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.ssl.issuer
+    label: "SSL Issuer"
+    type: enum
+    options:
+    - "http"
+    - "cloudflare"
+    - "digitalocean"
+    default: "cloudflare"
+  - variable: ingress.ssl.server
+    label: "SSL Server"
+    type: string
+    default: "https://acme-v02.api.letsencrypt.org/directory"
+  - variable: ingress.ssl.email
+    label: "SSL Email"
+    type: string
+    default: "admin@example.com"
+  - variable: ingress.ssl.token
+    label: "Provider API Token"
+    type: password
+    default: ""
+    description: "Not required for 'http' issuer"
+    show_if: "ingress.ssl.issuer=cloudflare || ingress.ssl.issuer=digitalocean"

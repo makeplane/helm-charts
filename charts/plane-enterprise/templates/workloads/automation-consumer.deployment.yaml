@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.automation_consumer) }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
   selector:
@@ -15,13 +15,16 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.automation_consumer }}
+      {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-automation-consumer
-        imagePullPolicy: Always
+        {{- include "plane.containerSecurityContext" . }}
+        imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
@@ -50,9 +53,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") }}
         env:
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "automation-consumer")) }}{{ . | nindent 10 }}{{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
 
       serviceAccount: {{ .Release.Name }}-srv-account

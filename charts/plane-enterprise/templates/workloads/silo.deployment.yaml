@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-silo
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.silo.assign_cluster_ip }}
@@ -27,7 +28,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-silo-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.silo }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.silo) }}
 spec:
   replicas: {{ .Values.services.silo.replicas | default 1}}
   selector:
@@ -38,16 +39,19 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-silo
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.silo }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CANodeVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       initContainers:
       - name: wait-for-rabbitmq
         image: busybox
+        {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
         args:
@@ -70,6 +74,7 @@ spec:
       {{- if include "plane.s3CAEnabled" . }}
       - name: prepare-ca-bundle
         image: busybox
+        {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
           - -c
@@ -92,6 +97,7 @@ spec:
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-silo
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
         image: {{ .Values.services.silo.image | default "makeplane/silo-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
@@ -116,11 +122,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "silo")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

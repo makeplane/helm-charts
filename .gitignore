@@ -1,4 +1,5 @@
 dist/
+charts/*/charts/*.tgz
 test-helm.yaml
 .DS_Store
 */local-values.yaml

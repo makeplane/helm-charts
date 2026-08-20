@@ -8,6 +8,8 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
   AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
@@ -15,13 +17,13 @@ stringData:
   PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
 
   {{- if .Values.services.redis.local_setup }}
-  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:6379/"
+  REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
   {{- else }}
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 
   {{ if .Values.services.postgres.local_setup }}
-  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.cluster.local/{{ .Values.env.pgdb_name }}"
+  DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
   {{ else if .Values.env.pgdb_remote_url }}
   DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
   {{ else }}
@@ -51,15 +53,17 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-app-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   PRIME_HOST: {{ .Values.license.licenseServer | quote }}
   MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
   APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
   APP_VERSION: {{ .Values.planeVersion | quote }}
-  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.cluster.local:8080/"
+  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
 
-  API_KEY_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "60/minute" | quote }}
+  DEFAULT_API_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "120/minute" | quote }}
   MINIO_ENDPOINT_SSL: {{ .Values.services.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
   USE_STORAGE_PROXY: {{ .Values.env.use_storage_proxy | default false | ternary "1" "0" | quote }}
   ALLOW_ALL_ATTACHMENT_TYPES: {{ .Values.env.allow_all_attachment_types | default false | ternary "1" "0" | quote }}
@@ -72,6 +76,10 @@ data:
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
+  GUNICORN_MAX_REQUESTS: {{ .Values.env.gunicorn_max_requests | quote }}
+  GUNICORN_MAX_REQUESTS_JITTER: {{ .Values.env.gunicorn_max_requests_jitter | quote }}
+  CELERY_TASK_PUBLISH_RETRY: {{ .Values.env.celery_task_publish_retry | ternary "1" "0" | quote }}
+  CELERY_BROKER_POOL_LIMIT: {{ .Values.env.celery_broker_pool_limit | quote }}
   {{- if .Values.env.web_url}}
   WEB_URL: {{ .Values.env.web_url | default "" | quote }}
   {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
@@ -80,20 +88,12 @@ data:
   WEB_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
-  {{- if .Values.env.app_base_url}}
-  APP_BASE_URL: {{ .Values.env.app_base_url | default "" | quote }}
-  {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
-  APP_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
-  {{- else }}
-  APP_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
-  {{- end }}
-
-  LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.cluster.local:3000/"
+  LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000/"
   LIVE_BASE_PATH: "/live"
   {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
-  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}/pi"
+  PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
-  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}/pi"
+  PI_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
   PI_BASE_PATH: "/pi"
 
@@ -112,3 +112,7 @@ data:
   {{- else}}
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
   {{- end }}
+
+  WEBHOOK_ALLOWED_IPS: {{ .Values.env.webhook_allowed_ips | default "" | quote }}
+  WEBHOOK_ALLOWED_HOSTS: {{ .Values.env.webhook_allowed_hosts | default "" | quote }}
+  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}

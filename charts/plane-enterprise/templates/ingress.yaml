@@ -5,6 +5,8 @@ kind: Ingress
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
   {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
   annotations:
     {{- range $key, $value := .Values.ingress.ingress_annotations }}
@@ -91,7 +93,7 @@ spec:
             path: /pi/
             pathType: Prefix
           {{- end }}
-          {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
+          {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
           - backend:
               service:
                 port:
@@ -101,7 +103,7 @@ spec:
             pathType: Prefix
           {{- end }}
 
-    {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
+    {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
     - host: {{ .Values.ingress.minioHost }}
       http:
         paths:
@@ -130,7 +132,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.license.licenseDomain | quote }}
-      {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
+      {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{ end }}
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
@@ -141,7 +143,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.license.licenseDomain | quote }}
-      {{- if and .Values.services.minio.local_setup .Values.ingress.minioHost }}
+      {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{ end }}
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}

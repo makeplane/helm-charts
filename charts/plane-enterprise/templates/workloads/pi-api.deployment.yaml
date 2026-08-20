@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-pi-api
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.pi.assign_cluster_ip }}
@@ -27,7 +28,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pi-api-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.pi }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi) }}
 spec:
   replicas: {{ .Values.services.pi.replicas | default 1 }}
   selector:
@@ -38,15 +39,18 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-api
+        {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi }}
+      {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
       - name: {{ .Release.Name }}-pi-api
+        {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.pi.pullPolicy | default "Always" }}
         image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
@@ -84,11 +88,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "pi-api")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

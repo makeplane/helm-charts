@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-pgdb
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   {{- if not .Values.postgres.assign_cluster_ip }}
   clusterIP: None
@@ -25,7 +26,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-wl
-  {{- template "plane.labelsAndAnnotations" .Values.postgres }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.postgres) }}
 spec:
   selector:
     matchLabels:
@@ -35,6 +36,7 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
+        {{- include "plane.commonLabels" $ | nindent 8 }}
     spec:
       containers:
       - image: {{ .Values.postgres.image }}
