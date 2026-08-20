@@ -288,6 +288,12 @@ securityContext:
 | services.postgres.labels            |          {}          |          | This key allows you to set custom labels for the stateful deployment of `postgres`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                                                                   |
 | services.postgres.annotations       |          {}          |          | This key allows you to set custom annotations for the stateful deployment of `postgres`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                                                                   |
 | env.pgdb_remote_url                 |                      |          | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.postgres.local_setup` to `false` and set this key with remote connection url.                                                                                                                                                                          |
+| env.pgdb_host                       |                      |          | Hostname of a remote Postgres, used with `external_secrets.database` instead of `env.pgdb_remote_url` — the username and password then come from the external Secret and never appear in this file. Ignored when `services.postgres.local_setup=true`. |
+| env.pgdb_port                       |         5432         |          | Port of a remote Postgres, used with `external_secrets.database`. |
+| external_secrets.database.secretName |                     |          | Name of an existing Secret holding the Postgres username and password — typically an RDS/CloudSQL managed-rotation secret mirrored verbatim into the cluster. See "Keeping credentials out of values.yaml". |
+| external_secrets.database.usernameKey | username            |          | Key inside that Secret holding the username. The defaults match the JSON that RDS and CloudSQL produce. |
+| external_secrets.database.passwordKey | password            |          | Key inside that Secret holding the password. |
+| external_secrets.database.hostKey / portKey / dbNameKey | |         | Optional. Set only when the Secret also carries the endpoint (RDS non-master rotation secrets do); those keys then override `env.pgdb_host` / `pgdb_port` / `pgdb_name`. |
 
 ### Redis/Valkey Setup
 
@@ -305,6 +311,11 @@ securityContext:
 | services.redis.labels            |             {}              |          | This key allows you to set custom labels for the stateful deployment of `redis`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                                                               |
 | services.redis.annotations       |             {}              |          | This key allows you to set custom annotations for the stateful deployment of `redis`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                                                               |
 | env.remote_redis_url             |                             |          | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url.                                                                                                                                                                      |
+| env.redis_host                   |                             |          | Hostname of a remote Redis/Valkey, used with `external_secrets.redis` instead of `env.remote_redis_url` — the password then comes from the external Secret. Ignored when `services.redis.local_setup=true`. Requires `planeVersion` v3.2.0+.                                                                                                                                       |
+| env.redis_port                   |            6379             |          | Port of a remote Redis, used with `external_secrets.redis`.                                                                                                                                                                                                                                                                                                                       |
+| env.redis_ssl                    |            false            |          | Set `true` to connect over TLS (`rediss://`) — required by ElastiCache with in-transit encryption and by Azure Cache for Redis.                                                                                                                                                                                                                                                    |
+| external_secrets.redis.secretName |                            |          | Name of an existing Secret holding the Redis password / auth token. See "Keeping credentials out of values.yaml".                                                                                                                                                                                                                                                                  |
+| external_secrets.redis.passwordKey |          password          |          | Key inside that Secret holding the password. `hostKey` / `portKey` are also available when the Secret carries the endpoint.                                                                                                                                                                                                                                                        |
 
 ### RabbitMQ Setup
 
@@ -325,6 +336,11 @@ securityContext:
 | services.rabbitmq.labels                |                {}                 |          | This key allows you to set custom labels for the stateful deployment of `rabbitmq`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                      |
 | services.rabbitmq.annotations           |                {}                 |          | This key allows you to set custom annotations for the stateful deployment of `rabbitmq`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                      |
 | services.rabbitmq.external_rabbitmq_url |                                   |          | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url.                                                                                                                              |
+| env.rabbitmq_host                       |            |          | Hostname of a remote RabbitMQ, used with `external_secrets.rabbitmq` instead of `services.rabbitmq.external_rabbitmq_url` — the credentials then come from the external Secret. Ignored when `services.rabbitmq.local_setup=true`. |
+| env.rabbitmq_port                       |    5672    |          | Port of a remote RabbitMQ, used with `external_secrets.rabbitmq`. Use `5671` for AMQPS (Amazon MQ). |
+| env.rabbitmq_vhost                      |     /      |          | Virtual host of a remote RabbitMQ, used with `external_secrets.rabbitmq`. |
+| external_secrets.rabbitmq.secretName    |            |          | Name of an existing Secret holding the RabbitMQ username and password. Note this is separate from `external_secrets.rabbitmq_existingSecret`, which configures the **bundled** broker. |
+| external_secrets.rabbitmq.usernameKey   |  username  |          | Key inside that Secret holding the username. `passwordKey`, and optionally `hostKey` / `portKey` / `vhostKey`, work the same way. |
 
 ### OpenSearch Setup
 
@@ -891,6 +907,269 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
 
+## Keeping credentials out of values.yaml
+
+Everything in this section is opt-in and additive. A `values.yaml` that worked before keeps working unchanged; adopt these one at a time.
+
+The chart only ever consumes plain Kubernetes `Secret` resources. It does **not** render `ExternalSecret`, `SealedSecret`, or any provider-specific resource, which is what lets the same chart run against AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, or Vault. You create the Secret (usually by pointing External Secrets Operator at your cloud secret) and tell the chart its name.
+
+Three mechanisms, in the order you should reach for them:
+
+| | What it covers | How |
+| --- | --- | --- |
+| **Cloud workload identity** | Object storage (S3/GCS), OpenSearch, AWS Secrets Manager | No secret at all — annotate the ServiceAccount |
+| **Infrastructure credentials** | Postgres, RabbitMQ, Redis username/password | `external_secrets.{database,rabbitmq,redis}` — mirror your cloud secret, chart maps its keys |
+| **Whole-Secret replacement** | Signing keys, connector OAuth secrets, LLM keys | `external_secrets.*_existingSecret` — you own every key in the Secret |
+
+### 1. Cloud workload identity (no credentials anywhere)
+
+Plane already walks each cloud SDK's default credential chain when no static keys are present, so object storage needs no secret at all. Annotate the ServiceAccount and leave `env.aws_access_key` / `env.aws_secret_access_key` / `env.gcs_credentials_json` empty — the chart then **omits those environment variables entirely** rather than setting them to empty strings, which is what allows the SDK to fall through to the pod identity.
+
+```yaml
+serviceAccount:
+  annotations:
+    # AWS IRSA
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/plane-s3
+    # GCP Workload Identity
+    # iam.gke.io/gcp-service-account: plane@my-project.iam.gserviceaccount.com
+    # Azure Workload Identity
+    # azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
+  # Azure Workload Identity also needs a pod label:
+  # podLabels:
+  #   azure.workload.identity/use: 'true'
+
+env:
+  aws_region: eu-west-1
+  docstore_bucket: plane-uploads
+  aws_access_key: ''          # leave empty — the pod's IAM role is used
+  aws_secret_access_key: ''
+```
+
+**EKS Pod Identity** needs no annotation at all: create the association against the ServiceAccount's name (`<release>-srv-account`, or set `serviceAccount.name`). To reference a ServiceAccount you manage elsewhere (Terraform, Crossplane), set `serviceAccount.create: false` and `serviceAccount.name`.
+
+OpenSearch behaves the same way — leave `env.opensearch_remote_username` / `_password` empty and the API uses SigV4 IAM auth.
+
+### 2. Infrastructure credentials (database, RabbitMQ, Redis)
+
+The problem this solves: when RDS or CloudSQL manages rotation for you, the secret it produces contains **only** `{"username": "...", "password": "..."}` — and you do not want to maintain a second, hand-composed `DATABASE_URL` secret alongside it that has to be rewritten on every rotation.
+
+So the chart reads your cloud secret's keys directly. Mirror the cloud secret into the cluster **verbatim** (a plain ESO `dataFrom.extract`, no `rewrite`, no `template`), then tell the chart which keys inside it hold the username and password. The endpoint — host, port, database name — is not secret and stays in `values.yaml`.
+
+```yaml
+external_secrets:
+  database:
+    secretName: plane-rds        # the mirrored RDS secret
+    usernameKey: username        # keys as they appear inside it
+    passwordKey: password
+  rabbitmq:
+    secretName: plane-amazonmq
+  redis:
+    secretName: plane-elasticache
+    passwordKey: password
+  opensearch:
+    secretName: plane-opensearch
+
+env:
+  pgdb_host: plane.abc123.eu-west-1.rds.amazonaws.com
+  pgdb_port: '5432'
+  pgdb_name: plane
+  rabbitmq_host: b-1.plane.mq.eu-west-1.amazonaws.com
+  rabbitmq_port: '5671'
+  rabbitmq_ssl: true             # Amazon MQ refuses plaintext AMQP
+  redis_host: plane.abc.cache.amazonaws.com
+  redis_ssl: true                # ElastiCache with in-transit encryption
+  opensearch_remote_url: https://search-plane.eu-west-1.es.amazonaws.com
+```
+
+The four services differ in what the credential looks like, so:
+
+| Service | What the Secret holds | Endpoint values | Notes |
+| --- | --- | --- | --- |
+| **Postgres** (RDS, CloudSQL, Flexible Server) | `username`, `password` | `env.pgdb_host` / `pgdb_port` / `pgdb_name` | Works on every Plane release. |
+| **RabbitMQ** (Amazon MQ) | `username`, `password` | `env.rabbitmq_host` / `rabbitmq_port` / `rabbitmq_vhost` | **Set `env.rabbitmq_ssl: true` and port `5671` for Amazon MQ** — it only accepts AMQPS. Works on every release; `rabbitmq_ssl` needs v3.2.0+. |
+| **Redis** (ElastiCache, Memorystore, Azure Cache) | `password` only — there is no username | `env.redis_host` / `redis_port` / `redis_ssl` | Needs **planeVersion v3.2.0+**. For ElastiCache the AUTH token goes in the password key. |
+| **OpenSearch** | `username`, `password` | `env.opensearch_remote_url` | Remote domains only. On AWS, prefer leaving both unset so the pod's IAM role authenticates with SigV4. |
+
+`rabbitmq_ssl` and `redis_ssl` exist because the discrete-parts path has no URL scheme to carry TLS — an `amqp://` URL says "plaintext" in the string itself, but a host and port do not. Without the flag, a mirrored Amazon MQ credential produces a plaintext connection that the broker rejects.
+
+The chart then gives every Django workload `POSTGRES_USER` / `POSTGRES_PASSWORD` as `secretKeyRef` entries pointing straight at your mirrored Secret, with the endpoint as plain values. **The application composes its own connection URLs from those parts**, so a rotated password propagates without any URL being rewritten — in the chart, in the secret store, or anywhere else. Passwords are percent-encoded during composition, so generated passwords containing `@ : / #` are safe.
+
+If your rotation secret happens to carry the endpoint too (RDS non-master rotation secrets include `host`, `port`, `dbname`), point the optional `hostKey` / `portKey` / `dbNameKey` at those keys and drop the `env.*` endpoint values.
+
+Whenever one of these is set, the chart stops emitting the corresponding composed `DATABASE_URL` / `AMQP_URL` / `REDIS_URL` in its own Secrets — the application prefers a URL when one is present, so a stale URL would silently shadow the rotated credential. **If you also supply `app_env_existingSecret`, make sure it does not contain those URL keys.**
+
+**Every service reads discrete parts from planeVersion v3.2.0 onward** — the Django family (api, external-api, worker, importer worker, beat-worker, webhook and automation consumers, outbox poller, migrator) plus silo, live and Plane AI. Below v3.2.0 only the Django family does; `helm upgrade` warns when your `planeVersion` predates the support you have configured.
+
+Each workload receives only the credentials it uses. Live gets Redis and nothing else; silo gets Postgres, RabbitMQ and Redis but not OpenSearch; Plane AI gets its own `PLANE_PI_POSTGRES_*` and `FOLLOWER_POSTGRES_*` names plus Redis and OpenSearch, and deliberately no `RabbitMQ` — Plane AI prefers an AMQP broker over a Redis one, so sending it RabbitMQ parts would quietly move its queue off Redis.
+
+Plane AI's two databases both come from the same `external_secrets.database` Secret, which is the shape this chart provisions (one managed instance, two databases). If yours have genuinely separate credentials, set `env.pi_envs.follower_postgres_uri` — it still takes precedence — or use `pi_api_env_existingSecret`.
+
+For **planeVersion below v3.2.0**, supply silo/live/Plane AI DSNs through `silo_env_existingSecret` / `live_env_existingSecret` / `pi_api_env_existingSecret` and let ESO compose them with a `template` block (see `examples/external-secrets/`).
+
+### 3. Shared signing keys in one Secret
+
+`SECRET_KEY`, `AES_SECRET_KEY`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY` and `CURSOR_WEBHOOK_SECRET` appear in up to four of the chart's Secrets, and several of them must match for the services to talk to each other. `external_secrets.app_keys_existingSecret` points all of them at a single Secret so they cannot drift:
+
+```yaml
+external_secrets:
+  app_keys_existingSecret: plane-app-keys
+```
+
+The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted first in `envFrom`, so a key you already externalized through one of the older `*_existingSecret` groups still wins — don't define the same key in both.
+
+The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. `RUNNER_HMAC_SECRET_KEY` belongs here too when the runner is deployed.
+
+Do not also define any of these keys in one of the `*_existingSecret` groups. Those Secrets are mounted after this one, so a duplicate wins on the workloads mounting that group and loses everywhere else — leaving two services disagreeing on a key that has to match. `helm upgrade` warns when it sees both set.
+
+The trade-off: because it is one Secret, every service that mounts it sees all of its keys — the live server's pods get `SECRET_KEY` in their environment even though only the API uses it. These are all first-party Plane services in one namespace, so this is the same trust boundary the duplicated copies already shared. If you need the keys separated per service, keep using the per-group `*_existingSecret` mechanism and take on keeping the shared values in step yourself.
+
+> **Never rotate `SECRET_KEY`, `AES_SECRET_KEY` or `AES_SALT` on a running instance.** `SECRET_KEY` derives the Fernet key that encrypts the instance-configuration rows (SMTP password, OAuth client secrets, LLM keys); the AES pair protects stored OAuth application secrets, MCP connections and desktop handoff tokens. Changing either makes existing ciphertext undecryptable, and the failure is silent — values come back empty. Keep them in a secret with no rotation schedule.
+
+The chart ships **public example values** for all of these. Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to them:
+
+```yaml
+env:
+  requireExplicitSecrets: true
+```
+
+This will become the default in the next major version.
+
+### 4. Picking up a rotated credential without downtime
+
+A rotation only reaches a running pod if something restarts it. Install [Stakater Reloader](https://github.com/stakater/Reloader) and turn it on:
+
+```yaml
+reloader:
+  enabled: true
+```
+
+The chart then annotates every workload with `reloader.stakater.com/auto: "true"`, and Reloader rolls a workload when any Secret or ConfigMap it references changes — including Secrets the chart does not render, which is exactly the External Secrets path. The credential-consuming Deployments also get `maxUnavailable: 0` / `maxSurge: 1`, so the restart keeps full capacity.
+
+The full chain: you rotate in the cloud → ESO syncs within its `refreshInterval` → Reloader rolls the pods.
+
+**The gap to plan for.** Between the moment the credential changes on the server and the moment the new pods are up, connections opened with the old credential fail. Plane's Django services keep no persistent database connections, so that is every new request in the window. The window is roughly `refreshInterval + rollout time`.
+
+To close it, rotate so that both the old and the new credential are valid at once:
+
+- **Postgres** — keep two users (`plane_a`, `plane_b`) with identical grants. Rotate the password of the user that is *not* in use, point the cloud secret at that user, and let ESO + Reloader roll. The credential in use is never invalidated mid-flight. Existing sessions survive a password change in Postgres regardless.
+- **RabbitMQ** — same shape: create the second user first, then switch the secret.
+- **ElastiCache** — supports two simultaneously valid auth tokens natively; use that. For a plain Redis, set `refreshInterval: 30s` and accept a sub-minute window (the Django cache is configured with `IGNORE_EXCEPTIONS`, so cache reads degrade rather than error).
+- **On AWS**, the alternative is the in-process path: `RDS_SECRET_ARN` / `AMAZONMQ_SECRET_ARN` / `ELASTICACHE_SECRET_ARN` (via `extraEnv`), where the app refreshes from Secrets Manager itself and no restart is needed at all.
+
+Two things Reloader will not do: it ignores Jobs, so the migrator Job holds whatever credential it started with — don't rotate during an upgrade window, and re-run `helm upgrade` if a migration fails mid-rotation. And the bundled `local_setup` StatefulSets (postgres, rabbitmq, minio, opensearch) are outside all of this; rotation guidance assumes managed backends.
+
+Separately, `helm upgrade` no longer restarts every workload unconditionally. Pods carry a `checksum/config` annotation instead of a timestamp, so an upgrade rolls only what actually changed. Set `global.forceRedeploy: true` to get the old behaviour back.
+
+### 5. Switching an existing release over: delete the Secret Helm can no longer clean
+
+When you set one of these hooks on a release that is already running, the chart stops
+rendering the keys the hook replaces — and Helm does **not** remove them from the live
+Secret. The chart's Secret templates write `stringData`, the API server stores `data`, and
+the three-way merge patches a field the live object does not have. The old key survives.
+
+For most groups that is untidy but harmless, because the replacement arrives as an explicit
+`env` entry with a `secretKeyRef`, and an explicit `env` beats every `envFrom` source.
+
+**Storage is the exception, and it fails in a way that looks like something else.** Turning
+`services.minio.local_setup` off makes the chart omit `AWS_ACCESS_KEY_ID` so that boto3 walks
+its credential chain and finds the pod's IAM identity. If the previous revision ran bundled
+MinIO, its root credentials are still in `<release>-doc-store-secrets` — and a *present*
+access key is found first in that chain, so every S3 call fails with
+`InvalidClientTokenId` while `helm get manifest` shows a perfectly correct configuration.
+
+Once, on the upgrade that switches storage over:
+
+```sh
+kubectl delete secret <release>-doc-store-secrets -n <namespace>
+helm upgrade <release> plane/plane-enterprise -n <namespace> -f values.yaml
+# then restart, because envFrom is read once at container start:
+kubectl rollout restart deploy -n <namespace> -l app.kubernetes.io/instance=<release>
+```
+
+The rollout restart is not optional. A running pod keeps the environment it started with, so
+the pods carry the old access key until they are replaced — which is why this can look like
+it "did not work" after the Secret is already correct.
+
+From chart 3.6.1 onward that Secret is rendered as base64 `data` rather than `stringData`, so
+Helm can express the deletion and this stops recurring. The one-time cleanup above is still
+needed for the upgrade that crosses into 3.6.1.
+
+### 6. Secrets that live in the database, not the environment
+
+By default (`SKIP_ENV_VAR=1`) the API reads about twenty settings — SMTP password, Google/GitHub/GitLab/OIDC client secrets, `LLM_API_KEY`, `LDAP_BIND_PASSWORD`, SAML certificate — from the instance-configuration table, seeded from the environment only on first startup. **Rotating those through a Secret has no effect** while that is the case.
+
+Set `env.skip_env_var: '0'` to make the API re-read them from the environment on every start, which makes the external secret the source of truth:
+
+```yaml
+env:
+  skip_env_var: '0'
+```
+
+The trade-off: edits made to those settings in the god-mode admin UI are overwritten on the next restart.
+
+### AI providers, including Amazon Bedrock
+
+`external_secrets.ai_providers_existingSecret` replaces the whole provider-key group —
+`OPENAI_API_KEY`, `CLAUDE_API_KEY`, `GROQ_API_KEY`, `COHERE_API_KEY`, `CUSTOM_LLM_API_KEY` and
+`AWS_BEARER_TOKEN_BEDROCK`. It is mounted with `envFrom`, so **any** key in that Secret reaches the
+pi workloads and live: adding a provider is an edit in your secret store, not in this chart.
+
+Which keys you actually need depends on what the model is, and the answer is less obvious than it
+looks. `COHERE_API_KEY` and `BR_AWS_ACCESS_KEY_ID` are consumed only when pi *creates* an OpenSearch
+ML connector (`python -m pi.manage init-embedding-model`), because the credential is stored inside
+the connector. Point `services.pi.ai_providers.embedding_model.model_id` at a connector that already
+exists and neither is read at all — the connector carries its own credential.
+
+`services.pi.ai_providers.embedding_model.name` must name the model that `model_id` actually points
+at. Getting this wrong is quiet: several registry entries share a dimension, so pi's dimension
+consistency check passes, and the mismatch only shows up as failed embeddings at ingest — the
+entries differ in `supports_batch` (Bedrock Titan accepts a single `inputText`, Cohere accepts
+arrays) and in which credential they expect.
+
+For Bedrock there are two shapes:
+
+```yaml
+# 1. Bedrock API key — a bearer token from the Bedrock console. botocore honours
+#    AWS_BEARER_TOKEN_BEDROCK natively (>= 1.39), so no application support is needed.
+services: { pi: { ai_providers: { bedrock: { enabled: true, api_key: 'ABSKQmVk...' } } } }
+
+# 2. Keyless, preferred on AWS — no api_key at all, so boto3's chain reaches the pod's
+#    IRSA / EKS Pod Identity credential and nothing is stored in the cluster.
+services:
+  pi:
+    ai_providers:
+      bedrock:
+        enabled: true
+        inference_profile_arn: 'arn:aws:bedrock:us-east-1:…:application-inference-profile/…'
+```
+
+The key is omitted rather than rendered empty when unset, for the reason that recurs throughout this
+chart: an empty credential is *present*, and a present credential denies the chain its turn.
+
+### Settings reference
+
+| Setting | Default | Description |
+| --- | :-: | --- |
+| `serviceAccount.create` | true | Set `false` to reference a ServiceAccount managed outside the chart. |
+| `serviceAccount.name` | | Defaults to `<release>-srv-account`. |
+| `serviceAccount.annotations` | {} | Cloud workload-identity bindings (IRSA, GKE WI, Azure WI). |
+| `serviceAccount.podLabels` | {} | Extra pod-template labels; Azure Workload Identity needs `azure.workload.identity/use: 'true'`. |
+| `external_secrets.database.*` | | Postgres credentials from an existing Secret — see above. |
+| `external_secrets.rabbitmq.*` | | RabbitMQ credentials from an existing Secret. |
+| `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.1.0+). |
+| `external_secrets.opensearch.*` | | OpenSearch username/password from an existing Secret; remote domains only. |
+| `env.rabbitmq_ssl` | false | Connect to RabbitMQ over TLS (`amqps`). Required by Amazon MQ. |
+| `env.redis_ssl` | false | Connect to Redis over TLS (`rediss`). Required by ElastiCache with in-transit encryption and Azure Cache. |
+| `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
+| `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
+| `reloader.enabled` | false | Annotate workloads for Stakater Reloader so a rotated Secret triggers a rolling restart. |
+| `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
+| `env.skip_env_var` | '1' | `'0'` makes the API re-read the database-resident secrets (SMTP, OAuth, LLM, LDAP) from the environment on every start. |
+| `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
+
+### Provider examples
+
+Ready-to-apply `ExternalSecret` manifests for AWS Secrets Manager, GCP Secret Manager and Azure Key Vault, plus a rotation runbook, are in [`examples/external-secrets/`](examples/external-secrets/).
 ### Observability (OpenTelemetry)
 
 Opt-in OpenTelemetry (traces, logs and metrics) for the backend services. Nothing is
@@ -925,6 +1204,12 @@ Secret you manage yourself (External Secrets Operator, Vault, sealed-secrets, ..
 | observability.otel.frontend.headers    | `x-otlp-browser=1`   |          | Must be non-empty cross-origin: a header forces the browser exporter onto XHR instead of `navigator.sendBeacon`, which sends credentials and is rejected by CORS against a wildcard `Access-Control-Allow-Origin`. The value is arbitrary and public.            |
 
 ## External Secrets Config
+
+The tables below document the whole-Secret replacement groups (`*_existingSecret`): when you set one, the chart skips rendering that Secret and every workload reads yours instead, so it must carry **all** the keys listed for that group.
+
+> Prefer `external_secrets.database` / `rabbitmq` / `redis` for connection credentials (see above) — those need only the username and password your cloud secret already contains, and they rotate without recomposing a URL. `pgdb_existingSecret` and `rabbitmq_existingSecret` configure the **bundled** `local_setup` Postgres/RabbitMQ, not the application's connection to a managed one.
+>
+> `runner_env_existingSecret` (key: `RUNNER_HMAC_SECRET_KEY`) also exists and is honoured, alongside `ssl_token_existingSecret` (key: `api-token`, for the cert-manager DNS-01 issuer) and `dockerRegistry.existingSecret`.
 
 To configure the external secrets for your application, you need to define specific environment variables for each secret category. Below is a list of the required secrets and their respective environment variables.
 

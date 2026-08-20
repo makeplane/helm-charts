@@ -1793,6 +1793,141 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+
+# --- Credential mirrors -------------------------------------------------------
+# A Secret that MIRRORS the managed one your cloud already rotates — the RDS secret
+# created with the instance, an ElastiCache auth-token secret, an Amazon MQ secret.
+# The chart reads the parts out of it and never composes a connection string, so a
+# rotation lands with nothing to recompute. That is why these are separate from the
+# whole-Secret replacements above, which pin a DSN the rotation can never reach.
+- variable: external_secrets.database.secretName
+  label: "Postgres Credential Mirror Secret"
+  description: "A Secret carrying the Postgres username and password as separate keys — point it at a verbatim mirror of your RDS/Cloud SQL secret so a rotation needs no second copy."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.database.usernameKey
+  label: "Postgres Username Key"
+  type: string
+  default: "username"
+  group: "Credential Mirrors"
+  show_if: "external_secrets.database.secretName!="
+- variable: external_secrets.database.passwordKey
+  label: "Postgres Password Key"
+  type: string
+  default: "password"
+  group: "Credential Mirrors"
+  show_if: "external_secrets.database.secretName!="
+- variable: external_secrets.database.hostKey
+  label: "Postgres Host Key (optional)"
+  description: "Only when the mirrored Secret carries the endpoint too. Otherwise the host comes from env.pgdb_remote_host."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.database.secretName!="
+- variable: external_secrets.rabbitmq.secretName
+  label: "RabbitMQ Credential Mirror Secret"
+  description: "For Amazon MQ also set env.rabbitmq_ssl=true and env.rabbitmq_port=5671 — the parts path has no URL scheme to carry TLS, and Amazon MQ refuses plaintext."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.redis.secretName
+  label: "Redis Credential Mirror Secret"
+  description: "For ElastiCache the auth token goes in the password key; also set env.redis_ssl=true."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.storage.secretName
+  label: "Object Storage Credential Secret"
+  description: "Leave empty and annotate the ServiceAccount instead — a pod identity beats a stored access key. Only the key names you fill in below are emitted."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.storage.accessKeyIdKey
+  label: "Storage Access Key ID Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.storage.secretAccessKeyKey
+  label: "Storage Secret Access Key Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.storage.gcsCredentialsJsonKey
+  label: "GCS Credentials JSON Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.opensearch.secretName
+  label: "OpenSearch Credential Mirror Secret"
+  description: "For an AWS-managed domain, leave this empty and let the pods authenticate with SigV4 through their cloud identity."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+
+# --- Shared key groups --------------------------------------------------------
+# One Secret carrying one group of keys, mirrored into as many namespaces as you like.
+# The chart stops rendering those keys, which is what makes the sharing work: an empty
+# string under envFrom does not defer to another Secret, it overwrites it.
+- variable: external_secrets.app_keys_existingSecret
+  label: "Signing Keys Secret"
+  description: "SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, SILO_HMAC_SECRET_KEY, RUNNER_HMAC_SECRET_KEY. These encrypt stored data: never share them between environments and never rotate them."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+- variable: external_secrets.ai_providers_existingSecret
+  label: "AI Provider Keys Secret"
+  description: "OPENAI / CLAUDE / GEMINI / COHERE / CUSTOM_LLM keys. One AI account normally serves every deployment, so this is the group worth sharing."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+- variable: external_secrets.silo_connectors_existingSecret
+  label: "Silo Connector Secrets Secret"
+  description: "Connector OAuth client secrets and the GitHub App private key. An OAuth app is registered once, so its secret is the same wherever the connector is enabled."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+- variable: external_secrets.ssl_token_existingSecret
+  label: "DNS-01 Token Secret"
+  description: "cert-manager DNS provider API token, under the key api-token."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+
+# --- Cloud identity -----------------------------------------------------------
+- variable: serviceAccount.create
+  label: "Create the ServiceAccount"
+  description: "Turn off to run as a ServiceAccount managed outside this chart — one created by Terraform or Crossplane and already bound to a cloud role."
+  type: boolean
+  default: true
+  group: "Service Account"
+- variable: serviceAccount.name
+  label: "ServiceAccount Name"
+  description: "Defaults to <release>-srv-account."
+  type: string
+  default: ""
+  group: "Service Account"
+- variable: serviceAccount.annotations
+  label: "ServiceAccount Annotations"
+  description: "Where a workload identity binding goes: eks.amazonaws.com/role-arn for IRSA, iam.gke.io/gcp-service-account for GKE, azure.workload.identity/client-id for Azure. EKS Pod Identity needs no annotation — it binds by name."
+  type: string
+  default: ""
+  group: "Service Account"
+- variable: serviceAccount.cloudIdentity
+  label: "ServiceAccount Has a Cloud Identity"
+  description: "Advisory. A Pod Identity association is an EKS API object invisible to the pod spec, so the chart cannot detect it; setting this turns on the install notes that catch static credentials shadowing the identity."
+  type: boolean
+  default: false
+  group: "Service Account"
+- variable: env.requireExplicitSecrets
+  label: "Refuse to Render Default Signing Keys"
+  description: "Fails the install instead of falling back to the published defaults for SECRET_KEY and friends. Worth turning on once the keys come from a Secret."
+  type: boolean
+  default: false
+  group: "Service Account"
 - variable: external_secrets.otel_env_existingSecret
   label: "OpenTelemetry Envs Secrets File Name"
   description: "Supplies OTEL_EXPORTER_OTLP_HEADERS. Leave blank to let the chart create the Secret from the OTLP Exporter Headers value."

@@ -9,25 +9,41 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
-  SILO_HMAC_SECRET_KEY: {{ .Values.env.silo_envs.hmac_secret_key | default "gzb7MRLr0FoN129NyWARZEs84P9LzQ" | quote }}
-  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
-  CURSOR_WEBHOOK_SECRET: {{ .Values.env.silo_envs.cursor_webhook_secret | default "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG" | quote }}
+  {{- if empty .Values.external_secrets.app_keys_existingSecret }}
+  SILO_HMAC_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.hmac_secret_key" "value" .Values.env.silo_envs.hmac_secret_key "fallback" "gzb7MRLr0FoN129NyWARZEs84P9LzQ") | quote }}
+  AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "fallback" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") | quote }}
+  {{- with .Values.env.silo_envs.aes_salt }}
+  {{/* Rendered only when set: api, silo and pi all default to "aes-salt" internally,
+       so emitting an empty value would break decryption on existing instances. */}}
+  AES_SALT: {{ . | quote }}
+  {{- end }}
+  CURSOR_WEBHOOK_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.cursor_webhook_secret" "value" .Values.env.silo_envs.cursor_webhook_secret "fallback" "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG") | quote }}
+  {{- end }}
 
-  {{- if .Values.services.postgres.local_setup }}
+  {{- if include "plane.externalDatabase" . }}
+  {{/* Credentials come from external_secrets.database as discrete POSTGRES_* parts.
+       Left empty on purpose: silo prefers a URL when one is set, so a composed URL
+       here would shadow the rotated password. */}}
+  DATABASE_URL: ""
+  {{- else if .Values.services.postgres.local_setup }}
   DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
   {{- else if .Values.env.pgdb_remote_url }}
   DATABASE_URL: {{ .Values.env.pgdb_remote_url}}
-  {{ else }}
+  {{- else }}
   DATABASE_URL: ""
-  {{ end }}
+  {{- end }}
 
-  {{- if .Values.services.redis.local_setup }}
+  {{- if include "plane.externalRedis" . }}
+  REDIS_URL: ""
+  {{- else if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
   {{- else if .Values.env.remote_redis_url }}
   REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 
-  {{- if .Values.services.rabbitmq.local_setup }}
+  {{- if include "plane.externalRabbitmq" . }}
+  AMQP_URL: ""
+  {{- else if .Values.services.rabbitmq.local_setup }}
   AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user}}:{{ .Values.services.rabbitmq.default_password}}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
   {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
   AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url}}
@@ -35,6 +51,9 @@ stringData:
   AMQP_URL: ""
   {{- end }}
 
+  {{- if empty .Values.external_secrets.silo_connectors_existingSecret }}
+  {{/* Suppressed wholesale when the connectors Secret supplies these — client ids and
+       app names included, so the connector surface has a single owner. */}}
   {{- if .Values.services.silo.connectors.slack.enabled }}
   SLACK_CLIENT_SECRET: {{ .Values.services.silo.connectors.slack.client_secret | default "" | quote }}
   SLACK_CLIENT_ID: {{ .Values.services.silo.connectors.slack.client_id | default "" | quote }}
@@ -68,6 +87,7 @@ stringData:
   {{- if .Values.services.silo.connectors.hubspot.enabled }}
   HUBSPOT_CLIENT_ID: {{ .Values.services.silo.connectors.hubspot.client_id | default "" | quote }}
   HUBSPOT_CLIENT_SECRET: {{ .Values.services.silo.connectors.hubspot.client_secret | default "" | quote }}
+  {{- end }}
   {{- end }}
 {{- end }}
 ---

@@ -1,0 +1,158 @@
+Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespace {{ .Release.Namespace }}
+
+  App version:  {{ .Values.planeVersion }}
+  URL:          {{ if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}https{{ else }}http{{ end }}://{{ .Values.license.licenseDomain }}
+  Admin setup:  {{ if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}https{{ else }}http{{ end }}://{{ .Values.license.licenseDomain }}/god-mode/
+
+{{- $warnings := list }}
+
+{{- /* Credentials still living in values.yaml. */}}
+{{- if and (empty .Values.external_secrets.app_keys_existingSecret) (not .Values.env.requireExplicitSecrets) }}
+{{- $publicDefaults := list }}
+{{- if or (empty .Values.env.secret_key) (eq .Values.env.secret_key "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5") }}{{ $publicDefaults = append $publicDefaults "SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.live_server_secret_key) (eq .Values.env.live_server_secret_key "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") }}{{ $publicDefaults = append $publicDefaults "LIVE_SERVER_SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.silo_envs.aes_secret_key) (eq .Values.env.silo_envs.aes_secret_key "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") }}{{ $publicDefaults = append $publicDefaults "AES_SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.pi_envs.internal_secret) (eq .Values.env.pi_envs.internal_secret "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") }}{{ $publicDefaults = append $publicDefaults "PI_INTERNAL_SECRET" }}{{ end }}
+{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.hmac_secret_key) (eq .Values.env.silo_envs.hmac_secret_key "gzb7MRLr0FoN129NyWARZEs84P9LzQ")) }}{{ $publicDefaults = append $publicDefaults "SILO_HMAC_SECRET_KEY" }}{{ end }}
+{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.cursor_webhook_secret) (eq .Values.env.silo_envs.cursor_webhook_secret "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG")) }}{{ $publicDefaults = append $publicDefaults "CURSOR_WEBHOOK_SECRET" }}{{ end }}
+{{- if $publicDefaults }}
+{{- $warnings = append $warnings (printf "Using the chart's PUBLIC example values for: %s.\n    These are published in the chart and are not secret. Supply your own through\n    external_secrets.app_keys_existingSecret, and set env.requireExplicitSecrets=true\n    to make a missing value fail the render instead of falling back." (join ", " $publicDefaults)) }}
+{{- end }}
+{{- end }}
+
+{{- /* Externalized credentials with no way to pick up a rotation. */}}
+{{- if and (not .Values.reloader.enabled) (or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName .Values.external_secrets.app_keys_existingSecret) }}
+{{- $warnings = append $warnings "Credentials come from an external Secret, but reloader.enabled is false.\n    Pods will keep the values they started with, so a rotated credential will not\n    take effect until something restarts them. Install Stakater Reloader and set\n    reloader.enabled=true." }}
+{{- end }}
+
+{{- /* live's export queue has no parts path at all, on any app version. live reads only
+       AMQP_URL — as a full URL, or as a bare host:port paired with AMAZONMQ_SECRET_ARN
+       (apps/live/src/env.ts, lib/amqp-secrets.ts). It has Redis parts; it has no broker
+       parts. So when the RabbitMQ mirror is set, this chart correctly stops rendering a
+       DSN into live-secrets and live is then left with no broker. Not fatal — live boots
+       and only exports fail, lazily — but it fails quietly, which is worse. */}}
+{{- if and .Values.external_secrets.rabbitmq.secretName (empty .Values.external_secrets.live_env_existingSecret) }}
+{{- $warnings = append $warnings "The RabbitMQ mirror reaches live only from the app release that added discrete\n    broker parts to it. Before that, live read only AMQP_URL, so with\n    external_secrets.rabbitmq.secretName set its export queue is unconfigured — live still\n    serves collaborative editing and only exports fail, which is easy to miss. On an older\n    planeVersion, supply external_secrets.live_env_existingSecret with a templated AMQP_URL,\n    or keep the broker credential in services.rabbitmq.external_rabbitmq_url." }}
+{{- end }}
+
+{{- /*
+Version gate. A deployment pinned below the app release that carries a given piece of
+discrete-parts support gets the warnings that follow.
+
+Both app changes — the API's REDIS_* support and silo/live/pi's — are expected in
+v3.2.0, hence the identical bounds. They are kept as separate variables because they
+come from separate app PRs: if one lands in a later release than the other, bump only
+that bound.
+
+planeVersion is operator-supplied and need not be semver ("stable", a git sha), so an
+unparsable value warns rather than failing the render — semverCompare would error on it.
+*/}}
+{{- $version := trimPrefix "v" (.Values.planeVersion | toString) }}
+{{- $parsable := regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+" $version }}
+{{- $preRedisParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
+{{- $preServiceParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
+
+{{- /* Services that cannot consume discrete credential parts on this app version. */}}
+{{- $externalInfra := or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName }}
+{{- if and $externalInfra $preServiceParts }}
+{{- $urlServices := list }}
+{{- if and .Values.services.silo.enabled (empty .Values.external_secrets.silo_env_existingSecret) }}{{ $urlServices = append $urlServices "silo" }}{{ end }}
+{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret) }}{{ $urlServices = append $urlServices "pi" }}{{ end }}
+{{- if and .Values.external_secrets.redis.secretName (empty .Values.external_secrets.live_env_existingSecret) }}{{ $urlServices = append $urlServices "live" }}{{ end }}
+{{- if $urlServices }}
+{{- $warnings = append $warnings (printf "These services read discrete credential parts only from planeVersion v3.2.0\n    onward, and this release runs %s: %s.\n    On an older image they will start without working connection details. Either\n    upgrade, or supply their DSN through the matching *_existingSecret with an ESO\n    template block — see examples/external-secrets/." .Values.planeVersion (join ", " $urlServices)) }}
+{{- end }}
+{{- end }}
+
+{{- /* A composed URL would shadow the discrete parts. */}}
+{{- if and .Values.external_secrets.app_env_existingSecret $externalInfra }}
+{{- $warnings = append $warnings (printf "Both external_secrets.app_env_existingSecret (%s) and the discrete credential\n    parts are set. Make sure that Secret does NOT contain DATABASE_URL, AMQP_URL or\n    REDIS_URL: the application prefers a URL when one is present, so a stale URL there\n    would silently shadow the rotated credential." .Values.external_secrets.app_env_existingSecret) }}
+{{- end }}
+
+{{- /* Redis parts need app support. */}}
+{{- if and .Values.external_secrets.redis.secretName $preRedisParts }}
+{{- $warnings = append $warnings (printf "external_secrets.redis requires discrete REDIS_HOST/PORT/PASSWORD/SSL support in\n    the application, added in planeVersion v3.2.0. This release runs %s — upgrade, or\n    keep supplying REDIS_URL instead." .Values.planeVersion) }}
+{{- end }}
+
+{{- /*
+Duplicate shared keys across two Secrets. The chart suppresses its own copies when
+app_keys_existingSecret is set, but it cannot see inside an operator-supplied Secret.
+Because app-keys is mounted first, a duplicate in a legacy group wins on the workloads
+that mount that group and loses everywhere else — so two services end up with
+different values of a key that has to match.
+*/}}
+{{- if .Values.external_secrets.app_keys_existingSecret }}
+{{- $legacyGroups := list }}
+{{- with .Values.external_secrets.app_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "app_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.silo_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "silo_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.live_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "live_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.pi_api_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "pi_api_env (%s)" .) }}{{ end }}
+{{- with .Values.external_secrets.runner_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "runner_env (%s)" .) }}{{ end }}
+{{- if $legacyGroups }}
+{{- $warnings = append $warnings (printf "app_keys_existingSecret is set alongside: %s.\n    Those Secrets must NOT contain SECRET_KEY, AES_SECRET_KEY, AES_SALT,\n    LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,\n    CURSOR_WEBHOOK_SECRET or RUNNER_HMAC_SECRET_KEY. A duplicate wins on the workloads\n    mounting that group and loses on the rest, leaving two services disagreeing on a\n    key that must match — which surfaces as auth failures or undecryptable data." (join ", " $legacyGroups)) }}
+{{- end }}
+{{- end }}
+
+{{- /* Secrets that env rotation cannot reach. */}}
+{{- if and (eq (.Values.env.skip_env_var | default "1" | toString) "1") (or .Values.external_secrets.app_keys_existingSecret $externalInfra) }}
+{{- $warnings = append $warnings "env.skip_env_var is '1', so the SMTP password, OAuth client secrets, LLM_API_KEY\n    and LDAP_BIND_PASSWORD are read from the instance-configuration table in the\n    database, seeded from the environment only on first startup. Rotating those through\n    a Secret will have no effect. Set env.skip_env_var='0' to make the environment the\n    source of truth on every restart." }}
+{{- end }}
+
+{{- /* Static object-storage keys where a cloud identity would do. */}}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (not .Values.serviceAccount.annotations) (not .Values.serviceAccount.cloudIdentity) }}
+{{- $warnings = append $warnings "Object storage is configured with a static AWS access key. Prefer a cloud identity:\n    annotate the ServiceAccount (serviceAccount.annotations) for IRSA / EKS Pod Identity\n    / GKE or Azure Workload Identity and clear env.aws_access_key and\n    env.aws_secret_access_key — the chart then omits those env vars so the SDK's default\n    credential chain picks up the pod's role." }}
+{{- end }}
+
+{{- /*
+An attached cloud identity reaches every container on the ServiceAccount, so it changes
+behaviour beyond object storage. The chart cannot detect the association — it is an EKS
+API object keyed on cluster + namespace + service account — hence the declared flag.
+*/}}
+{{- $hasIdentity := or .Values.serviceAccount.cloudIdentity .Values.serviceAccount.annotations }}
+{{- if $hasIdentity }}
+
+{{- /* A static key beats the identity in the SDK credential chain. */}}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) }}
+{{- $warnings = append $warnings "A cloud identity is configured, but env.aws_access_key is also set. Environment\n    credentials take precedence over the identity in every AWS SDK's chain, so the\n    static key is what will be used. Clear env.aws_access_key and\n    env.aws_secret_access_key to let the identity apply." }}
+{{- end }}
+
+{{- if .Values.services.pi.ai_providers.embedding_model.aws_access_key }}
+{{- $warnings = append $warnings "A cloud identity is configured, but\n    services.pi.ai_providers.embedding_model.aws_access_key is also set. Plane AI falls\n    back to the identity when the BR_AWS_* keys are absent, so clear them to use it." }}
+{{- end }}
+
+{{- /*
+The one that is genuinely surprising: an identity attached for S3 silently changes how
+OpenSearch is authenticated, because both services read "AWS credentials are present"
+as "sign with SigV4".
+*/}}
+{{- if and .Values.env.opensearch_remote_url (not (include "plane.externalOpensearch" .)) (not .Values.env.opensearch_remote_username) }}
+{{- $warnings = append $warnings "A cloud identity is configured and the remote OpenSearch has no credentials, so the\n    API and Plane AI will authenticate to it with SigV4 — an identity injects AWS\n    credentials into every container, and both read that as a request to sign.\n    That is correct for Amazon OpenSearch Service and wrong for any other OpenSearch.\n    Either set external_secrets.opensearch.secretName, or set OPENSEARCH_AUTH_MODE=basic\n    through extraEnv (needs planeVersion v3.2.0 or newer)." }}
+{{- end }}
+{{- end }}
+
+{{/* Keyless storage on an upgrade: the chart omits AWS_ACCESS_KEY_ID so boto3 finds the
+     pod identity, but Helm cannot delete a key it has stopped rendering (manifests write
+     stringData, live Secrets store data), so a release that previously ran bundled MinIO
+     keeps its root credentials in the Secret — and a present access key wins the
+     credential chain. Fires only when this is a keyless external-storage configuration,
+     which is exactly when the leftover is fatal rather than cosmetic. */}}
+{{- if and (not .Values.services.minio.local_setup) (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") (not .Values.env.aws_access_key) (empty .Values.external_secrets.doc_store_existingSecret) }}
+{{- $warnings = append $warnings (printf "Storage is keyless (no access key), which relies on AWS_ACCESS_KEY_ID being ABSENT.\n    If this release EVER ran with services.minio.local_setup=true, its MinIO root\n    credentials are still in %s-doc-store-secrets: Helm cannot remove a key it no longer\n    renders, and a present access key is found first in boto3's chain, so every S3 call\n    fails with InvalidClientTokenId while the config looks correct. Once:\n      kubectl delete secret %s-doc-store-secrets -n %s && helm upgrade ...\n      kubectl rollout restart deploy -n %s -l app.kubernetes.io/instance=%s\n    The restart matters — envFrom is read once at container start. Fresh installs and\n    releases already on chart 3.6.1+ are unaffected." .Release.Name .Release.Name .Release.Namespace .Release.Namespace .Release.Name) }}
+{{- end }}
+
+{{- if $warnings }}
+
+────────────────────────────────────────────────────────────────────────────────
+{{ len $warnings }} configuration {{ if eq (len $warnings) 1 }}warning{{ else }}warnings{{ end }}:
+{{ range $i, $w := $warnings }}
+  {{ add1 $i }}. {{ $w }}
+{{ end }}
+See the "Keeping credentials out of values.yaml" section of the chart README.
+────────────────────────────────────────────────────────────────────────────────
+{{- end }}
+
+{{- if .Values.global.forceRedeploy }}
+
+Note: global.forceRedeploy is on, so every workload restarts on every `helm upgrade`.
+Turn it off to have upgrades roll only the workloads whose configuration changed.
+{{- end }}

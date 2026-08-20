@@ -8,7 +8,11 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
-  RUNNER_HMAC_SECRET_KEY: {{ .Values.env.runner_envs.hmac_secret_key | default "" | quote }}
+  {{- if empty .Values.external_secrets.app_keys_existingSecret }}
+  {{/* The API is the verifying side of this HMAC, so this Secret is mounted on the
+       api-family workloads too — see runner.deployment.yaml and api.deployment.yaml. */}}
+  RUNNER_HMAC_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.runner_envs.hmac_secret_key" "value" .Values.env.runner_envs.hmac_secret_key "fallback" "") | quote }}
+  {{- end }}
 {{- end }}
 ---
 {{- if .Values.services.runner.enabled }}
