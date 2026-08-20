@@ -32,7 +32,7 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.worker.memoryRequest | default "512Mi" | quote }}
+            memory: {{ .Values.services.worker.memoryRequest | default "1Gi" | quote }}
             cpu: {{ .Values.services.worker.cpuRequest | default "200m" | quote }}
           limits:
             memory: {{ .Values.services.worker.memoryLimit  | default "2Gi" | quote }}

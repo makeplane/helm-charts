@@ -352,7 +352,7 @@ services:
     replicas: 1
     memoryLimit: 2Gi
     cpuLimit: 1000m
-    memoryRequest: 512Mi
+    memoryRequest: 1Gi
     cpuRequest: 200m
     nodeSelector: {}
     tolerations: []
@@ -375,9 +375,9 @@ services:
 
   beatworker:
     replicas: 1
-    memoryLimit: 1000Mi
+    memoryLimit: 2Gi
     cpuLimit: 500m
-    memoryRequest: 256Mi
+    memoryRequest: 512Mi
     cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
