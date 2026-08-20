@@ -615,6 +615,10 @@ env:
   aws_region: ''
   aws_s3_endpoint_url: ''
 
+  # STORAGE PROVIDER SELECTION (s3 or gcs)
+  storage_provider: 's3'
+  signed_url_expiration: 3600
+
   # GCS (Google Cloud Storage) — used only when storage_provider is 'GCS'.
   # When using GCS, set use_storage_proxy: true so browser uploads are proxied
   # server-side through the API (the bucket then needs no CORS configuration).
@@ -659,6 +663,7 @@ env:
   cors_allowed_origins: ''
   instance_admin_email: ''
   web_url: ''
+  app_base_url: ''
 
   # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
   # Leave empty to allow all (no restriction).
