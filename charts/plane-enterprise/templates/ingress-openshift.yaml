@@ -1,0 +1,117 @@
+{{/*
+================================================================================
+OpenShift ingress: one route.openshift.io/v1 Route per path.
+================================================================================
+Rendered when ingress.ingressClass == "openshift".
+
+Why explicit Routes rather than a plain Ingress:
+
+OpenShift's ingress-to-route controller can convert a networking.k8s.io/v1
+Ingress into Routes. This chart does not offer that path: templates/ingress.yaml
+is gated on ingressClass == "nginx", so setting "openshift-default" renders
+nothing. Declaring the Routes here is also the more predictable option — the
+conversion only picks up an Ingress whose class maps to the
+openshift.io/ingress-to-route controller, and whether per-path HAProxy
+annotations survive it varies by OCP version. Plane needs the timeout below, so
+there is no guesswork this way.
+
+Differences from the Traefik IngressRoute this mirrors:
+
+  - Ordering is irrelevant. HAProxy matches the most specific path prefix, so
+    the "/" catch-all cannot shadow the others the way it would in Traefik.
+  - There is NO equivalent of the `<release>-body-limit` Middleware. HAProxy
+    Routes have no per-route request-body cap, so the upload limit enforced by
+    ingress.traefik.maxRequestBodyBytes is NOT applied here. Enforce it in the
+    application or at a WAF/CDN in front of the router.
+  - Path-based Routes require edge or reencrypt TLS termination; they are not
+    supported with passthrough.
+*/}}
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressClass "openshift") .Values.license.licenseDomain }}
+{{- $host := .Values.license.licenseDomain }}
+{{- $name := .Release.Name }}
+{{- $oc := .Values.ingress.openshift | default dict }}
+
+{{/* Every Route below carries a spec.path, and OpenShift rejects a Route that
+     combines a path with passthrough termination -- the router cannot inspect
+     the URL of a connection it never decrypts. Caught here rather than at
+     admission, so a bad value fails the render instead of half-applying. */}}
+{{- $termination := $oc.termination | default "edge" }}
+{{- if not (has $termination (list "edge" "reencrypt")) }}
+{{- fail (printf "ingress.openshift.termination must be \"edge\" or \"reencrypt\", got %q. Path-based Routes cannot use passthrough termination; see charts/plane-enterprise/README.md." $termination) }}
+{{- end }}
+
+{{/* Same path -> service mapping as templates/ingress.yaml, most specific first
+     (ordering is cosmetic here, kept aligned so the two are easy to diff). */}}
+{{- $routes := list
+      (dict "slug" "spaces"      "path" "/spaces/"      "svc" (printf "%s-space" $name) "port" 3000)
+      (dict "slug" "god-mode"    "path" "/god-mode/"    "svc" (printf "%s-admin" $name) "port" 3000)
+      (dict "slug" "api"         "path" "/api/"         "svc" (printf "%s-api" $name)   "port" 8000)
+      (dict "slug" "auth"        "path" "/auth/"        "svc" (printf "%s-api" $name)   "port" 8000)
+      (dict "slug" "graphql"     "path" "/graphql/"     "svc" (printf "%s-api" $name)   "port" 8000)
+      (dict "slug" "marketplace" "path" "/marketplace/" "svc" (printf "%s-api" $name)   "port" 8000)
+      (dict "slug" "live"        "path" "/live/"        "svc" (printf "%s-live" $name)  "port" 3000)
+}}
+{{- if .Values.services.silo.enabled }}
+{{- $routes = append $routes (dict "slug" "silo" "path" "/silo/" "svc" (printf "%s-silo" $name) "port" 3000) }}
+{{- end }}
+{{- if .Values.services.pi.enabled }}
+{{- $routes = append $routes (dict "slug" "pi" "path" "/pi/" "svc" (printf "%s-pi-api" $name) "port" 8000) }}
+{{- end }}
+{{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
+{{- $routes = append $routes (dict "slug" "docstore" "path" (printf "/%s" .Values.env.docstore_bucket) "svc" (printf "%s-minio" $name) "port" 9000) }}
+{{- end }}
+{{/* Catch-all LAST, purely for readability. */}}
+{{- $routes = append $routes (dict "slug" "web" "path" "/" "svc" (printf "%s-web" $name) "port" 3000) }}
+
+{{/* The bundled MinIO console and RabbitMQ management UI live on their own hosts,
+     matching templates/ingress.yaml. Both are gated on the corresponding
+     local_setup, so neither renders in the recommended OpenShift configuration
+     (where the bundled datastores are off because they cannot run under an
+     arbitrary UID) -- they are here for a cluster that grants those workloads a
+     relaxed SCC. */}}
+{{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+{{- $routes = append $routes (dict "slug" "minio-console" "host" .Values.ingress.minioHost "path" "/" "svc" (printf "%s-minio" $name) "port" 9090) }}
+{{- end }}
+{{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+{{- $routes = append $routes (dict "slug" "rabbitmq-console" "host" .Values.ingress.rabbitmqHost "path" "/" "svc" (printf "%s-rabbitmq" $name) "port" 15672) }}
+{{- end }}
+
+{{- range $r := $routes }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  namespace: {{ $.Release.Namespace }}
+  name: {{ $name }}-{{ $r.slug }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    {{/* The router's default timeout is 30s, which silently severs /live/'s
+         collaborative-editing WebSockets and /pi/'s streaming responses. */}}
+    haproxy.router.openshift.io/timeout: {{ $oc.timeout | default "300s" | quote }}
+    {{- with $oc.route_annotations }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  host: {{ $r.host | default $host }}
+  path: {{ $r.path }}
+  to:
+    kind: Service
+    name: {{ $r.svc }}
+    weight: 100
+  port:
+    targetPort: {{ $r.port }}
+  tls:
+    termination: {{ $termination }}
+    insecureEdgeTerminationPolicy: {{ $oc.insecureEdgeTerminationPolicy | default "Redirect" }}
+    {{- if $oc.externalCertificate }}
+    {{/* Serve a cert from a namespace Secret instead of the router's wildcard.
+         Requires OpenShift 4.16+ and a RoleBinding granting the router
+         permission to read the Secret; leave unset to use the wildcard. */}}
+    externalCertificate:
+      name: {{ $oc.externalCertificate }}
+    {{- end }}
+{{- end }}
+{{- end }}

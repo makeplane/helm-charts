@@ -39,8 +39,15 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.opensearch }}
+      {{- /* The OpenSearch image requires uid/gid 1000 to own its data dir. Set
+           these to null where the platform assigns them itself (OpenShift's
+           restricted-v2 SCC rejects a fixed runAsUser/fsGroup) -- but note the
+           upstream image does not run under an arbitrary UID either, so on
+           OpenShift use an external OpenSearch and leave local_setup off. */}}
+      {{- with .Values.services.opensearch.fsGroup }}
       securityContext:
-        fsGroup: 1000
+        fsGroup: {{ . }}
+      {{- end }}
       containers:
       - image: {{ .Values.services.opensearch.image }}
         imagePullPolicy: {{ .Values.services.opensearch.pullPolicy | default "IfNotPresent" }}
@@ -55,7 +62,9 @@ spec:
             memory: {{ .Values.services.opensearch.memoryLimit | default "3Gi" | quote }}
             cpu: {{ .Values.services.opensearch.cpuLimit | default "750m" | quote }}
         securityContext:
-          runAsUser: 1000
+          {{- with .Values.services.opensearch.runAsUser }}
+          runAsUser: {{ . }}
+          {{- end }}
           runAsNonRoot: true
         envFrom:
           - secretRef:
