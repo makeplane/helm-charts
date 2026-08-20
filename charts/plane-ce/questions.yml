@@ -481,7 +481,7 @@ questions:
     type: string
     default: "minio/mc:latest"
     show_if: "minio.local_setup=true"
-  - variable: minio.image_busybox
+  - variable: minio.init_image
     label: "BusyBox Docker Image"
     type: string
     default: "busybox"
