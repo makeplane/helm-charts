@@ -30,7 +30,7 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.automation_consumer.memoryRequest  | default "250Mi" | quote }}
+            memory: {{ .Values.services.automation_consumer.memoryRequest  | default "256Mi" | quote }}
             cpu: {{ .Values.services.automation_consumer.cpuRequest | default "100m" | quote}}
           limits:
             memory: {{ .Values.services.automation_consumer.memoryLimit  | default "1000Mi" | quote }}
