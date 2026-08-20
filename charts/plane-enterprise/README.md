@@ -301,7 +301,7 @@ ingress:
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.1.1 # or the last released version
+   PLANE_VERSION=v3.1.2 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -357,7 +357,7 @@ ingress:
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.1.1 <or the last released version>`
+     - `planeVersion: v3.1.2 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
@@ -383,7 +383,7 @@ ingress:
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.1.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.1.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -787,7 +787,6 @@ securityContext:
 | services.silo.connectors.bitbucket.client_id  |                      ""                      | required if `services.silo.connectors.bitbucket.enabled` is `true` | Bitbucket OAuth Client ID                                                                                                                                                                                    |
 | services.silo.connectors.bitbucket.client_secret |                    ""                      | required if `services.silo.connectors.bitbucket.enabled` is `true` | Bitbucket OAuth Client Secret                                                                                                                                                                                |
 | services.silo.connectors.bitbucket.webhook_secret |                   ""                      |                                                                 | Bitbucket Webhook Secret (`BITBUCKET_WEBHOOK_SECRET`) for verifying incoming webhook payloads                                                                                                                   |
-
 | services.silo.connectors.hubspot.enabled      |                    false                     |                                                                 | HubSpot Integration                                                                                                                                                                                             |
 | services.silo.connectors.hubspot.client_id    |                      ""                      | required if `services.silo.connectors.hubspot.enabled` is `true` | HubSpot OAuth Client ID                                                                                                                                                                                       |
 | services.silo.connectors.hubspot.client_secret |                     ""                      | required if `services.silo.connectors.hubspot.enabled` is `true` | HubSpot OAuth Client Secret                                                                                                                                                                                   |
