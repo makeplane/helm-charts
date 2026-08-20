@@ -585,13 +585,29 @@ If the redirection is present, every plain-HTTP request is answered with a
 permanent redirect *before* it reaches a route, so Option 1 cannot serve Plane on
 that cluster. Either drop the redirection, or use Option 2/3/4.
 
-##### A note on nginx
+##### A note on nginx (`ingress.ingressClass: nginx`)
 
-The `ssl.*` settings above drive the standard `Ingress` path
-(`ingress.ingressClass: nginx`) too, minus the entrypoint column, which is
-Traefik-only. Options 2 and 3 emit the `Ingress` `tls:` block as before; Option 4
-emits none and only sets the `WEB_URL` scheme, which is what you want when an
-ALB or nginx-ingress in front of Plane holds the certificate.
+The `ssl.*` settings above drive the standard `Ingress` path too — everything in
+the table applies except the **Entrypoint** column, which is Traefik-only:
+
+- Options 2 and 3 emit the `Ingress` `tls:` block, exactly as before.
+- Option 4 (`ssl.externalTermination`) emits **no** `tls:` block and only sets
+  the URL scheme — which is what you want when an ALB, an NLB TLS listener, or
+  nginx-ingress in front of Plane holds the certificate.
+
+```yaml
+ingress:
+  ingressClass: nginx
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+ssl:
+  externalTermination: true    # ALB/NLB/Cloudflare terminates; no Secret here
+```
+
+> **Known issue, unrelated to TLS:** `ingress.ingress_annotations` is commented
+> out in the shipped `values.yaml`, and the `Ingress` template calls `len` on it,
+> so `ingressClass: nginx` fails to render with
+> `error calling len: len of nil pointer` unless you set at least one annotation.
+> Passing any annotation — as above — works around it.
 
 ##### Upgrading from 1.6.3 or earlier
 
