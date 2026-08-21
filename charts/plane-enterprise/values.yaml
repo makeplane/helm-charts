@@ -508,6 +508,20 @@ services:
     labels: {}
     annotations: {}
 
+  integration_event_consumer:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   pi:
     enabled: false
     replicas: 1
@@ -721,10 +735,28 @@ env:
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
     cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
+    # Integration event stream: normalized webhook events Silo forwards to Plane.
+    integration_event_ingest_enabled: false
+    integration_event_providers: "github,gitlab,slack"
+    integration_event_ingest_timeout_ms: 2000
 
   email_service_envs:
     smtp_domain: ''
     max_attachment_size: '10485760' # 10MB in bytes
+
+  # Shared across api / worker / beat-worker / integration-event-consumer.
+  integration_event_envs:
+    stream_exchange_name: "plane.integration_stream"
+    max_raw_bytes: 262144
+    publish_timeout: 2.0
+    publish_max_retries: 2
+    publish_retry_delay: 0.05
+    republish_batch_size: 500
+    republish_max_attempts: 10
+    republish_grace_seconds: 60
+    cleaner_batch_size: 1000
+    cleaner_cutoff_days: 7
+    collection_name: "integration_event"
 
   outbox_poller_envs:
     memory_limit_mb: 400
@@ -754,6 +786,10 @@ env:
 
   agent_consumer_envs:
     queue_name: "plane.agent"
+    prefetch_count: 10
+
+  integration_event_consumer_envs:
+    queue_name: "plane.integration_stream.reference"
     prefetch_count: 10
 
   runner_envs:
