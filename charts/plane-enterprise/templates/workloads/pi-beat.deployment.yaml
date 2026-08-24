@@ -34,8 +34,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.pi_beat_worker.memoryRequest | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.pi_beat_worker.cpuRequest | default "500m" | quote}}
+            memory: {{ .Values.services.pi_beat_worker.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.pi_beat_worker.cpuRequest | default "100m" | quote}}
           limits:
             memory: {{ .Values.services.pi_beat_worker.memoryLimit | default "1000Mi" | quote }}
             cpu: {{ .Values.services.pi_beat_worker.cpuLimit | default "500m" | quote}}

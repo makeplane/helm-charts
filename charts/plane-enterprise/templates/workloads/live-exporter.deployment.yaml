@@ -32,8 +32,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.live_exporter.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.live_exporter.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.live_exporter.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.live_exporter.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.live_exporter.memoryLimit | default "2000Mi" | quote }}
             cpu: {{ .Values.services.live_exporter.cpuLimit | default "1000m" | quote }}

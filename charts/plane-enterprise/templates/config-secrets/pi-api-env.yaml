@@ -139,7 +139,7 @@ data:
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000/"
   LIVE_BASE_PATH: "/live"
-  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  {{- if eq (include "plane.tlsEnabled" .) "true" }}
   PLANE_FRONTEND_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   PLANE_FRONTEND_URL: "http://{{ .Values.license.licenseDomain }}"
@@ -147,7 +147,7 @@ data:
 
   {{- if .Values.env.pi_envs.plane_api_host }}
   PLANE_API_HOST: {{ .Values.env.pi_envs.plane_api_host | quote }}
-  {{- else if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  {{- else if eq (include "plane.tlsEnabled" .) "true" }}
   PLANE_API_HOST: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}
   PLANE_API_HOST: "http://{{ .Values.license.licenseDomain }}"
@@ -166,7 +166,7 @@ data:
   CORS_ALLOWED_ORIGINS: "http://{{ .Values.license.licenseDomain }},https://{{ .Values.license.licenseDomain }}"
   {{- end }}
   
-  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.createIssuer .Values.ssl.generateCerts) }}
+  {{- if eq (include "plane.tlsEnabled" .) "true" }}
   PLANE_OAUTH_REDIRECT_URI: "https://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"
   {{- else }}
   PLANE_OAUTH_REDIRECT_URI: "http://{{ .Values.license.licenseDomain }}/pi/api/v1/oauth/callback/"

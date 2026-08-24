@@ -59,11 +59,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.pi.memoryRequest | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.pi.cpuRequest | default "500m" | quote }}
+            memory: {{ .Values.services.pi.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.pi.cpuRequest | default "200m" | quote }}
           limits:
-            memory: {{ .Values.services.pi.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.pi.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.pi.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.pi.cpuLimit | default "1000m" | quote}}
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}

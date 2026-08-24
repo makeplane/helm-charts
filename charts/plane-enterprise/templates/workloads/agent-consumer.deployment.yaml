@@ -32,8 +32,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.agent_consumer.memoryRequest | default "500Mi" | quote }}
-            cpu: {{ .Values.services.agent_consumer.cpuRequest | default "250m" | quote }}
+            memory: {{ .Values.services.agent_consumer.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.agent_consumer.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.agent_consumer.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.agent_consumer.cpuLimit | default "500m" | quote}}

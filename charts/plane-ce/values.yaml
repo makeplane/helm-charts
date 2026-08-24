@@ -18,6 +18,17 @@ ingress:
   # Traefik-specific options (only used when ingressClass starts with "traefik")
   traefik:
     maxRequestBodyBytes: 20971520   # in bytes (default: 20 MiB)
+    # Traefik entrypoints the IngressRoutes attach to. Leave empty to derive them
+    # from your SSL settings, which is what you want in almost every case:
+    #   - TLS configured (ssl.tls_secret_name, or generateCerts + createIssuer)
+    #     -> ['websecure'], and a `tls:` block is emitted.
+    #   - No TLS configured -> ['web'], plain HTTP, and NO `tls:` block. Use this
+    #     to reach Plane over http:// while you are still sorting out DNS/certs,
+    #     or when TLS is terminated upstream (cloud LB, Cloudflare, a service mesh).
+    # Set explicitly only if your Traefik install renamed the default entrypoints,
+    # e.g. entryPoints: ['websecure', 'web'] or ['https'], or to select
+    # 'websecure' when Traefik's own entrypoint terminates TLS.
+    entryPoints: []
   # ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
 
 # SSL Configuration - Valid only if ingress.enabled is true
@@ -30,6 +41,23 @@ ssl:
   server: https://acme-v02.api.letsencrypt.org/directory
   email: plane@example.com
   generateCerts: false
+  # Set true when TLS is terminated IN FRONT of Plane and this chart manages no
+  # certificate of its own -- a cloud load balancer, Cloudflare, a service mesh,
+  # or a Traefik entrypoint that carries its own cert (websecure.http.tls=true).
+  #
+  # The chart then renders WEB_URL with an https:// scheme. No `tls:` block is
+  # emitted, because there is no Secret for this chart to reference.
+  #
+  # This does NOT change the Traefik entrypoint. An upstream terminator (ALB,
+  # NLB TLS listener, Cloudflare) forwards cleartext, which arrives on `web` --
+  # the default. If TLS is instead terminated by Traefik's own entrypoint
+  # (websecure.http.tls=true), also set:
+  #   ingress.traefik.entryPoints: ['websecure']
+  # otherwise the route binds `web` and never matches the TLS traffic.
+  #
+  # Leave false if you set tls_secret_name or generateCerts -- those already
+  # imply https. This is only for TLS this chart cannot see.
+  externalTermination: false
 
 redis:
   local_setup: true
@@ -80,6 +108,7 @@ rabbitmq:
 minio:
   image: minio/minio:latest
   image_mc: minio/mc:latest
+  init_image: busybox
   local_setup: true
   pullPolicy: IfNotPresent
   root_password: password

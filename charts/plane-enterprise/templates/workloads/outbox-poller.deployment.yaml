@@ -31,8 +31,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.outbox_poller.memoryRequest  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.outbox_poller.cpuRequest | default "500m" | quote}}
+            memory: {{ .Values.services.outbox_poller.memoryRequest  | default "256Mi" | quote }}
+            cpu: {{ .Values.services.outbox_poller.cpuRequest | default "100m" | quote}}
           limits:
             memory: {{ .Values.services.outbox_poller.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.outbox_poller.cpuLimit | default "500m" | quote}}

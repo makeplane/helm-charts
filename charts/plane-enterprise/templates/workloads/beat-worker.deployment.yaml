@@ -30,10 +30,10 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.beatworker.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.beatworker.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.beatworker.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.beatworker.cpuRequest | default "100m" | quote }}
           limits:
-            memory: {{ .Values.services.beatworker.memoryLimit  | default "1000Mi" | quote }}
+            memory: {{ .Values.services.beatworker.memoryLimit  | default "2Gi" | quote }}
             cpu: {{ .Values.services.beatworker.cpuLimit | default "500m" | quote}}
         command:
           - ./bin/docker-entrypoint-beat.sh
