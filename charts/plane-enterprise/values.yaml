@@ -38,10 +38,16 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
+  # Selects which ingress template is rendered:
+  #   'traefik*'          -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
+  #   'openshift'         -> OpenShift Route per path      (templates/ingress-openshift.yaml)
+  #   'nginx'             -> networking.k8s.io/v1 Ingress  (templates/ingress.yaml)
+  # Any OTHER value renders no ingress at all -- see the note in templates/ingress.yaml.
   ingressClass: 'traefik'
-  # If using nginx ingress controller, set this to 'nginx' and add the appropriate annotations to set the proxy body size limit.
-  # These annotations are ONLY rendered when ingressClass is 'nginx' (the nginx Ingress template is gated on
-  # ingressClass == "nginx"); they have no effect with traefik. Example:
+  # Annotations for the standard Ingress — e.g. to set the proxy body size limit on
+  # the nginx controller. ONLY rendered when ingressClass is exactly 'nginx'; they
+  # have no effect with traefik, and the 'openshift' Route path takes its
+  # annotations from ingress.openshift.route_annotations instead. Example:
   # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
   # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
   #   "502 upstream sent too big header" errors.
@@ -58,6 +64,21 @@ ingress:
     # Set explicitly only if your Traefik install renamed the default entrypoints,
     # e.g. entryPoints: ['websecure', 'web'] or ['https'].
     entryPoints: []
+  # Only read when ingressClass is 'openshift'.
+  openshift:
+    # HAProxy's per-route timeout. The router default is 30s, which severs
+    # /live/'s collaborative-editing WebSockets and /pi/'s streaming responses.
+    timeout: '300s'
+    termination: 'edge' # edge | reencrypt (passthrough cannot do path routing)
+    insecureEdgeTerminationPolicy: 'Redirect'
+    # Name of a TLS Secret for the router to serve instead of its wildcard cert.
+    # Requires OpenShift 4.16+ and a RoleBinding letting the router read it.
+    externalCertificate: ''
+    # Extra annotations applied to every Route, e.g. rate limiting or
+    # haproxy.router.openshift.io/rewrite-target on a path that needs stripping.
+    route_annotations: {}
+    # NOTE: OpenShift Routes have NO equivalent of Traefik's body-limit
+    # Middleware. maxRequestBodyBytes above is not enforced on this path.
 
 ssl:
   tls_secret_name: '' # If you have a custom TLS secret name
@@ -98,15 +119,76 @@ ssl:
 # init containers). Plane's images run fine as non-root, so these defaults
 # satisfy the PSA "restricted" profile.
 #
-# NOT applied to:
+# ------------------------------------------------------------------
+# WHICH RECIPE DO I WANT?
+# ------------------------------------------------------------------
+#
+# 1) Leave it off (the default). Containers start as root and each entrypoint
+#    drops to the `plane` user (uid 1000) itself. Fine for Docker Compose and
+#    for clusters with no Pod Security Admission policy.
+#
+#      securityContext:
+#        enabled: false
+#
+# 2) Non-root, uid 1000. Satisfies the PSA "restricted" profile. This is the
+#    common Kubernetes choice and needs nothing but the toggle:
+#
+#      securityContext:
+#        enabled: true
+#
+# 3) Non-root, but YOUR platform pins a specific UID (e.g. 10001):
+#
+#      securityContext:
+#        enabled: true
+#        podSecurityContext:
+#          runAsUser: 10001
+#          runAsGroup: 10001
+#          fsGroup: 10001
+#        containerSecurityContext:
+#          runAsUser: 10001
+#
+# 4) OpenShift, or any platform that ASSIGNS the UID for you.
+#    Set the three id fields to `null`. A null in your values file removes the
+#    key entirely during Helm's value merge, so the rendered securityContext
+#    keeps runAsNonRoot / seccompProfile / dropped capabilities but names no
+#    UID -- which is exactly what OpenShift's `restricted-v2` SCC requires:
+#
+#      securityContext:
+#        enabled: true
+#        podSecurityContext:
+#          runAsUser: null
+#          runAsGroup: null
+#          fsGroup: null
+#        containerSecurityContext:
+#          runAsUser: null
+#      services:
+#        email_service:
+#          runAsUser: null       # this service pins its own; see below
+#
+#    Do NOT instead leave the 1000s in place: `restricted-v2` validates with
+#    MustRunAsRange and REJECTS any pod requesting an id outside the namespace's
+#    assigned range, so every pod would fail admission and nothing would
+#    schedule. Ready-made: `-f examples/values-openshift.yaml`, which also
+#    selects the OpenShift ingress path and forces the bundled datastores off.
+#
+#    Requires images that grant group 0 write access to their runtime paths.
+#    Older images crash under an assigned UID, e.g. nginx exits with
+#    `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+#
+# ------------------------------------------------------------------
+# WHAT THIS DOES NOT COVER
+# ------------------------------------------------------------------
 #   - The bundled local infrastructure (postgres, redis, rabbitmq, minio,
 #     opensearch): third-party images with their own UID/GID requirements,
 #     intended for local/dev use. In hardened clusters run those externally
-#     (managed RDS, ElastiCache, etc.) and leave local_setup off.
-#   - The email service: its image pins UID 100 and keeps its own securityContext.
+#     (managed RDS, ElastiCache, etc.) and leave local_setup off. They cannot
+#     run under an assigned UID at all.
+#   - The email service's UID only. Its image's app-user is uid 100 and owns
+#     /opt/email, so it keeps its own `services.email_service.runAsUser`; it
+#     still takes runAsNonRoot / capabilities / seccomp from the block below.
 #
-# Mirrors the kustomize `nonroot-security-context` component. Override runAsUser/
-# runAsGroup/fsGroup below if your environment pins a specific UID (e.g. 10001).
+# Mirrors the kustomize `nonroot-security-context` component (and, for recipe 4,
+# `openshift-security-context`).
 securityContext:
   enabled: false
   # Rendered at spec.template.spec.securityContext (pod level).
@@ -177,6 +259,12 @@ services:
 
   opensearch:
     local_setup: false
+    # The OpenSearch image needs uid/gid 1000 to own its data dir. Set both to
+    # null where the platform assigns them — but the image does not run under an
+    # arbitrary UID either, so on OpenShift use an external OpenSearch instead
+    # and leave local_setup off.
+    runAsUser: 1000
+    fsGroup: 1000
     image: opensearchproject/opensearch:3.3.2
     servicePort: 9200
     volumeSize: 5Gi
@@ -438,6 +526,10 @@ services:
 
   email_service:
     enabled: false
+    # The image's app-user is uid 100 and owns /opt/email, so this service pins
+    # its own UID rather than following the shared securityContext block above.
+    # Set to null where the platform assigns the UID (OpenShift restricted-v2).
+    runAsUser: 100
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
