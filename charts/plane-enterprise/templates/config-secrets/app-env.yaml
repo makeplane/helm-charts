@@ -1,3 +1,20 @@
+{{/* Externalized credentials describe a REMOTE backend. Paired with a bundled one the
+     chart would hand the app a credential from the operator's Secret and the in-cluster
+     endpoint from plane.{postgres,redis,rabbitmq}Host — and the bundled service never
+     authenticates that credential. For redis it is worse: plane.externalRedis also blanks
+     REDIS_URL, so an older image is left with no route to Redis at all. Fail at render
+     time rather than at runtime. plane.externalOpensearch already refuses this pairing;
+     these three did not. */}}
+{{- if and .Values.external_secrets.database.secretName .Values.services.postgres.local_setup }}
+{{- fail "external_secrets.database.secretName is set while services.postgres.local_setup is true — externalized credentials cannot authenticate against the bundled Postgres. Set services.postgres.local_setup: false and point env.pgdb_host at the remote database, or drop external_secrets.database.secretName" }}
+{{- end }}
+{{- if and .Values.external_secrets.redis.secretName .Values.services.redis.local_setup }}
+{{- fail "external_secrets.redis.secretName is set while services.redis.local_setup is true — externalized credentials cannot authenticate against the bundled Redis, and REDIS_URL is blanked. Set services.redis.local_setup: false and point env.redis_host at the remote cache, or drop external_secrets.redis.secretName" }}
+{{- end }}
+{{- if and .Values.external_secrets.rabbitmq.secretName .Values.services.rabbitmq.local_setup }}
+{{- fail "external_secrets.rabbitmq.secretName is set while services.rabbitmq.local_setup is true — externalized credentials cannot authenticate against the bundled RabbitMQ. Set services.rabbitmq.local_setup: false and point env.rabbitmq_host at the remote broker, or drop external_secrets.rabbitmq.secretName" }}
+{{- end }}
+
 {{/* The replica needs a source of connection details: a DSN in values, a Secret the
      operator owns, or the discrete-parts mirror. Without one of those, enabling it
      would silently produce a replica entry with no host. */}}
@@ -6,6 +23,17 @@
            (empty .Values.external_secrets.app_env_existingSecret)
            (not (include "plane.externalReadReplica" .)) }}
 {{- fail "read_replica.enabled is true but no source of replica credentials is configured — set services.postgres.read_replica.remote_url, or external_secrets.database.readReplica.secretName (or external_secrets.database.secretName, which it falls back to) together with env.pgdb_read_replica_host" }}
+{{- end }}
+{{/* Credentials are only half of it. plane.postgresReadReplicaCredsEnv renders
+     POSTGRES_READ_REPLICA_HOST from env.pgdb_read_replica_host, so with that unset and no
+     hostKey in the mirrored secret the replica gets an empty host. The API deliberately
+     does NOT fall back to the primary there (it would send every "replica" read to the
+     writer with no error), so an empty host is a broken replica, not a slow one. */}}
+{{- if and (include "plane.externalReadReplica" .)
+           (not .Values.services.postgres.read_replica.remote_url)
+           (not .Values.env.pgdb_read_replica_host)
+           (not .Values.external_secrets.database.readReplica.hostKey) }}
+{{- fail "read_replica.enabled is true with externalized credentials but no replica endpoint — set env.pgdb_read_replica_host, or external_secrets.database.readReplica.hostKey if the mirrored secret carries the replica host" }}
 {{- end }}
 {{- if empty .Values.external_secrets.app_env_existingSecret}}
 apiVersion: v1

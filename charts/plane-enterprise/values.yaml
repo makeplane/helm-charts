@@ -796,6 +796,11 @@ external_secrets:
     #
     # secretName defaults to the primary's, since a replica normally accepts the same
     # credential. Set it only when the replica has its own user.
+    #
+    # env.pgdb_read_replica_host is MANDATORY unless hostKey below names a key in the
+    # mirrored secret that carries the replica host. The chart fails the render if
+    # neither is set: the API never falls back to the primary's endpoint, so an empty
+    # replica host would send every read to the writer silently.
     readReplica:
       secretName: ''
       usernameKey: ''   # defaults to database.usernameKey

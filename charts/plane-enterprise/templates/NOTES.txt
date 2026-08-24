@@ -48,7 +48,11 @@ planeVersion is operator-supplied and need not be semver ("stable", a git sha), 
 unparsable value warns rather than failing the render — semverCompare would error on it.
 */}}
 {{- $version := trimPrefix "v" (.Values.planeVersion | toString) }}
-{{- $parsable := regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+" $version }}
+{{/* Anchored on purpose. A prefix-only match accepts "3.2.0.1" and "3.2.0foo",
+     which then reach semverCompare and abort the render with a parse error instead
+     of falling through to the warning below. Four-part vendor versions are the
+     realistic case. */}}
+{{- $parsable := regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$" $version }}
 {{- $preRedisParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
 {{- $preServiceParts := or (not $parsable) (semverCompare "< 3.2.0" $version) }}
 
