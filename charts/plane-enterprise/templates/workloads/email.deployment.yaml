@@ -88,8 +88,8 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            memory: {{ .Values.services.email_service.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.email_service.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.email_service.memoryRequest | default "128Mi" | quote }}
+            cpu: {{ .Values.services.email_service.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.email_service.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.email_service.cpuLimit | default "500m" | quote}}

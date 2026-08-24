@@ -1,4 +1,4 @@
-planeVersion: v3.1.1
+planeVersion: v3.1.2
 
 dockerRegistry:
   enabled: false
@@ -304,9 +304,9 @@ services:
     enabled: false
     replicas: 1
     memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    cpuLimit: 1000m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     image: makeplane/iframely:v1.2.0
     pullPolicy: Always
     assign_cluster_ip: false
@@ -320,8 +320,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
     image: makeplane/web-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -334,8 +334,8 @@ services:
   monitor:
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
     image: makeplane/monitor-commercial
     pullPolicy: Always
     volumeSize: 100Mi
@@ -350,8 +350,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     image: makeplane/space-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -365,8 +365,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
     image: makeplane/admin-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -378,10 +378,10 @@ services:
 
   live:
     replicas: 1
-    memoryLimit: 1000Mi
+    memoryLimit: 2000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 512Mi
+    cpuRequest: 100m
     image: makeplane/live-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -397,8 +397,8 @@ services:
     # PDF render footprint is 500MB-2GB; default limits reflect that.
     memoryLimit: 2000Mi
     cpuLimit: 1000m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     image: makeplane/live-commercial
     pullPolicy: Always
     nodeSelector: {}
@@ -409,10 +409,10 @@ services:
 
   api:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 2Gi
+    cpuLimit: 1000m
+    memoryRequest: 512Mi
+    cpuRequest: 200m
     image: makeplane/backend-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -425,10 +425,10 @@ services:
   external_api:
     enabled: false
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 2Gi
+    cpuLimit: 1000m
+    memoryRequest: 512Mi
+    cpuRequest: 200m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -438,10 +438,10 @@ services:
 
   worker:
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 2Gi
+    cpuLimit: 1000m
+    memoryRequest: 1Gi
+    cpuRequest: 200m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -451,10 +451,10 @@ services:
   worker_importers:
     enabled: false
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 2Gi
+    cpuLimit: 1000m
+    memoryRequest: 512Mi
+    cpuRequest: 200m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -463,10 +463,10 @@ services:
 
   beatworker:
     replicas: 1
-    memoryLimit: 1000Mi
+    memoryLimit: 2Gi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 512Mi
+    cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -478,8 +478,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     image: makeplane/silo-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -533,8 +533,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 128Mi
+    cpuRequest: 100m
     image: makeplane/email-commercial
     pullPolicy: Always
     nodeSelector: {}
@@ -548,8 +548,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -563,8 +563,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -577,8 +577,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 500Mi
-    cpuRequest: 250m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -591,8 +591,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 500Mi
-    cpuRequest: 250m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -603,10 +603,10 @@ services:
   pi:
     enabled: false
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryLimit: 2Gi
+    cpuLimit: 1000m
+    memoryRequest: 512Mi
+    cpuRequest: 200m
     image: makeplane/plane-pi-commercial
     pullPolicy: Always
     assign_cluster_ip: false
@@ -655,8 +655,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -667,8 +667,8 @@ services:
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
-    memoryRequest: 50Mi
-    cpuRequest: 50m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -765,7 +765,8 @@ env:
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
-  # Gunicorn worker rotation settings.
+  # Gunicorn settings.
+  gunicorn_workers: 1
   gunicorn_max_requests: 1000
   gunicorn_max_requests_jitter: 150
 

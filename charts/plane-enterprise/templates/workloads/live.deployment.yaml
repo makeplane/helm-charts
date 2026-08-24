@@ -81,10 +81,10 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.live.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.live.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.live.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.live.cpuRequest | default "100m" | quote }}
           limits:
-            memory: {{ .Values.services.live.memoryLimit  | default "1000Mi" | quote }}
+            memory: {{ .Values.services.live.memoryLimit  | default "2000Mi" | quote }}
             cpu: {{ .Values.services.live.cpuLimit | default "500m" | quote}}
         {{- with (include "plane.s3CANodeBundleMount" .) }}
 {{ . | indent 8 }}

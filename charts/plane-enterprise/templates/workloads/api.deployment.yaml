@@ -56,11 +56,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.api.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.api.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.api.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.api.cpuRequest | default "200m" | quote }}
           limits:
-            memory: {{ .Values.services.api.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.api.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.api.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.api.cpuLimit | default "1000m" | quote}}
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}

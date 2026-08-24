@@ -32,11 +32,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.worker.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.worker.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.worker.memoryRequest | default "1Gi" | quote }}
+            cpu: {{ .Values.services.worker.cpuRequest | default "200m" | quote }}
           limits:
-            memory: {{ .Values.services.worker.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.worker.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.worker.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.worker.cpuLimit | default "1000m" | quote}}
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}
