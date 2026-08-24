@@ -1370,9 +1370,9 @@ The rollout restart is not optional. A running pod keeps the environment it star
 the pods carry the old access key until they are replaced — which is why this can look like
 it "did not work" after the Secret is already correct.
 
-From chart 3.6.1 onward that Secret is rendered as base64 `data` rather than `stringData`, so
+From chart 3.6.0 onward that Secret is rendered as base64 `data` rather than `stringData`, so
 Helm can express the deletion and this stops recurring. The one-time cleanup above is still
-needed for the upgrade that crosses into 3.6.1.
+needed for the upgrade that crosses into 3.6.0.
 
 ### 6. Secrets that live in the database, not the environment
 
