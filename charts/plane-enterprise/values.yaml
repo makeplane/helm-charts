@@ -397,6 +397,7 @@ services:
     memoryRequest: 512Mi
     cpuRequest: 100m
     image: makeplane/live-commercial
+    init_image: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
