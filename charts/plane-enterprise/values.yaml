@@ -397,6 +397,9 @@ services:
     memoryRequest: 512Mi
     cpuRequest: 100m
     image: makeplane/live-commercial
+    # Image for the prepare-ca-bundle init container (rendered only when a custom
+    # S3 CA is configured). Must be BusyBox-compatible: the script needs /bin/sh,
+    # ls, cat and touch.
     init_image: busybox
     pullPolicy: Always
     assign_cluster_ip: false
