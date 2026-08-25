@@ -495,6 +495,7 @@ services:
     memoryRequest: 256Mi
     cpuRequest: 100m
     image: makeplane/silo-commercial
+    init_image: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
