@@ -347,11 +347,15 @@ plane.reloaderAnnotations.
 The hash intentionally covers all config-secret templates rather than a per-workload
 subset: several keys (AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET)
 must stay in lockstep across services, so a shared trigger is the safe default.
+
+The list is every config-secret template a workload mounts via envFrom. docker-registry
+and cert-issuers are excluded on purpose: neither is pod env, so hashing them would roll
+every workload for a change no running container can observe.
 */}}
 {{- define "plane.configChecksum" -}}
 {{- $ctx := . -}}
 {{- $acc := "" -}}
-{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
 {{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
 {{- end -}}
 {{- $acc | sha256sum -}}

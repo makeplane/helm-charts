@@ -1199,6 +1199,12 @@ env:
 
 # Global extra environment variables that will be applied to all workloads
 extraEnv: []
+  # - name: HTTP_PROXY
+  #   value: "http://proxy.example.com:8080"
+  # - name: HTTPS_PROXY
+  #   value: "http://proxy.example.com:8080"
+  # - name: NO_PROXY
+  #   value: "localhost,127.0.0.1,.example.com"
 
 # Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
 # things that let an environment hold no credentials — an ESO SecretStore and the
@@ -1213,12 +1219,6 @@ extraEnv: []
 #
 # See the "Keeping credentials out of values.yaml" section of the README for a worked example.
 extraObjects: []
-  # - name: HTTP_PROXY
-  #   value: "http://proxy.example.com:8080"
-  # - name: HTTPS_PROXY
-  #   value: "http://proxy.example.com:8080"
-  # - name: NO_PROXY
-  #   value: "localhost,127.0.0.1,.example.com"
 
 # OpenTelemetry (traces + logs + metrics). Off by default. When enabled, a shared
 # ConfigMap (<release>-otel-vars) is mounted via envFrom into the backend
