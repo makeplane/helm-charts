@@ -20,9 +20,9 @@
 # removes it during Helm's coalescing, so the rendered securityContext keeps
 # runAsNonRoot, seccompProfile and the dropped capabilities but carries no UID.
 #
-# REQUIRES the images that grant group 0 write access to their runtime paths
-# (plane-ee #9018). Older images crash under an arbitrary UID — nginx exits with
-# `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+# REQUIRES images that grant group 0 write access to their runtime paths, which means
+# planeVersion v3.2.0 or newer. Older images crash under an arbitrary UID — nginx exits
+# with `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
 # =============================================================================
 
 securityContext:
