@@ -541,11 +541,10 @@ services:
     tolerations: []
     affinity: {}
     labels: {}
-    # The email service mounts a cert-manager TLS Secret, so it has always been
-    # annotated for Reloader independently of the chart-wide reloader.enabled flag
-    # (it needs a restart when the certificate is renewed).
-    annotations:
-      reloader.stakater.com/auto: 'true'
+    # This service mounts a cert-manager TLS Secret, so it needs a restart when the
+    # certificate is renewed. Set reloader.enabled, or add
+    # reloader.stakater.com/auto here, if you want that to happen automatically.
+    annotations: {}
 
   outbox_poller:
     enabled: false
