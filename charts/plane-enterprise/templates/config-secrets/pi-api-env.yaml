@@ -9,7 +9,13 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
-  {{- if .Values.services.postgres.local_setup }}
+  {{- if include "plane.externalDatabase" . }}
+  {{/* Credentials come from external_secrets.database as discrete
+       PLANE_PI_POSTGRES_* / FOLLOWER_POSTGRES_* parts. Left empty on purpose: pi
+       prefers a URL when one is set, so a composed URL here would shadow the
+       rotated password. */}}
+  PLANE_PI_DATABASE_URL: ""
+  {{- else if .Values.services.postgres.local_setup }}
   PLANE_PI_DATABASE_URL: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pg_pi_db_name }}"
   {{- else if .Values.env.pg_pi_db_remote_url }}
   PLANE_PI_DATABASE_URL: {{ .Values.env.pg_pi_db_remote_url}}
@@ -17,17 +23,23 @@ stringData:
   PLANE_PI_DATABASE_URL: ""
   {{- end }}
 
+  {{/* An explicit follower_postgres_uri still wins — it is the escape hatch for a
+       follower with genuinely separate credentials from the primary. */}}
   {{- if .Values.env.pi_envs.follower_postgres_uri }}
   FOLLOWER_POSTGRES_URI: {{ .Values.env.pi_envs.follower_postgres_uri | quote }}
+  {{- else if include "plane.externalDatabase" . }}
+  FOLLOWER_POSTGRES_URI: ""
   {{- else if .Values.services.postgres.local_setup }}
   FOLLOWER_POSTGRES_URI: "postgresql://{{ .Values.env.pgdb_username }}:{{ .Values.env.pgdb_password }}@{{ .Release.Name }}-pgdb.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/{{ .Values.env.pgdb_name }}"
   {{- else if .Values.env.pgdb_remote_url }}
   FOLLOWER_POSTGRES_URI: {{ .Values.env.pgdb_remote_url | quote }}
-  {{- else }}  
+  {{- else }}
   FOLLOWER_POSTGRES_URI: ""
   {{- end }}
 
-  {{- if .Values.services.rabbitmq.local_setup }}
+  {{- if include "plane.externalRabbitmq" . }}
+  AMQP_URL: ""
+  {{- else if .Values.services.rabbitmq.local_setup }}
   AMQP_URL: "amqp://{{ .Values.services.rabbitmq.default_user }}:{{ .Values.services.rabbitmq.default_password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}/"
   {{- else if .Values.services.rabbitmq.external_rabbitmq_url }}
   AMQP_URL: {{ .Values.services.rabbitmq.external_rabbitmq_url | default "" | quote }}
@@ -35,12 +47,21 @@ stringData:
   AMQP_URL: ""
   {{- end }}
 
-  {{- if .Values.services.redis.local_setup }}
+  {{/* Redis is pi's Celery broker in this chart. CELERY_BROKER_URL takes precedence
+       over AMQP_URL in pi, so leaving it empty is what lets the REDIS_* parts win. */}}
+  {{- if include "plane.externalRedis" . }}
+  CELERY_BROKER_URL: ""
+  {{- else if .Values.services.redis.local_setup }}
   CELERY_BROKER_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"
   {{- else }}
   CELERY_BROKER_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 
+  {{- if empty .Values.external_secrets.ai_providers_existingSecret }}
+  {{/* Suppressed wholesale when the AI-providers Secret supplies these. The
+       empty-string branches below matter as much as the populated ones: envFrom
+       resolves later-source-wins, so a rendered COHERE_API_KEY: "" would overwrite
+       the value coming from that Secret. */}}
   {{- if .Values.services.pi.ai_providers.openai.enabled }}
   OPENAI_API_KEY: {{ .Values.services.pi.ai_providers.openai.api_key | default "" |  quote }}
   {{- end }}
@@ -64,16 +85,41 @@ stringData:
   CUSTOM_LLM_API_KEY: ""
   {{- end }}
 
+  {{- /* Amazon Bedrock. AWS_BEARER_TOKEN_BEDROCK is the Bedrock API key, which botocore reads
+       natively (>= 1.39) — so this needs no application support. Omitted when unset so the
+       credential chain reaches the pod's identity instead; an empty bearer token is present,
+       and present denies the chain its turn. The profile ARN/ID are identifiers rather than
+       credentials, but they belong here because this is the Secret the pi workloads mount. */ -}}
+  {{- if .Values.services.pi.ai_providers.bedrock.enabled }}
+  {{- with .Values.services.pi.ai_providers.bedrock.api_key }}
+  AWS_BEARER_TOKEN_BEDROCK: {{ . | quote }}
+  {{- end }}
+  {{- end }}
   {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
-  BR_AWS_SECRET_ACCESS_KEY: {{ .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key | default "" | quote }}
-  BR_AWS_SESSION_TOKEN: {{ .Values.services.pi.ai_providers.embedding_model.aws_session_token | default "" | quote }}
+  {{- with .Values.services.pi.ai_providers.embedding_model.aws_access_key }}
+  BR_AWS_ACCESS_KEY_ID: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.services.pi.ai_providers.embedding_model.aws_secret_access_key }}
+  BR_AWS_SECRET_ACCESS_KEY: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.services.pi.ai_providers.embedding_model.aws_session_token }}
+  BR_AWS_SESSION_TOKEN: {{ . | quote }}
+  {{- end }}
+  {{- end }}
   {{- end }}
 
-  AES_SECRET_KEY: {{ .Values.env.silo_envs.aes_secret_key | default "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr" | quote }}
+  {{- if empty .Values.external_secrets.app_keys_existingSecret }}
+  AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "fallback" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") | quote }}
+  {{- with .Values.env.silo_envs.aes_salt }}
+  {{/* Rendered only when set: api, silo and pi all default to "aes-salt" internally,
+       so emitting an empty value would break decryption on existing instances. */}}
+  AES_SALT: {{ . | quote }}
+  {{- end }}
 
-  PI_INTERNAL_SECRET: {{ .Values.env.pi_envs.internal_secret | default "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" | quote }}
+  PI_INTERNAL_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.pi_envs.internal_secret" "value" .Values.env.pi_envs.internal_secret "fallback" "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") | quote }}
 
-  LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
+  LIVE_SERVER_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.live_server_secret_key" "value" .Values.env.live_server_secret_key "fallback" "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") | quote }}
+  {{- end }}
 {{- end }}
 ---
 
@@ -150,11 +196,27 @@ data:
   CUSTOM_LLM_AWS_REGION: ""
   {{- end }}
 
+  {{- /* Bedrock's profile ARN/ID and region are identifiers, not credentials, so they sit
+       OUTSIDE the ai_providers suppression group — same split as OPENSEARCH_ML_MODEL_ID below.
+       Putting them inside would make a pod-identity Bedrock setup unconfigurable the moment
+       ai_providers_existingSecret is set, because that group is all-or-nothing. Only
+       AWS_BEARER_TOKEN_BEDROCK is a credential and only it is suppressed. */ -}}
+  {{- if .Values.services.pi.ai_providers.bedrock.enabled }}
+  {{- with .Values.services.pi.ai_providers.bedrock.inference_profile_arn }}
+  BEDROCK_INFERENCE_PROFILE_ARN: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.services.pi.ai_providers.bedrock.inference_profile_id }}
+  BEDROCK_INFERENCE_PROFILE_ID: {{ . | quote }}
+  {{- end }}
+  BEDROCK_REGION: {{ .Values.services.pi.ai_providers.bedrock.region | default .Values.env.aws_region | default "us-east-1" | quote }}
+  {{- end }}
+
   {{- if .Values.services.pi.ai_providers.embedding_model.enabled }}
   EMBEDDING_MODEL: {{ .Values.services.pi.ai_providers.embedding_model.name | default "" | quote }}
   OPENSEARCH_ML_MODEL_ID: {{ .Values.services.pi.ai_providers.embedding_model.model_id | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.services.pi.ai_providers.embedding_model.embedding_dimension | default 1536 | quote }}
-  BR_AWS_ACCESS_KEY_ID: {{ .Values.services.pi.ai_providers.embedding_model.aws_access_key | default "" | quote }}
+  {{/* BR_AWS_ACCESS_KEY_ID lives in the Secret alongside BR_AWS_SECRET_ACCESS_KEY.
+       Both are omitted when unset so Bedrock falls back to the pod's cloud identity. */}}
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}
 

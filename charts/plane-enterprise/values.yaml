@@ -541,6 +541,9 @@ services:
     tolerations: []
     affinity: {}
     labels: {}
+    # This service mounts a cert-manager TLS Secret, so it needs a restart when the
+    # certificate is renewed. Add reloader.stakater.com/auto: "true" here (and install
+    # Stakater Reloader) if you want that to happen automatically.
     annotations: {}
 
   outbox_poller:
@@ -632,6 +635,24 @@ services:
         enabled: false
         base_url: ''
         api_key: ''
+      # Amazon Bedrock. Two ways in, and on AWS the second is the better one:
+      #
+      #   api_key -> AWS_BEARER_TOKEN_BEDROCK, the Bedrock API key (a bearer token issued in
+      #              the Bedrock console). botocore honours that env var natively from 1.39
+      #              onward, so nothing in the application has to change to use it. Useful off
+      #              AWS, or where a scoped Bedrock key is easier to hand out than an IAM role.
+      #   nothing -> the pod's own identity. With no key set, boto3 walks its credential chain
+      #              to IRSA / EKS Pod Identity and Bedrock is reached with no credential in
+      #              the cluster at all. Pair it with inference_profile_arn.
+      #
+      # As everywhere else in this chart the key is OMITTED rather than rendered empty when
+      # unset: an empty credential is *present*, and present beats the credential chain.
+      bedrock:
+        enabled: false
+        api_key: ''                # -> AWS_BEARER_TOKEN_BEDROCK
+        region: ''                 # -> BEDROCK_REGION; falls back to env.aws_region
+        inference_profile_arn: ''  # -> BEDROCK_INFERENCE_PROFILE_ARN
+        inference_profile_id: ''   # -> BEDROCK_INFERENCE_PROFILE_ID
       custom_llm:
         enabled: false
         api_key: ''
@@ -691,7 +712,226 @@ services:
     labels: {}
     annotations: {}
 
+# ============================================================
+# ServiceAccount / cloud workload identity
+# ============================================================
+# All Plane workloads run as one ServiceAccount. Annotate it to give the pods a
+# cloud identity, which is the preferred way to reach object storage, OpenSearch
+# and (on AWS) Secrets Manager — no access keys anywhere in the cluster:
+#
+#   AWS IRSA:              eks.amazonaws.com/role-arn: arn:aws:iam::<acct>:role/<role>
+#   AWS EKS Pod Identity:  no annotation — create the association against this
+#                          ServiceAccount's name instead
+#   GCP Workload Identity: iam.gke.io/gcp-service-account: <sa>@<project>.iam.gserviceaccount.com
+#   Azure Workload Id:     azure.workload.identity/client-id: <client-id>
+#                          plus podLabels: { azure.workload.identity/use: "true" }
+#
+# With an identity attached, leave env.aws_access_key / aws_secret_access_key (and
+# gcs_credentials_json) empty: the chart then omits those env vars entirely so the
+# cloud SDK's default credential chain picks up the pod identity.
+serviceAccount:
+  # Set false to reference a ServiceAccount managed outside the chart.
+  create: true
+  # Defaults to "<release>-srv-account".
+  name: ''
+  annotations: {}
+  # Extra pod-template labels (Azure Workload Identity requires one).
+  podLabels: {}
+
+  # Declares that this ServiceAccount is bound to a cloud identity configured OUT OF
+  # BAND — an EKS Pod Identity association, a GKE Workload Identity binding. The chart
+  # cannot detect that on its own: a Pod Identity association is an EKS API object keyed
+  # on cluster + namespace + service account, and nothing about it appears in the pod
+  # spec. Setting this changes no rendered output; it only lets `helm upgrade` warn
+  # about the interactions an attached identity creates, chiefly that credentials now
+  # reach every container on this ServiceAccount.
+  cloudIdentity: false
+
+# ============================================================
+# Externalized secrets
+# ============================================================
+# Two ways to keep credentials out of this file. Both consume plain Kubernetes
+# Secrets, so any backend works — External Secrets Operator against AWS Secrets
+# Manager / GCP Secret Manager / Azure Key Vault / Vault, sealed-secrets, or a
+# Secret you create by hand. The chart never renders ExternalSecret resources
+# itself, which is what keeps it cloud-agnostic.
+#
+# 1. Infrastructure credentials (database / rabbitmq / redis) — recommended.
+#    Point `secretName` at a Secret that MIRRORS your cloud secret verbatim: an
+#    RDS or CloudSQL managed-rotation secret contains only {"username","password"},
+#    so a plain ESO `dataFrom.extract` is all you need — no templating, and only
+#    ONE secret to watch and rotate. The key names below tell the chart which keys
+#    inside that secret to read; the non-secret endpoint (host/port/database) comes
+#    from env.* below. The app composes its own connection URLs from these parts,
+#    so a rotated password needs no URL rewriting anywhere.
+#
+#    Requires the Django services to read the discrete parts. POSTGRES_* and
+#    RABBITMQ_* are supported by all releases; REDIS_HOST/PORT/PASSWORD/SSL needs
+#    planeVersion v3.2.0 or newer.
+#
+#    Annotate the workloads with reloader.stakater.com/auto (and install Reloader) so pods restart
+#    when the mirrored Secret changes — that is what makes rotation take effect.
+#
+# 2. Whole-Secret replacement (*_existingSecret) — the chart skips rendering that
+#    Secret and every workload reads yours instead. You own all of its keys.
 external_secrets:
+  database:
+    # Secret mirroring your managed-database credential (e.g. the RDS secret).
+    secretName: ''
+    usernameKey: username
+    passwordKey: password
+    # Optional: set only if your secret also carries the endpoint. When empty the
+    # host/port/database come from env.pgdb_host / pgdb_port / pgdb_name.
+    hostKey: ''
+    portKey: ''
+    dbNameKey: ''
+
+    # Read replica. services.postgres.read_replica.remote_url is a DSN with the
+    # password inside it, which a managed rotation can never update — so this is the
+    # replica's equivalent of the block above. The API reads
+    # POSTGRES_READ_REPLICA_{DB,USER,PASSWORD,HOST,PORT} natively (Django takes the
+    # parts as a config dict; nothing composes a URL), so no application change is
+    # needed to use it.
+    #
+    # secretName defaults to the primary's, since a replica normally accepts the same
+    # credential. Set it only when the replica has its own user.
+    #
+    # env.pgdb_read_replica_host is MANDATORY unless hostKey below names a key in the
+    # mirrored secret that carries the replica host. The chart fails the render if
+    # neither is set: the API never falls back to the primary's endpoint, so an empty
+    # replica host would send every read to the writer silently.
+    readReplica:
+      secretName: ''
+      usernameKey: ''   # defaults to database.usernameKey
+      passwordKey: ''   # defaults to database.passwordKey
+      hostKey: ''
+      portKey: ''
+      dbNameKey: ''
+
+  rabbitmq:
+    # Amazon MQ shape. Set env.rabbitmq_ssl: true and env.rabbitmq_port: '5671' —
+    # Amazon MQ refuses plaintext AMQP.
+    secretName: ''
+    usernameKey: username
+    passwordKey: password
+    hostKey: ''
+    portKey: ''
+    vhostKey: ''
+
+  redis:
+    # Requires planeVersion v3.2.0+ (discrete REDIS_* support in the API).
+    # For ElastiCache the auth token goes in passwordKey; set env.redis_ssl: true.
+    secretName: ''
+    passwordKey: password
+    hostKey: ''
+    portKey: ''
+
+  storage:
+    # Object-storage credentials.
+    #
+    # On a cloud, leave this unset and give the pod an identity instead — annotate the
+    # ServiceAccount (see serviceAccount.annotations) or attach an EKS Pod Identity
+    # association. With env.aws_access_key / aws_secret_access_key empty the chart omits
+    # those variables entirely, which is what lets the SDK's credential chain reach the
+    # pod's role. An empty value would beat the chain and fail every request.
+    #
+    # Use this for an S3-compatible backend with no workload identity (Ceph, DO Spaces,
+    # an external MinIO), or for GCS with a service-account key. Ignored while the
+    # bundled MinIO is deployed, which supplies its own credentials.
+    #
+    # gcsCredentialsJsonKey carries the whole service-account JSON, private key
+    # included — the single highest-value blob in a GCS deployment, and the reason it
+    # should never sit in values.yaml.
+    secretName: ''
+    accessKeyIdKey: ''         # -> AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: ''     # -> AWS_SECRET_ACCESS_KEY
+    gcsCredentialsJsonKey: ''  # -> GCS_CREDENTIALS_JSON
+
+  opensearch:
+    # Credentials for a REMOTE OpenSearch. Ignored when
+    # services.opensearch.local_setup is true — the chart owns both sides of the
+    # bundled cluster's credentials, so use opensearch_existingSecret for that.
+    # On AWS, prefer leaving these unset entirely and letting the pod's IAM identity
+    # authenticate with SigV4 (see serviceAccount.annotations).
+    secretName: ''
+    usernameKey: username
+    passwordKey: password
+
+  # Shared signing/encryption keys. One Secret for every service that needs them, so
+  # a rotation can never leave two services disagreeing. While this is set, the chart
+  # stops emitting these keys in its own Secrets, making yours the only source.
+  #
+  # The Secret MUST contain every key your deployment uses — a missing key is not a
+  # render error, it is an absent env var:
+  #   SECRET_KEY              REQUIRED. The API falls back to a per-pod random value
+  #                           when absent, so JWTs stop verifying across replicas and
+  #                           encrypted instance-configuration rows become unreadable.
+  #   AES_SECRET_KEY          REQUIRED. api/silo/pi all derive from it.
+  #   AES_SALT                Optional; all three services default to "aes-salt".
+  #                           Set it only if you set it from the start.
+  #   LIVE_SERVER_SECRET_KEY  Required when live is deployed (api <-> live <-> pi).
+  #   PI_INTERNAL_SECRET      Required when Plane AI is deployed.
+  #   SILO_HMAC_SECRET_KEY    Required when silo is deployed (silo signs, API verifies).
+  #   CURSOR_WEBHOOK_SECRET   Required for silo's Cursor agent integration.
+  #   RUNNER_HMAC_SECRET_KEY  Required when the runner is deployed.
+  #
+  # WARNING — SECRET_KEY, AES_SECRET_KEY and AES_SALT are key-encryption keys:
+  # SECRET_KEY protects the encrypted instance-configuration rows and the AES pair
+  # protects stored OAuth/MCP tokens. Changing them makes existing ciphertext
+  # undecryptable, and it fails silently. Store them in a secret that is NOT on a
+  # rotation schedule.
+  #
+  # Do NOT also define these keys in one of the *_existingSecret groups below. Those
+  # are mounted after this Secret, so a duplicate wins on some workloads and not
+  # others, leaving two services with different values of a key that must match.
+  app_keys_existingSecret: ''
+
+  # AI/LLM provider keys ONLY.
+  #
+  # pi_api_env_existingSecret below replaces the WHOLE Plane AI Secret, which forces
+  # you to own PLANE_PI_DATABASE_URL, FOLLOWER_POSTGRES_URI, AMQP_URL,
+  # CELERY_BROKER_URL and the signing keys as well. Those are per-environment, so it
+  # cannot express "one provider account shared by every environment". This hook
+  # carries nothing environment-specific, so a single Secret can be mirrored into as
+  # many namespaces as share the account — while a customer deployment can just as
+  # well point it at a per-environment Secret. The chart only takes a name.
+  #
+  # Keys read (all optional; an omitted key is simply an absent env var):
+  #   OPENAI_API_KEY  CLAUDE_API_KEY  GROQ_API_KEY  COHERE_API_KEY
+  #   CUSTOM_LLM_API_KEY
+  #   BR_AWS_ACCESS_KEY_ID  BR_AWS_SECRET_ACCESS_KEY  BR_AWS_SESSION_TOKEN
+  #     Bedrock embeddings. On AWS omit all three and let the pod's identity sign —
+  #     Plane AI falls back to AWS_ACCESS_KEY_ID and then to boto3's own chain.
+  #   AI_OPENAI_API_KEY
+  #     The live server's OpenAI-compatible proxy. The chart has no values key for
+  #     this at all, so this hook is the only way to supply it.
+  #
+  # Do NOT put base URLs in this Secret. They are not secret, they belong in
+  # services.pi.ai_providers.*.base_url, and the live server validates
+  # AI_OPENAI_BASE_URL as a URL and exits on an empty string — which is exactly what
+  # a `dataFrom.extract` of a JSON secret containing an empty base URL would deliver.
+  ai_providers_existingSecret: ''
+
+  # Silo connector app credentials (OAuth client secrets, the GitHub App private key,
+  # webhook secrets). The silo Secret also carries DATABASE_URL / AMQP_URL /
+  # REDIS_URL, so silo_env_existingSecret cannot externalize just the connectors.
+  #
+  # When set the chart emits none of the connector keys and this Secret owns the whole
+  # connector surface — client ids and app names included. They are not secret, but a
+  # half-external, half-rendered connector block is a configuration people get wrong.
+  #
+  # Naturally per-environment: a connector's OAuth callback URL is per-host, so the
+  # app registration differs per environment.
+  #   SLACK_CLIENT_ID/SECRET, SLACK_BASE_URL
+  #   GITHUB_CLIENT_ID/SECRET, GITHUB_APP_NAME, GITHUB_APP_ID, GITHUB_PRIVATE_KEY
+  #   GITLAB_CLIENT_ID/SECRET
+  #   SENTRY_CLIENT_ID/SECRET, SENTRY_BASE_URL, SENTRY_INTEGRATION_SLUG
+  silo_connectors_existingSecret: ''
+
+  # DNS-01 API token for the cert-manager Issuer (ssl.issuer cloudflare/digitalocean).
+  # Must contain the key `api-token`.
+  ssl_token_existingSecret: ''
+
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
@@ -706,8 +946,33 @@ external_secrets:
   # observability.otel.enabled is set; leave blank to let the chart create it.
   otel_env_existingSecret: ''
 
+# ============================================================
+# Stakater Reloader
+# ============================================================
+global:
+  # Pre-3.1 behaviour: stamp every pod template with the current timestamp so that
+  # `helm upgrade` restarts every workload whether or not anything changed. The
+  # chart now annotates pods with a checksum of the config it renders instead, so
+  # upgrades roll only what actually changed. Set true to force a full restart.
+  forceRedeploy: false
+
 env:
   storageClass: ''
+
+  # Fail the render instead of falling back to this chart's public example values
+  # for SECRET_KEY, AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
+  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. Recommended for production;
+  # defaults to false so existing installs keep rendering. Will default to true in
+  # the next major version.
+  requireExplicitSecrets: false
+
+  # SKIP_ENV_VAR=1 (the default) makes the API read SMTP, OAuth-provider, LLM and
+  # LDAP secrets from the instance-configuration table in the database, seeded from
+  # the environment only on first startup — so rotating those through a Secret has
+  # no effect. Set '0' when an external secret store is the source of truth: the
+  # API then re-seeds them from the environment on every start. Trade-off: edits
+  # made in the god-mode admin UI for those settings get overwritten on restart.
+  skip_env_var: '1'
 
   # Kubernetes internal cluster domain used to build in-cluster service URLs
   default_cluster_domain: 'cluster.local'
@@ -715,13 +980,43 @@ env:
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
 
+  # Redis endpoint used with external_secrets.redis (credentials come from that
+  # Secret). Ignored when services.redis.local_setup is true.
+  redis_host: ''
+  redis_port: '6379'
+  redis_ssl: false
+
   # POSTGRES DB VALUES
   pgdb_username: plane
+  # DEPRECATED: a password in this file ends up in the Helm release Secret and in
+  # any values file you commit. Prefer external_secrets.database.
   pgdb_password: plane
   pgdb_name: plane
   pg_pi_db_name: plane_pi
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
   pg_pi_db_remote_url: '' #INCASE OF REMOTE Plane AI (PI) PG DB URL ONLY
+
+  # Postgres endpoint used with external_secrets.database (username/password come
+  # from that Secret). Ignored when services.postgres.local_setup is true.
+  pgdb_host: ''
+  pgdb_port: '5432'
+
+  # Read-replica endpoint, used with external_secrets.database.readReplica (the
+  # credentials come from that Secret). The database name defaults to pgdb_name, since
+  # a replica serves the same database under a different endpoint.
+  pgdb_read_replica_host: ''
+  pgdb_read_replica_port: '5432'
+  pgdb_read_replica_name: ''
+
+  # RabbitMQ endpoint used with external_secrets.rabbitmq (credentials come from
+  # that Secret). Ignored when services.rabbitmq.local_setup is true.
+  rabbitmq_host: ''
+  rabbitmq_port: '5672'
+  rabbitmq_vhost: '/'
+  # Connect over TLS (amqps). Required by Amazon MQ for RabbitMQ, which listens on
+  # 5671 and refuses plaintext. Only applies to the discrete-parts path — a URL in
+  # services.rabbitmq.external_rabbitmq_url carries its own scheme.
+  rabbitmq_ssl: false
 
   # DATA STORE
   docstore_bucket: uploads
@@ -762,6 +1057,12 @@ env:
   opensearch_embedding_dimension: 1536
 
   #API KEYS
+  # DEPRECATED as a place to keep the real value — this is a PUBLIC example key.
+  # Supply it through external_secrets.app_keys_existingSecret instead.
+  #
+  # NEVER ROTATE once an instance is running: SECRET_KEY derives the Fernet key that
+  # encrypts the instance-configuration rows (SMTP password, OAuth client secrets,
+  # LLM keys). Changing it makes every one of those rows undecryptable.
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
@@ -791,6 +1092,8 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+  # DEPRECATED as a place to keep the real value — PUBLIC example key.
+  # Supply through external_secrets.app_keys_existingSecret.
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
   # Background PDF/DOCX export worker queue.
@@ -807,8 +1110,16 @@ env:
     mq_prefetch_count: 1
     request_interval: 400
     importers_queue_name: 'celery'
+    # DEPRECATED as a place to keep the real values — these are PUBLIC example keys.
+    # Supply them through external_secrets.app_keys_existingSecret.
+    # aes_secret_key encrypts stored connector tokens: NEVER ROTATE on a live instance.
     hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
+    # Salt paired with aes_secret_key. Shared by api, silo and pi, which all default
+    # to "aes-salt" internally — leave empty to keep that default. Setting it on an
+    # instance that already has encrypted data makes that data undecryptable, exactly
+    # like changing aes_secret_key. NEVER ROTATE.
+    aes_salt: ''
     cors_allowed_origins: ''
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
@@ -861,6 +1172,8 @@ env:
     plane_api_host: ''
     follower_postgres_uri: ''
     cors_allowed_origins: ''
+    # DEPRECATED as a place to keep the real value — PUBLIC example key.
+    # Supply through external_secrets.app_keys_existingSecret.
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
     log_level: 'DEBUG'
 
@@ -883,6 +1196,20 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
+# things that let an environment hold no credentials — an ESO SecretStore and the
+# ExternalSecrets producing the Secrets referenced by external_secrets.* above — which
+# belong to the operator rather than to this chart, but have nowhere to live when a GitOps
+# tool treats one directory as one unit.
+#
+# Passed through verbatim (toYaml, not tpl) so that ESO's own {{ }} placeholders inside a
+# target.template survive. Add the standard Helm hook annotations to have an object applied
+# BEFORE the workloads; the Secret references in this chart are optional: false, so a pod
+# that starts before its Secret exists waits in CreateContainerConfigError until it appears.
+#
+# See the "Keeping credentials out of values.yaml" section of the README for a worked example.
+extraObjects: []
 
 # OpenTelemetry (traces + logs + metrics). Off by default. When enabled, a shared
 # ConfigMap (<release>-otel-vars) is mounted via envFrom into the backend

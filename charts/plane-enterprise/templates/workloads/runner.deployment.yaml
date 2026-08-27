@@ -31,6 +31,7 @@ metadata:
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.runner) }}
 spec:
   replicas: {{ .Values.services.runner.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
@@ -40,8 +41,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-runner
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.runner }}
       {{- include "plane.podSecurityContext" . }}
@@ -73,11 +75,17 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.runner_env_existingSecret) }}{{ .Values.external_secrets.runner_env_existingSecret }}{{ else }}{{ .Release.Name }}-runner-secrets{{ end }}
               optional: false
+          {{- /* LAST in envFrom, deliberately: envFrom is later-source-wins, so these must
+                 follow app_env/silo_env/live_env. Those may carry their own copy of a key a
+                 group hook owns, and first would let the stale copy win on one workload but
+                 not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
+                 or live-server auth fails with nothing logged. */}}
+          {{- include "plane.appKeysSecretRef" . }}
         {{- if .Values.extraEnv }}
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
 {{- end }}
