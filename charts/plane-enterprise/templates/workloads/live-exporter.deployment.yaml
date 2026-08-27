@@ -31,8 +31,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.live_exporter.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.live_exporter.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.live_exporter.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.live_exporter.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.live_exporter.memoryLimit | default "2000Mi" | quote }}
             cpu: {{ .Values.services.live_exporter.cpuLimit | default "1000m" | quote }}
@@ -43,9 +43,11 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
         env:
           - name: LIVE_MODE
             value: "exporter"
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live-exporter")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

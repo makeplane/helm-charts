@@ -1,0 +1,35 @@
+{{- if and .Values.ingress.enabled .Values.ingress.host (eq .Values.ingress.ingressController "traefik") }}
+
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-body-limit
+spec:
+  buffering:
+    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 10485760 }}
+
+---
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-ingress
+spec:
+  entryPoints:
+    - {{ if .Values.ingress.ssl.enabled }}websecure{{ else }}web{{ end }}
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      middlewares:
+        - name: {{ .Release.Name }}-body-limit
+      services:
+        - name: {{ .Release.Name }}-api
+          port: 8211
+  {{- if .Values.ingress.ssl.enabled }}
+  tls:
+    secretName: {{ .Release.Name }}-ssl-cert
+  {{- end }}
+
+{{- end }}

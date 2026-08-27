@@ -104,8 +104,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.silo.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.silo.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.silo.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.silo.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
@@ -122,11 +122,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "silo")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

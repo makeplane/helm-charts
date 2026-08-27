@@ -33,8 +33,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.pi_beat_worker.memoryRequest | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.pi_beat_worker.cpuRequest | default "500m" | quote}}
+            memory: {{ .Values.services.pi_beat_worker.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.pi_beat_worker.cpuRequest | default "100m" | quote}}
           limits:
             memory: {{ .Values.services.pi_beat_worker.memoryLimit | default "1000Mi" | quote }}
             cpu: {{ .Values.services.pi_beat_worker.cpuLimit | default "500m" | quote}}
@@ -64,11 +64,13 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "pi-beat")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

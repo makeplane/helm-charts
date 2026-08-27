@@ -27,12 +27,23 @@ If you plan to use Traefik as your ingress controller, install it before deployi
 
 ## Migrating the Ingress Controller
 
-The chart selects between two ingress templates based on `ingress.ingressClass`:
+The chart selects between three ingress templates based on `ingress.ingressClass`:
 
-| `ingressClass` value           | Template rendered                | Resource kind                      |
-| ------------------------------ | -------------------------------- | ---------------------------------- |
-| `traefik` (or starts with it)  | `templates/ingress-traefik.yaml` | `traefik.io/v1alpha1 IngressRoute` |
-| Any other value (e.g. `nginx`) | `templates/ingress.yaml`         | `networking.k8s.io/v1 Ingress`     |
+| `ingressClass` value          | Template rendered                  | Resource kind                                |
+| ----------------------------- | ---------------------------------- | -------------------------------------------- |
+| `traefik` (or starts with it) | `templates/ingress-traefik.yaml`   | `traefik.io/v1alpha1 IngressRoute`           |
+| `openshift`                   | `templates/ingress-openshift.yaml` | `route.openshift.io/v1 Route` (one per path) |
+| `nginx`                       | `templates/ingress.yaml`           | `networking.k8s.io/v1 Ingress`               |
+
+> **Any other value renders no ingress at all**, silently. `templates/ingress.yaml` is
+> gated on `ingressClass` being exactly `nginx`, so `alb`, `haproxy`, `contour`,
+> `openshift-default` or a custom IngressClass name produce a successful-looking
+> install with nothing reachable. Use one of the three values above, or create the
+> Ingress yourself.
+
+> **No body-size limit on Routes.** `ingress.traefik.maxRequestBodyBytes` has no
+> OpenShift equivalent; HAProxy Routes cannot cap request bodies. Enforce upload
+> limits in the application or at a WAF/CDN in front of the router.
 
 The default value is `"traefik"`. If you are switching to a standard ingress controller such as nginx, follow the migration steps below.
 
@@ -44,7 +55,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
    ```yaml
    ingress:
-     ingressClass: "nginx"   # or whichever class your controller exposes
+     ingressClass: "nginx"   # supported: nginx | traefik* | openshift
    ```
 
 3. **Run `helm upgrade`**:
@@ -89,7 +100,213 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 | `ingress.enabled`                     | `true`     | Master switch — set to `false` to render neither template.                                |
 | `ingress.ingressClass`                | `traefik`  | Selects which template is active (see table above).                                       |
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
-| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Ignored when `ingressClass` starts with `traefik`.       |
+| `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
+| `ingress.ingress_annotations`         | `{}`       | Standard `Ingress` annotations. Only rendered when `ingressClass` is exactly `nginx`; the `openshift` Route path uses `ingress.openshift.route_annotations`. |
+| `ingress.openshift.timeout`           | `300s`     | HAProxy per-route timeout. The router default of 30s severs `/live/` WebSockets and `/pi/` streaming. |
+| `ingress.openshift.termination`       | `edge`     | Route TLS termination (`edge` or `reencrypt`; `passthrough` cannot do path routing).      |
+| `ingress.openshift.externalCertificate` | `''`     | Name of a TLS Secret for the router to serve instead of its wildcard cert. OpenShift 4.16+. |
+| `ingress.openshift.route_annotations`  | `{}`      | Extra annotations on every Route, e.g. `haproxy.router.openshift.io/rewrite-target`.      |
+
+### TLS options: choosing how HTTPS is handled
+
+TLS is **optional**. Your `ssl.*` settings drive two *separate* derivations —
+separate because "users are on HTTPS" and "this chart holds the certificate" are
+different facts:
+
+1. whether a `tls:` block is emitted, and which Traefik entrypoint the
+   `IngressRoute` binds to — both from whether **this chart** terminates TLS;
+2. the scheme of every URL Plane is told about itself — `WEB_URL`,
+   `APP_BASE_URL`, `PI_BASE_URL`, `PLANE_FRONTEND_URL`, `PLANE_API_HOST`,
+   `PLANE_OAUTH_REDIRECT_URI`, `SILO_API_BASE_URL`, `EXPORT_DOWNLOAD_BASE_URL`.
+   (`CORS_ALLOWED_ORIGINS` always lists both schemes and is unaffected.)
+
+Find the row that matches your environment:
+
+| Your setup | Set | Entrypoint | `tls:` block | App URLs |
+| --- | --- | :---: | :---: | :---: |
+| No certificate yet — trial, internal network | *nothing* (default) | `web` | — | `http://` |
+| You already hold a TLS Secret | `ssl.tls_secret_name` | `websecure` | your Secret | `https://` |
+| Let cert-manager issue one | `ssl.createIssuer` + `ssl.generateCerts` | `websecure` | `<release>-ssl-cert` | `https://` |
+| TLS terminated upstream (ALB, NLB TLS listener, Cloudflare) | `ssl.externalTermination: true` | `web` | — | `https://` |
+| TLS terminated by Traefik's own entrypoint | `ssl.externalTermination: true` + `ingress.traefik.entryPoints: ['websecure']` | `websecure` | — | `https://` |
+
+Only the `tls:` block requires a Secret this chart can actually see, which is why
+the last two rows emit none — the chart never names a Secret it does not create.
+
+Note the last two rows share a scheme but need **opposite entrypoints**: an
+upstream terminator forwards cleartext, which arrives on `web`, whereas a Traefik
+entrypoint carrying its own certificate serves TLS on `websecure`. That is why
+`ssl.externalTermination` sets the URL scheme only and never moves the
+entrypoint.
+
+#### Option 1 — No TLS, plain HTTP
+
+The default. Nothing to set; leave the `ssl` block alone and Plane is reachable at
+`http://<licenseDomain>`:
+
+```yaml
+license:
+  licenseDomain: plane.example.com
+ingress:
+  ingressClass: traefik
+```
+
+Good for a quick trial, an air-gapped or internal network, or while you are still
+sorting out DNS and certificates. **Read the entrypoint caveat below before
+relying on it** — and terminate TLS somewhere before exposing Plane on the public
+internet.
+
+#### Option 2 — Bring your own certificate
+
+Create a `kubernetes.io/tls` Secret in the release namespace and name it:
+
+```bash
+kubectl create secret tls my-tls-secret \
+  --cert=fullchain.pem --key=privkey.pem -n plane-ns
+```
+
+```yaml
+ssl:
+  tls_secret_name: my-tls-secret
+```
+
+#### Option 3 — Let cert-manager issue the certificate
+
+Requires cert-manager in the cluster. **Both** flags are needed — `createIssuer`
+alone creates an Issuer but no Certificate, and the chart then treats the install
+as having no certificate at all:
+
+```yaml
+ssl:
+  createIssuer: true
+  generateCerts: true
+  issuer: http          # or cloudflare / digitalocean
+  email: you@example.com
+  # token: <dns-provider-api-token>   # required for cloudflare / digitalocean
+```
+
+The Certificate is written to `<release-name>-ssl-cert` and the `IngressRoute`
+references it.
+
+#### Option 4 — TLS terminated in front of Plane
+
+Use this when something ahead of Plane already terminates TLS and this chart
+manages no certificate. `ssl.externalTermination` renders every app URL
+`https://` and emits no `tls:` block. It does **not** move the entrypoint, so
+pick the sub-case that matches where TLS actually ends.
+
+**4a — an upstream terminator forwards cleartext** (ALB with an ACM cert, NLB
+with a TLS listener, Cloudflare, most service meshes). Traffic reaches Traefik as
+plain HTTP, so the route stays on `web` — the default:
+
+```yaml
+ssl:
+  externalTermination: true
+```
+
+**4b — Traefik's own entrypoint terminates TLS** (`websecure.http.tls=true`, an
+ACME `certResolver`, or a default `TLSStore`). Traffic reaches Traefik as TLS, so
+the route must bind `websecure` as well:
+
+```yaml
+ssl:
+  externalTermination: true
+ingress:
+  traefik:
+    entryPoints: ['websecure']
+```
+
+Getting the sub-case wrong is a routing failure, not a certificate failure: a
+route bound only to `websecure` never matches cleartext arriving on `web`, so
+requests 404 instead of reaching Plane.
+
+Leave `externalTermination` `false` if you set `ssl.tls_secret_name` or
+`ssl.generateCerts`; those already imply HTTPS. Use it *only* for TLS this chart
+cannot see. Without it, such an install would advertise `http://` URLs to itself
+while being served over HTTPS, breaking OAuth callbacks and export download
+links.
+
+#### Overriding the entrypoint names
+
+Only needed if your Traefik installation renamed the default `web` / `websecure`
+entrypoints, or you want to serve both schemes at once:
+
+```yaml
+ingress:
+  traefik:
+    entryPoints: ['websecure', 'web']   # a bare string also works
+```
+
+Leave it empty (the default) to derive the entrypoint from the table above. This
+setting controls the entrypoint *only* — whether a `tls:` block is emitted still
+follows your `ssl.*` configuration. It is also how you select `websecure` for
+option 4b, where TLS ends at Traefik itself.
+
+#### Caveat: check your Traefik entrypoints before relying on plain HTTP
+
+Many Traefik installations redirect `web` to HTTPS in Traefik's own static
+configuration:
+
+```text
+--entryPoints.web.http.redirections.entryPoint.to=:443
+--entryPoints.web.http.redirections.entryPoint.scheme=https
+--entryPoints.websecure.http.tls=true
+```
+
+Check yours with:
+
+```bash
+kubectl get deploy -n traefik <traefik-deployment> \
+  -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n' | grep -i redirect
+```
+
+If the redirection is present, every plain-HTTP request is answered with a
+permanent redirect *before* it reaches a route, so Option 1 cannot serve Plane on
+that cluster. Either drop the redirection, or use Option 2/3/4.
+
+#### A note on nginx (`ingress.ingressClass: nginx`)
+
+The `ssl.*` settings above drive the standard `Ingress` path too — everything in
+the table applies except the **Entrypoint** column, which is Traefik-only:
+
+- Options 2 and 3 emit the `Ingress` `tls:` block, exactly as before.
+- Option 4 (`ssl.externalTermination`) emits **no** `tls:` block and only sets
+  the URL scheme — which is what you want when an ALB, an NLB TLS listener, or
+  nginx-ingress in front of Plane holds the certificate.
+
+```yaml
+ingress:
+  ingressClass: nginx
+  ingress_annotations: { "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }
+ssl:
+  externalTermination: true    # ALB/NLB/Cloudflare terminates; no Secret here
+```
+
+`ingress.ingress_annotations` is optional here — earlier releases called `len` on
+it and failed to render with `error calling len: len of nil pointer` when it was
+left commented out, so `ingressClass: nginx` needed at least one annotation to
+work at all. That is fixed; the annotation above is shown because it is useful,
+not because it is required.
+
+#### Upgrading from 3.3.0 or earlier
+
+If you configure TLS through `ssl.tls_secret_name` or `ssl.generateCerts` +
+`ssl.createIssuer`, the rendered ingress is unchanged and no action is needed.
+
+One case needs a value added. Earlier releases always bound the Traefik
+`IngressRoute` to `websecure` and always emitted a `tls:` block, even when no
+certificate was configured — pointing at a `<release>-ssl-cert` Secret that was
+never created, so Traefik fell back to its built-in self-signed certificate. If
+you relied on that, or on TLS terminated at Traefik itself, adopt Option 4b —
+both settings, since `externalTermination` alone leaves the route on `web`:
+
+```yaml
+ssl:
+  externalTermination: true
+ingress:
+  traefik:
+    entryPoints: ['websecure']
+```
 
 ## Installing Plane
 
@@ -99,7 +316,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.1.0 # or the last released version
+   PLANE_VERSION=v3.1.4 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -155,7 +372,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.1.0 <or the last released version>`
+     - `planeVersion: v3.1.4 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
@@ -181,7 +398,7 @@ The default value is `"traefik"`. If you are switching to a standard ingress con
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.1.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.1.4       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -257,6 +474,65 @@ securityContext:
   containerSecurityContext:
     runAsUser: 10001
 ```
+
+### OpenShift (`restricted-v2` SCC)
+
+OpenShift is the inverse case: it refuses to let you choose the UID at all. The
+`restricted-v2` SCC ignores the image's `USER`, assigns an arbitrary UID from the
+namespace's range, and places the process in group 0. It also validates the pod's
+own request, using a *different* strategy for each field:
+
+- **`runAsUser` — `MustRunAsRange`.** Must fall inside the namespace's
+  `openshift.io/sa.scc.uid-range` annotation.
+- **`fsGroup` — `MustRunAs`.** Must match the range or value derived from
+  `openshift.io/sa.scc.supplemental-groups`, falling back to the UID range when
+  that annotation is absent.
+
+Either way, a manifest naming a *specific* `runAsUser` or `fsGroup` outside what
+the namespace allows is **rejected at admission**, so enabling the block above
+with its defaults means nothing schedules.
+
+Keep the hardening and drop only the IDs. A `null` in a values file removes the key
+during Helm's coalescing, so the rendered `securityContext` keeps `runAsNonRoot`,
+`seccompProfile` and the dropped capabilities while carrying no UID:
+
+```bash
+helm upgrade --install plane-app plane/plane-enterprise \
+    --namespace plane \
+    -f my-values.yaml \
+    -f examples/values-openshift.yaml
+```
+
+[`examples/values-openshift.yaml`](examples/values-openshift.yaml) applies that,
+un-pins the email service's uid 100, selects the OpenShift ingress path, and forces
+the bundled datastores off. Three things to know before you use it:
+
+- **Image requirement.** The images must grant group 0 write access to the paths
+  they write at runtime. Older images crash under an arbitrary UID — nginx exits
+  with `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+- **Datastores must be external.** `postgres`, `redis`, `rabbitmq`, `minio` and
+  `opensearch` are third-party images with baked-in UID and data-directory
+  ownership; they cannot run under an arbitrary UID and the chart deliberately does
+  not apply the hardened context to them. Use managed services and leave
+  `local_setup` off, or grant those ServiceAccounts a relaxed SCC.
+- **Upgrading an existing deployment: verify before you rely on it.** Moving a
+  running install from the pinned-uid-1000 posture to this one *often* needs no
+  data migration, because kubelet re-applies `fsGroup` to volume contents on
+  mount — but that is not guaranteed, and a PVC left owned by uid/gid 1000 is
+  unwritable by the SCC-assigned identity. Whether it happens depends on the CSI
+  driver:
+  - `fsGroupPolicy: ReadWriteOnceWithFSType` (the default) only relabels
+    `ReadWriteOnce` volumes with a defined `fsType` — an **RWX** volume (NFS,
+    EFS, Azure Files) gets nothing.
+  - `fsGroupPolicy: None` disables it entirely.
+  - A driver advertising `VOLUME_MOUNT_GROUP` takes ownership over itself, and
+    both `fsGroupPolicy` and `fsGroupChangePolicy` are ignored.
+
+  Check yours with
+  `kubectl get csidriver <driver> -o jsonpath='{.spec.fsGroupPolicy}'`, and
+  rehearse the upgrade against a **snapshot or clone** of the real PVCs before
+  doing it in production. If ownership is not relabelled, `chown -R` the volume
+  to the namespace's assigned GID from a maintenance pod.
 
 ### Docker Registry
 
@@ -360,6 +636,7 @@ securityContext:
 | services.minio.local_setup            |        true        |          | Plane uses `minio` as the default file storage drive. This storage can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws S3 or similar services). Set this to `true` when you choose to setup stateful deployment of `minio`. Mark it as `false` when using a remotely hosted database |
 | services.minio.image                  | minio/minio:latest |          | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                             |
 | services.minio.image_mc               |  minio/mc:latest   |          | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                           |
+| services.minio.init_image             |      busybox       |          | Using this key, user must provide the docker image name used by the init container of the `minio client` job, which waits for `minio` to become resolvable. (must be set when `services.minio.local_setup=true`)                                                                                                                                      |
 | services.minio.pullPolicy             |    IfNotPresent    |          | Using this key, user can set the pull policy for the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                                             |
 | services.minio.volumeSize             |        3Gi         |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                           |
 | services.minio.root_user              |       admin        |          | Storage credentials are requried to access the hosted stateful deployment of `minio`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                                   |
@@ -393,8 +670,8 @@ securityContext:
 | services.web.replicas          |                      1                      |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
 | services.web.memoryLimit       |                   1000Mi                    |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
 | services.web.cpuLimit          |                    500m                     |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.web.memoryRequest     |                    50Mi                     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.web.cpuRequest        |                     50m                     |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.web.memoryRequest     |                    128Mi                    |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.web.cpuRequest        |                    100m                     |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.web.image             | makeplane/web-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.web.pullPolicy        |                   Always                    |          | Using this key, user can set the pull policy for the deployment of `web`.                                                                                                                                       |
 | services.web.assign_cluster_ip |                    false                    |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
@@ -411,8 +688,8 @@ securityContext:
 | services.space.replicas          |                       1                       |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
 | services.space.memoryLimit       |                    1000Mi                     |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
 | services.space.cpuLimit          |                     500m                      |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.space.memoryRequest     |                     50Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.space.cpuRequest        |                      50m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.space.memoryRequest     |                    256Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.space.cpuRequest        |                     100m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.space.image             | makeplane/space-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.space.pullPolicy        |                    Always                     |          | Using this key, user can set the pull policy for the deployment of `space`.                                                                                                                                     |
 | services.space.assign_cluster_ip |                     false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
@@ -429,8 +706,8 @@ securityContext:
 | services.admin.replicas          |                       1                       |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
 | services.admin.memoryLimit       |                    1000Mi                     |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
 | services.admin.cpuLimit          |                     500m                      |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.admin.memoryRequest     |                     50Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.admin.cpuRequest        |                      50m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.admin.memoryRequest     |                    128Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.admin.cpuRequest        |                     100m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.admin.image             | makeplane/admin-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.admin.pullPolicy        |                    Always                     |          | Using this key, user can set the pull policy for the deployment of `admin`.                                                                                                                                     |
 | services.admin.assign_cluster_ip |                     false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
@@ -445,10 +722,10 @@ securityContext:
 | Setting                            |                   Default                    | Required | Description                                                                                                                                                                                                     |
 | ---------------------------------- | :------------------------------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.live.replicas             |                      1                       |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.live.memoryLimit          |                    1000Mi                    |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.live.memoryLimit          |                    2000Mi                    |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
 | services.live.cpuLimit             |                     500m                     |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.live.memoryRequest        |                     50Mi                     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.live.cpuRequest           |                     50m                      |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.live.memoryRequest        |                    512Mi                     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.live.cpuRequest           |                     100m                     |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.live.image                | makeplane/live-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.live.pullPolicy           |                    Always                    |          | Using this key, user can set the pull policy for the deployment of `live`.                                                                                                                                      |
 | env.live_sentry_dsn                |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.                                 |
@@ -472,8 +749,8 @@ securityContext:
 | services.live_exporter.replicas           |             1              |   Yes    | Number of exporter pods. PDF render footprint is 500MB–2GB per job; scale horizontally rather than increasing concurrency per pod.                                                     |
 | services.live_exporter.memoryLimit        |           2000Mi           |          | Memory limit for the exporter pod. Set higher if rendering large documents.                                                                                                            |
 | services.live_exporter.cpuLimit           |           1000m            |          | CPU limit for the exporter pod.                                                                                                                                                        |
-| services.live_exporter.memoryRequest      |            50Mi            |          | Memory request for the exporter pod.                                                                                                                                                   |
-| services.live_exporter.cpuRequest         |            50m             |          | CPU request for the exporter pod.                                                                                                                                                      |
+| services.live_exporter.memoryRequest      |           256Mi            |          | Memory request for the exporter pod.                                                                                                                                                   |
+| services.live_exporter.cpuRequest         |           100m             |          | CPU request for the exporter pod.                                                                                                                                                      |
 | services.live_exporter.image              | makeplane/live-commercial  |          | Docker image for the exporter. Must match the `live` service image.                                                                                                                    |
 | services.live_exporter.nodeSelector       |             {}             |          | Node selector for the exporter pod.                                                                                                                                                    |
 | services.live_exporter.tolerations        |             []             |          | Tolerations for the exporter pod.                                                                                                                                                      |
@@ -485,8 +762,8 @@ securityContext:
 | ---------------------------------- | :---------------------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.monitor.memoryLimit       |                     1000Mi                      |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                                                         |
 | services.monitor.cpuLimit          |                      500m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                                               |
-| services.monitor.memoryRequest     |                      50Mi                       |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                                                       |
-| services.monitor.cpuRequest        |                       50m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                                             |
+| services.monitor.memoryRequest     |                      128Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                                                       |
+| services.monitor.cpuRequest        |                      100m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                                             |
 | services.monitor.image             | makeplane/monitor-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                                                      |
 | services.monitor.pullPolicy        |                     Always                      |          | Using this key, user can set the pull policy for the deployment of `monitor`.                                                                                                                                                               |
 | services.monitor.volumeSize        |                      100Mi                      |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
@@ -502,10 +779,10 @@ securityContext:
 | Setting                        |                     Default                     | Required | Description                                                                                                                                                                                                     |
 | ------------------------------ | :---------------------------------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.api.replicas          |                        1                        |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.api.memoryLimit       |                     1000Mi                      |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
-| services.api.cpuLimit          |                      500m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.api.memoryRequest     |                      50Mi                       |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.api.cpuRequest        |                       50m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.api.memoryLimit       |                      2Gi                        |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.api.cpuLimit          |                     1000m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
+| services.api.memoryRequest     |                     512Mi                       |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.api.cpuRequest        |                     200m                        |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.api.image             | makeplane/backend-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.api.pullPolicy        |                     Always                      |          | Using this key, user can set the pull policy for the deployment of `api`.                                                                                                                                       |
 | env.sentry_dsn                 |                                                 |          | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.                                  |
@@ -514,6 +791,7 @@ securityContext:
 | env.web_url                    |                                                 |          | (optional) Custom Web URL for the application. If not set, it will be auto-generated based on the license domain and SSL settings                                 |
 | env.webhook_allowed_ips        |                                                 |          | (optional) Comma-separated list of IPs/CIDRs that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
 | env.webhook_allowed_hosts      |                                                 |          | (optional) Comma-separated list of hostnames that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
+| env.gunicorn_workers           |                        1                        |          | Number of Gunicorn worker processes for the API server. Increase for higher concurrency (e.g. `2 * CPU cores + 1`).                                                                                             |
 | env.gunicorn_max_requests      |                      1000                       |          | Maximum requests a gunicorn worker handles before restart. Set to `0` to disable rotation.                                                                                                                       |
 | env.gunicorn_max_requests_jitter |                     150                        |          | Random jitter added to `GUNICORN_MAX_REQUESTS` to stagger worker restarts across replicas. Set to `0` when rotation is disabled.                                                                                |
 | env.celery_task_publish_retry  |                      true                       |          | When `true`, Celery retries task publishing on transient AMQP failures instead of silently dropping tasks. Prevents stuck export/import records caused by brief broker reconnect windows.                        |
@@ -531,10 +809,10 @@ securityContext:
 | --------------------------------------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.external_api.enabled           |  false  |          | Set it to `true` to deploy a dedicated API workload (same backend image and entrypoint as `api`) for serving external/public API traffic.                                                                       |
 | services.external_api.replicas          |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.external_api.memoryLimit       | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
-| services.external_api.cpuLimit          |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.external_api.memoryRequest     |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.external_api.cpuRequest        |   50m   |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.external_api.memoryLimit       |   2Gi   |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.external_api.cpuLimit          | 1000m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
+| services.external_api.memoryRequest     | 512Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.external_api.cpuRequest        | 200m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.external_api.assign_cluster_ip |  false  |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | services.external_api.nodeSelector      |   {}    |          | This key allows you to set the node selector for the deployment of `external_api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                            |
 | services.external_api.tolerations       |   []    |          | This key allows you to set the tolerations for the deployment of `external_api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                  |
@@ -549,8 +827,8 @@ securityContext:
 | services.silo.replicas                        |                      1                       |                               Yes                               | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
 | services.silo.memoryLimit                     |                    1000Mi                    |                                                                 | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
 | services.silo.cpuLimit                        |                     500m                     |                                                                 | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.silo.memoryRequest                   |                     50Mi                     |                                                                 | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.silo.cpuRequest                      |                     50m                      |                                                                 | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                  |
+| services.silo.memoryRequest                   |                    256Mi                     |                                                                 | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.silo.cpuRequest                      |                    100m                      |                                                                 | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                  |
 | services.silo.image                           | makeplane/silo-commercial |                                                                 | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
 | services.silo.pullPolicy                      |                    Always                    |                                                                 | Using this key, user can set the pull policy for the deployment of `silo`.                                                                                                                                      |
 | services.silo.assign_cluster_ip               |                    false                     |                                                                 | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
@@ -583,7 +861,6 @@ securityContext:
 | services.silo.connectors.bitbucket.client_id  |                      ""                      | required if `services.silo.connectors.bitbucket.enabled` is `true` | Bitbucket OAuth Client ID                                                                                                                                                                                    |
 | services.silo.connectors.bitbucket.client_secret |                    ""                      | required if `services.silo.connectors.bitbucket.enabled` is `true` | Bitbucket OAuth Client Secret                                                                                                                                                                                |
 | services.silo.connectors.bitbucket.webhook_secret |                   ""                      |                                                                 | Bitbucket Webhook Secret (`BITBUCKET_WEBHOOK_SECRET`) for verifying incoming webhook payloads                                                                                                                   |
-
 | services.silo.connectors.hubspot.enabled      |                    false                     |                                                                 | HubSpot Integration                                                                                                                                                                                             |
 | services.silo.connectors.hubspot.client_id    |                      ""                      | required if `services.silo.connectors.hubspot.enabled` is `true` | HubSpot OAuth Client ID                                                                                                                                                                                       |
 | services.silo.connectors.hubspot.client_secret |                     ""                      | required if `services.silo.connectors.hubspot.enabled` is `true` | HubSpot OAuth Client Secret                                                                                                                                                                                   |
@@ -606,10 +883,10 @@ securityContext:
 | -------------------------------------- | :--------------------------------------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.pi.enabled                    |                        false                         |    No    | Set to `true` to enable the Plane AI service and its API, worker, beat, and migrator workloads.                                                                                                 |
 | services.pi.replicas                   |                           1                          |   Yes    | Number of replicas for the Plane AI (PI) API deployment. It must be >=1.                                                                                                                                                    |
-| services.pi.memoryLimit                |                        1000Mi                        |          | Memory limit for the Plane AI (PI) API deployment.                                                                                                                                                                         |
-| services.pi.cpuLimit                   |                         500m                         |          | CPU limit for the Plane AI (PI) API deployment.                                                                                                                                                                             |
-| services.pi.memoryRequest              |                         50Mi                         |          | Memory request for the Plane AI (PI) API deployment.                                                                                                                                                                        |
-| services.pi.cpuRequest                 |                          50m                         |          | CPU request for the Plane AI (PI) API deployment.                                                                                                                                                                            |
+| services.pi.memoryLimit                |                         2Gi                          |          | Memory limit for the Plane AI (PI) API deployment.                                                                                                                                                                         |
+| services.pi.cpuLimit                   |                        1000m                         |          | CPU limit for the Plane AI (PI) API deployment.                                                                                                                                                                             |
+| services.pi.memoryRequest              |                        512Mi                         |          | Memory request for the Plane AI (PI) API deployment.                                                                                                                                                                        |
+| services.pi.cpuRequest                 |                        200m                          |          | CPU request for the Plane AI (PI) API deployment.                                                                                                                                                                            |
 | services.pi.image                      | makeplane/plane-pi-commercial     |          | Docker image for the Plane AI (PI) service.                                                                                                                                                                                 |
 | services.pi.pullPolicy                 |                        Always                        |          | Image pull policy for the Plane AI (PI) deployment.                                                                                                                                                                         |
 | services.pi.assign_cluster_ip          |                        false                         |          | Set it to `true` if you want to assign `ClusterIP` to the Plane AI (PI) API service.                                                                                                                                        |
@@ -660,8 +937,8 @@ securityContext:
 | services.pi_worker.replicas         |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for the Plane AI (PI) worker. This key helps you set the number of replicas. It must be >=1.                                        |
 | services.pi_worker.memoryLimit      | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for the Plane AI (PI) worker deployment to use.                                                    |
 | services.pi_worker.cpuLimit        |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for the Plane AI (PI) worker deployment to use.                                                           |
-| services.pi_worker.memoryRequest   |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for the Plane AI (PI) worker deployment to use.                                                    |
-| services.pi_worker.cpuRequest      |  50m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for the Plane AI (PI) worker deployment to use.                                                         |
+| services.pi_worker.memoryRequest   | 256Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for the Plane AI (PI) worker deployment to use.                                                    |
+| services.pi_worker.cpuRequest      | 100m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for the Plane AI (PI) worker deployment to use.                                                         |
 | services.pi_worker.nodeSelector    |   {}    |          | This key allows you to set the node selector for the deployment of `pi_worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                |
 | services.pi_worker.tolerations      |   []    |          | This key allows you to set the tolerations for the deployment of `pi_worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                    |
 | services.pi_worker.affinity         |   {}    |          | This key allows you to set the affinity rules for the deployment of `pi_worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                          |
@@ -676,8 +953,8 @@ securityContext:
 | services.pi_beat_worker.replicas         |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for the Plane AI (PI) beat-worker. This key helps you set the number of replicas. It must be >=1.                                    |
 | services.pi_beat_worker.memoryLimit      | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for the Plane AI (PI) beat-worker deployment to use.                                              |
 | services.pi_beat_worker.cpuLimit         |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for the Plane AI (PI) beat-worker deployment to use.                                                     |
-| services.pi_beat_worker.memoryRequest   |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for the Plane AI (PI) beat-worker deployment to use.                                                |
-| services.pi_beat_worker.cpuRequest      |  50m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for the Plane AI (PI) beat-worker deployment to use.                                                   |
+| services.pi_beat_worker.memoryRequest   | 256Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for the Plane AI (PI) beat-worker deployment to use.                                                |
+| services.pi_beat_worker.cpuRequest      | 100m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for the Plane AI (PI) beat-worker deployment to use.                                                   |
 | services.pi_beat_worker.nodeSelector     |   {}    |          | This key allows you to set the node selector for the deployment of `pi_beat_worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                           |
 | services.pi_beat_worker.tolerations      |   []    |          | This key allows you to set the tolerations for the deployment of `pi_beat_worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                 |
 | services.pi_beat_worker.affinity         |   {}    |          | This key allows you to set the affinity rules for the deployment of `pi_beat_worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                       |
@@ -689,10 +966,10 @@ securityContext:
 | Setting                       | Default | Required | Description                                                                                                                                                                                                     |
 | ----------------------------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.worker.replicas      |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.worker.memoryLimit   | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
-| services.worker.cpuLimit      |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.worker.memoryRequest |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.worker.cpuRequest    |   50m   |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.worker.memoryLimit   |   2Gi   |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.worker.cpuLimit      | 1000m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
+| services.worker.memoryRequest | 1Gi     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.worker.cpuRequest    | 200m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.worker.nodeSelector  |   {}    |          | This key allows you to set the node selector for the deployment of `worker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                   |
 | services.worker.tolerations   |   []    |          | This key allows you to set the tolerations for the deployment of `worker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                         |
 | services.worker.affinity      |   {}    |          | This key allows you to set the affinity rules for the deployment of `worker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                               |
@@ -705,10 +982,10 @@ securityContext:
 | --------------------------------------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.worker_importers.enabled       |  false  |          | Set it to `true` to deploy a dedicated celery worker for the `celery.importer` queue, so imports run on their own worker instead of the default one.                                                            |
 | services.worker_importers.replicas      |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.worker_importers.memoryLimit   | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
-| services.worker_importers.cpuLimit      |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.worker_importers.memoryRequest |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.worker_importers.cpuRequest    |   50m   |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.worker_importers.memoryLimit   |   2Gi   |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.worker_importers.cpuLimit      | 1000m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
+| services.worker_importers.memoryRequest | 512Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.worker_importers.cpuRequest    | 200m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.worker_importers.nodeSelector  |   {}    |          | This key allows you to set the node selector for the deployment of `worker_importers`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                        |
 | services.worker_importers.tolerations   |   []    |          | This key allows you to set the tolerations for the deployment of `worker_importers`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.              |
 | services.worker_importers.affinity      |   {}    |          | This key allows you to set the affinity rules for the deployment of `worker_importers`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                    |
@@ -720,10 +997,10 @@ securityContext:
 | Setting                           | Default | Required | Description                                                                                                                                                                                                     |
 | --------------------------------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.beatworker.replicas      |    1    |   Yes    | Kubernetes helps you with scaling up/down the deployments. You can run 1 or more pods for each deployment. This key helps you setting up number of replicas you want to run for this deployment. It must be >=1 |
-| services.beatworker.memoryLimit   | 1000Mi  |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
+| services.beatworker.memoryLimit   |   2Gi   |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                             |
 | services.beatworker.cpuLimit      |  500m   |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                   |
-| services.beatworker.memoryRequest |  50Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
-| services.beatworker.cpuRequest    |   50m   |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
+| services.beatworker.memoryRequest | 512Mi   |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
+| services.beatworker.cpuRequest    | 100m    |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.beatworker.nodeSelector  |   {}    |          | This key allows you to set the node selector for the deployment of `beatworker`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                               |
 | services.beatworker.tolerations   |   []    |          | This key allows you to set the tolerations for the deployment of `beatworker`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                     |
 | services.beatworker.affinity      |   {}    |          | This key allows you to set the affinity rules for the deployment of `beatworker`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                           |
@@ -738,8 +1015,8 @@ securityContext:
 | services.email_service.replicas      |                       1                       |          | Number of replicas for the email service deployment                                                                                                                                            |
 | services.email_service.memoryLimit   |                    1000Mi                     |          | Memory limit for the email service deployment                                                                                                                                                  |
 | services.email_service.cpuLimit      |                     500m                      |          | CPU limit for the email service deployment                                                                                                                                                     |
-| services.email_service.memoryRequest |                     50Mi                      |          | Memory request for the email service deployment                                                                                                                                                |
-| services.email_service.cpuRequest    |                      50m                      |          | CPU request for the email service deployment                                                                                                                                                   |
+| services.email_service.memoryRequest |                    128Mi                      |          | Memory request for the email service deployment                                                                                                                                                |
+| services.email_service.cpuRequest    |                     100m                      |          | CPU request for the email service deployment                                                                                                                                                   |
 | services.email_service.image         | makeplane/email-commercial |          | Docker image for the email service deployment                                                                                                                                                  |
 | services.email_service.pullPolicy    |                    Always                     |          | Image pull policy for the email service deployment                                                                                                                                             |
 | services.email_service.nodeSelector  |                      {}                       |          | This key allows you to set the node selector for the deployment of `email_service`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
@@ -760,8 +1037,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.outbox_poller.replicas                   |    1    |          | Number of replicas for the outbox poller service deployment                                                                                                                                    |
 | services.outbox_poller.memoryLimit                | 1000Mi  |          | Memory limit for the outbox poller service deployment                                                                                                                                          |
 | services.outbox_poller.cpuLimit                   |  500m   |          | CPU limit for the outbox poller service deployment                                                                                                                                             |
-| services.outbox_poller.memoryRequest              |  50Mi   |          | Memory request for the outbox poller service deployment                                                                                                                                        |
-| services.outbox_poller.cpuRequest                 |   50m   |          | CPU request for the outbox poller service deployment                                                                                                                                           |
+| services.outbox_poller.memoryRequest              | 256Mi   |          | Memory request for the outbox poller service deployment                                                                                                                                        |
+| services.outbox_poller.cpuRequest                 | 100m    |          | CPU request for the outbox poller service deployment                                                                                                                                           |
 | services.outbox_poller.pullPolicy                 | Always  |          | Image pull policy for the outbox poller service deployment                                                                                                                                     |
 | services.outbox_poller.assign_cluster_ip          |  false  |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                              |
 | services.outbox_poller.nodeSelector               |   {}    |          | This key allows you to set the node selector for the deployment of `outbox_poller`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
@@ -791,8 +1068,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.automation_consumer.replicas                |                1                 |          | Number of replicas for the automation consumer service deployment                                                                                                                                    |
 | services.automation_consumer.memoryLimit             |              1000Mi              |          | Memory limit for the automation consumer service deployment                                                                                                                                          |
 | services.automation_consumer.cpuLimit                |               500m               |          | CPU limit for the automation consumer service deployment                                                                                                                                             |
-| services.automation_consumer.memoryRequest           |               50Mi               |          | Memory request for the automation consumer service deployment                                                                                                                                        |
-| services.automation_consumer.cpuRequest              |               50m                |          | CPU request for the automation consumer service deployment                                                                                                                                           |
+| services.automation_consumer.memoryRequest           |              256Mi               |          | Memory request for the automation consumer service deployment                                                                                                                                        |
+| services.automation_consumer.cpuRequest              |              100m                |          | CPU request for the automation consumer service deployment                                                                                                                                           |
 | services.automation_consumer.assign_cluster_ip       |              false               |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                    |
 | services.automation_consumer.nodeSelector            |                {}                |          | This key allows you to set the node selector for the deployment of `automation_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
 | services.automation_consumer.tolerations             |                []                |          | This key allows you to set the tolerations for the deployment of `automation_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
@@ -812,8 +1089,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.webhook_consumer.replicas                |       1        |          | Number of replicas for the webhook consumer service deployment                                                                                                                                    |
 | services.webhook_consumer.memoryLimit             |     1000Mi     |          | Memory limit for the webhook consumer service deployment                                                                                                                                          |
 | services.webhook_consumer.cpuLimit                |      500m      |          | CPU limit for the webhook consumer service deployment                                                                                                                                             |
-| services.webhook_consumer.memoryRequest           |     500Mi      |          | Memory request for the webhook consumer service deployment                                                                                                                                        |
-| services.webhook_consumer.cpuRequest              |      250m      |          | CPU request for the webhook consumer service deployment                                                                                                                                           |
+| services.webhook_consumer.memoryRequest           |     256Mi      |          | Memory request for the webhook consumer service deployment                                                                                                                                        |
+| services.webhook_consumer.cpuRequest              |      100m      |          | CPU request for the webhook consumer service deployment                                                                                                                                           |
 | services.webhook_consumer.assign_cluster_ip       |     false      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                 |
 | services.webhook_consumer.nodeSelector            |       {}       |          | This key allows you to set the node selector for the deployment of `webhook_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.            |
 | services.webhook_consumer.tolerations             |       []       |          | This key allows you to set the tolerations for the deployment of `webhook_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
@@ -831,8 +1108,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.agent_consumer.replicas                |       1        |          | Number of replicas for the agent consumer service deployment                                                                                                                                    |
 | services.agent_consumer.memoryLimit             |     1000Mi     |          | Memory limit for the agent consumer service deployment                                                                                                                                          |
 | services.agent_consumer.cpuLimit                |      500m      |          | CPU limit for the agent consumer service deployment                                                                                                                                             |
-| services.agent_consumer.memoryRequest           |     500Mi      |          | Memory request for the agent consumer service deployment                                                                                                                                        |
-| services.agent_consumer.cpuRequest              |      250m      |          | CPU request for the agent consumer service deployment                                                                                                                                           |
+| services.agent_consumer.memoryRequest           |     256Mi      |          | Memory request for the agent consumer service deployment                                                                                                                                        |
+| services.agent_consumer.cpuRequest              |      100m      |          | CPU request for the agent consumer service deployment                                                                                                                                           |
 | services.agent_consumer.assign_cluster_ip       |     false      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                |
 | services.agent_consumer.nodeSelector            |       {}       |          | This key allows you to set the node selector for the deployment of `agent_consumer`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
 | services.agent_consumer.tolerations             |       []       |          | This key allows you to set the tolerations for the deployment of `agent_consumer`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
@@ -849,9 +1126,9 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.iframely.enabled           |                    false                     |          | Set to `true` to enable the Iframely service deployment                                                                                                                                   |
 | services.iframely.replicas          |                      1                       |          | Number of replicas for the Iframely service deployment                                                                                                                                    |
 | services.iframely.memoryLimit       |                    1000Mi                    |          | Memory limit for the Iframely service deployment                                                                                                                                          |
-| services.iframely.cpuLimit          |                     500m                     |          | CPU limit for the Iframely service deployment                                                                                                                                             |
-| services.iframely.memoryRequest     |                     50Mi                     |          | Memory request for the Iframely service deployment                                                                                                                                        |
-| services.iframely.cpuRequest        |                     50m                      |          | CPU request for the Iframely service deployment                                                                                                                                           |
+| services.iframely.cpuLimit          |                    1000m                     |          | CPU limit for the Iframely service deployment                                                                                                                                             |
+| services.iframely.memoryRequest     |                    256Mi                     |          | Memory request for the Iframely service deployment                                                                                                                                        |
+| services.iframely.cpuRequest        |                    100m                      |          | CPU request for the Iframely service deployment                                                                                                                                           |
 | services.iframely.image             | makeplane/iframely:v1.2.0 |          | Docker image for the Iframely service deployment                                                                                                                                          |
 | services.iframely.pullPolicy        |                    Always                    |          | Image pull policy for the Iframely service deployment                                                                                                                                     |
 | services.iframely.assign_cluster_ip |                    false                     |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                         |
@@ -870,6 +1147,8 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
 | ingress.ingressClass        |                           nginx                           |   Yes    | Kubernetes cluster setup comes with various options of `ingressClass`. Based on your setup, set this value to the right one (eg. nginx, traefik, etc). Leave it to default in case you are using external ingress provider.                                                                                                                                                                                               |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
+| ingress.traefik.entryPoints |                           `[]`                            |          | Traefik entrypoints the `IngressRoute` binds to. Leave empty to derive them from your `ssl.*` settings (`websecure` when TLS is configured, otherwise `web`). Set explicitly only if your Traefik renamed the default entrypoints, e.g. `['websecure','web']`. Ignored unless `ingressClass` starts with `traefik` |
+| ingress.traefik.maxRequestBodyBytes |                    20971520                     |          | Max request body size in bytes for Traefik's buffering middleware (upload size limit). Ignored unless `ingressClass` starts with `traefik` |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -877,6 +1156,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ssl.email                   |                    <plane@example.com>                    |          | Certificate generation authority needs a valid email id before generating certificate. Required when `ssl.createIssuer=true`                                                                                                                                                                                                                                                                                              |
 | ssl.generateCerts           |                           false                           |          | After creating the issuers, user can still not create the certificate untill sure of configuration. Setting this to `true` will try to generate SSL certificate and associate with ingress. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=true`                                                                                                                                                       |
 | ssl.tls_secret_name         |                                                           |          | If you have a custom TLS secret name, set this to the name of the secret. Applicable only when `ingress.enabled=true` and `ssl.createIssuer=false`                                                                                                                                                                                                                                                                        |
+| ssl.externalTermination     |                           false                           |          | Set to `true` when TLS is terminated in front of Plane and this chart manages no certificate (cloud load balancer, Cloudflare, service mesh, or a Traefik entrypoint carrying its own cert). All app URLs are rendered `https://`; no `tls:` block is emitted and the Traefik entrypoint is unchanged (stays `web` unless you also set `ingress.traefik.entryPoints: ['websecure']` — see Option 4b). Leave `false` if you set `ssl.tls_secret_name` or `ssl.generateCerts`. See [TLS options](#tls-options-choosing-how-https-is-handled) |
 
 ### Common Environment Settings
 
@@ -890,6 +1170,39 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | Setting  | Default | Required | Description                                                                                                                                                                                                                                                                                                                       |
 | -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
+
+### Observability (OpenTelemetry)
+
+Opt-in OpenTelemetry (traces, logs and metrics) for the backend services. Nothing is
+injected unless `observability.otel.enabled=true`.
+
+When enabled, the chart renders a shared `<release>-otel-vars` ConfigMap and mounts it
+via `envFrom` into `api`, `external-api`, `worker`, `worker-importers`, `beat-worker`,
+`automation-consumer`, `agent-consumer`, `webhook-consumer`, `outbox-poller`, `silo`,
+`live`, `live-exporter`, `space`, `pi-api`, `pi-beat` and `pi-worker`. Each workload also
+gets an inline `OTEL_SERVICE_NAME` so it reports its own `service.name`. `web` and
+`admin` are deliberately not wired — their only telemetry is browser tracing, which the
+API serves to browsers from its instance config via the `frontend.*` keys below.
+
+`observability.otel.headers` usually carries a collector ingestion credential, so it is
+rendered into a `<release>-otel-secrets` Secret rather than the ConfigMap. Set
+`external_secrets.otel_env_existingSecret` to supply `OTEL_EXPORTER_OTLP_HEADERS` from a
+Secret you manage yourself (External Secrets Operator, Vault, sealed-secrets, ...).
+
+| Setting                                |       Default        | Required | Description                                                                                                                                                                                                                                                     |
+| -------------------------------------- | :------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| observability.otel.enabled             |        false         |          | Master switch. When `false` no OTel ConfigMap, Secret or env var is rendered at all.                                                                                                                                                                            |
+| observability.otel.endpoint            |         `''`         |   Yes    | OTLP collector endpoint (required when enabled — the services skip OTel bootstrap without it). An `https://` endpoint uses secure gRPC.                                                                                                                          |
+| observability.otel.protocol            |        `grpc`        |          | OTLP transport: `grpc` or `http/protobuf`.                                                                                                                                                                                                                      |
+| observability.otel.headers             |         `''`         |          | Extra OTLP exporter headers as `k1=v1,k2=v2` (e.g. a collector ingestion key). Rendered into the `<release>-otel-secrets` Secret.                                                                                                                                |
+| observability.otel.environment         |         `''`         |          | Deployment environment tag (e.g. `prod`, `staging`). Emitted by every service as the `deployment.environment.name` resource attribute, so cross-service environment filtering lines up.                                                                          |
+| observability.otel.resourceAttributes  |         `''`         |          | Additional OTel resource attributes as `k1=v1,k2=v2`.                                                                                                                                                                                                           |
+| observability.otel.debugConsole        |        false         |          | Also print spans to stdout. Debug only.                                                                                                                                                                                                                         |
+| observability.otel.sampler             |     `always_on`      |          | Trace sampler. `always_on` exports every span the service sees and ignores an upstream `traceparent`'s sampling decision — use it for test/debug so browser-initiated POST traces aren't dropped. For production prefer `parentbased_traceidratio` with a ratio. |
+| observability.otel.samplerArg          |       `'1.0'`        |          | Sampling ratio (0.0–1.0) for the ratio-based samplers. Ignored by `always_on`.                                                                                                                                                                                  |
+| observability.otel.frontend.enabled    |        false         |          | Browser/client tracing for `web`, `admin` and `space`. Read only by the API, which serves it to browsers over its public instance endpoint. Takes effect only when `frontend.endpoint` is also set.                                                              |
+| observability.otel.frontend.endpoint   |         `''`         |          | Public OTLP/HTTP endpoint the browser posts to. Must be internet-reachable and CORS-enabled for the Plane web origin; the client appends `/v1/traces`.                                                                                                           |
+| observability.otel.frontend.headers    | `x-otlp-browser=1`   |          | Must be non-empty cross-origin: a header forces the browser exporter onto XHR instead of `navigator.sendBeacon`, which sends credentials and is rejected by CORS against a wildcard `Access-Control-Allow-Origin`. The value is arbitrary and public.            |
 
 ## External Secrets Config
 
@@ -957,6 +1270,7 @@ To configure the external secrets for your application, you need to define speci
 |                          | `CUSTOM_LLM_API_KEY`   | required if `services.pi.ai_providers.custom_llm.enabled` is `true` | Custom LLM API key                       | `your_custom_llm_api_key`                                                                                                                                                                            |
 |                          | `BR_AWS_SECRET_ACCESS_KEY` | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | AWS secret for embedding model      | `your_aws_secret_access_key`                                                                                                                                                                         |
 |                          | `BR_AWS_SESSION_TOKEN` | required if embedding model uses temporary credentials          | AWS session token for embedding model       | `your_aws_session_token`                                                                                                                                                                             |
+| otel_env_existingSecret  | `OTEL_EXPORTER_OTLP_HEADERS` | Optional (only if `observability.otel.enabled=true`)      | OTLP exporter headers, e.g. a collector ingestion key. Leave `otel_env_existingSecret` blank to let the chart create this Secret from `observability.otel.headers`. | `x-api-key=your_collector_key`                                                                                                                                                                       |
 
 ## Custom Ingress Routes
 

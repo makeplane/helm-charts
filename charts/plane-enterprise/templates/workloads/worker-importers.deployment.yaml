@@ -33,11 +33,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.worker_importers.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.worker_importers.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.worker_importers.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.worker_importers.cpuRequest | default "200m" | quote }}
           limits:
-            memory: {{ .Values.services.worker_importers.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.worker_importers.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.worker_importers.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.worker_importers.cpuLimit | default "1000m" | quote}}
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}
@@ -71,11 +71,13 @@ spec:
               optional: false
           {{- end }}
 
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "worker-importers")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

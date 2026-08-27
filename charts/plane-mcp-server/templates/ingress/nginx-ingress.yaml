@@ -1,0 +1,33 @@
+{{- if and .Values.ingress.enabled .Values.ingress.host (ne .Values.ingress.ingressController "traefik") }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-ingress
+  {{- with .Values.ingress.nginx.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.nginx.ingressClassName }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ .Release.Name }}-api
+                port:
+                  number: 8211
+            path: /
+            pathType: Prefix
+
+  {{- if .Values.ingress.ssl.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Release.Name }}-ssl-cert
+  {{- end }}
+
+{{- end }}

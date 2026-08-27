@@ -11,6 +11,10 @@ on:
         description: 'Build Plane EE'
         type: boolean
         default: false
+      plane-mcp-server:
+        description: 'Build Plane MCP Server'
+        type: boolean
+        default: false
 
 env:
   CR_CONFIGFILE: "${{ github.workspace }}/cr.yaml"
@@ -23,13 +27,14 @@ env:
   TARGET_BRANCH: "${{ github.ref_name }}"
   CHART_NAME_CE: "plane-ce"
   CHART_NAME_ENTERPRISE: "plane-enterprise"
+  CHART_NAME_MCP_SERVER: "plane-mcp-server"
   MARK_AS_LATEST: true
   MARK_AS_PRERELASE: false
   PAGES_INDEX_PATH: ""
 
 jobs:
   setup:
-    if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' }}
+    if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' || github.event.inputs.plane-mcp-server == 'true' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -81,6 +86,9 @@ jobs:
           if [ "${{ github.event.inputs.plane-ee }}" = "false" ]; then
             rm -rf charts/${{ env.CHART_NAME_ENTERPRISE }}
           fi
+          if [ "${{ github.event.inputs.plane-mcp-server }}" = "false" ]; then
+            rm -rf charts/${{ env.CHART_NAME_MCP_SERVER }}
+          fi
 
       - name: Rename Chart
         if: github.ref_name != 'master'
@@ -94,12 +102,29 @@ jobs:
             sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_ENTERPRISE }}/Chart.yaml
           fi
 
+          if [ "${{ github.event.inputs.plane-mcp-server }}" = "true" ]; then
+            sed -i "s/name: \(.*\)/name: \1-${flatBranchName}/" charts/${{ env.CHART_NAME_MCP_SERVER }}/Chart.yaml
+          fi
+
           echo "MARK_AS_LATEST=false" >> $GITHUB_ENV
           echo "MARK_AS_PRERELASE=true" >> $GITHUB_ENV
           echo "PAGES_INDEX_PATH=${flatBranchName}" >> $GITHUB_ENV
 
+      - name: Add Helm repos
+        run: |
+          helm repo add valkey https://valkey.io/valkey-helm/
+          helm repo update
+
+      - name: Update chart dependencies
+        run: |
+          for chart in charts/*/; do
+            if [ -f "${chart}Chart.yaml" ] && grep -q "^dependencies:" "${chart}Chart.yaml" 2>/dev/null; then
+              helm dependency update "${chart}"
+            fi
+          done
+
       - name: Release Charts
-        uses: mguptahub/chart-releaser-action@v1.6.2
+        uses: makeplane/chart-releaser-action@v1.7.0-plane.1
         with:
           charts_dir: charts
           config: cr.yaml
@@ -148,6 +173,9 @@ jobs:
           fi
           if [ "${{ github.event.inputs.plane-ee }}" = "true" ]; then
             cp code/charts/plane-enterprise/README.md pages/content/plane-ee.md
+          fi
+          if [ "${{ github.event.inputs.plane-mcp-server }}" = "true" ]; then
+            cp code/charts/plane-mcp-server/README.md pages/content/plane-mcp-server.md
           fi
 
       - name: Publish pages
