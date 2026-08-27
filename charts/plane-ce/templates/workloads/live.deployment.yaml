@@ -56,13 +56,18 @@ spec:
             memory: {{ .Values.live.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.live.cpuLimit | default "500m" | quote}}
         envFrom:
-          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
               optional: false
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
+          {{- /* LAST in envFrom, deliberately. envFrom is later-source-wins, so this has to
+                 follow app_env/live_env: those may carry their own SECRET_KEY, and this hook
+                 exists precisely to make the app and live copies agree. First would let a
+                 stale key in an operator-supplied Secret win on one workload and not the
+                 other, which breaks live-server auth with no error. */}}
+          {{- include "plane.appKeysSecretRef" . }}
       {{- include "plane.podScheduling" .Values.live }}
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}

@@ -250,6 +250,15 @@ serviceAccount:
   create: true
   # Defaults to "<release>-srv-account".
   name: ''
+  # A map, and Helm-values only -- not offered in the Rancher UI, because no Rancher
+  # question type yields a map and a scalar answer renders an invalid ServiceAccount.
+  # Where a workload identity binding goes: eks.amazonaws.com/role-arn for IRSA,
+  # iam.gke.io/gcp-service-account for GKE, azure.workload.identity/client-id for Azure.
+  # EKS Pod Identity needs no annotation -- it binds by name.
+  #
+  # NOTE: every workload shares this account, the datastores included. An annotation here
+  # grants the role to postgres, redis, rabbitmq and minio too. Point serviceAccount.name
+  # at your own least-privilege account if that matters.
   annotations: {}
   # Extra pod-template labels (Azure Workload Identity requires one).
   podLabels: {}

@@ -35,7 +35,6 @@ spec:
         command:
           - ./bin/docker-entrypoint-beat.sh
         envFrom:
-          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
@@ -45,6 +44,12 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
+          {{- /* LAST in envFrom, deliberately. envFrom is later-source-wins, so this has to
+                 follow app_env/live_env: those may carry their own SECRET_KEY, and this hook
+                 exists precisely to make the app and live copies agree. First would let a
+                 stale key in an operator-supplied Secret win on one workload and not the
+                 other, which breaks live-server auth with no error. */}}
+          {{- include "plane.appKeysSecretRef" . }}
           
         {{- with (include "plane.storageCredsEnv" .) }}
         env:

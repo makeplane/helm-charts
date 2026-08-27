@@ -690,12 +690,6 @@ questions:
   type: string
   default: ""
   group: "Service Account"
-- variable: serviceAccount.annotations
-  label: "ServiceAccount Annotations"
-  description: "Where a workload identity binding goes: eks.amazonaws.com/role-arn for IRSA, iam.gke.io/gcp-service-account for GKE, azure.workload.identity/client-id for Azure. EKS Pod Identity needs no annotation — it binds by name."
-  type: string
-  default: ""
-  group: "Service Account"
 - variable: serviceAccount.cloudIdentity
   label: "ServiceAccount Has a Cloud Identity"
   description: "Advisory. Turns on the install notes that catch a static credential shadowing the identity."
