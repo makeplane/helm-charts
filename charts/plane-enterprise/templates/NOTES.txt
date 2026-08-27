@@ -21,8 +21,8 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- end }}
 
 {{- /* Externalized credentials with no way to pick up a rotation. */}}
-{{- if and (not .Values.reloader.enabled) (or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName .Values.external_secrets.app_keys_existingSecret) }}
-{{- $warnings = append $warnings "Credentials come from an external Secret, but reloader.enabled is false.\n    Pods will keep the values they started with, so a rotated credential will not\n    take effect until something restarts them. Install Stakater Reloader and set\n    reloader.enabled=true." }}
+{{- if or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName .Values.external_secrets.app_keys_existingSecret }}
+{{- $warnings = append $warnings "Credentials come from an external Secret. Whatever refreshes that Secret does not\n    restart anything, so pods keep the values they started with and a rotated\n    credential does not take effect until something rolls them. Install Stakater\n    Reloader and annotate the workloads that read it:\n      services.<name>.annotations:\n        reloader.stakater.com/auto: \"true\"" }}
 {{- end }}
 
 {{- /* live's export queue has no parts path at all, on any app version. live reads only

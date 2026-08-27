@@ -81,16 +81,13 @@ Call with a dict carrying the root context and the component values:
     {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- /*
-  Reloader reads its annotation from the workload resource, not the pod template,
-  so it is merged in here rather than emitted alongside the per-component
-  annotations — a second literal `annotations:` key would silently shadow one of
-  the two. A component-level annotation of the same name still wins.
+  Emitted on the WORKLOAD resource, not the pod template. That matters for anything
+  keyed on the workload -- Stakater Reloader reads its annotation there -- so a
+  deployment wanting a rotated Secret to trigger a restart sets
+  services.<name>.annotations."reloader.stakater.com/auto": "true" here rather than the
+  chart imposing it.
   */}}
-  {{- $annotations := deepCopy (default dict .values.annotations) }}
-  {{- if .context.Values.reloader.enabled }}
-  {{- $annotations = merge $annotations (dict "reloader.stakater.com/auto" "true") }}
-  {{- end }}
-  {{- with $annotations }}
+  {{- with .values.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
@@ -341,8 +338,8 @@ Aggregate sha256 over every Secret/ConfigMap the chart renders from values.
 Used as a pod-template annotation so `helm upgrade` rolls workloads when — and
 only when — chart-rendered configuration actually changed. Secrets that live
 outside the chart (External Secrets Operator, sealed secrets, manual) are not
-visible here by design: rotation of those is Reloader's job, see
-plane.reloaderAnnotations.
+visible here by design: rotation of those is Reloader's job, driven by a
+reloader.stakater.com/auto annotation set through services.<name>.annotations.
 
 The hash intentionally covers all config-secret templates rather than a per-workload
 subset: several keys (AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET)

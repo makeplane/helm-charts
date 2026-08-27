@@ -1319,11 +1319,18 @@ This will become the default in the next major version.
 A rotation only reaches a running pod if something restarts it. Install [Stakater Reloader](https://github.com/stakater/Reloader) and turn it on:
 
 ```yaml
-reloader:
-  enabled: true
+services:
+  api:
+    annotations:
+      reloader.stakater.com/auto: "true"
+  worker:
+    annotations:
+      reloader.stakater.com/auto: "true"
 ```
 
-The chart then annotates every workload with `reloader.stakater.com/auto: "true"`, and Reloader rolls a workload when any Secret or ConfigMap it references changes — including Secrets the chart does not render, which is exactly the External Secrets path. The credential-consuming Deployments also get `maxUnavailable: 0` / `maxSurge: 1`, so the restart keeps full capacity.
+Annotate the workloads that read the externally managed Secret. Reloader reads the annotation from the **workload** resource, and the chart emits `services.<name>.annotations` there, so it rolls that workload when any Secret or ConfigMap it references changes — including Secrets the chart does not render, which is exactly the External Secrets path. The chart does not set the annotation for you: which workloads should restart is a deployment decision, and the datastores generally should not.
+
+The credential-consuming Deployments also get `maxUnavailable: 0` / `maxSurge: 1`, so the restart keeps full capacity.
 
 The full chain: you rotate in the cloud → ESO syncs within its `refreshInterval` → Reloader rolls the pods.
 
@@ -1442,7 +1449,6 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `env.redis_ssl` | false | Connect to Redis over TLS (`rediss`). Required by ElastiCache with in-transit encryption and Azure Cache. |
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
-| `reloader.enabled` | false | Annotate workloads for Stakater Reloader so a rotated Secret triggers a rolling restart. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
 | `env.skip_env_var` | '1' | `'0'` makes the API re-read the database-resident secrets (SMTP, OAuth, LLM, LDAP) from the environment on every start. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |

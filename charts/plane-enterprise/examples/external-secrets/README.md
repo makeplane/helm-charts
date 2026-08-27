@@ -44,8 +44,10 @@ helm install reloader stakater/reloader -n reloader --create-namespace
 Then in the chart's values:
 
 ```yaml
-reloader:
-  enabled: true
+services:
+  api:
+    annotations:
+      reloader.stakater.com/auto: "true"
 ```
 
 ## Choosing refreshInterval

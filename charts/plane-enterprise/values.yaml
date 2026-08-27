@@ -542,8 +542,8 @@ services:
     affinity: {}
     labels: {}
     # This service mounts a cert-manager TLS Secret, so it needs a restart when the
-    # certificate is renewed. Set reloader.enabled, or add
-    # reloader.stakater.com/auto here, if you want that to happen automatically.
+    # certificate is renewed. Add reloader.stakater.com/auto: "true" here (and install
+    # Stakater Reloader) if you want that to happen automatically.
     annotations: {}
 
   outbox_poller:
@@ -769,7 +769,7 @@ serviceAccount:
 #    RABBITMQ_* are supported by all releases; REDIS_HOST/PORT/PASSWORD/SSL needs
 #    planeVersion v3.2.0 or newer.
 #
-#    Set `reloader.enabled: true` (and install Stakater Reloader) so pods restart
+#    Annotate the workloads with reloader.stakater.com/auto (and install Reloader) so pods restart
 #    when the mirrored Secret changes — that is what makes rotation take effect.
 #
 # 2. Whole-Secret replacement (*_existingSecret) — the chart skips rendering that
@@ -949,14 +949,6 @@ external_secrets:
 # ============================================================
 # Stakater Reloader
 # ============================================================
-# Adds reloader.stakater.com/auto to every workload that consumes credentials, so
-# a rolling restart happens automatically when one of the Secrets or ConfigMaps it
-# references changes — including Secrets the chart does not render, which is how a
-# rotated cloud credential reaches a running pod. Requires Reloader to be
-# installed in the cluster; the chart does not install it.
-reloader:
-  enabled: false
-
 global:
   # Pre-3.1 behaviour: stamp every pod template with the current timestamp so that
   # `helm upgrade` restarts every workload whether or not anything changed. The

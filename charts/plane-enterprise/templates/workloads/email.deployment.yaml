@@ -32,10 +32,9 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-email-app
   namespace: {{ .Release.Namespace }}
-  {{/* The Reloader annotation now comes from plane.labelsAndAnnotations (gated on
-       reloader.enabled). It used to be a literal key here, which was silently
-       dropped whenever services.email_service.annotations was also set, because the
-       helper emits its own `annotations:` key. */}}
+  {{/* Annotations come from services.email_service.annotations via the helper. A Reloader
+       annotation used to be a literal key here, which was silently dropped whenever that
+       value was also set, because the helper emits its own `annotations:` key. */}}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.email_service) }}
 spec:
   replicas: {{ .Values.services.email_service.replicas | default 1 }}

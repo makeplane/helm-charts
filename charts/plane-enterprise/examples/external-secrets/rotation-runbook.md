@@ -8,7 +8,7 @@ How to rotate Plane's credentials without dropping requests, and which ones must
 rotate in cloud secret store
         ↓  ESO polls, bounded by refreshInterval
 Kubernetes Secret updated
-        ↓  Reloader sees the change (needs reloader.enabled: true)
+        ↓  Reloader sees the change (needs the reloader.stakater.com/auto annotation)
 rolling restart, maxUnavailable: 0 / maxSurge: 1
         ↓
 pods running with the new credential
