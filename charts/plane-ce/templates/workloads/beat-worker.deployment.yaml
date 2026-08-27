@@ -4,6 +4,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-beat-worker-wl
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.beatworker) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   replicas: {{ .Values.beatworker.replicas | default 1 }}
   selector:

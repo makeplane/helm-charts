@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.api) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   backoffLimit: 3
   template:

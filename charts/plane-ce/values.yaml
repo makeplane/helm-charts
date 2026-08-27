@@ -347,3 +347,17 @@ env:
   default_cluster_domain: cluster.local
 
   api_key_rate_limit: "60/minute"
+
+# ------------------------------------------------------------------
+# Stakater Reloader
+# ------------------------------------------------------------------
+# Adds reloader.stakater.com/auto to every workload, so a rolling restart happens
+# when a Secret or ConfigMap it references changes -- including the Secrets named
+# in external_secrets, which is how a rotated credential reaches a running pod.
+# Without it, whatever manages those Secrets refreshes them on its own schedule and
+# the pods keep the values they started with.
+#
+# Requires Reloader to be installed in the cluster; the chart does not install it.
+reloader:
+  enabled: false
+

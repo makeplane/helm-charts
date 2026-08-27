@@ -29,6 +29,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-redis-wl
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.redis) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   selector:
     matchLabels:

@@ -27,6 +27,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-api-wl
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.api) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   replicas: {{ .Values.api.replicas | default 1}}
   selector:

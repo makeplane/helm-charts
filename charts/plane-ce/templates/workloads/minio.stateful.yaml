@@ -31,6 +31,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-wl
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   selector:
     matchLabels:
@@ -90,6 +94,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed

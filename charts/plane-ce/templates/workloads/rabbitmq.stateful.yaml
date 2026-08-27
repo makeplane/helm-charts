@@ -31,6 +31,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-rabbitmq-wl
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.rabbitmq) }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+  {{- end }}
 spec:
   selector:
     matchLabels:
