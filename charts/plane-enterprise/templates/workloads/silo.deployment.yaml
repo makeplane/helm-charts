@@ -115,8 +115,6 @@ spec:
 {{ . | indent 8 }}
         {{- end }}
         envFrom:
-          {{- include "plane.appKeysSecretRef" . }}
-          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-silo-vars
               optional: false
@@ -127,6 +125,13 @@ spec:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* LAST in envFrom, deliberately: envFrom is later-source-wins, so these must
+                 follow app_env/silo_env/live_env. Those may carry their own copy of a key a
+                 group hook owns, and first would let the stale copy win on one workload but
+                 not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
+                 or live-server auth fails with nothing logged. */}}
+          {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
         {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.siloInfraCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}

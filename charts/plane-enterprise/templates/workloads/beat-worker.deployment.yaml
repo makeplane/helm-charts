@@ -38,8 +38,6 @@ spec:
         command:
           - ./bin/docker-entrypoint-beat.sh
         envFrom:
-          {{- include "plane.appKeysSecretRef" . }}
-          {{- include "plane.siloConnectorsSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
               optional: false
@@ -66,6 +64,13 @@ spec:
               optional: false
           {{- end }}
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* LAST in envFrom, deliberately: envFrom is later-source-wins, so these must
+                 follow app_env/silo_env/live_env. Those may carry their own copy of a key a
+                 group hook owns, and first would let the stale copy win on one workload but
+                 not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
+                 or live-server auth fails with nothing logged. */}}
+          {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
         {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") (include "plane.infraCredsEnv" .) }}
         env:
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "beat-worker")) }}{{ . | nindent 10 }}{{- end }}

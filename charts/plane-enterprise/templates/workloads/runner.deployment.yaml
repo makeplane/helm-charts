@@ -69,13 +69,18 @@ spec:
           successThreshold: 1
           timeoutSeconds: 1
         envFrom:
-          {{- include "plane.appKeysSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-runner-vars
               optional: false
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.runner_env_existingSecret) }}{{ .Values.external_secrets.runner_env_existingSecret }}{{ else }}{{ .Release.Name }}-runner-secrets{{ end }}
               optional: false
+          {{- /* LAST in envFrom, deliberately: envFrom is later-source-wins, so these must
+                 follow app_env/silo_env/live_env. Those may carry their own copy of a key a
+                 group hook owns, and first would let the stale copy win on one workload but
+                 not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
+                 or live-server auth fails with nothing logged. */}}
+          {{- include "plane.appKeysSecretRef" . }}
         {{- if .Values.extraEnv }}
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
