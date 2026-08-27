@@ -41,6 +41,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       containers:
       - image: {{ .Values.minio.image }}
@@ -63,8 +64,8 @@ spec:
           name: pvc-{{ .Release.Name }}-minio-vol
           subPath: ''
       {{- include "plane.podScheduling" .Values.minio }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
@@ -119,7 +120,7 @@ spec:
           imagePullPolicy: {{ .Values.minio.pullPolicy }}
           name: {{ .Release.Name }}-minio-bucket
       {{- include "plane.podScheduling" .Values.minio }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
       terminationGracePeriodSeconds: 120
 {{- end }}
