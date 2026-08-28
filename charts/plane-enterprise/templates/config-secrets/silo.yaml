@@ -122,6 +122,10 @@ data:
   SENTRY_ENVIRONMENT: {{ .Values.env.silo_envs.sentry_environment | default "development" | quote }}
   SENTRY_TRACES_SAMPLE_RATE: {{ .Values.env.silo_envs.sentry_traces_sample_rate | default "0.1" | quote }}
 
+  INTEGRATION_EVENT_INGEST_ENABLED: {{ .Values.env.silo_envs.integration_event_ingest_enabled | default false | ternary "1" "0" | quote }}
+  INTEGRATION_EVENT_PROVIDERS: {{ .Values.env.silo_envs.integration_event_providers | default "github,gitlab,slack" | quote }}
+  INTEGRATION_EVENT_INGEST_TIMEOUT_MS: {{ .Values.env.silo_envs.integration_event_ingest_timeout_ms | default 2000 | quote }}
+
 
 {{- end }}
 ---

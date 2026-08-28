@@ -116,3 +116,17 @@ data:
   WEBHOOK_ALLOWED_IPS: {{ .Values.env.webhook_allowed_ips | default "" | quote }}
   WEBHOOK_ALLOWED_HOSTS: {{ .Values.env.webhook_allowed_hosts | default "" | quote }}
   AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
+
+  INTEGRATION_EVENT_STREAM_EXCHANGE_NAME: {{ .Values.env.integration_event_envs.stream_exchange_name | default "plane.integration_stream" | quote }}
+  INTEGRATION_EVENT_CONSUMER_QUEUE_NAME: {{ .Values.env.integration_event_consumer_envs.queue_name | default "plane.integration_stream.reference" | quote }}
+  INTEGRATION_EVENT_CONSUMER_PREFETCH: {{ .Values.env.integration_event_consumer_envs.prefetch_count | default 10 | quote }}
+  INTEGRATION_EVENT_MAX_RAW_BYTES: {{ .Values.env.integration_event_envs.max_raw_bytes | default 262144 | quote }}
+  INTEGRATION_EVENT_PUBLISH_TIMEOUT: {{ .Values.env.integration_event_envs.publish_timeout | default 2.0 | quote }}
+  INTEGRATION_EVENT_PUBLISH_MAX_RETRIES: {{ .Values.env.integration_event_envs.publish_max_retries | default 2 | quote }}
+  INTEGRATION_EVENT_PUBLISH_RETRY_DELAY: {{ .Values.env.integration_event_envs.publish_retry_delay | default 0.05 | quote }}
+  INTEGRATION_EVENT_REPUBLISH_BATCH_SIZE: {{ .Values.env.integration_event_envs.republish_batch_size | default 500 | quote }}
+  INTEGRATION_EVENT_REPUBLISH_MAX_ATTEMPTS: {{ .Values.env.integration_event_envs.republish_max_attempts | default 10 | quote }}
+  INTEGRATION_EVENT_REPUBLISH_GRACE_SECONDS: {{ .Values.env.integration_event_envs.republish_grace_seconds | default 60 | quote }}
+  INTEGRATION_EVENT_CLEANER_BATCH_SIZE: {{ .Values.env.integration_event_envs.cleaner_batch_size | default 1000 | quote }}
+  INTEGRATION_EVENT_CLEANER_CUTOFF_DAYS: {{ .Values.env.integration_event_envs.cleaner_cutoff_days | default 7 | quote }}
+  INTEGRATION_EVENT_COLLECTION_NAME: {{ .Values.env.integration_event_envs.collection_name | default "integration_event" | quote }}
