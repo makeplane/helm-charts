@@ -1,0 +1,38 @@
+{{/*
+Arbitrary extra objects, supplied by the operator through values.
+
+The reason this exists: everything a Plane environment needs to STOP holding credentials --
+an ESO SecretStore, the ExternalSecrets that produce the Secrets this chart reads by name --
+is not part of this chart and never should be, but it also has nowhere else to live when the
+release is delivered by a GitOps tool that treats one directory as one unit. Without this,
+those objects need a second bundle purely to exist, and a second bundle is a second thing to
+order correctly.
+
+Rendered with toYaml and NOT tpl, deliberately. The objects people put here are usually
+ExternalSecrets whose `target.template` contains ESO's own {{ }} placeholders; tpl would try
+to evaluate those as Helm expressions and fail, or worse, silently resolve them to empty.
+Values are not templated by Helm, so writing them here passes them through untouched.
+
+Ordering: give an object the standard Helm hook annotations to have it applied before the
+workloads, which is what an ExternalSecret wants -- the chart's Secret references are
+optional: false, so a pod that starts before its Secret exists sits in
+CreateContainerConfigError until it appears.
+
+  extraObjects:
+    - apiVersion: external-secrets.io/v1
+      kind: SecretStore
+      metadata:
+        name: aws-secrets-manager
+        annotations:
+          helm.sh/hook: pre-install,pre-upgrade
+          helm.sh/hook-weight: "-10"
+          helm.sh/hook-delete-policy: before-hook-creation
+      spec: { ... }
+
+Namespace is left to the object: most callers want the release namespace, which is the
+default when it is omitted, and a few legitimately want another.
+*/}}
+{{- range .Values.extraObjects }}
+---
+{{ toYaml . }}
+{{- end }}

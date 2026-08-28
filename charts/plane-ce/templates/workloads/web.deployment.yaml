@@ -38,6 +38,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
@@ -55,6 +56,6 @@ spec:
             memory: {{ .Values.web.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.web.cpuLimit | default "500m" | quote}}
       {{- include "plane.podScheduling" .Values.web }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
