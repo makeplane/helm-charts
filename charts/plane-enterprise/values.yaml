@@ -38,16 +38,30 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
-  # Selects which ingress template is rendered:
-  #   'traefik*'          -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
-  #   'openshift'         -> OpenShift Route per path      (templates/ingress-openshift.yaml)
-  #   'nginx'             -> networking.k8s.io/v1 Ingress  (templates/ingress.yaml)
-  # Any OTHER value renders no ingress at all -- see the note in templates/ingress.yaml.
+  # controller selects WHICH KIND of ingress resource is rendered, decoupled from
+  # the class name below. Supported: nginx, traefik and openshift. When set:
+  #   'traefik'   -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
+  #   'openshift' -> one OpenShift Route per path  (templates/ingress-openshift.yaml)
+  #   'nginx' (or any other value)
+  #               -> networking.k8s.io/v1 Ingress (templates/ingress-nginx.yaml),
+  #                  with ingressClass below used verbatim as spec.ingressClassName.
+  # Leave it empty and the legacy selection applies, unchanged: only a class of
+  # 'traefik*', 'openshift' or 'nginx' renders anything, and ANY OTHER class
+  # renders no ingress at all, silently. That is kept so upgrades never create an
+  # ingress where the chart previously created none.
+  # => Set controller when your class name is not exactly 'nginx', 'openshift' or
+  #    'traefik*' -- e.g. controller 'nginx' with ingressClass 'nginx-new'.
+  controller: ''
+  # ingressClass is the free-form class name written to the standard Ingress'
+  # spec.ingressClassName. Unused on the traefik and openshift paths, since
+  # neither an IngressRoute nor a Route carries a class name. It also drives the
+  # legacy selection above while controller is empty.
   ingressClass: 'traefik'
-  # Annotations for the standard Ingress — e.g. to set the proxy body size limit on
-  # the nginx controller. ONLY rendered when ingressClass is exactly 'nginx'; they
-  # have no effect with traefik, and the 'openshift' Route path takes its
-  # annotations from ingress.openshift.route_annotations instead. Example:
+  # Annotations for the standard Ingress — e.g. to set the proxy body size limit
+  # on the nginx controller. Rendered onto the standard Ingress only; they have no
+  # effect with traefik (use ingress.traefik.maxRequestBodyBytes) and the openshift
+  # path takes its annotations from ingress.openshift.route_annotations instead.
+  # Example for ingress-nginx:
   # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
   # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
   #   "502 upstream sent too big header" errors.
@@ -64,7 +78,7 @@ ingress:
     # Set explicitly only if your Traefik install renamed the default entrypoints,
     # e.g. entryPoints: ['websecure', 'web'] or ['https'].
     entryPoints: []
-  # Only read when ingressClass is 'openshift'.
+  # Only read on the openshift path (see controller above).
   openshift:
     # HAProxy's per-route timeout. The router default is 30s, which severs
     # /live/'s collaborative-editing WebSockets and /pi/'s streaming responses.

@@ -99,6 +99,41 @@ of the local_setup flag's value.
 {{- end -}}
 
 {{/*
+Selects which ingress template renders, decoupling the controller *type* (which
+resource kind to emit) from the ingress *class name* (a free-form string).
+Returns "traefik" (IngressRoute), "openshift" (Route per path), "ingress"
+(networking.k8s.io/v1 Ingress, i.e. ingress-nginx) or "none" (render nothing).
+
+ingress.controller decides when set: "traefik*" -> traefik, "openshift" ->
+openshift, anything else -> a standard Ingress, whatever the class name is. That
+last case exists so a non-"nginx" class name can still be served, e.g.
+controller "nginx" with ingressClass "nginx-new".
+
+When ingress.controller is EMPTY the selection is the pre-3.5.5 one, exactly:
+only "traefik*", "openshift" and "nginx" are recognised and any other class
+returns "none", rendering no ingress. That silent no-op is kept deliberately --
+widening it would make an upgrade create a <release>-ingress for operators who
+are on such a class today and already run an ingress of their own. Set
+ingress.controller to opt into the standard Ingress for any class name.
+*/}}
+{{- define "plane.ingressController" -}}
+  {{- $c := .Values.ingress.controller | default "" | trim | lower -}}
+  {{- if $c -}}
+    {{- if hasPrefix "traefik" $c -}}traefik
+    {{- else if eq $c "openshift" -}}openshift
+    {{- else -}}ingress
+    {{- end -}}
+  {{- else -}}
+    {{- $k := .Values.ingress.ingressClass | default "" -}}
+    {{- if hasPrefix "traefik" $k -}}traefik
+    {{- else if eq $k "openshift" -}}openshift
+    {{- else if eq $k "nginx" -}}ingress
+    {{- else -}}none
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
 Returns "true" when airgapped is enabled and at least one CA secret is configured.
 */}}

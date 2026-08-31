@@ -1714,8 +1714,15 @@ questions:
     type: string
     default: ""
     show_if: "services.rabbitmq.local_setup=true"
+  - variable: ingress.controller
+    label: "Ingress Controller Type"
+    description: "Which kind of ingress resource to render. Supported: 'traefik' a Traefik IngressRoute, 'openshift' one OpenShift Route per path, 'nginx' a standard networking.k8s.io/v1 Ingress using the Ingress Classname below verbatim. REQUIRED when your class name is not exactly 'nginx', 'openshift' or 'traefik*' - left empty, any other class renders no ingress at all."
+    type: string
+    default: ""
+    show_if: "ingress.enabled=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
+    description: "Class name written to the standard Ingress' spec.ingressClassName. Unused by the Traefik IngressRoute and by OpenShift Routes. While Ingress Controller Type above is empty this also selects which template renders, and only 'nginx', 'openshift' and 'traefik*' are recognised."
     type: string
     required: true
     default: "nginx"
@@ -1773,7 +1780,7 @@ questions:
 
 - variable: ingress.traefik.entryPoints
   label: "Traefik Entrypoints Override"
-  description: "Traefik entrypoints the IngressRoute binds to, e.g. 'websecure'. Leave empty to derive from the SSL settings (websecure when this chart manages a certificate, otherwise web). Required as 'websecure' when TLS is terminated by Traefik's own entrypoint. Ignored unless the ingress class is traefik."
+  description: "Traefik entrypoints the IngressRoute binds to, e.g. 'websecure'. Leave empty to derive from the SSL settings (websecure when this chart manages a certificate, otherwise web). Required as 'websecure' when TLS is terminated by Traefik's own entrypoint. Ignored unless the controller resolves to traefik."
   type: string
   default: ""
   group: "Ingress"
