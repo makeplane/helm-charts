@@ -39,20 +39,23 @@ ingress:
   minioHost: ''
   rabbitmqHost: ''
   # controller selects WHICH KIND of ingress resource is rendered, decoupled from
-  # the class name below. Recognised values:
+  # the class name below. When set:
   #   'traefik'   -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
   #   'openshift' -> one OpenShift Route per path  (templates/ingress-openshift.yaml)
   #   anything else ('nginx', 'f5', 'haproxy', 'alb', ...)
-  #               -> networking.k8s.io/v1 Ingress (templates/ingress.yaml)
-  # Leave empty to infer it from ingressClass: a value starting with 'traefik'
-  # means Traefik, exactly 'openshift' means Routes, everything else means a
-  # standard Ingress. Set it explicitly when your class name is atypical
-  # (e.g. 'nginx-new').
+  #               -> networking.k8s.io/v1 Ingress (templates/ingress.yaml), with
+  #                  ingressClass below used verbatim as spec.ingressClassName.
+  # Leave it empty and the legacy selection applies, unchanged: only a class of
+  # 'traefik*', 'openshift' or 'nginx' renders anything, and ANY OTHER class
+  # renders no ingress at all, silently. That is kept so upgrades never create an
+  # ingress where the chart previously created none.
+  # => Set controller whenever your class is not exactly 'nginx'/'traefik*'/
+  #    'openshift' -- e.g. 'nginx-new', 'alb', 'contour', 'istio', 'gce'.
   controller: ''
   # ingressClass is the free-form class name written to the standard Ingress'
-  # spec.ingressClassName. It no longer constrains which template renders (use
-  # controller above for that). Unused on the traefik and openshift paths, since
-  # neither an IngressRoute nor a Route carries a class name.
+  # spec.ingressClassName. Unused on the traefik and openshift paths, since
+  # neither an IngressRoute nor a Route carries a class name. It also drives the
+  # legacy selection above while controller is empty.
   ingressClass: 'traefik'
   # Annotations for the standard Ingress — e.g. to set the proxy body size limit
   # on the nginx controller. Rendered onto the standard Ingress only; they have no

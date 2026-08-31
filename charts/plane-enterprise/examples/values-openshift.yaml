@@ -72,6 +72,8 @@ services:
 # the HAProxy timeout set explicitly. To let OpenShift's ingress-to-route
 # controller convert a plain Ingress instead, set controller: 'nginx' with
 # ingressClass: 'openshift-default' — the timeout below is then not applied.
+# Note controller must be set for that: with it empty, 'openshift-default'
+# renders no ingress at all.
 ingress:
   enabled: true
   controller: 'openshift'
