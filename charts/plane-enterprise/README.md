@@ -123,7 +123,7 @@ ingress:
 Renders one `Ingress` with `ingressClassName: nginx`. The class must be exactly
 `nginx` for this to work without `controller`.
 
-**3. OpenShift `Route`s**
+**3. OpenShift Route's**
 
 ```yaml
 ingress:
@@ -182,7 +182,7 @@ ingress:
 Renders `IngressRoute` + `Middleware`. Useful when your platform's naming convention
 does not allow a class called `traefik`.
 
-**7. OpenShift `Route`s with a class name that is not `openshift`**
+**7. OpenShift Route's with a class name that is not `openshift`**
 
 ```yaml
 ingress:
