@@ -77,6 +77,164 @@ The default is a Traefik `IngressRoute` (`ingressClass: traefik`, no `controller
 If you are switching to a standard ingress controller, follow the migration steps
 below.
 
+### Configuration snippets
+
+Every snippet below is the `ingress` block of your `values.yaml`. All of them also
+need `license.licenseDomain` set — no ingress of any kind renders without it:
+
+```yaml
+license:
+  licenseDomain: plane.example.com
+```
+
+#### Already supported — no `ingress.controller` needed
+
+These four worked before `ingress.controller` existed and are unchanged. Leave
+`controller` out entirely.
+
+**1. Traefik `IngressRoute` — the chart default**
+
+```yaml
+ingress:
+  enabled: true
+  ingressClass: 'traefik'
+  traefik:
+    maxRequestBodyBytes: 20971520   # 20 MiB upload cap
+    entryPoints: []                 # empty = derive from your ssl.* settings
+```
+
+Renders `IngressRoute` + `Middleware`. Requires the Traefik CRDs. Any class
+starting with `traefik` works here (`traefik-v2`, `traefikee`, ...).
+
+**2. Standard `Ingress` with ingress-nginx**
+
+```yaml
+ingress:
+  enabled: true
+  ingressClass: 'nginx'
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: '20m'
+    nginx.ingress.kubernetes.io/proxy-buffer-size: '16k'   # avoids 502 "too big header"
+```
+
+Renders one `Ingress` with `ingressClassName: nginx`. The class must be exactly
+`nginx` for this to work without `controller`.
+
+**3. OpenShift `Route`s**
+
+```yaml
+ingress:
+  enabled: true
+  ingressClass: 'openshift'
+  openshift:
+    timeout: '300s'      # router default is 30s and severs /live/ WebSockets
+    termination: 'edge'  # edge | reencrypt (passthrough cannot do path routing)
+    insecureEdgeTerminationPolicy: 'Redirect'
+```
+
+Renders one `Route` per path. See [`examples/values-openshift.yaml`](examples/values-openshift.yaml)
+for a complete OpenShift values file.
+
+**4. No chart-managed ingress — bring your own**
+
+```yaml
+ingress:
+  enabled: false
+```
+
+Renders nothing at all. Use this when you expose Plane through your own `Ingress`,
+`HTTPRoute`, `LoadBalancer` Service, Cloudflare Tunnel or service mesh. This is the
+right setting if you are managing the ingress yourself — do not rely on an
+unrecognised `ingressClass` to suppress it.
+
+#### Newly possible — set `ingress.controller`
+
+Each of these rendered **no ingress at all** before this change. `controller` picks
+the resource kind; `ingressClass` is then used verbatim as `spec.ingressClassName`.
+
+**5. Standard `Ingress` with a class name that is not `nginx`** — e.g. F5 NGINX, or a
+second ingress-nginx install using a custom `IngressClass`
+
+```yaml
+ingress:
+  enabled: true
+  controller: 'nginx'        # any value but traefik*/openshift selects the Ingress
+  ingressClass: 'nginx-new'  # whatever your controller actually exposes
+  ingress_annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: '20m'
+```
+
+Renders one `Ingress` with `ingressClassName: nginx-new`.
+
+**6. AWS Load Balancer Controller (ALB)**
+
+```yaml
+ingress:
+  enabled: true
+  controller: 'alb'
+  ingressClass: 'alb'
+  ingress_annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:111122223333:certificate/abc
+    alb.ingress.kubernetes.io/group.name: plane   # keep one ALB across Ingresses
+```
+
+Renders one `Ingress` with `ingressClassName: alb`. Set `ssl.externalTermination: true`
+so Plane's URLs are `https://` while the ALB holds the certificate.
+
+**7. Contour, HAProxy, Kong, Istio, Cilium, GCE, or any other controller**
+
+```yaml
+ingress:
+  enabled: true
+  controller: 'contour'   # label only — not written into any manifest
+  ingressClass: 'contour' # the class your controller watches
+```
+
+Renders one `Ingress` with `ingressClassName: contour`. Substitute your own class
+(`haproxy`, `kong`, `istio`, `cilium`, `gce`, `webapprouting.kubernetes.azure.com`, ...)
+and add that controller's annotations under `ingress_annotations`.
+
+**8. Traefik `IngressRoute` with a class name that is not `traefik*`**
+
+```yaml
+ingress:
+  enabled: true
+  controller: 'traefik'
+  ingressClass: 'internal-lb'   # unused by the IngressRoute; kept for your own bookkeeping
+```
+
+Renders `IngressRoute` + `Middleware`. Useful when your platform's naming convention
+does not allow a class called `traefik`.
+
+**9. OpenShift `Route`s with a class name that is not `openshift`**
+
+```yaml
+ingress:
+  enabled: true
+  controller: 'openshift'
+  ingressClass: 'ocp-internal'   # unused by Routes
+  openshift:
+    timeout: '300s'
+```
+
+Renders one `Route` per path.
+
+**10. OpenShift, letting the ingress-to-route controller convert a plain `Ingress`**
+
+```yaml
+ingress:
+  enabled: true
+  controller: 'nginx'                 # emit a standard Ingress...
+  ingressClass: 'openshift-default'   # ...for OpenShift's router to convert
+```
+
+Renders one `Ingress` with `ingressClassName: openshift-default`. Note this path gets
+**no** per-route HAProxy timeout, so `/live/` WebSockets are subject to the router's
+30s default — prefer snippet 3 or 9 unless you specifically need the conversion.
+
 ### Switching from Traefik to a standard Ingress controller (e.g. nginx)
 
 1. **Install your target ingress controller** if it is not already running.
