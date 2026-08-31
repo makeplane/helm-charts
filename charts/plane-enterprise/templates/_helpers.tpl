@@ -102,10 +102,12 @@ of the local_setup flag's value.
 Selects which ingress template renders, decoupling the controller *type* (which
 resource kind to emit) from the ingress *class name* (a free-form string).
 Returns "traefik" (IngressRoute), "openshift" (Route per path), "ingress"
-(networking.k8s.io/v1 Ingress) or "none" (render nothing).
+(networking.k8s.io/v1 Ingress, i.e. ingress-nginx) or "none" (render nothing).
 
 ingress.controller decides when set: "traefik*" -> traefik, "openshift" ->
-openshift, anything else -> a standard Ingress, whatever the class name is.
+openshift, anything else -> a standard Ingress, whatever the class name is. That
+last case exists so a non-"nginx" class name can still be served, e.g.
+controller "nginx" with ingressClass "nginx-new".
 
 When ingress.controller is EMPTY the selection is the pre-3.5.5 one, exactly:
 only "traefik*", "openshift" and "nginx" are recognised and any other class

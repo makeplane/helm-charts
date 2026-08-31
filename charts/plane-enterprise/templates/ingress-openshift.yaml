@@ -41,7 +41,7 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- fail (printf "ingress.openshift.termination must be \"edge\" or \"reencrypt\", got %q. Path-based Routes cannot use passthrough termination; see charts/plane-enterprise/README.md." $termination) }}
 {{- end }}
 
-{{/* Same path -> service mapping as templates/ingress.yaml, most specific first
+{{/* Same path -> service mapping as templates/ingress-nginx.yaml, most specific first
      (ordering is cosmetic here, kept aligned so the two are easy to diff). */}}
 {{- $routes := list
       (dict "slug" "spaces"      "path" "/spaces/"      "svc" (printf "%s-space" $name) "port" 3000)
@@ -65,7 +65,7 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- $routes = append $routes (dict "slug" "web" "path" "/" "svc" (printf "%s-web" $name) "port" 3000) }}
 
 {{/* The bundled MinIO console and RabbitMQ management UI live on their own hosts,
-     matching templates/ingress.yaml. Both are gated on the corresponding
+     matching templates/ingress-nginx.yaml. Both are gated on the corresponding
      local_setup, so neither renders in the recommended OpenShift configuration
      (where the bundled datastores are off because they cannot run under an
      arbitrary UID) -- they are here for a cluster that grants those workloads a

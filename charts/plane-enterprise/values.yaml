@@ -39,18 +39,18 @@ ingress:
   minioHost: ''
   rabbitmqHost: ''
   # controller selects WHICH KIND of ingress resource is rendered, decoupled from
-  # the class name below. When set:
+  # the class name below. Supported: nginx, traefik and openshift. When set:
   #   'traefik'   -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
   #   'openshift' -> one OpenShift Route per path  (templates/ingress-openshift.yaml)
-  #   anything else ('nginx', 'f5', 'haproxy', 'alb', ...)
-  #               -> networking.k8s.io/v1 Ingress (templates/ingress.yaml), with
-  #                  ingressClass below used verbatim as spec.ingressClassName.
+  #   'nginx' (or any other value)
+  #               -> networking.k8s.io/v1 Ingress (templates/ingress-nginx.yaml),
+  #                  with ingressClass below used verbatim as spec.ingressClassName.
   # Leave it empty and the legacy selection applies, unchanged: only a class of
   # 'traefik*', 'openshift' or 'nginx' renders anything, and ANY OTHER class
   # renders no ingress at all, silently. That is kept so upgrades never create an
   # ingress where the chart previously created none.
-  # => Set controller whenever your class is not exactly 'nginx'/'traefik*'/
-  #    'openshift' -- e.g. 'nginx-new', 'alb', 'contour', 'istio', 'gce'.
+  # => Set controller when your class name is not exactly 'nginx', 'openshift' or
+  #    'traefik*' -- e.g. controller 'nginx' with ingressClass 'nginx-new'.
   controller: ''
   # ingressClass is the free-form class name written to the standard Ingress'
   # spec.ingressClassName. Unused on the traefik and openshift paths, since

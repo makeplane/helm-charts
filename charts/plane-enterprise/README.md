@@ -27,23 +27,25 @@ If you plan to use Traefik as your ingress controller, install it before deployi
 
 ## Migrating the Ingress Controller
 
-The chart renders one of three ingress templates. **Which one** is chosen by the
-*controller type* — kept separate from the *class name*, so a class name your
-controller happens to use (e.g. `nginx-new`, `alb`) no longer has to double as the
-template selector.
+The chart renders one of three ingress templates — nginx, Traefik or OpenShift.
+**Which one** is chosen by the *controller type*, kept separate from the *class
+name*, so a class name your controller happens to use (e.g. `nginx-new`) no longer
+has to double as the template selector.
 
 `ingress.controller` selects the resource kind:
 
-| `ingress.controller` value             | Template rendered                  | Resource kind                                |
-| -------------------------------------- | ---------------------------------- | -------------------------------------------- |
-| `traefik` (or starts with it)          | `templates/ingress-traefik.yaml`   | `traefik.io/v1alpha1 IngressRoute`           |
-| `openshift`                            | `templates/ingress-openshift.yaml` | `route.openshift.io/v1 Route` (one per path) |
-| Any other value (`nginx`, `f5`, ...)   | `templates/ingress.yaml`           | `networking.k8s.io/v1 Ingress`               |
+| `ingress.controller` value        | Template rendered                  | Resource kind                                |
+| --------------------------------- | ---------------------------------- | -------------------------------------------- |
+| `traefik` (or starts with it)     | `templates/ingress-traefik.yaml`   | `traefik.io/v1alpha1 IngressRoute`           |
+| `openshift`                       | `templates/ingress-openshift.yaml` | `route.openshift.io/v1 Route` (one per path) |
+| `nginx`                           | `templates/ingress-nginx.yaml`     | `networking.k8s.io/v1 Ingress`               |
 
-> The standard `Ingress` path covers **any** standard Kubernetes ingress controller —
-> ingress-nginx, F5 NGINX, HAProxy, ALB, Contour, etc. The value is just a selector;
-> it is not written anywhere. The actual class name comes from `ingress.ingressClass`
-> (`spec.ingressClassName`), which can be any string your controller exposes.
+> **nginx, Traefik and OpenShift are the supported configurations.** The value is
+> only a selector and is never written into a manifest; the class name comes from
+> `ingress.ingressClass` (`spec.ingressClassName`), which can be any string your
+> controller exposes. Any `controller` value other than `traefik*`/`openshift`
+> renders the same standard `Ingress` as `nginx` — that is how a class name like
+> `nginx-new` is served — but only the three above are tested.
 
 > **No body-size limit on Routes.** `ingress.traefik.maxRequestBodyBytes` has no
 > OpenShift equivalent; HAProxy Routes cannot cap request bodies. Enforce upload
@@ -61,11 +63,12 @@ before this value existed:
 | `nginx`                                 | Standard `Ingress`           |
 | **anything else**                       | **nothing at all, silently** |
 
-> ⚠️ **`alb`, `contour`, `istio`, `gce`, `nginx-new`, `openshift-default`, a custom
-> `IngressClass` name, an empty string — all render no ingress** while
-> `ingress.controller` is empty. `helm install` succeeds and nothing is reachable.
-> **Set `ingress.controller`** (to `nginx`, or any label you like) to get a standard
-> `Ingress` carrying your class name.
+> ⚠️ **Any class other than `nginx`, `openshift` or `traefik*` renders no ingress**
+> while `ingress.controller` is empty — `nginx-new`, `openshift-default`, a custom
+> `IngressClass` name or an empty string included. `helm install` succeeds and
+> nothing is reachable. **Set `ingress.controller: nginx`** to get a standard
+> `Ingress` carrying your class name, or `ingress.enabled: false` if you manage the
+> ingress yourself.
 
 This no-op is kept on purpose rather than widened: an operator on such a class today
 gets no ingress from the chart and will have their own in place, so making the
@@ -149,11 +152,12 @@ unrecognised `ingressClass` to suppress it.
 
 #### Newly possible — set `ingress.controller`
 
-Each of these rendered **no ingress at all** before this change. `controller` picks
-the resource kind; `ingressClass` is then used verbatim as `spec.ingressClassName`.
+Each of these rendered **no ingress at all** before this change, because the class
+name was not one of the three the chart recognised. `controller` picks the resource
+kind; `ingressClass` is then used verbatim as `spec.ingressClassName`.
 
-**5. Standard `Ingress` with a class name that is not `nginx`** — e.g. F5 NGINX, or a
-second ingress-nginx install using a custom `IngressClass`
+**5. Standard `Ingress` with a class name that is not `nginx`** — e.g. a second
+ingress-nginx install, or an nginx build that exposes its own `IngressClass`
 
 ```yaml
 ingress:
@@ -166,38 +170,7 @@ ingress:
 
 Renders one `Ingress` with `ingressClassName: nginx-new`.
 
-**6. AWS Load Balancer Controller (ALB)**
-
-```yaml
-ingress:
-  enabled: true
-  controller: 'alb'
-  ingressClass: 'alb'
-  ingress_annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:111122223333:certificate/abc
-    alb.ingress.kubernetes.io/group.name: plane   # keep one ALB across Ingresses
-```
-
-Renders one `Ingress` with `ingressClassName: alb`. Set `ssl.externalTermination: true`
-so Plane's URLs are `https://` while the ALB holds the certificate.
-
-**7. Contour, HAProxy, Kong, Istio, Cilium, GCE, or any other controller**
-
-```yaml
-ingress:
-  enabled: true
-  controller: 'contour'   # label only — not written into any manifest
-  ingressClass: 'contour' # the class your controller watches
-```
-
-Renders one `Ingress` with `ingressClassName: contour`. Substitute your own class
-(`haproxy`, `kong`, `istio`, `cilium`, `gce`, `webapprouting.kubernetes.azure.com`, ...)
-and add that controller's annotations under `ingress_annotations`.
-
-**8. Traefik `IngressRoute` with a class name that is not `traefik*`**
+**6. Traefik `IngressRoute` with a class name that is not `traefik*`**
 
 ```yaml
 ingress:
@@ -209,7 +182,7 @@ ingress:
 Renders `IngressRoute` + `Middleware`. Useful when your platform's naming convention
 does not allow a class called `traefik`.
 
-**9. OpenShift `Route`s with a class name that is not `openshift`**
+**7. OpenShift `Route`s with a class name that is not `openshift`**
 
 ```yaml
 ingress:
@@ -222,7 +195,7 @@ ingress:
 
 Renders one `Route` per path.
 
-**10. OpenShift, letting the ingress-to-route controller convert a plain `Ingress`**
+**8. OpenShift, letting the ingress-to-route controller convert a plain `Ingress`**
 
 ```yaml
 ingress:
@@ -243,7 +216,7 @@ Renders one `Ingress` with `ingressClassName: openshift-default`. Note this path
 
    ```yaml
    ingress:
-     controller: "nginx"      # selects the standard Ingress template (anything but traefik/openshift)
+     controller: "nginx"      # selects templates/ingress-nginx.yaml
      ingressClass: "nginx"    # spec.ingressClassName — whichever class your controller exposes (e.g. "nginx-new")
    ```
 
@@ -288,7 +261,7 @@ Renders one `Ingress` with `ingressClassName: openshift-default`. Note this path
 | Value                                 | Default    | Effect                                                                                    |
 | ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
 | `ingress.enabled`                     | `true`     | Master switch — set to `false` to render no ingress at all.                               |
-| `ingress.controller`                  | `''`       | Selects the resource kind: `traefik` → IngressRoute, `openshift` → Routes, anything else → standard `Ingress` with your class name. Empty = legacy selection from `ingressClass`, where only `nginx`/`openshift`/`traefik*` render anything. |
+| `ingress.controller`                  | `''`       | Selects the resource kind: `traefik` → IngressRoute, `openshift` → Routes, `nginx` → standard `Ingress` with your class name. Empty = legacy selection from `ingressClass`, where only `nginx`/`openshift`/`traefik*` render anything. |
 | `ingress.ingressClass`                | `traefik`  | Free-form `spec.ingressClassName` on the standard `Ingress`. Also drives the legacy selection while `controller` is empty. Unused by Traefik and OpenShift. |
 | `ingress.traefik.maxRequestBodyBytes` | `20971520` | Max request body size for Traefik's buffering middleware. Ignored when not using Traefik. |
 | `ingress.traefik.entryPoints`         | `[]`       | Traefik entrypoints for the `IngressRoute`. Empty means derive from your SSL settings — see below. Ignored when not using Traefik. |
@@ -567,7 +540,7 @@ ingress:
      - `planeVersion: v3.1.4 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
-     - `ingress.controller: <traefik | openshift | nginx | ... — required unless ingressClass is exactly nginx/openshift/traefik*>`
+     - `ingress.controller: <traefik | openshift | nginx — required unless ingressClass is exactly nginx/openshift/traefik*>`
      - `ingress.ingressClass: <traefik or any other ingress class configured in your cluster>`
      - `env.storageClass: <default storage class configured in your cluster>`
 
@@ -1338,7 +1311,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | ingress.enabled             |                           true                            |          | Ingress setup in kubernetes is a common practice to expose application to the intended audience. Set it to `false` if you are using external ingress providers like `Cloudflare`                                                                                                                                                                                                                                          |
 | ingress.minioHost           |                                                           |          | Based on above configuration, if you want to expose the `minio` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                       |
 | ingress.rabbitmqHost        |                                                           |          | Based on above configuration, if you want to expose the `rabbitmq` web console to set of users, use this key to set the `host` mapping or leave it as `EMPTY` to not expose interface.                                                                                                                                                                                                                                    |
-| ingress.controller          |                                                           |          | Selects the ingress resource kind: `traefik` renders a Traefik `IngressRoute`; `openshift` renders one `route.openshift.io/v1 Route` per path; any other value (`nginx`, `f5`, `haproxy`, ...) renders a standard `Ingress` using `ingressClass` verbatim. **Required when your class is not exactly `nginx`, `openshift` or `traefik*`** — left empty, any other class renders no ingress at all. |
+| ingress.controller          |                                                           |          | Selects the ingress resource kind. Supported: `traefik` renders a Traefik `IngressRoute`; `openshift` renders one `route.openshift.io/v1 Route` per path; `nginx` renders a standard `Ingress` using `ingressClass` verbatim. **Required when your class is not exactly `nginx`, `openshift` or `traefik*`** — left empty, any other class renders no ingress at all. |
 | ingress.ingressClass        |                          traefik                          |   Yes    | Free-form class name written to the standard `Ingress` `spec.ingressClassName` (eg. nginx, traefik, nginx-new, etc). While `controller` is empty it also selects the template, and only `nginx`, `openshift` and `traefik*` are recognised. Unused by the Traefik `IngressRoute` and by OpenShift `Route`s. |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
 | ingress.traefik.entryPoints |                           `[]`                            |          | Traefik entrypoints the `IngressRoute` binds to. Leave empty to derive them from your `ssl.*` settings (`websecure` when TLS is configured, otherwise `web`). Set explicitly only if your Traefik renamed the default entrypoints, e.g. `['websecure','web']`. Ignored unless the controller resolves to `traefik` |

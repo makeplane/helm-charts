@@ -1,9 +1,12 @@
 {{/*
-Standard networking.k8s.io/v1 Ingress. Which of the three ingress templates
-renders is decided by the "plane.ingressController" helper, not by ingressClass
-directly. This one covers every controller that is not Traefik or OpenShift, but
-only once ingress.controller is set -- with it empty the helper still recognises
-"nginx" alone, so an unrecognised class renders nothing (see the helper).
+Standard networking.k8s.io/v1 Ingress, for ingress-nginx. Which of the three
+ingress templates renders is decided by the "plane.ingressController" helper, not
+by ingressClass directly.
+
+The resource itself is controller-agnostic, so setting ingress.controller to
+something other than traefik/openshift also renders from here -- that is how a
+non-"nginx" class name such as "nginx-new" is served. Only nginx, Traefik and
+OpenShift are supported configurations.
 */}}
 {{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "ingress") .Values.license.licenseDomain }}
 

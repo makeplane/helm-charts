@@ -1716,7 +1716,7 @@ questions:
     show_if: "services.rabbitmq.local_setup=true"
   - variable: ingress.controller
     label: "Ingress Controller Type"
-    description: "Which kind of ingress resource to render: 'traefik' a Traefik IngressRoute, 'openshift' one OpenShift Route per path, anything else ('nginx', 'f5', 'haproxy', 'alb', ...) a standard networking.k8s.io/v1 Ingress using the Ingress Classname below verbatim. REQUIRED when your class name is not exactly 'nginx', 'openshift' or 'traefik*' - left empty, any other class renders no ingress at all."
+    description: "Which kind of ingress resource to render. Supported: 'traefik' a Traefik IngressRoute, 'openshift' one OpenShift Route per path, 'nginx' a standard networking.k8s.io/v1 Ingress using the Ingress Classname below verbatim. REQUIRED when your class name is not exactly 'nginx', 'openshift' or 'traefik*' - left empty, any other class renders no ingress at all."
     type: string
     default: ""
     show_if: "ingress.enabled=true"
