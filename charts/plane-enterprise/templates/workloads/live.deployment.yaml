@@ -50,7 +50,7 @@ spec:
       {{- if include "plane.s3CAEnabled" . }}
       initContainers:
       - name: prepare-ca-bundle
-        image: busybox
+        image: {{ .Values.services.live.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh

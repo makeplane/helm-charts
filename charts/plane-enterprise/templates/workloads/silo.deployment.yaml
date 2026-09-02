@@ -50,7 +50,7 @@ spec:
       {{- end }}
       initContainers:
       - name: wait-for-rabbitmq
-        image: busybox
+        image: {{ .Values.services.silo.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
@@ -73,7 +73,7 @@ spec:
               optional: false
       {{- if include "plane.s3CAEnabled" . }}
       - name: prepare-ca-bundle
-        image: busybox
+        image: {{ .Values.services.silo.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
