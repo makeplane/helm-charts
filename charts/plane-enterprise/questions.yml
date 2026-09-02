@@ -51,6 +51,10 @@ questions:
     type: string
     required: true
     default: "makeplane/live-commercial"
+  - variable: services.live.init_image
+    label: Live Init Docker Image
+    type: string
+    default: "busybox"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
