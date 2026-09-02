@@ -61,6 +61,10 @@ questions:
     type: string
     required: true
     default: "makeplane/silo-commercial"
+  - variable: services.silo.init_image
+    label: Silo Init Docker Image
+    type: string
+    default: "busybox"
   - variable: services.api.image
     label: Backend Docker Image
     type: string

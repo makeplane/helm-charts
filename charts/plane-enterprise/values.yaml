@@ -495,6 +495,10 @@ services:
     memoryRequest: 256Mi
     cpuRequest: 100m
     image: makeplane/silo-commercial
+    # Image for the wait-for-rabbitmq and prepare-ca-bundle init containers.
+    # Must be BusyBox-compatible: the scripts need /bin/sh, grep, nslookup,
+    # sleep, ls, cat and touch.
+    init_image: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
