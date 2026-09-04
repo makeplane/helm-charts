@@ -473,6 +473,32 @@ ingress:
     entryPoints: ['websecure']
 ```
 
+## Upgrading RabbitMQ from 3.13 to 4.2
+
+This chart now ships `rabbitmq:4.2.9-management-alpine`. RabbitMQ 3.x is end-of-life and no longer receives security updates.
+
+**If you are upgrading an existing install with `services.rabbitmq.local_setup: true`, do this first.** The chart upgrade restarts the broker StatefulSet against the same volume, and RabbitMQ requires all stable feature flags to be enabled *before* a major upgrade — otherwise the 4.2 node refuses to start and your queues are unreachable until you roll back.
+
+```bash
+# 1. While still on 3.13, enable every stable feature flag.
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl enable_feature_flag all
+
+# 2. Confirm nothing stable is left disabled. Only `khepri_db` should remain,
+#    and it MUST stay disabled -- a 3.13 node with Khepri enabled cannot be
+#    upgraded to 4.x at all and needs a blue-green migration instead.
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl list_feature_flags
+
+# 3. Now run the chart upgrade, then confirm the broker came back.
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl status | grep 'RabbitMQ version'
+```
+
+Notes:
+
+- **Do not jump straight to 4.3.** RabbitMQ does not support a direct 3.13 → 4.3 upgrade ([version upgradability](https://www.rabbitmq.com/docs/upgrade#rabbitmq-version-upgradability)); 4.2 is the supported hop, and a later chart release will move to 4.3. Two further things break on 4.3 but not on 4.2: Celery's control/event queues (fixed in the application by `CELERY_CONTROL_QUEUE_EXCLUSIVE` / `CELERY_EVENT_QUEUE_EXCLUSIVE`), and `x-consumer-timeout` on classic queues.
+- **Downgrades do not work.** A 4.x node will not start on a data directory it has already upgraded, so keep a volume snapshot if you need a way back.
+- **No queue changes are required.** Existing queues keep their arguments and are re-declared as-is by the application; durable messages survive the restart. Verified end to end on a 3.13.6 → 4.2.9 in-place upgrade with pre-existing queues.
+- **Using an external broker?** If `services.rabbitmq.local_setup: false` and you point `external_rabbitmq_url` at a managed broker (Amazon MQ, CloudAMQP), this chart does not manage its version — upgrade it on the provider side, following the same feature-flag prerequisite.
+
 ## Installing Plane
 
 1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
@@ -753,7 +779,7 @@ the bundled datastores off. Three things to know before you use it:
 | Setting                                 |              Default              | Required | Description                                                                                                                                                                                                                                                                                                                                |
 | --------------------------------------- | :-------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | services.rabbitmq.local_setup           |               true                |          | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
-| services.rabbitmq.image                 | rabbitmq:3.13.6-management-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                            |
+| services.rabbitmq.image                 | rabbitmq:4.2.9-management-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                            |
 | services.rabbitmq.pullPolicy            |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                                            |
 | services.rabbitmq.servicePort           |               5672                |          | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                                       |
 | services.rabbitmq.managementPort        |               15672               |          | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                            |

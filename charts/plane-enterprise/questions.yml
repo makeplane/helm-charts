@@ -1542,7 +1542,7 @@ questions:
   - variable: services.rabbitmq.image
     label: "Docker Image"
     type: string
-    default: "rabbitmq:3.13.6-management-alpine"
+    default: "rabbitmq:4.2.9-management-alpine"
     show_if: "services.rabbitmq.local_setup=true"
   - variable: services.rabbitmq.pullPolicy
     label: "RabbitMQ Pull Policy"
