@@ -1055,7 +1055,7 @@ questions:
   - variable: services.iframely.image
     label: "Docker Image"
     type: string
-    default: "makeplane/iframely:v1.2.0"
+    default: "makeplane/iframely:v2.5.4"
   - variable: services.iframely.pullPolicy
     label: "Iframely Pull Policy"
     type: enum
