@@ -321,7 +321,7 @@ services:
     cpuLimit: 1000m
     memoryRequest: 256Mi
     cpuRequest: 100m
-    image: makeplane/iframely:v1.2.0
+    image: makeplane/iframely:v2.5.4
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
