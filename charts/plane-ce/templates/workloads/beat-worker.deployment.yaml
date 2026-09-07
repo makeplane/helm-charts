@@ -17,7 +17,9 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
+        {{- if not $.Values.gitops.enabled }}
         timestamp: {{ now | quote }}
+        {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-beat-worker

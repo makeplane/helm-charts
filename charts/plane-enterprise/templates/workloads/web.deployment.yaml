@@ -40,7 +40,9 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-web
         {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
+        {{- if not $.Values.gitops.enabled }}
         timestamp: {{ now | quote }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.web }}
       {{- include "plane.podSecurityContext" . }}

@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-api-migrate-{{ now | date "20060102-150405" }}
+  name: {{ .Release.Name }}-api-migrate-{{ if $.Values.gitops.enabled }}{{ .Values.planeVersion | replace "." "-" | replace "+" "-" | lower }}{{ else }}{{ now | date "20060102-150405" }}{{ end }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
 spec:
   backoffLimit: 3
@@ -13,7 +13,9 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
+        {{- if not $.Values.gitops.enabled }}
         timestamp: {{ now | quote }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.api }}
       {{- include "plane.podSecurityContext" . }}
