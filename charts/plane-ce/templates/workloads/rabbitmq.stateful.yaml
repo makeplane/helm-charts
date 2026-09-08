@@ -57,6 +57,16 @@ spec:
         - mountPath: /var/lib/rabbitmq
           name: pvc-{{ .Release.Name }}-rabbitmq-vol
           subPath: ''
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_port_connectivity
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
       {{- include "plane.podScheduling" .Values.rabbitmq }}
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
