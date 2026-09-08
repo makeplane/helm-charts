@@ -31,9 +31,10 @@ This chart now ships `rabbitmq:4.2.9-management-alpine`. RabbitMQ 3.x is end-of-
 # 1. While still on 3.13, enable every stable feature flag.
 kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl enable_feature_flag all
 
-# 2. Confirm nothing stable is left disabled. Only `khepri_db` should remain,
-#    and it MUST stay disabled -- a 3.13 node with Khepri enabled cannot be
-#    upgraded to 4.x at all and needs a blue-green migration instead.
+# 2. Confirm nothing stable is left disabled. On 3.13 `khepri_db` is an
+#    EXPERIMENTAL flag, so step 1 does not touch it -- and it must stay
+#    disabled here: a 3.13 node with Khepri enabled cannot be upgraded to
+#    4.x at all and needs a blue-green migration instead.
 kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl list_feature_flags
 
 # 3. Now run the chart upgrade, then confirm the broker came back.
@@ -42,11 +43,30 @@ kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl status | grep
 
 Notes:
 
-- **Step 1 will normally report nothing to do.** A node whose data directory was created by 3.13 enables every stable flag at birth (measured on a fresh 3.13.7: all stable flags enabled, only experimental `khepri_db` disabled), which is the case for any install this chart created. Disabled stable flags come from a volume carried across older series. Run it to confirm, not to change anything — and note `enable_feature_flag all` covers stable flags only, so it will not turn Khepri on.
+- **Step 1 will normally report nothing to do.** A node whose data directory was created by 3.13 enables every stable flag at birth (measured on a fresh 3.13.7: all stable flags enabled, only experimental `khepri_db` disabled), which is the case for any install this chart created. Disabled stable flags come from a volume carried across older series. Run it to confirm, not to change anything. On 3.13 the command cannot turn Khepri on, because `khepri_db` is *experimental* there — that is **not** true on 4.2, where the same flag is stable (see below).
 - **Do not jump straight to 4.3.** RabbitMQ does not support a direct 3.13 → 4.3 upgrade ([version upgradability](https://www.rabbitmq.com/docs/upgrade#rabbitmq-version-upgradability)); 4.2 is the supported hop, and a later chart release will move to 4.3. Two further things break on 4.3 but not on 4.2: Celery's control/event queues (fixed in the application by `CELERY_CONTROL_QUEUE_EXCLUSIVE` / `CELERY_EVENT_QUEUE_EXCLUSIVE`), and `x-consumer-timeout` on classic queues.
-- **Downgrades do not work.** A 4.x node will not start on a data directory it has already upgraded, so keep a volume snapshot if you need a way back.
-- **No queue changes are required.** Existing queues keep their arguments and are re-declared as-is by the application; durable messages survive the restart. Verified end to end on a 3.13.6 → 4.2.9 in-place upgrade with pre-existing queues.
-- **Using an external broker?** If `rabbitmq.local_setup: false` and you point `external_rabbitmq_url` at a managed broker (Amazon MQ, CloudAMQP), this chart does not manage its version — upgrade it on the provider side, following the same feature-flag prerequisite.
+- **Downgrades do not work, and they fail quietly.** RabbitMQ does not support downgrades at all; once 4.2 has enabled `khepri_db` the metadata store is converted and 3.x can never read that volume again. It does not crash — it hangs in `Waiting for Khepri projections` with the AMQP port already listening, so the chart's `check_port_connectivity` readiness probe reports the pod **Ready** while the broker never serves a client. Your way back is a **pre-upgrade volume snapshot** or a blue-green migration onto a fresh volume — not a chart rollback.
+- **No queue changes are required for the broker this chart deploys.** Existing queues keep their arguments and are re-declared as-is by the application; durable messages survive the restart. Verified end to end on a 3.13.6 → 4.2.9 in-place upgrade with pre-existing queues. This holds because the chart runs a **single-node** broker, where classic queue mirroring — removed in 4.0 — cannot be in effect. Plane sets no `ha-mode` policy itself.
+- **Using an external broker?** If `rabbitmq.local_setup: false` and you point `external_rabbitmq_url` at a managed or clustered broker (Amazon MQ, CloudAMQP, your own cluster), this chart does not manage its version — upgrade it on the provider side, following the same feature-flag prerequisite. Check for mirrored classic queues first, because 4.0 removed mirroring and any still-mirrored queue silently loses its replicas:
+
+  ```bash
+  rabbitmq-queues check_if_cluster_has_classic_queue_mirroring_policy
+  ```
+
+  If that reports a policy, migrate those queues to quorum queues (or do a blue-green migration) before upgrading.
+
+### Reaching 4.3 later: the 4.2 feature flags
+
+A node upgraded in place to 4.2 leaves the flags 4.2 introduced **disabled** — measured on a 3.13.7 → 4.2.9 upgrade: `khepri_db`, `rabbitmq_4.0.0`, `rabbitmq_4.1.0`, `rabbitmq_4.2.0` and `rabbit_exchange_type_local_random` were all disabled afterwards, and the node kept using Mnesia. RabbitMQ 4.3 requires them, so they have to be enabled before that hop.
+
+**Do this as a deliberate step once 4.2 has been running cleanly — not as part of the upgrade.** On 4.2 `khepri_db` is *stable*, so `enable_feature_flag all` enables it, and that is a one-way door: it converts the metadata store to Khepri and permanently removes the option of going back to 3.x on that volume (verified — a 3.13 node then hangs on Khepri projections indefinitely). Take a volume snapshot first.
+
+```bash
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl enable_feature_flag all
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl list_feature_flags
+```
+
+Until you run this the broker is fully supported on 4.2 and Plane works normally; the only thing you cannot do is upgrade to 4.3.
 
 ## Installing Plane
 
