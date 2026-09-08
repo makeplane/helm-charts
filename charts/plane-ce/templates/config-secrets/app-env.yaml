@@ -8,8 +8,10 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
-  SECRET_KEY: {{ .Values.env.secret_key | default "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5" | quote }}
-  LIVE_SERVER_SECRET_KEY: {{ .Values.env.live_server_secret_key | default "htbqvBJAgpm9bzvf3r4urJer0ENReatceh" | quote }}
+  {{- if empty .Values.external_secrets.app_keys_existingSecret }}
+  SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.secret_key" "value" .Values.env.secret_key "fallback" "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5") | quote }}
+  LIVE_SERVER_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.live_server_secret_key" "value" .Values.env.live_server_secret_key "fallback" "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") | quote }}
+  {{- end }}
 
   {{- if .Values.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"

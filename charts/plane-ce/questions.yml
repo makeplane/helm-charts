@@ -633,3 +633,72 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+- variable: external_secrets.live_env_existingSecret
+  label: "Live Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+
+# --- Shared key groups --------------------------------------------------------
+- variable: external_secrets.app_keys_existingSecret
+  label: "Signing Keys Secret"
+  description: "SECRET_KEY and LIVE_SERVER_SECRET_KEY. SECRET_KEY derives the key that encrypts the instance-configuration rows — SMTP password, OAuth client secrets — so changing it makes them undecryptable, silently. Keep it per environment and never rotate it."
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.ssl_token_existingSecret
+  label: "DNS-01 Token Secret"
+  description: "cert-manager DNS provider API token, under the key api-token. Usually one token covers a whole wildcard domain, so this is safe to share."
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.storage.secretName
+  label: "Object Storage Credential Secret"
+  description: "Leave empty on a cloud and annotate the ServiceAccount instead — a pod identity beats a stored access key. Ignored while the bundled MinIO is deployed."
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.storage.accessKeyIdKey
+  label: "Storage Access Key ID Key"
+  type: string
+  default: ""
+  group: "External Secrets"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.storage.secretAccessKeyKey
+  label: "Storage Secret Access Key Key"
+  type: string
+  default: ""
+  group: "External Secrets"
+  show_if: "external_secrets.storage.secretName!="
+- variable: dockerRegistry.existingSecret
+  label: "Existing Image Pull Secret"
+  description: "Use a pull secret that already exists in the namespace instead of building one from the login below."
+  type: string
+  default: ""
+  group: "Docker Registry"
+
+# --- Cloud identity -----------------------------------------------------------
+- variable: serviceAccount.create
+  label: "Create the ServiceAccount"
+  description: "Turn off to run as a ServiceAccount managed outside this chart."
+  type: boolean
+  default: true
+  group: "Service Account"
+- variable: serviceAccount.name
+  label: "ServiceAccount Name"
+  description: "Defaults to <release>-srv-account."
+  type: string
+  default: ""
+  group: "Service Account"
+- variable: serviceAccount.cloudIdentity
+  label: "ServiceAccount Has a Cloud Identity"
+  description: "Advisory. Turns on the install notes that catch a static credential shadowing the identity."
+  type: boolean
+  default: false
+  group: "Service Account"
+- variable: env.requireExplicitSecrets
+  label: "Refuse to Render Default Signing Keys"
+  description: "Fails the render instead of falling back to this chart's PUBLIC example values for SECRET_KEY and LIVE_SERVER_SECRET_KEY."
+  type: boolean
+  default: false
+  group: "Service Account"

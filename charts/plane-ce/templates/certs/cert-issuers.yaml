@@ -1,4 +1,6 @@
+{{- $issuerTokenSecret := .Values.external_secrets.ssl_token_existingSecret | default (printf "%s-issuer-api-token-secret" .Release.Name) }}
 {{- if and .Values.ingress.enabled .Values.ssl.createIssuer (empty .Values.ssl.tls_secret_name) }} 
+{{- if empty .Values.external_secrets.ssl_token_existingSecret }}
 
 apiVersion: v1
 kind: Secret
@@ -11,6 +13,7 @@ type: Opaque
 stringData:
   api-token: {{ .Values.ssl.token | default "default-api-token" | quote }}
   
+{{- end }}
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
@@ -30,14 +33,14 @@ spec:
     - dns01:
         cloudflare:
           apiTokenSecretRef:
-            name: {{ .Release.Name }}-issuer-api-token-secret
+            name: {{ $issuerTokenSecret }}
             key: api-token
     {{- end }}
     {{- if eq .Values.ssl.issuer "digitalocean" }}
     - dns01:
         digitalocean:
           tokenSecretRef:
-            name: {{ .Release.Name }}-issuer-api-token-secret
+            name: {{ $issuerTokenSecret }}
             key: api-token
     {{- end }}
     {{- if eq .Values.ssl.issuer "http" }}

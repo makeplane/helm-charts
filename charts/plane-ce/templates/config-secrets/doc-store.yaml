@@ -19,10 +19,23 @@ stringData:
   AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio:9000
   {{- else }}
   USE_MINIO: "0"
-  AWS_ACCESS_KEY_ID: {{ .Values.env.aws_access_key | default "" | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.env.aws_secret_access_key | default "" | quote  }}
-  AWS_S3_ENDPOINT_URL: {{ .Values.env.aws_s3_endpoint_url | quote }}
-  AWS_REGION: {{ .Values.env.aws_region | default "" | quote  }}
+  {{/* Rendered only when supplied. Leaving these unset is the preferred configuration on
+       a cloud: the SDK then walks its default credential chain and picks up the pod's
+       identity. An empty AWS_ACCESS_KEY_ID would be found first and used, failing every
+       request; and an empty AWS_REGION is *present*, so a code-side default never
+       applies and a signed request would go out with no region. */}}
+  {{- with .Values.env.aws_access_key }}
+  AWS_ACCESS_KEY_ID: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_secret_access_key }}
+  AWS_SECRET_ACCESS_KEY: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_s3_endpoint_url }}
+  AWS_S3_ENDPOINT_URL: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.env.aws_region }}
+  AWS_REGION: {{ . | quote }}
+  {{- end }}
   {{- end }}
 ---
 {{- end }}

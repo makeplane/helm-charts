@@ -2,6 +2,8 @@ planeVersion: v1.4.1
 
 dockerRegistry:
   enabled: false
+  # Name of an existing Secret holding docker registry credentials.
+  existingSecret: ''
   host: "index.docker.io/v1/"
   loginid: ""
   password: ""
@@ -227,7 +229,81 @@ beatworker:
   tolerations: []
   affinity: {}
 
+# ============================================================
+# ServiceAccount / cloud workload identity
+# ============================================================
+# All workloads run as one ServiceAccount. Annotate it to give the pods a cloud identity,
+# which is the preferred way to reach object storage — no access keys in the cluster:
+#
+#   AWS IRSA:              eks.amazonaws.com/role-arn: arn:aws:iam::<acct>:role/<role>
+#   AWS EKS Pod Identity:  no annotation — create the association against this
+#                          ServiceAccount's name instead
+#   GCP Workload Identity: iam.gke.io/gcp-service-account: <sa>@<project>.iam.gserviceaccount.com
+#   Azure Workload Id:     azure.workload.identity/client-id: <client-id>
+#                          plus podLabels: { azure.workload.identity/use: "true" }
+#
+# With an identity attached, leave env.aws_access_key / aws_secret_access_key empty: the
+# chart then omits those variables entirely so the SDK's default credential chain picks
+# up the pod's role. An empty value would beat the chain and fail every request.
+serviceAccount:
+  # Set false to reference a ServiceAccount managed outside the chart.
+  create: true
+  # Defaults to "<release>-srv-account".
+  name: ''
+  # A map, and Helm-values only -- not offered in the Rancher UI, because no Rancher
+  # question type yields a map and a scalar answer renders an invalid ServiceAccount.
+  # Where a workload identity binding goes: eks.amazonaws.com/role-arn for IRSA,
+  # iam.gke.io/gcp-service-account for GKE, azure.workload.identity/client-id for Azure.
+  # EKS Pod Identity needs no annotation -- it binds by name.
+  #
+  # NOTE: every workload shares this account, the datastores included. An annotation here
+  # grants the role to postgres, redis, rabbitmq and minio too. Point serviceAccount.name
+  # at your own least-privilege account if that matters.
+  annotations: {}
+  # Extra pod-template labels (Azure Workload Identity requires one).
+  podLabels: {}
+  # Declares that this ServiceAccount is bound to a cloud identity configured OUT OF
+  # BAND. The chart cannot detect that — a Pod Identity association is an EKS API object
+  # keyed on cluster + namespace + service account, invisible to the pod spec. Setting
+  # this changes no rendered output; it only enables warnings about the interactions an
+  # attached identity creates.
+  cloudIdentity: false
+
+# ============================================================
+# Externalized secrets
+# ============================================================
+# Every hook takes the NAME of a Kubernetes Secret you supply, so any backend works —
+# External Secrets Operator against a cloud secret manager, sealed-secrets, or a Secret
+# you create by hand. The chart never renders ExternalSecret resources itself, which is
+# what keeps it backend-agnostic.
+#
+# Because the chart only takes names, sharing is entirely your choice: point several
+# environments at one Secret where the credential really is shared (a registry token),
+# and at per-environment Secrets everywhere else. The values look the same either way.
 external_secrets:
+  # Shared signing keys: SECRET_KEY and LIVE_SERVER_SECRET_KEY. Both are duplicated
+  # across the app and live Secrets today and must agree for those services to talk to
+  # each other, so one Secret makes that structural.
+  #
+  # WARNING — SECRET_KEY derives the key that encrypts the instance-configuration rows
+  # (SMTP password, OAuth client secrets). Changing it makes them undecryptable, and it
+  # fails silently. Keep it in a Secret with no rotation schedule, and per environment:
+  # it is bound to one database's ciphertext.
+  app_keys_existingSecret: ''
+
+  # DNS-01 API token for the cert-manager Issuer (ssl.issuer cloudflare/digitalocean).
+  # Must contain the key `api-token`. Naturally shared — one token usually covers a
+  # whole wildcard domain.
+  ssl_token_existingSecret: ''
+
+  storage:
+    # Object-storage credentials. On a cloud, leave this unset and give the pod an
+    # identity instead (see serviceAccount above). Use it for an S3-compatible backend
+    # with no workload identity. Ignored while the bundled MinIO is deployed.
+    secretName: ''
+    accessKeyIdKey: ''      # -> AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: ''  # -> AWS_SECRET_ACCESS_KEY
+
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
@@ -236,6 +312,10 @@ external_secrets:
   live_env_existingSecret: ''
 
 env:
+  # Fail the render instead of falling back to this chart's PUBLIC example values for
+  # SECRET_KEY and LIVE_SERVER_SECRET_KEY. Recommended for anything real; defaults to
+  # false so existing installs keep rendering.
+  requireExplicitSecrets: false
 
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
@@ -267,3 +347,16 @@ env:
   default_cluster_domain: cluster.local
 
   api_key_rate_limit: "60/minute"
+
+# Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
+# things that let an environment hold no credentials -- an ESO SecretStore and the
+# ExternalSecrets producing the Secrets referenced by external_secrets.* above -- which
+# belong to the operator rather than to this chart, but have nowhere to live when a GitOps
+# tool treats one directory as one unit.
+#
+# Passed through verbatim (toYaml, not tpl) so that ESO's own {{ }} placeholders inside a
+# target.template survive. Add the standard Helm hook annotations to have an object applied
+# BEFORE the workloads; the Secret references in this chart are optional: false, so a pod
+# that starts before its Secret exists waits in CreateContainerConfigError until it appears.
+extraObjects: []
+

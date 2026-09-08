@@ -41,6 +41,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       containers:
       - image: {{ .Values.rabbitmq.image }}
@@ -57,8 +58,8 @@ spec:
           name: pvc-{{ .Release.Name }}-rabbitmq-vol
           subPath: ''
       {{- include "plane.podScheduling" .Values.rabbitmq }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
