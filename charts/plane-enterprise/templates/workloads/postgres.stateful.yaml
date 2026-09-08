@@ -37,6 +37,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       {{- include "plane.podScheduling" .Values.services.postgres }}
       containers:
@@ -61,8 +62,8 @@ spec:
           subPath: ''
         - mountPath: /docker-entrypoint-initdb.d
           name: {{.Release.Name}}-init-script
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
       volumes:
       - name: {{.Release.Name}}-init-script
         configMap:

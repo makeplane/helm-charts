@@ -40,6 +40,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-redis
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       {{- include "plane.podScheduling" .Values.services.redis }}
       containers:
@@ -56,8 +57,8 @@ spec:
         - mountPath: /data
           name: pvc-{{ .Release.Name }}-redis-vol
           subPath: ''
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim
