@@ -494,6 +494,7 @@ kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl status | grep
 
 Notes:
 
+- **Step 1 will normally report nothing to do.** A node whose data directory was created by 3.13 enables every stable flag at birth (measured on a fresh 3.13.7: all stable flags enabled, only experimental `khepri_db` disabled), which is the case for any install this chart created. Disabled stable flags come from a volume carried across older series. Run it to confirm, not to change anything — and note `enable_feature_flag all` covers stable flags only, so it will not turn Khepri on.
 - **Do not jump straight to 4.3.** RabbitMQ does not support a direct 3.13 → 4.3 upgrade ([version upgradability](https://www.rabbitmq.com/docs/upgrade#rabbitmq-version-upgradability)); 4.2 is the supported hop, and a later chart release will move to 4.3. Two further things break on 4.3 but not on 4.2: Celery's control/event queues (fixed in the application by `CELERY_CONTROL_QUEUE_EXCLUSIVE` / `CELERY_EVENT_QUEUE_EXCLUSIVE`), and `x-consumer-timeout` on classic queues.
 - **Downgrades do not work.** A 4.x node will not start on a data directory it has already upgraded, so keep a volume snapshot if you need a way back.
 - **No queue changes are required.** Existing queues keep their arguments and are re-declared as-is by the application; durable messages survive the restart. Verified end to end on a 3.13.6 → 4.2.9 in-place upgrade with pre-existing queues.
