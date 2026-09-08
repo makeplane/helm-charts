@@ -129,7 +129,7 @@ ssl:
 # When enabled, applies a hardened pod- and container-level securityContext to
 # all first-party Plane workloads: api, web, space, admin, live, worker,
 # beat-worker, automation-consumer, outbox-poller, silo, monitor, iframely,
-# runner, pi-api/beat/worker, and the migration Jobs (including their busybox
+# runner, argus, pi-api/beat/worker, and the migration Jobs (including their busybox
 # init containers). Plane's images run fine as non-root, so these defaults
 # satisfy the PSA "restricted" profile.
 #
@@ -622,6 +622,32 @@ services:
     labels: {}
     annotations: {}
 
+  # Argus -- sensitive-data & PII scanner (gated in the product by the
+  # PII_SCANNER feature flag). Opt-in: enabling it also REQUIRES
+  # env.argus_envs.fingerprint_secret, which has no safe default.
+  #
+  # Runs a single replica by design: findings-export CSVs are written to (and
+  # served from) the pod's own filesystem, and the startup reapers are unscoped,
+  # so a second pod would break in-flight scans and exports. There is
+  # intentionally no `replicas` key.
+  argus:
+    enabled: false
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 250Mi
+    cpuRequest: 50m
+    image: makeplane/argus-commercial
+    pullPolicy: Always
+    assign_cluster_ip: false
+    # Argus drains in-flight scan workers before its 10s HTTP drain, so the
+    # 30s Kubernetes default can cut shutdown short mid-scan.
+    termination_grace_period_seconds: 60
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
   pi:
     enabled: false
     replicas: 1
@@ -722,6 +748,7 @@ external_secrets:
   app_env_existingSecret: ''
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
+  argus_env_existingSecret: ''
   pi_api_env_existingSecret: ''
   runner_env_existingSecret: ''
   # Supplies OTEL_EXPORTER_OTLP_HEADERS (collector ingestion credential) when
@@ -835,6 +862,48 @@ env:
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
     cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
+
+  argus_envs:
+    # REQUIRED when services.argus.enabled. HKDF master key for finding
+    # fingerprints. Argus refuses to start on a placeholder or on anything under
+    # 32 characters, and the chart fails to render without one, so this MUST be
+    # set per deployment: openssl rand -hex 32
+    # Rotating it invalidates every stored fingerprint, which breaks finding
+    # dedup, staling, group_by=fingerprint and existing triage decisions.
+    fingerprint_secret: ''
+    # Reserved for service-to-service routes (unused in v1).
+    internal_secret: ''
+    # Leave empty to derive the Plane database DSN from services.postgres /
+    # env.pgdb_*. Argus owns its own schema inside that database.
+    database_url: ''
+    # Optional read replica for content scans. Empty falls back to
+    # services.postgres.read_replica when it is on, else to database_url.
+    content_database_url: ''
+    # Schema Argus creates and owns inside the Plane database. Plane's own
+    # tables are always read from public and are never written.
+    schema: 'argus'
+    # Route mount prefix. Every route -- including /healthz -- is served under
+    # it, and it MUST equal the web build's VITE_ARGUS_BASE_PATH (the web image
+    # defaults that to /argus) or every call 404s. Also drives the ingress path.
+    base_path: '/argus'
+    # Where findings-export CSVs are written (an emptyDir is mounted here).
+    # /home/nonroot/data for makeplane/argus-commercial; the FIPS image uses /app/data.
+    data_dir: '/home/nonroot/data'
+    # Empty is correct for path-routed (same-origin) deployments. Argus always
+    # sends credentials, so '*' is rejected at startup.
+    cors_allowed_origins: ''
+    # Empty trusts NO proxy, so audit rows record the ingress IP rather than the
+    # end user's. Set to the CIDRs your ingress connects from for real client
+    # IPs, e.g. '10.0.0.0/8,172.16.0.0/12'.
+    trusted_proxies: ''
+    # Private telemetry listener for /metrics -- never exposed on the
+    # browser-facing router. The loopback default is unreachable from a cluster
+    # scraper; use ':9100' to expose it on the pod network, or '' to disable.
+    metrics_addr: '127.0.0.1:9100'
+    # Empty uses Argus' own default of min(8, NumCPU).
+    worker_pool: ''
+    default_rate_rps: 500
+    max_rate_rps: 10000
 
   email_service_envs:
     smtp_domain: ''

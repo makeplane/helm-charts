@@ -55,6 +55,9 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- if .Values.services.silo.enabled }}
 {{- $routes = append $routes (dict "slug" "silo" "path" "/silo/" "svc" (printf "%s-silo" $name) "port" 3000) }}
 {{- end }}
+{{- if .Values.services.argus.enabled }}
+{{- $routes = append $routes (dict "slug" "argus" "path" (printf "%s/" (trimSuffix "/" .Values.env.argus_envs.base_path)) "svc" (printf "%s-argus" $name) "port" 8100) }}
+{{- end }}
 {{- if .Values.services.pi.enabled }}
 {{- $routes = append $routes (dict "slug" "pi" "path" "/pi/" "svc" (printf "%s-pi-api" $name) "port" 8000) }}
 {{- end }}
