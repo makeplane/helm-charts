@@ -477,6 +477,17 @@ ingress:
 
 This chart now ships `rabbitmq:4.2.9-management-alpine`. RabbitMQ 3.x is end-of-life and no longer receives security updates.
 
+> [!IMPORTANT]
+> **Upgrade the application before, or together with, this chart — not after.** RabbitMQ 4.2 refuses any AMQP connection that negotiates
+> a `frame_max` below 8192, and the `amqplib` client used by `silo`, `live` and `flux` defaulted to 4096 until 0.10.6. On a Plane build
+> older than the one carrying that bump, moving the broker to 4.2.9 silently kills those consumers: the broker logs
+> `failed to negotiate connection parameters: negotiated frame_max = 4096 is lower than the minimum allowed value (8192)`, integrations
+> and exports stop, and **every pod still reports `Ready`**. Celery and the pika-based consumers are unaffected, which makes the failure
+> easy to miss. Verified end to end — `plane-exports`, `silo-api` and `silo-integrations` all dropped to 0 consumers.
+>
+> If you must stage them, pin `services.rabbitmq.image` to `rabbitmq:3.13.6-management-alpine` when taking this chart, upgrade
+> `planeVersion`, then remove the pin.
+
 **If you are upgrading an existing install with `services.rabbitmq.local_setup: true`, do this first.** The chart upgrade restarts the broker StatefulSet against the same volume, and RabbitMQ requires all stable feature flags to be enabled *before* a major upgrade — otherwise the 4.2 node refuses to start and your queues are unreachable until you roll back.
 
 ```bash
