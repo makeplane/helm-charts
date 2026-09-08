@@ -1199,6 +1199,45 @@ questions:
     label: "CPU Request"
     type: string
     default: 100m
+
+- variable: services.pi_agent_worker.enabled
+  label: "Enable Plane AI Agent Worker"
+  description: "Run a dedicated worker for native agent runs so they don't queue behind vectorization tasks. Added alongside the Plane AI Worker, which must keep running."
+  type: boolean
+  default: false
+  group: "Plane AI Worker Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.pi_agent_worker.replicas
+    label: "Agent Worker Replica Count"
+    type: int
+    default: 1
+  - variable: services.pi_agent_worker.concurrency
+    label: "Agent Worker Concurrency"
+    description: "Agent runs are I/O-bound on streaming LLM calls, so this can be higher than the general worker's."
+    type: int
+    default: 4
+  - variable: services.pi_agent_worker.maxTasksPerChild
+    label: "Agent Worker Max Tasks Per Child"
+    type: int
+    default: 100
+  - variable: services.pi_agent_worker.memoryLimit
+    label: "Agent Worker Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.pi_agent_worker.cpuLimit
+    label: "Agent Worker CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.pi_agent_worker.memoryRequest
+    label: "Agent Worker Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.pi_agent_worker.cpuRequest
+    label: "Agent Worker CPU Request"
+    type: string
+    default: 100m
+
 - variable: services.pi_beat_worker.replicas
   label: "Default Replica Count"
   type: int

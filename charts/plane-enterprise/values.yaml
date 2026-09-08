@@ -687,6 +687,29 @@ services:
 
   pi_worker:
     replicas: 1
+    # Queue(s) consumed. Empty means both, or just plane_pi_queue when pi_agent_worker is
+    # enabled (the template decides). Set explicitly to override.
+    queueName: ''
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  # Dedicated worker for native agent runs, so an interactive run never queues behind a
+  # multi-hour vectorization task. An ADDITION to pi_worker, never a replacement: pi_worker
+  # must keep running or vector sync, docs sync, plan sync and memory go unconsumed. Higher
+  # concurrency because agent runs are I/O-bound on streaming LLM calls.
+  pi_agent_worker:
+    enabled: false
+    replicas: 1
+    queueName: 'plane_pi_agent_queue'
+    concurrency: 4
+    maxTasksPerChild: 100
     memoryLimit: 1000Mi
     cpuLimit: 500m
     memoryRequest: 256Mi

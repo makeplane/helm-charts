@@ -1,31 +1,39 @@
-{{- if .Values.services.pi.enabled }}
+{{- /*
+  Dedicated Celery worker for native agent runs (plane_pi_agent_queue), so an interactive
+  run never queues behind a multi-hour vectorization task.
+
+  An ADDITION to pi-worker, never a replacement: pi-worker must keep running or vector sync,
+  docs sync, plan sync, search indexing and memory go unconsumed. Enabling this automatically
+  narrows pi-worker to plane_pi_queue (see its template).
+*/}}
+{{- if and .Values.services.pi.enabled .Values.services.pi_agent_worker.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-pi-worker-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi_worker) }}
+  name: {{ .Release.Name }}-pi-agent-worker-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.pi_agent_worker) }}
 spec:
-  replicas: {{ .Values.services.pi_worker.replicas | default 1}}
+  replicas: {{ .Values.services.pi_agent_worker.replicas | default 1}}
   selector:
     matchLabels:
-      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-agent-worker
   template:
     metadata:
       namespace: {{ .Release.Namespace }}
       labels:
-        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-worker
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pi-agent-worker
         {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.pi_worker }}
+      {{- include "plane.podScheduling" .Values.services.pi_agent_worker }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
       containers:
-      - name: {{ .Release.Name }}-pi-worker
+      - name: {{ .Release.Name }}-pi-agent-worker
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
         image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
@@ -33,11 +41,11 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.pi_worker.memoryRequest | default "256Mi" | quote }}
-            cpu: {{ .Values.services.pi_worker.cpuRequest | default "100m" | quote }}
+            memory: {{ .Values.services.pi_agent_worker.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.pi_agent_worker.cpuRequest | default "100m" | quote }}
           limits:
-            memory: {{ .Values.services.pi_worker.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.pi_worker.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.pi_agent_worker.memoryLimit  | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.pi_agent_worker.cpuLimit | default "500m" | quote}}
         {{- with (include "plane.s3CAVolumeMounts" .) }}
 {{ . | indent 8 }}
         {{- end }}
@@ -65,23 +73,20 @@ spec:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
-        {{- /* Explicit queueName wins; else narrow to the general queue when an agent
-             worker runs, and leave unset otherwise so the entrypoint's default (both) wins. */}}
-        {{- $piWorkerQueue := .Values.services.pi_worker.queueName | default (ternary "plane_pi_queue" "" (default false (.Values.services.pi_agent_worker).enabled)) }}
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") $piWorkerQueue }}
         env:
           {{- with (include "plane.s3CAEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
-          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "pi-worker")) }}{{ . | nindent 10 }}{{- end }}
-          {{- if $piWorkerQueue }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "pi-agent-worker")) }}{{ . | nindent 10 }}{{- end }}
           - name: CELERY_QUEUE
-            value: {{ $piWorkerQueue | quote }}
-          {{- end }}
+            value: {{ .Values.services.pi_agent_worker.queueName | default "plane_pi_agent_queue" | quote }}
+          - name: CELERY_CONCURRENCY
+            value: {{ .Values.services.pi_agent_worker.concurrency | default 4 | quote }}
+          - name: CELERY_MAX_TASKS_PER_CHILD
+            value: {{ .Values.services.pi_agent_worker.maxTasksPerChild | default 100 | quote }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
-        {{- end }}
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
 ---
