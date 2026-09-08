@@ -96,7 +96,11 @@ rabbitmq:
   # rejects a negotiated frame_max below 8192; amqplib sent 4096 until 0.10.6,
   # so an older app silently loses its silo/live consumers when the broker
   # moves. Rendering fails with an explanation instead. Set to '' to bypass.
-  # MUST be set to the first Plane release carrying the fix before release.
+  # MUST be set at release time to the FIRST Plane release whose images carry
+  # the amqplib bump -- normally the same value as Chart.yaml appVersion for
+  # that release. It then stays pinned there; do not raise it in later chart
+  # releases, or you will block app versions that are actually fine. A leading
+  # 'v' is accepted.
   minPlaneVersion: ''
   pullPolicy: IfNotPresent
   servicePort: 5672
