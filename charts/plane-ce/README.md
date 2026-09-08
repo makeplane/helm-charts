@@ -35,6 +35,11 @@ This chart now ships `rabbitmq:4.2.9-management-alpine`. RabbitMQ 3.x is end-of-
 >
 > If you must stage them, pin `rabbitmq.image` to `rabbitmq:3.13.6-management-alpine` when taking this chart, upgrade
 > `planeVersion`, then remove the pin.
+>
+> **The chart enforces this.** `rabbitmq.minPlaneVersion` is the lowest `planeVersion` known to work with a 4.x
+> broker; if you set a lower one while the chart is deploying a 4.x broker, rendering fails with an explanation rather than
+> deploying a broken stack. Branch, preview and prerelease tags are allowed through — they cannot be compared here. Set it to
+> an empty string to bypass the check.
 
 **If you are upgrading an existing install with `rabbitmq.local_setup: true`, do this first.** The chart upgrade restarts the broker StatefulSet against the same volume, and RabbitMQ requires all stable feature flags to be enabled *before* a major upgrade — otherwise the 4.2 node refuses to start and your queues are unreachable until you roll back.
 
