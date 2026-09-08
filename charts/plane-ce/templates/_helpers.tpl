@@ -277,6 +277,9 @@ more often than right. Set the floor to "" to bypass.
 {{- $rmq := .rabbitmq -}}
 {{- $floor := $rmq.minPlaneVersion | default "" -}}
 {{- if $floor -}}
+  {{- if not (regexMatch "^v?[0-9]+(\\.[0-9]+){0,2}$" $floor) -}}
+    {{- fail (printf "\n\nrabbitmq.minPlaneVersion must be a version like \"3.2.0\", or \"\" to disable\nthe check. Got %q, which cannot be compared and would break every render.\n" $floor) -}}
+  {{- end -}}
   {{- $tag := splitList ":" ($rmq.image | default "") | last -}}
   {{- $major := regexFind "^[0-9]+" $tag -}}
   {{- if and $major (ge (atoi $major) 4) -}}
