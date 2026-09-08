@@ -260,3 +260,48 @@ Caller must indent to the correct depth (env list items).
 {{- end }}
 {{- end }}
 {{- end -}}
+
+{{/*
+Refuse to deploy a 4.x broker under an application build whose amqplib cannot
+reach it. RabbitMQ >= 4.1 rejects any connection negotiating a frame_max below
+8192 and amqplib defaulted to 4096 until 0.10.6, so an older Plane build loses
+its silo/live consumers the moment the broker moves -- while every pod still
+reports Ready. Measured on 4.2.9 and 4.3.5.
+
+Only fires when this chart manages the broker, the pinned tag is 4.x, and
+planeVersion is an exact release. Branch, preview and prerelease tags are
+allowed through: they are unresolvable here and blocking them would be wrong
+more often than right. Set the floor to "" to bypass.
+*/}}
+{{- define "plane.validateBrokerClientCompat" -}}
+{{- $rmq := .rabbitmq -}}
+{{- $floor := $rmq.minPlaneVersion | default "" -}}
+{{- if $floor -}}
+  {{- $tag := splitList ":" ($rmq.image | default "") | last -}}
+  {{- $major := regexFind "^[0-9]+" $tag -}}
+  {{- if and $major (ge (atoi $major) 4) -}}
+    {{- $pv := trimPrefix "v" (.planeVersion | default "") -}}
+    {{- if regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $pv -}}
+      {{- if not (semverCompare (printf ">= %s" $floor) $pv) -}}
+        {{- $msg := list
+            (printf "RabbitMQ %s requires Plane >= %s, but planeVersion is %s." $tag $floor $pv)
+            ""
+            "RabbitMQ 4.1+ rejects connections negotiating frame_max below 8192, and the"
+            "amqplib client in that Plane build still negotiates 4096. Moving the broker"
+            "without moving the application drops the plane-exports, silo-api and"
+            "silo-integrations consumers to zero -- integrations, imports and exports"
+            "stop, while every pod continues to report Ready."
+            ""
+            "Pick one:"
+            (printf "  1. Set planeVersion to %s or newer (upgrade both together)." $floor)
+            "  2. Keep the broker on 3.13 for now: pin the rabbitmq image to"
+            "     rabbitmq:3.13.6-management-alpine, upgrade planeVersion later,"
+            "     then remove the pin."
+            "  3. Bypass this check: set rabbitmq.minPlaneVersion to an empty string."
+            | join "\n" -}}
+        {{- fail (printf "\n\n%s\n" $msg) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
