@@ -1,0 +1,13 @@
+{{- if .Values.services.integration_event_consumer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-integration-event-consumer-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+data:
+  INTEGRATION_EVENT_CONSUMER_QUEUE_NAME: {{ .Values.env.integration_event_consumer_envs.queue_name | default "plane.integration_stream.reference" | quote }}
+  INTEGRATION_EVENT_CONSUMER_PREFETCH: {{ .Values.env.integration_event_consumer_envs.prefetch_count | default 10 | quote }}
+---
+{{- end }}
