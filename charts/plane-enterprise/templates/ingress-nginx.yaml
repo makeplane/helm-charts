@@ -94,6 +94,18 @@ spec:
             path: /silo/
             pathType: Prefix
           {{- end }}
+          {{- /* Argus serves every route under ARGUS_BASE_PATH, so the prefix is
+                 forwarded intact (no rewrite). It must match the web build's
+                 VITE_ARGUS_BASE_PATH, which defaults to /argus. */}}
+          {{- if .Values.services.argus.enabled }}
+          - backend:
+              service:
+                port:
+                  number: 8100
+                name: {{ .Release.Name }}-argus
+            path: {{ trimSuffix "/" .Values.env.argus_envs.base_path }}/
+            pathType: Prefix
+          {{- end }}
           {{- if .Values.services.pi.enabled }}
           - backend:
               service:

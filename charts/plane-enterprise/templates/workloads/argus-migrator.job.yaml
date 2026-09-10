@@ -1,0 +1,64 @@
+{{- if .Values.services.argus.enabled }}
+
+{{- /* `argus start` deliberately does NOT migrate, so the argus schema is applied
+       by this one-shot Job. It only ever touches its own schema: CREATE SCHEMA IF
+       NOT EXISTS <ARGUS_SCHEMA> followed by embedded migrations with search_path
+       pinned to it. Plane's own tables are never written.
+
+       Named per run because Job specs are immutable -- same convention as
+       migrator.job.yaml and pi-migrator.job.yaml. Like those it carries no Helm
+       hook, so the Deployment is created alongside it and the argus pod may
+       restart a few times until the schema exists. */}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-argus-migrate-{{ now | date "20060102-150405" }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.argus) }}
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-argus-migrate
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.argus }}
+      {{- include "plane.podSecurityContext" . }}
+      containers:
+      - name: {{ .Release.Name }}-argus-migrate
+        {{- include "plane.containerSecurityContext" . }}
+        image: {{ .Values.services.argus.image | default "makeplane/argus-commercial" }}:{{ .Values.planeVersion }}
+        imagePullPolicy: {{ .Values.services.argus.pullPolicy | default "Always" }}
+        {{- /* The image ENTRYPOINT is the argus binary itself and CMD is ["start"],
+               so only the args are overridden here -- setting `command` would drop
+               the entrypoint. The migrate path still runs the full config loader,
+               so it needs the same env bundle as the server (a missing or
+               placeholder ARGUS_FINGERPRINT_SECRET fails the Job too). */}}
+        args:
+          - migrate
+        resources:
+          requests:
+            memory: "50Mi"
+            cpu: "50m"
+          limits:
+            memory: {{ .Values.services.argus.memoryLimit | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.argus.cpuLimit | default "500m" | quote }}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-argus-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.argus_env_existingSecret) }}{{ .Values.external_secrets.argus_env_existingSecret }}{{ else }}{{ .Release.Name }}-argus-secrets{{ end }}
+              optional: false
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      restartPolicy: OnFailure
+      serviceAccount: {{ .Release.Name }}-srv-account
+      serviceAccountName: {{ .Release.Name }}-srv-account
+---
+{{- end }}

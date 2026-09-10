@@ -81,6 +81,18 @@ spec:
         port: 3000
   {{- end }}
 
+  {{- /* PathPrefix does not strip the prefix -- Argus serves every route under
+         ARGUS_BASE_PATH, which must equal the web build's VITE_ARGUS_BASE_PATH. */}}
+  {{- if .Values.services.argus.enabled }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ trimSuffix "/" .Values.env.argus_envs.base_path }}/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-argus
+        port: 8100
+  {{- end }}
+
   {{- if .Values.services.pi.enabled }}
   # File uploads in pi: keep the body-size limit (more specific path matches first)
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/attachments/`)

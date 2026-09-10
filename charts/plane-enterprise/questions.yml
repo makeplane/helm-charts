@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.1.4
+  default: v3.2.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -65,6 +65,11 @@ questions:
     type: string
     required: true
     default: "makeplane/silo-commercial"
+  - variable: services.argus.image
+    label: Argus Docker Image
+    type: string
+    required: true
+    default: "makeplane/argus-commercial"
   - variable: services.silo.init_image
     label: Silo Init Docker Image
     type: string
@@ -1089,6 +1094,102 @@ questions:
     type: boolean
     default: false
 
+- variable: services.argus.enabled
+  label: "Install Argus (Sensitive Data & PII Scanner)"
+  description: "Single-replica by design. Requires a unique Fingerprint Secret (openssl rand -hex 32)."
+  type: boolean
+  default: false
+  group: "Argus Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: env.argus_envs.fingerprint_secret
+    label: "Argus Fingerprint Secret"
+    description: "REQUIRED. HKDF master key for finding fingerprints, at least 32 characters, unique per deployment (openssl rand -hex 32). Rotating it invalidates every stored fingerprint."
+    type: password
+    required: true
+    default: ""
+  - variable: env.argus_envs.base_path
+    label: "Argus Base Path"
+    description: "Route mount prefix (also the ingress path). Must equal the web build's VITE_ARGUS_BASE_PATH, which defaults to /argus."
+    type: string
+    default: "/argus"
+  - variable: env.argus_envs.schema
+    label: "Argus Database Schema"
+    description: "Schema Argus creates and owns inside the Plane database."
+    type: string
+    default: "argus"
+  - variable: env.argus_envs.database_url
+    label: "Argus Database URL"
+    description: "Leave empty to derive the Plane database DSN from the Postgres settings."
+    type: password
+    default: ""
+  - variable: env.argus_envs.content_database_url
+    label: "Argus Content Database URL"
+    description: "Optional read replica for content scans. Empty falls back to the Postgres read replica if enabled, else to the main DSN."
+    type: password
+    default: ""
+  - variable: env.argus_envs.internal_secret
+    label: "Argus Internal Secret"
+    type: password
+    default: "LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i"
+  - variable: env.argus_envs.cors_allowed_origins
+    label: "Argus CORS Allowed Origins"
+    description: "Empty is correct for path-routed (same-origin) deployments. '*' is rejected at startup."
+    type: string
+    default: ""
+  - variable: env.argus_envs.trusted_proxies
+    label: "Argus Trusted Proxies"
+    description: "Comma-separated CIDRs your ingress connects from, so audit rows record real client IPs. Empty trusts no proxy."
+    type: string
+    default: ""
+  - variable: env.argus_envs.metrics_addr
+    label: "Argus Metrics Listen Address"
+    description: "Private /metrics listener. ':9100' exposes it on the pod network, '' disables it."
+    type: string
+    default: "127.0.0.1:9100"
+  - variable: env.argus_envs.worker_pool
+    label: "Argus Worker Pool"
+    description: "Empty uses Argus' own default of min(8, NumCPU)."
+    type: string
+    default: ""
+  - variable: env.argus_envs.default_rate_rps
+    label: "Argus Default Scan Rate (rps)"
+    type: int
+    default: 500
+  - variable: env.argus_envs.max_rate_rps
+    label: "Argus Max Scan Rate (rps)"
+    type: int
+    default: 10000
+  - variable: env.argus_envs.data_dir
+    label: "Argus Data Directory"
+    description: "Where findings-export CSVs are written. /home/nonroot/data for argus-commercial, /app/data for the FIPS image."
+    type: string
+    default: "/home/nonroot/data"
+  - variable: services.argus.termination_grace_period_seconds
+    label: "Termination Grace Period (seconds)"
+    type: int
+    default: 60
+  - variable: services.argus.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.argus.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.argus.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 250Mi
+  - variable: services.argus.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.argus.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
 - variable: services.pi.enabled
   label: "Enable Plane AI (PI) Service"
   type: boolean
@@ -1826,6 +1927,11 @@ questions:
   group: "External Secrets"
 - variable: external_secrets.silo_env_existingSecret
   label: "Silo Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
+- variable: external_secrets.argus_env_existingSecret
+  label: "Argus Envs Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"
