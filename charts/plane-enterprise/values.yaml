@@ -1,4 +1,4 @@
-planeVersion: v3.1.4
+planeVersion: v3.2.0
 
 dockerRegistry:
   enabled: false
@@ -872,7 +872,7 @@ env:
     # dedup, staling, group_by=fingerprint and existing triage decisions.
     fingerprint_secret: ''
     # Reserved for service-to-service routes (unused in v1).
-    internal_secret: ''
+    internal_secret: 'LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i'
     # Leave empty to derive the Plane database DSN from services.postgres /
     # env.pgdb_*. Argus owns its own schema inside that database.
     database_url: ''

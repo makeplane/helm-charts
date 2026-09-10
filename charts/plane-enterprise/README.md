@@ -481,7 +481,7 @@ ingress:
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.1.4 # or the last released version
+   PLANE_VERSION=v3.2.0 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -537,7 +537,7 @@ ingress:
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.1.4 <or the last released version>`
+     - `planeVersion: v3.2.0 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.controller: <traefik | openshift | nginx — required unless ingressClass is exactly nginx/openshift/traefik*>`
@@ -564,7 +564,7 @@ ingress:
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.1.4       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.2.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -1078,7 +1078,7 @@ env:
 | services.argus.labels                           |             {}             |                                        | Custom labels to add to the argus deployment                                                                                                                                                                                  |
 | services.argus.annotations                      |             {}             |                                        | Custom annotations to add to the argus deployment                                                                                                                                                                             |
 | env.argus_envs.fingerprint_secret               |             ""             | Yes (if `services.argus.enabled=true`) | HKDF master key for finding fingerprints (`ARGUS_FINGERPRINT_SECRET`), at least 32 characters and unique per deployment: `openssl rand -hex 32`. Stored in the argus Secret.                                                   |
-| env.argus_envs.internal_secret                  |             ""             |                                        | Reserved for service-to-service routes (`ARGUS_INTERNAL_SECRET`, unused in v1). Stored in the argus Secret.                                                                                                                   |
+| env.argus_envs.internal_secret                  | LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i |                                        | Reserved for service-to-service routes (`ARGUS_INTERNAL_SECRET`, unused in v1). Stored in the argus Secret.                                                                                                                   |
 | env.argus_envs.database_url                     |             ""             |                                        | Plane database DSN (`ARGUS_DATABASE_URL`). Argus owns its own schema inside the Plane database, so leave empty to derive it from `services.postgres` / `env.pgdb_*`. Stored in the argus Secret.                               |
 | env.argus_envs.content_database_url             |             ""             |                                        | Optional read replica for content scans (`ARGUS_CONTENT_DATABASE_URL`). Empty falls back to `services.postgres.read_replica.remote_url` when the replica is enabled, else to the main DSN. Stored in the argus Secret.         |
 | env.argus_envs.schema                           |           argus            |                                        | Schema Argus creates and owns inside the Plane database (`ARGUS_SCHEMA`). Plane's own tables are never written.                                                                                                               |
@@ -1487,7 +1487,7 @@ To configure the external secrets for your application, you need to define speci
 | argus_env_existingSecret | `ARGUS_DATABASE_URL`    | Yes (if `services.argus.enabled=true`)                          | Plane database DSN; Argus owns its own schema inside it | `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local/plane`                                                                                                                       |
 |                          | `ARGUS_CONTENT_DATABASE_URL` | Optional                                                   | Read replica for content scans; empty falls back to `ARGUS_DATABASE_URL` | `postgresql://plane:plane@your-read-replica:5432/plane`                                                                                                                      |
 |                          | `ARGUS_FINGERPRINT_SECRET` | Yes (if `services.argus.enabled=true`)                       | HKDF master key for finding fingerprints, at least 32 characters and unique per deployment. Rotating it invalidates every stored fingerprint. | `<openssl rand -hex 32>`                                                                                                  |
-|                          | `ARGUS_INTERNAL_SECRET` | Optional                                                        | Reserved for service-to-service routes (unused in v1) | `""`                                                                                                                                                                                                |
+|                          | `ARGUS_INTERNAL_SECRET` | Optional                                                        | Reserved for service-to-service routes (unused in v1) | `LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i`                                                                                                                                                                                                |
 | pi_api_env_existingSecret   | `PLANE_PI_DATABASE_URL` | Yes (if `services.pi.enabled=true`)                             | PostgreSQL connection URL for Plane AI (PI) database   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local/plane_pi` <br> <br>**external**: `postgresql://username:password@your-db-host:5432/plane_pi`                  |
 |                          | `AMQP_URL`             | Yes (if `services.pi.enabled=true`)                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external**: `amqp://username:password@your-rabbitmq-host:5672/`                              |
 |                          | `CELERY_BROKER_URL`    | Yes (if `services.pi.enabled=true`)                             | Redis URL used as the Celery broker for Plane AI (PI) | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |

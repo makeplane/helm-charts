@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.1.4
+  default: v3.2.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -1131,7 +1131,7 @@ questions:
   - variable: env.argus_envs.internal_secret
     label: "Argus Internal Secret"
     type: password
-    default: ""
+    default: "LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i"
   - variable: env.argus_envs.cors_allowed_origins
     label: "Argus CORS Allowed Origins"
     description: "Empty is correct for path-routed (same-origin) deployments. '*' is rejected at startup."
