@@ -32,8 +32,9 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-email-app
   namespace: {{ .Release.Namespace }}
-  annotations:
-    reloader.stakater.com/auto: "true"
+  {{/* Annotations come from services.email_service.annotations via the helper. A Reloader
+       annotation used to be a literal key here, which was silently dropped whenever that
+       value was also set, because the helper emits its own `annotations:` key. */}}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.email_service) }}
 spec:
   replicas: {{ .Values.services.email_service.replicas | default 1 }}
@@ -46,8 +47,9 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
         {{- include "plane.commonLabels" $ | nindent 8 }}
-      annotations:  
-        timestamp: {{ now | quote }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+      annotations:
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.email_service }}
       containers:
@@ -123,7 +125,7 @@ spec:
             - key: tls.key
               path: key.pem
             optional: false
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
 {{- end }}
