@@ -256,7 +256,17 @@ services:
 
   rabbitmq:
     local_setup: true
-    image: rabbitmq:3.13.6-management-alpine
+    image: rabbitmq:4.2.9-management-alpine
+    # Lowest planeVersion whose amqplib can reach a 4.x broker. RabbitMQ 4.1+
+    # rejects a negotiated frame_max below 8192; amqplib sent 4096 until 0.10.6,
+    # so an older app silently loses its silo/live consumers when the broker
+    # moves. Rendering fails with an explanation instead. Set to '' to bypass.
+    # MUST be set at release time to the FIRST Plane release whose images carry
+  # the amqplib bump -- normally the same value as Chart.yaml appVersion for
+  # that release. It then stays pinned there; do not raise it in later chart
+  # releases, or you will block app versions that are actually fine. A leading
+  # 'v' is accepted.
+    minPlaneVersion: ''
     servicePort: 5672
     managementPort: 15672
     volumeSize: 100Mi

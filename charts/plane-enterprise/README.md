@@ -473,6 +473,73 @@ ingress:
     entryPoints: ['websecure']
 ```
 
+## Upgrading RabbitMQ from 3.13 to 4.2
+
+This chart now ships `rabbitmq:4.2.9-management-alpine`. RabbitMQ 3.x is end-of-life and no longer receives security updates.
+
+> [!IMPORTANT]
+> **Upgrade the application before, or together with, this chart — not after.** RabbitMQ 4.2 refuses any AMQP connection that negotiates
+> a `frame_max` below 8192, and the `amqplib` client used by `silo`, `live` and `flux` defaulted to 4096 until 0.10.6. On a Plane build
+> older than the one carrying that bump, moving the broker to 4.2.9 silently kills those consumers: the broker logs
+> `failed to negotiate connection parameters: negotiated frame_max = 4096 is lower than the minimum allowed value (8192)`, integrations
+> and exports stop, and **every pod still reports `Ready`**. Celery and the pika-based consumers are unaffected, which makes the failure
+> easy to miss. Verified end to end — `plane-exports`, `silo-api` and `silo-integrations` all dropped to 0 consumers.
+>
+> If you must stage them, pin `services.rabbitmq.image` to `rabbitmq:3.13.6-management-alpine` when taking this chart, upgrade
+> `planeVersion`, then remove the pin.
+>
+> **The chart enforces this.** `services.rabbitmq.minPlaneVersion` is the lowest `planeVersion` known to work with a 4.x
+> broker; if you set a lower one while the chart is deploying a 4.x broker, rendering fails with an explanation rather than
+> deploying a broken stack. Branch, preview and prerelease tags are allowed through — they cannot be compared here. Set it to
+> an empty string to bypass the check.
+
+**If you are upgrading an existing install with `services.rabbitmq.local_setup: true`, do this first.** The chart upgrade restarts the broker StatefulSet against the same volume, and RabbitMQ requires all stable feature flags to be enabled *before* a major upgrade — otherwise the 4.2 node refuses to start and your queues are unreachable until you roll back.
+
+```bash
+# 0. Snapshot the RabbitMQ volume. This upgrade cannot be reversed and
+#    `helm rollback` will not undo it -- see the notes below.
+
+# 1. While still on 3.13, enable every stable feature flag.
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl enable_feature_flag all
+
+# 2. Confirm nothing stable is left disabled. On 3.13 `khepri_db` is an
+#    EXPERIMENTAL flag, so step 1 does not touch it -- and it must stay
+#    disabled here: a 3.13 node with Khepri enabled cannot be upgraded to
+#    4.x at all and needs a blue-green migration instead.
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl list_feature_flags
+
+# 3. Now run the chart upgrade, then confirm the broker came back.
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl status | grep 'RabbitMQ version'
+```
+
+Notes:
+
+- **Step 1 will normally report nothing to do.** A node whose data directory was created by 3.13 enables every stable flag at birth (measured on a fresh 3.13.7: all stable flags enabled, only experimental `khepri_db` disabled), which is the case for any install this chart created. Disabled stable flags come from a volume carried across older series. Run it to confirm, not to change anything. On 3.13 the command cannot turn Khepri on, because `khepri_db` is *experimental* there — that is **not** true on 4.2, where the same flag is stable (see below).
+- **Do not jump straight to 4.3.** RabbitMQ does not support a direct 3.13 → 4.3 upgrade ([version upgradability](https://www.rabbitmq.com/docs/upgrade#rabbitmq-version-upgradability)); 4.2 is the supported hop, and a later chart release will move to 4.3. Two further things break on 4.3 but not on 4.2: Celery's control/event queues (fixed in the application by `CELERY_CONTROL_QUEUE_EXCLUSIVE` / `CELERY_EVENT_QUEUE_EXCLUSIVE`), and `x-consumer-timeout` on classic queues.
+- **This upgrade is one-way. Snapshot the volume first.** Once a 4.2 node has started on a data directory, 3.13 cannot start on it again — and this is **not** conditional on enabling `khepri_db`. Measured: after a 3.13.7 → 4.2.9 upgrade the node still reported `khepri_db` *disabled* and was still using Mnesia, with no Khepri directories on disk, and 3.13.7 still refused to come back up. The failure mode is the awkward one — the container does **not** exit, it sits in `Waiting for Khepri projections` indefinitely, so there is no CrashLoopBackOff to alert on, only a pod that never becomes Ready. A `helm rollback` will not save you, because the data directory is what changed. Your only way back is a **pre-upgrade volume snapshot**, or a blue-green migration onto a fresh volume.
+- **The broker's readiness probe checks that it is actually serving.** It runs `rabbitmq-diagnostics check_running` (the app is booted, not merely listening) followed by `check_port_connectivity`, every 15s with a `failureThreshold` of 3 — so a broker that boots but never finishes leaves the pod NotReady within ~45s and is taken out of the Service. Note that `rabbitmq-diagnostics ping` is **not** sufficient here: it passes against a node stuck mid-boot, because the runtime is alive even though the broker is not.
+- **No queue changes are required for the broker this chart deploys.** Existing queues keep their arguments and are re-declared as-is by the application; durable messages survive the restart. Verified end to end on a 3.13.6 → 4.2.9 in-place upgrade with pre-existing queues. This holds because the chart runs a **single-node** broker, where classic queue mirroring — removed in 4.0 — cannot be in effect. Plane sets no `ha-mode` policy itself.
+- **Using an external broker?** If `services.rabbitmq.local_setup: false` and you point `external_rabbitmq_url` at a managed or clustered broker (Amazon MQ, CloudAMQP, your own cluster), this chart does not manage its version — upgrade it on the provider side, following the same feature-flag prerequisite. Check for mirrored classic queues first, because 4.0 removed mirroring and any still-mirrored queue silently loses its replicas:
+
+  ```bash
+  rabbitmq-queues check_if_cluster_has_classic_queue_mirroring_policy
+  ```
+
+  If that reports a policy, migrate those queues to quorum queues (or do a blue-green migration) before upgrading.
+
+### Reaching 4.3 later: the 4.2 feature flags
+
+A node upgraded in place to 4.2 leaves the flags 4.2 introduced **disabled** — measured on a 3.13.7 → 4.2.9 upgrade: `khepri_db`, `rabbitmq_4.0.0`, `rabbitmq_4.1.0`, `rabbitmq_4.2.0` and `rabbit_exchange_type_local_random` were all disabled afterwards, and the node kept using Mnesia. RabbitMQ 4.3 requires them, so they have to be enabled before that hop.
+
+**Do this as a deliberate step once 4.2 has been running cleanly — not as part of the upgrade.** On 4.2 `khepri_db` is *stable*, so `enable_feature_flag all` enables it, which converts the metadata store from Mnesia to Khepri. That conversion cannot be undone within 4.x either, so take a fresh volume snapshot before running it. (The route back to 3.13 is already gone by this point — see the one-way note above.)
+
+```bash
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl enable_feature_flag all
+kubectl -n <namespace> exec <release>-rabbitmq-wl-0 -- rabbitmqctl list_feature_flags
+```
+
+Until you run this the broker is fully supported on 4.2 and Plane works normally; the only thing you cannot do is upgrade to 4.3.
+
 ## Installing Plane
 
 1. Open Terminal or any other command-line app that has access to Kubernetes tools on your local system.
@@ -764,7 +831,7 @@ the bundled datastores off. Three things to know before you use it:
 | Setting                                 |              Default              | Required | Description                                                                                                                                                                                                                                                                                                                                |
 | --------------------------------------- | :-------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | services.rabbitmq.local_setup           |               true                |          | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
-| services.rabbitmq.image                 | rabbitmq:3.13.6-management-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                            |
+| services.rabbitmq.image                 | rabbitmq:4.2.9-management-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                            |
 | services.rabbitmq.pullPolicy            |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                                            |
 | services.rabbitmq.servicePort           |               5672                |          | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                                       |
 | services.rabbitmq.managementPort        |               15672               |          | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                            |
