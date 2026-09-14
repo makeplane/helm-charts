@@ -196,18 +196,86 @@ volumeMounts:
 {{/*
 Render the shell init script that installs custom CA certificates.
 Output is raw shell; caller embeds it inside the command block.
+
+The trust store differs by image variant and cannot be known when the chart
+renders: the standard images are Alpine/Debian (update-ca-certificates,
+anchors in /usr/local/share/ca-certificates, bundle at
+/etc/ssl/certs/ca-certificates.crt) and the FIPS images are UBI
+(update-ca-trust, anchors in /etc/pki/ca-trust/source/anchors, bundle at
+/etc/pki/tls/certs/ca-bundle.crt). So the tool is detected at runtime and the
+SSL_* variables are exported here, overriding the pod spec's Alpine/Debian
+defaults from plane.s3CAEnvVars -- an export in this shell survives the exec
+that follows.
+
+Nothing below may fail the container. The caller runs under `set -e`, and a
+trust-store problem must not stop the service from starting; when the install
+does not happen the pod-spec defaults are unset rather than left pointing at a
+bundle this image does not have, because a non-existent SSL_CERT_FILE breaks
+every outbound TLS call instead of just the private-CA ones.
 */}}
 {{- define "plane.s3CAInitScript" -}}
 {{- if include "plane.s3CAEnabled" . -}}
-echo "Installing custom CA certificates..."
-mkdir -p /usr/local/share/ca-certificates
-if [ "$(ls -A /s3-custom-ca)" ]; then
-  echo "Found certificates in /s3-custom-ca. Installing..."
-  cp /s3-custom-ca/* /usr/local/share/ca-certificates/
-  update-ca-certificates
-  echo "CA certificates installed successfully"
+plane_copy_ca_anchors() {
+  # Debian's update-ca-certificates reads only anchors whose name ends in .crt,
+  # and the Secret key supplies that name, so normalise rather than trust it.
+  for _plane_src in /s3-custom-ca/*; do
+    [ -f "$_plane_src" ] || continue
+    _plane_dst=${_plane_src##*/}
+    case "$_plane_dst" in *.crt) ;; *) _plane_dst="$_plane_dst.crt" ;; esac
+    cp "$_plane_src" "$1/$_plane_dst" 2>/dev/null || return 1
+  done
+  return 0
+}
+
+plane_install_custom_ca() {
+  if [ ! -d /s3-custom-ca ] || [ -z "$(ls -A /s3-custom-ca 2>/dev/null)" ]; then
+    echo "plane: no custom CA certificates supplied, skipping"
+    return 1
+  fi
+
+  if command -v update-ca-trust >/dev/null 2>&1; then
+    _plane_anchors=/etc/pki/ca-trust/source/anchors
+    _plane_bundle=/etc/pki/tls/certs/ca-bundle.crt
+    mkdir -p "$_plane_anchors" 2>/dev/null \
+      && plane_copy_ca_anchors "$_plane_anchors" \
+      && update-ca-trust extract >/dev/null 2>&1 \
+      || return 1
+  elif command -v update-ca-certificates >/dev/null 2>&1; then
+    _plane_anchors=/usr/local/share/ca-certificates
+    _plane_bundle=/etc/ssl/certs/ca-certificates.crt
+    mkdir -p "$_plane_anchors" 2>/dev/null \
+      && plane_copy_ca_anchors "$_plane_anchors" \
+      && update-ca-certificates >/dev/null 2>&1 \
+      || return 1
+  else
+    echo "plane: no CA trust tool found in this image" >&2
+    return 1
+  fi
+
+  [ -f "$_plane_bundle" ] || return 1
+
+  # Both tools exit 0 when they ignore an input file, so a zero exit and an
+  # existing bundle are not evidence the certificate is trusted. Confirm one of
+  # the supplied certificates is in the output before exporting anything.
+  _plane_probe=$(cat /s3-custom-ca/* 2>/dev/null | grep -m1 -A1 'BEGIN CERTIFICATE' | tail -1)
+  if [ -n "$_plane_probe" ] && ! grep -qF "$_plane_probe" "$_plane_bundle" 2>/dev/null; then
+    echo "plane: supplied CA certificates were not picked up by the trust store" >&2
+    return 1
+  fi
+
+  export SSL_CERT_FILE="$_plane_bundle"
+  export SSL_CERT_DIR="${_plane_bundle%/*}"
+  export REQUESTS_CA_BUNDLE="$_plane_bundle"
+  export CURL_CA_BUNDLE="$_plane_bundle"
+  echo "plane: custom CA certificates installed ($_plane_bundle)"
+  return 0
+}
+
+if plane_install_custom_ca; then
+  :
 else
-  echo "No custom S3 CA certificate found, skipping..."
+  echo "plane: WARNING custom CA certificates were not installed; falling back to this image's own trust store" >&2
+  unset SSL_CERT_FILE SSL_CERT_DIR REQUESTS_CA_BUNDLE CURL_CA_BUNDLE
 fi
 {{- end }}
 {{- end -}}
@@ -215,6 +283,12 @@ fi
 {{/*
 Render the SSL/TLS env vars needed when custom CA certs are installed.
 Caller must nindent to the correct depth.
+
+These are the Alpine/Debian paths, i.e. correct for the standard images only.
+They are a starting value, not the final word: plane.s3CAInitScript runs in
+every container that gets these and either re-exports them with the path this
+image's trust store actually produced, or unsets them. Every workload that
+includes this helper also includes that one -- keep it that way.
 */}}
 {{- define "plane.s3CAEnvVars" -}}
 {{- if include "plane.s3CAEnabled" . -}}
