@@ -215,6 +215,18 @@ every outbound TLS call instead of just the private-CA ones.
 */}}
 {{- define "plane.s3CAInitScript" -}}
 {{- if include "plane.s3CAEnabled" . -}}
+plane_copy_ca_anchors() {
+  # Debian's update-ca-certificates reads only anchors whose name ends in .crt,
+  # and the Secret key supplies that name, so normalise rather than trust it.
+  for _plane_src in /s3-custom-ca/*; do
+    [ -f "$_plane_src" ] || continue
+    _plane_dst=${_plane_src##*/}
+    case "$_plane_dst" in *.crt) ;; *) _plane_dst="$_plane_dst.crt" ;; esac
+    cp "$_plane_src" "$1/$_plane_dst" 2>/dev/null || return 1
+  done
+  return 0
+}
+
 plane_install_custom_ca() {
   if [ ! -d /s3-custom-ca ] || [ -z "$(ls -A /s3-custom-ca 2>/dev/null)" ]; then
     echo "plane: no custom CA certificates supplied, skipping"
@@ -225,14 +237,14 @@ plane_install_custom_ca() {
     _plane_anchors=/etc/pki/ca-trust/source/anchors
     _plane_bundle=/etc/pki/tls/certs/ca-bundle.crt
     mkdir -p "$_plane_anchors" 2>/dev/null \
-      && cp /s3-custom-ca/* "$_plane_anchors"/ 2>/dev/null \
+      && plane_copy_ca_anchors "$_plane_anchors" \
       && update-ca-trust extract >/dev/null 2>&1 \
       || return 1
   elif command -v update-ca-certificates >/dev/null 2>&1; then
     _plane_anchors=/usr/local/share/ca-certificates
     _plane_bundle=/etc/ssl/certs/ca-certificates.crt
     mkdir -p "$_plane_anchors" 2>/dev/null \
-      && cp /s3-custom-ca/* "$_plane_anchors"/ 2>/dev/null \
+      && plane_copy_ca_anchors "$_plane_anchors" \
       && update-ca-certificates >/dev/null 2>&1 \
       || return 1
   else
@@ -241,6 +253,15 @@ plane_install_custom_ca() {
   fi
 
   [ -f "$_plane_bundle" ] || return 1
+
+  # Both tools exit 0 when they ignore an input file, so a zero exit and an
+  # existing bundle are not evidence the certificate is trusted. Confirm one of
+  # the supplied certificates is in the output before exporting anything.
+  _plane_probe=$(cat /s3-custom-ca/* 2>/dev/null | grep -m1 -A1 'BEGIN CERTIFICATE' | tail -1)
+  if [ -n "$_plane_probe" ] && ! grep -qF "$_plane_probe" "$_plane_bundle" 2>/dev/null; then
+    echo "plane: supplied CA certificates were not picked up by the trust store" >&2
+    return 1
+  fi
 
   export SSL_CERT_FILE="$_plane_bundle"
   export SSL_CERT_DIR="${_plane_bundle%/*}"
