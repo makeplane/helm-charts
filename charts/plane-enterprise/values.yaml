@@ -17,6 +17,24 @@ airgapped:
   # The boto module used by API does not use the CA bundles in the container, so we need to
   # mount the CA bundle into the API pod by passing it in as an environment
   # variable.
+  #
+  # Despite the name, these certificates are not limited to S3. They are installed
+  # into the system trust store of api, external-api, worker, worker-importers and
+  # the pi-* workloads, and concatenated into NODE_EXTRA_CA_CERTS for live and silo,
+  # so they cover any outbound TLS those services do against a private CA. Both the
+  # standard (Alpine/Debian) and FIPS (UBI) images are supported; the trust tool is
+  # detected at runtime.
+  #
+  # Each certificate is also mounted verbatim at /s3-custom-ca/<key>, which is what
+  # a component reading its own CA file wants. LDAP, for example, is configured
+  # separately because OpenLDAP does not read the system store:
+  #
+  #   extraEnv:
+  #     - name: LDAP_TLS_REQUIRE_CERT
+  #       value: "demand"
+  #     - name: LDAP_TLS_CA_CERTFILE
+  #       value: "/s3-custom-ca/corp-ca.crt"
+  #
   # Preferred: list of Kubernetes Secrets containing CA certificates (supports multiple certs).
   # Example:
   # s3Secrets:
