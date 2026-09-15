@@ -18,7 +18,6 @@ Garage is enabled by DEFAULT in this major version, so a release that was using 
 object storage and never had a garage key in its values would silently have its endpoint
 replaced by the bundled store -- the app would come up pointing at an empty bucket. The two
 are a genuine contradiction, so refuse rather than pick a winner.
-Not reachable with storage_provider=GCS, which disables the bundled store outright.
 */ -}}
 {{- if and (eq (include "plane.garageEnabled" .) "true") (or .Values.env.aws_s3_endpoint_url .Values.env.aws_access_key .Values.external_secrets.storage.secretName) }}
 {{- fail `

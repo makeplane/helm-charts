@@ -272,34 +272,62 @@ the API signs Amazon OpenSearch Service requests with it too.
 {{- end -}}
 
 {{/*
-Garage access key. Key::import requires the literal prefix GK plus exactly 24 lowercase
-hex characters, so a user-supplied value is validated rather than silently rejected at
-runtime. The derived fallback is stable across upgrades, which matters: Garage exits at
-startup if the key id already exists with a different secret.
+Resolve one Garage credential.
+
+NOT derived from the release name. The Garage S3 API is reachable from OUTSIDE the cluster
+through the /<docstore_bucket> ingress route, so a key anyone could reconstruct from the
+release and namespace would let them read, overwrite and delete every stored attachment.
+
+Order: an explicit value, then whatever is already stored in the release's Garage Secret so
+upgrades keep the same key, then a fresh random one. The generated value is cached on
+.Values so every template in the same render sees the SAME credential -- without that,
+doc-store and the Garage Secret would each generate a different one and nothing would
+authenticate.
+
+Note `lookup` returns nothing under `helm template` and `--dry-run`, so those render fresh
+values each time. Set the credentials explicitly for a rendered-manifest workflow.
+Call with: (dict "context" $ "key" "<secret key>" "value" <explicit> "name" "<values path>" "gk" true|false)
 */}}
-{{- define "plane.garageAccessKey" -}}
-{{- $v := .Values.services.garage.access_key | default "" -}}
-{{- if $v -}}
-  {{- if not (regexMatch "^GK[0-9a-f]{24}$" $v) -}}
-    {{- fail (printf "services.garage.access_key %q is not a valid Garage access key: it must be the literal prefix GK followed by exactly 24 LOWERCASE hex characters (26 total), e.g. GK0123456789abcdef01234567. Generate one with: printf 'GK%%s' \"$(openssl rand -hex 12)\". Leave it empty to let the chart derive a stable one." $v) -}}
-  {{- end -}}
-  {{- $v -}}
+{{- define "plane.garageCredential" -}}
+{{- $ctx := .context -}}
+{{- if .value -}}
+{{- .value -}}
 {{- else -}}
-  {{- printf "GK%s" (printf "plane-garage-access-key/%s/%s" .Release.Namespace .Release.Name | sha256sum | trunc 24) -}}
+{{- $sname := $ctx.Values.external_secrets.garage_existingSecret | default (printf "%s-garage-secrets" $ctx.Release.Name) -}}
+{{- $sec := lookup "v1" "Secret" $ctx.Release.Namespace $sname -}}
+{{- $stored := "" -}}
+{{- if $sec -}}{{- $stored = get ($sec.data | default dict) .key | default "" -}}{{- end -}}
+{{- if $stored -}}
+{{- $stored | b64dec -}}
+{{- else if $ctx.Values.env.requireExplicitSecrets -}}
+{{- required (printf "%s has no value. Set it, or set env.requireExplicitSecrets=false to let the chart generate one." .name) nil -}}
+{{- else -}}
+{{- $cache := printf "_garageGenerated_%s" .key -}}
+{{- if not (hasKey $ctx.Values $cache) -}}
+{{- $r := sha256sum (randBytes 32) -}}
+{{- $_ := set $ctx.Values $cache (ternary (printf "GK%s" (trunc 24 $r)) $r .gk) -}}
+{{- end -}}
+{{- get $ctx.Values $cache -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
-{{/*
-Garage secret key: exactly 64 lowercase hex characters. sha256sum returns that shape, so
-the derived fallback is format-correct by construction.
-Rotating this ALONE makes Garage refuse to start -- change access_key and secret_key together.
-*/}}
+{{- define "plane.garageAccessKey" -}}
+{{- $v := .Values.services.garage.access_key | default "" -}}
+{{- if and $v (not (regexMatch "^GK[0-9a-f]{24}$" $v)) -}}
+  {{- fail (printf "services.garage.access_key %q is not a valid Garage access key: it must be the literal prefix GK followed by exactly 24 LOWERCASE hex characters (26 total). Leave it empty to let the chart generate one." $v) -}}
+{{- end -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_DEFAULT_ACCESS_KEY" "value" $v "name" "services.garage.access_key" "gk" true) -}}
+{{- end -}}
+
+{{/* Rotating the secret key ALONE makes Garage refuse to start -- change access_key and
+     secret_key together, or clear both and let the chart generate a fresh pair. */}}
 {{- define "plane.garageSecretKey" -}}
 {{- $v := .Values.services.garage.secret_key | default "" -}}
 {{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
   {{- fail (printf "services.garage.secret_key must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
 {{- end -}}
-{{- include "plane.secretValue" (dict "context" . "name" "services.garage.secret_key" "value" $v "fallback" (printf "plane-garage-secret-key/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_DEFAULT_SECRET_KEY" "value" $v "name" "services.garage.secret_key" "gk" false) -}}
 {{- end -}}
 
 {{- define "plane.garageRpcSecret" -}}
@@ -307,11 +335,11 @@ Rotating this ALONE makes Garage refuse to start -- change access_key and secret
 {{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
   {{- fail (printf "services.garage.rpc_secret must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
 {{- end -}}
-{{- include "plane.secretValue" (dict "context" . "name" "services.garage.rpc_secret" "value" $v "fallback" (printf "plane-garage-rpc-secret/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_RPC_SECRET" "value" $v "name" "services.garage.rpc_secret" "gk" false) -}}
 {{- end -}}
 
 {{- define "plane.garageAdminToken" -}}
-{{- include "plane.secretValue" (dict "context" . "name" "services.garage.admin_token" "value" (.Values.services.garage.admin_token | default "") "fallback" (printf "plane-garage-admin-token/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_ADMIN_TOKEN" "value" (.Values.services.garage.admin_token | default "") "name" "services.garage.admin_token" "gk" false) -}}
 {{- end -}}
 
 {{/*

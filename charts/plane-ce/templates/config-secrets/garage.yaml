@@ -16,9 +16,11 @@ data:
     db_engine = {{ .Values.garage.db_engine | default "lmdb" | quote }}
     {{- /* LMDB can be corrupted by an unclean shutdown and a pod eviction is one; at
          replication factor 1 there is no peer to resync from. */}}
-    metadata_fsync = {{ .Values.garage.metadata_fsync | default true }}
+    metadata_fsync = {{ ternary true .Values.garage.metadata_fsync (kindIs "invalid" .Values.garage.metadata_fsync) }}
     data_fsync = {{ .Values.garage.data_fsync | default false }}
-    compression_level = {{ .Values.garage.compression_level | default 1 }}
+    {{- /* `default` treats 0 and false as empty, so these two use an explicit
+           undefined test -- otherwise an operator could never turn them off. */}}
+    compression_level = {{ ternary 1 .Values.garage.compression_level (kindIs "invalid" .Values.garage.compression_level) }}
     {{- /* Mandatory for --single-node, which refuses to start otherwise. */}}
     replication_factor = 1
 

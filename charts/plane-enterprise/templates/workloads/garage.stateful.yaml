@@ -146,7 +146,11 @@ spec:
       resources:
         requests:
           storage: {{ .Values.services.garage.metaVolumeSize | default "2Gi" | quote }}
-      storageClassName: {{ .Values.services.garage.metaStorageClass | default .Values.env.storageClass | quote }}
+      {{- /* Omitted when unset: an explicit "" means "no storage class" to Kubernetes and
+             stops the DEFAULT StorageClass provisioning the claim, leaving it Pending. */}}
+      {{- with (.Values.services.garage.metaStorageClass | default .Values.env.storageClass) }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
       volumeMode: Filesystem
   - apiVersion: v1
     kind: PersistentVolumeClaim
@@ -160,6 +164,8 @@ spec:
       resources:
         requests:
           storage: {{ .Values.services.garage.dataVolumeSize | default "10Gi" | quote }}
-      storageClassName: {{ .Values.env.storageClass | quote }}
+      {{- with .Values.env.storageClass }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
       volumeMode: Filesystem
 {{- end }}
