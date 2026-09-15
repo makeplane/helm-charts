@@ -6,6 +6,9 @@ metadata:
   name: {{ .Release.Name }}-garage-config
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
 data:
   garage.toml: |
     metadata_dir = "/mnt/meta"
@@ -43,6 +46,9 @@ metadata:
   name: {{ .Release.Name }}-garage-secrets
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
 {{/* GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN are read from the environment, so garage.toml
      above carries no secrets and needs no init container to template them in.
      GARAGE_DEFAULT_* drive --default-access-key / --default-bucket, which create the key

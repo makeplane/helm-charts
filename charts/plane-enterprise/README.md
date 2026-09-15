@@ -1477,6 +1477,37 @@ restarted yet fails and needs a retry. Nothing is lost, and no write goes to the
 Why two upgrades and not one: Helm applies manifests, it does not sequence "copy, wait, then
 switch". Doing both at once would point Plane at an empty bucket for the length of the copy.
 
+### One upgrade instead of two
+
+Set `services.storage_migration.single_upgrade: true` and the whole migration happens in a single
+`helm upgrade`. Garage and the copy run as **pre-upgrade hooks**, and Helm applies nothing
+from the new manifest until they finish, so Plane serves from MinIO for the entire copy and
+only then moves to Garage. A post-upgrade hook reconciles whatever landed in MinIO while
+pods were rolling.
+
+```bash
+helm upgrade RELEASE CHART -f values.yaml \
+  --set services.storage_migration.single_upgrade=true \
+  --timeout 6h
+```
+
+What you give up:
+
+- **The command blocks** for the length of the copy plus the reconcile. The default
+  `--timeout` is 5 minutes, so pass a generous one. On a large bucket this is hours.
+- **Do not pass `--wait`.** It would make the reconcile hook wait for every workload to go
+  healthy first, so one unrelated crash-looping pod means the reconcile never runs.
+- **Not for GitOps.** Argo CD and Rancher Fleet treat Helm hooks differently. Use the
+  default two-upgrade flow there.
+- If the upgrade fails partway, `helm uninstall` will not remove the hook-created Garage,
+  because hook resources are not tracked in the release. Delete it by hand if you abandon
+  the migration.
+- After the migration the live Garage StatefulSet keeps a stale `helm.sh/hook` annotation.
+  It is inert: Helm only reads hook annotations from the manifest, never from the cluster.
+
+If the copy fails, the upgrade fails and the configuration never moves. Plane stays on
+MinIO and you retry.
+
 ### Driving it by hand
 
 Set `services.storage_migration.auto: false` to turn the automatic progression off, or set

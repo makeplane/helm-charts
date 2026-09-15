@@ -8,6 +8,9 @@ metadata:
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-garage
     {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.garage.assign_cluster_ip }}
@@ -31,7 +34,19 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-garage-wl
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.garage) }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- with .Values.services.garage.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- $hook := include "plane.garageHookAnnotations" (dict "context" $ "weight" "-19") }}
+  {{- if or $hook .Values.services.garage.annotations }}
+  annotations:
+    {{- with $hook }}{{ . | nindent 4 }}{{- end }}
+    {{- with .Values.services.garage.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     matchLabels:

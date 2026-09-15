@@ -19,6 +19,11 @@ metadata:
   name: {{ .Release.Name }}-storage-migration-secrets
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- /* In single-upgrade mode the copy Job is a pre-upgrade hook, so the credentials it
+         reads must be created in that phase too. */}}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
 {{/* The copy Job needs BOTH credential sets at once, and the doc-store Secret only ever
      carries the active one -- hence a Secret of its own. */}}
 data:

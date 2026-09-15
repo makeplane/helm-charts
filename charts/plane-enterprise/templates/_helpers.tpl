@@ -139,6 +139,39 @@ so they are matched on the stage label rather than by name.
 {{- end -}}
 
 {{/*
+Returns "true" when this upgrade should do the whole migration in one shot, with Garage
+and the copy running as pre-upgrade hooks.
+
+Helm applies NOTHING from the new manifest until its pre-upgrade hooks finish, so the app
+keeps serving from MinIO for the entire copy and only then moves to Garage. The cost is
+that `helm upgrade` blocks for the length of the copy: pass --timeout well above the 5m
+default, and --wait so the post-upgrade reconcile runs after the pods have rolled.
+
+Only ever true for the upgrade that actually migrates. Once the app is on Garage this goes
+false, the hook annotations disappear, and the release adopts Garage as a normal resource.
+*/}}
+{{- define "plane.garageAsHook" -}}
+{{- if and .Values.services.storage_migration.single_upgrade .Release.IsUpgrade (eq (include "plane.garageEnabled" .) "true") (eq (include "plane.minioDeployed" .) "true") (ne (include "plane.appOnGarage" .) "true") -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Annotations that make a resource a pre-upgrade hook AND let the release adopt it
+afterwards. Without the ownership pair the next upgrade fails on "invalid ownership
+metadata" when the main manifest declares the same object.
+Call with a dict: (dict "context" $ "weight" "-20")
+*/}}
+{{- define "plane.garageHookAnnotations" -}}
+{{- if eq (include "plane.garageAsHook" .context) "true" }}
+helm.sh/hook: pre-upgrade
+helm.sh/hook-weight: {{ .weight | quote }}
+meta.helm.sh/release-name: {{ .context.Release.Name }}
+meta.helm.sh/release-namespace: {{ .context.Release.Namespace }}
+{{- end }}
+{{- end -}}
+
+{{/*
 Has the app already been moved to Garage? Read from the LIVE doc-store Secret, which is
 the one durable record of which store is in use. This makes the progression one-way: once
 the app is on Garage it can never fall back to bulk-sync and start serving from MinIO
@@ -180,6 +213,8 @@ done
 {{- else -}}
 cutover
 {{- end -}}
+{{- else if eq (include "plane.garageAsHook" .) "true" -}}
+cutover
 {{- else if eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "bulk-sync")) "true" -}}
 cutover
 {{- else if eq (include "plane.minioDeployed" .) "true" -}}

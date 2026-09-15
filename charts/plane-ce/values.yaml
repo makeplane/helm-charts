@@ -163,6 +163,14 @@ garage:
 # An upgrade that would newly enable Garage with this unset is refused -- see
 # templates/validations.yaml and the README runbook.
 storage_migration:
+  # Do the whole migration in ONE `helm upgrade`. Garage and the copy run as pre-upgrade
+  # hooks, so Helm applies nothing from the new manifest until the copy has finished and
+  # verified -- the app serves from MinIO throughout, then moves to Garage.
+  # The trade-off: `helm upgrade` BLOCKS for the length of the copy plus the post-upgrade
+  # reconcile. Pass a generous --timeout (the default is 5m); do NOT pass --wait, which
+  # would make the reconcile hook depend on every workload going healthy first. Argo CD and
+  # Rancher Fleet treat Helm hooks differently, so leave this off under GitOps.
+  single_upgrade: false
   # Advance the migration automatically, so a plain `helm upgrade` is all that is needed:
   # the chart looks for a bundled MinIO in the cluster, keeps the app on it while Garage
   # fills alongside, moves the app across once that copy is verified, and finishes once the
