@@ -1,0 +1,65 @@
+{{- if eq (include "plane.garageEnabled" .) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-garage-config
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
+data:
+  garage.toml: |
+    metadata_dir = "/mnt/meta"
+    data_dir = "/mnt/data"
+    db_engine = {{ .Values.services.garage.db_engine | default "lmdb" | quote }}
+    {{- /* LMDB can be corrupted by an unclean shutdown and a pod eviction is one; at
+         replication factor 1 there is no peer to resync from. */}}
+    metadata_fsync = {{ ternary true .Values.services.garage.metadata_fsync (kindIs "invalid" .Values.services.garage.metadata_fsync) }}
+    data_fsync = {{ .Values.services.garage.data_fsync | default false }}
+    {{- /* `default` treats 0 and false as empty, so these two use an explicit
+           undefined test -- otherwise an operator could never turn them off. */}}
+    compression_level = {{ ternary 1 .Values.services.garage.compression_level (kindIs "invalid" .Values.services.garage.compression_level) }}
+    {{- /* Mandatory for --single-node, which refuses to start otherwise. */}}
+    replication_factor = 1
+
+    rpc_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3901"
+    rpc_public_addr = "127.0.0.1:3901"
+
+    [s3_api]
+    api_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3900"
+    s3_region = {{ include "plane.garageRegion" . | quote }}
+    {{- /* root_domain is deliberately omitted, leaving path-style addressing only -- what
+         boto3 uses with a custom endpoint_url, and what silo forces explicitly. */}}
+
+    [admin]
+    api_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3903"
+  {{- with .Values.services.garage.extra_config }}
+{{ . | indent 4 }}
+  {{- end }}
+{{- if empty .Values.external_secrets.garage_existingSecret }}
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-garage-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
+{{/* GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN are read from the environment, so garage.toml
+     above carries no secrets and needs no init container to template them in.
+     GARAGE_DEFAULT_* drive --default-access-key / --default-bucket, which create the key
+     and bucket in-process on first boot and are no-ops afterwards. */}}
+data:
+  GARAGE_RPC_SECRET: {{ include "plane.garageRpcSecret" . | b64enc | quote }}
+  GARAGE_ADMIN_TOKEN: {{ include "plane.garageAdminToken" . | b64enc | quote }}
+  GARAGE_DEFAULT_ACCESS_KEY: {{ include "plane.garageAccessKey" . | b64enc | quote }}
+  GARAGE_DEFAULT_SECRET_KEY: {{ include "plane.garageSecretKey" . | b64enc | quote }}
+  GARAGE_DEFAULT_BUCKET: {{ .Values.env.docstore_bucket | default "uploads" | toString | b64enc | quote }}
+{{- end }}
+{{- end }}

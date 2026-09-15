@@ -51,7 +51,7 @@ data:
   DEBUG: "0"
   DOCKERIZED: "1"
   GUNICORN_WORKERS: "1"
-  MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
+  MINIO_ENDPOINT_SSL: {{ include "plane.storageEndpointSsl" . | quote }}
   API_KEY_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "60/minute" | quote }}
 
   {{- if and .Values.ingress.appHost (eq (include "plane.tlsEnabled" .) "true") }}

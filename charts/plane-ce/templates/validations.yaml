@@ -1,0 +1,45 @@
+{{- /*
+Renders no resource. Holds the checks that must run regardless of which templates are
+switched off, so they live here rather than inside a conditional template.
+
+.Release.IsUpgrade is false under helm template, so plain rendering is never blocked --
+only helm upgrade and helm upgrade --dry-run.
+*/ -}}
+{{- $stage := include "plane.storageStage" . -}}
+{{- $explicit := .Values.storage_migration.stage | default "" -}}
+{{- $valid := list "no-minio-data" "bulk-sync" "cutover" "rollback" "done" -}}
+
+{{- if and $explicit (not (has $explicit $valid)) }}
+{{- fail (printf "storage_migration.stage must be one of: %s (got %q)." (join ", " $valid) $explicit) }}
+{{- end }}
+
+{{- /*
+Garage is enabled by DEFAULT in this major version, so a release that was using external
+object storage and never had a garage key in its values would silently have its endpoint
+replaced by the bundled store -- the app would come up pointing at an empty bucket. The two
+are a genuine contradiction, so refuse rather than pick a winner.
+*/ -}}
+{{- if and (eq (include "plane.garageEnabled" .) "true") (or .Values.env.aws_s3_endpoint_url .Values.env.aws_access_key .Values.external_secrets.storage.secretName) }}
+{{- fail `
+The bundled Garage is enabled AND external object storage is configured
+(env.aws_s3_endpoint_url, env.aws_access_key or external_secrets.storage.secretName).
+Only one of them can serve the app.
+
+plane-ce 2.0.0 enables the bundled Garage by default, so a release that was using
+external storage and never set a garage key inherits it on upgrade. That would point every
+service at an empty bucket.
+
+  Keeping your external store (most likely): set garage.local_setup=false
+  Moving to the bundled Garage:             clear env.aws_s3_endpoint_url,
+                                            env.aws_access_key, env.aws_secret_access_key
+                                            and external_secrets.storage.secretName
+
+To copy objects out of that external store into Garage, leave it configured as the copy
+source instead: storage_migration.source.{endpoint,access_key,secret_key,bucket}.
+` }}
+{{- end }}
+
+{{- if and (eq $stage "rollback") (ne (include "plane.garageEnabled" .) "true") }}
+{{- fail "storage_migration.stage=rollback needs Garage deployed to copy back FROM. Keep garage.local_setup=true until the rollback copy has completed." }}
+{{- end }}
+

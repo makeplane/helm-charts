@@ -61,7 +61,10 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- if .Values.services.pi.enabled }}
 {{- $routes = append $routes (dict "slug" "pi" "path" "/pi/" "svc" (printf "%s-pi-api" $name) "port" 8000) }}
 {{- end }}
-{{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
+{{- /* Follows the ACTIVE store; during a migration both are deployed but only one serves. */}}
+{{- if and (eq (include "plane.garageActive" .) "true") .Values.env.docstore_bucket }}
+{{- $routes = append $routes (dict "slug" "docstore" "path" (printf "/%s" .Values.env.docstore_bucket) "svc" (printf "%s-garage" $name) "port" 3900) }}
+{{- else if and (eq (include "plane.minioActive" .) "true") .Values.env.docstore_bucket }}
 {{- $routes = append $routes (dict "slug" "docstore" "path" (printf "/%s" .Values.env.docstore_bucket) "svc" (printf "%s-minio" $name) "port" 9000) }}
 {{- end }}
 {{/* Catch-all LAST, purely for readability. */}}
@@ -73,7 +76,7 @@ Differences from the Traefik IngressRoute this mirrors:
      (where the bundled datastores are off because they cannot run under an
      arbitrary UID) -- they are here for a cluster that grants those workloads a
      relaxed SCC. */}}
-{{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+{{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
 {{- $routes = append $routes (dict "slug" "minio-console" "host" .Values.ingress.minioHost "path" "/" "svc" (printf "%s-minio" $name) "port" 9090) }}
 {{- end }}
 {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}

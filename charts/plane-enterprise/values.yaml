@@ -314,8 +314,12 @@ services:
     labels: {}
     annotations: {}
 
+  # DEPRECATED as of chart 4.0.0: the bundled object store is now Garage (see
+  # services.garage). MinIO still renders so an existing release can keep serving from it
+  # while its objects are copied across -- that is the only supported reason to enable it.
+  # Removed in 5.0.0. See "Migrating from bundled MinIO to Garage" in README.md.
   minio:
-    local_setup: true
+    local_setup: false
     image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     image_mc: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
     init_image: busybox
@@ -326,6 +330,108 @@ services:
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  garage:
+    local_setup: true
+    image: dxflrs/garage:v2.4.1
+    pullPolicy: IfNotPresent
+    # Object data. Sized well above the MinIO default on purpose: an undersized data
+    # volume fails MID-COPY, which is the worst place to run out of room. Set it from the
+    # measured size of the store you are migrating from, with headroom.
+    dataVolumeSize: 10Gi
+    # LMDB index. Small but latency-sensitive, so it gets its own claim and can be put on
+    # a faster class than the data volume.
+    metaVolumeSize: 2Gi
+    metaStorageClass: ''      # defaults to env.storageClass
+    # Garage's own durability knob. LMDB can be corrupted by an unclean shutdown, and a pod
+    # eviction is one; at replication_factor 1 there is no peer to resync from. Costs write
+    # throughput -- benchmark before turning it off on network-attached storage.
+    metadata_fsync: true
+    data_fsync: false
+    db_engine: lmdb
+    compression_level: 1
+    # S3 region. MUST match what the app signs with; the chart renders AWS_REGION from the
+    # same value so the two cannot drift. Empty falls back to env.aws_region, then us-east-1.
+    s3_region: ''
+    # Credentials. Leave empty and the chart derives stable values from the release name and
+    # namespace -- which are PUBLIC, so a production install should set these at FIRST
+    # install. access_key must be GK + 24 lowercase hex; secret_key and rpc_secret must be
+    # 64 lowercase hex (openssl rand -hex 32).
+    # Rotating secret_key alone makes Garage refuse to start: change both keys together.
+    access_key: ''
+    secret_key: ''
+    rpc_secret: ''
+    admin_token: ''
+    # Raw TOML appended to garage.toml, e.g. block_size or an [s3_api] root_domain.
+    extra_config: ''
+    bind_address: '[::]'
+    assign_cluster_ip: false
+    memoryLimit: 1Gi
+    cpuLimit: 1000m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
+    env:
+      endpoint_ssl: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+  # Copies every object from the old store into the new one. Drives the whole migration:
+  #   ''             no migration in progress (the default)
+  #   no-minio-data  this release never used the bundled MinIO, or its bucket is empty
+  #   bulk-sync      app keeps serving from MinIO; Garage runs alongside; copy Job runs
+  #   cutover        app switches to Garage; multi-pass reconcile Job runs
+  #   rollback       app switches back to MinIO; copies Garage -> MinIO
+  #   done           migration complete; Garage serves everything; no Job
+  # An upgrade that would newly enable Garage with this unset is refused -- see
+  # templates/validations.yaml and the README runbook.
+  storage_migration:
+    # Do the whole migration in ONE `helm upgrade`. Garage and the copy run as pre-upgrade
+    # hooks, so Helm applies nothing from the new manifest until the copy has finished and
+    # verified -- the app serves from MinIO throughout, then moves to Garage.
+    # The trade-off: `helm upgrade` BLOCKS for the length of the copy, plus the
+    # post-upgrade reconcile that follows the pod rollout. Pass a generous --timeout (the
+    # default is 5m); do NOT pass --wait, which would make the reconcile hook depend on
+    # every workload going healthy first. Argo CD and Rancher Fleet treat Helm hooks
+    # differently, so leave this off under GitOps and use the two-upgrade flow instead.
+    single_upgrade: false
+    # Advance the migration automatically, so a plain `helm upgrade` is all that is needed:
+    # the chart looks for a bundled MinIO in the cluster, keeps the app on it while Garage
+    # fills alongside, moves the app across once that copy is verified, and finishes once
+    # the reconcile is verified. Set false to require every step to be named explicitly.
+    auto: true
+    # Force a stage, overriding the automatic choice. Also the way to make `--dry-run`
+    # faithful, since Helm's cluster lookups return nothing during one.
+    stage: ''
+    # Copy source. Defaults to the bundled MinIO; set these to migrate from an external
+    # MinIO or S3-compatible store instead.
+    source:
+      endpoint: ''
+      access_key: ''
+      secret_key: ''
+      bucket: ''
+    # Extra mirror passes after the first, to catch writes that landed in the old store
+    # while pods were still rolling. Only meaningful at stage=cutover.
+    passes: 0                    # 0 -> 1 pass for bulk-sync, 3 for cutover
+    pass_interval_seconds: 300
+    # Fail the Job if anything is still missing or size-mismatched at the end.
+    verify: true
+    image: ''                    # defaults to services.minio.image_mc
+    init_image: busybox
+    pullPolicy: IfNotPresent
+    backoffLimit: 3
+    ttlSecondsAfterFinished: ''  # unset: the Job log is the audit record
+    memoryLimit: 1Gi
+    cpuLimit: 1000m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -1003,6 +1109,11 @@ external_secrets:
   pgdb_existingSecret: ''
   opensearch_existingSecret: ''
   doc_store_existingSecret: ''
+  # Secret carrying MINIO_ROOT_USER / MINIO_ROOT_PASSWORD for the bundled MinIO server.
+  minio_existingSecret: ''
+  # Secret carrying GARAGE_RPC_SECRET, GARAGE_ADMIN_TOKEN, GARAGE_DEFAULT_ACCESS_KEY,
+  # GARAGE_DEFAULT_SECRET_KEY and GARAGE_DEFAULT_BUCKET for the bundled Garage.
+  garage_existingSecret: ''
   app_env_existingSecret: ''
   live_env_existingSecret: ''
   silo_env_existingSecret: ''

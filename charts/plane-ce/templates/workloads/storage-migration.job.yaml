@@ -1,0 +1,162 @@
+{{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
+{{- $stage := include "plane.storageStage" . -}}
+{{- $hooked := eq (include "plane.garageAsHook" .) "true" -}}
+{{- /* Normally one plain Job. In single-upgrade mode, two hook Jobs: "pre" copies
+       everything while the app is still on MinIO (Helm applies no new manifest until it
+       finishes), "post" reconciles writes that landed while pods were rolling. */ -}}
+{{- $phases := ternary (list "pre" "post") (list "plain") $hooked -}}
+{{- range $phase := $phases }}
+---
+{{- /* cutover runs several passes because writes are not frozen: pods roll gradually, so
+       a not-yet-rolled worker can still write to the old store for a minute or two. */ -}}
+{{- $passes := $.Values.storage_migration.passes | default (eq $phase "pre" | ternary 1 (eq $stage "cutover" | ternary 3 1)) -}}
+{{- $domain := $.Values.env.default_cluster_domain | default "cluster.local" -}}
+
+{{- /* Named per revision because Job specs are immutable -- same convention as
+       migrator.job.yaml. In the default mode it carries no Helm hook, so it never blocks
+       the upgrade and each `helm upgrade` produces a fresh Job. */}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ $.Release.Namespace }}
+  name: {{ $.Release.Name }}-storage-migrate{{ if ne $phase "plain" }}-{{ $phase }}{{ end }}-{{ $.Release.Revision }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- /* On the Job's OWN metadata, not just the pod template: plane.storageStage reads
+           it back through `lookup` to advance the migration on the next upgrade. */}}
+    plane.so/storage-migration-stage: {{ $stage | quote }}
+    {{- with $.Values.storage_migration.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if eq $phase "pre" }}
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+    {{- else if eq $phase "post" }}
+    helm.sh/hook: post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+    {{- else }}
+    {{- /* Each upgrade renders a new timestamped name, so without this Helm would delete
+           the previous Job -- the record plane.storageStage reads to know what is done. */}}
+    helm.sh/resource-policy: keep
+    {{- end }}
+    {{- with $.Values.storage_migration.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ $.Values.storage_migration.backoffLimit | default 3 }}
+  {{- with $.Values.storage_migration.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app.name: {{ $.Release.Namespace }}-{{ $.Release.Name }}-storage-migrate
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        plane.so/storage-migration-stage: {{ $stage | quote }}
+        {{- include "plane.serviceAccountPodLabels" $ }}
+      annotations:
+        timestamp: {{ now | quote }}
+    spec:
+      {{- include "plane.podScheduling" $.Values.storage_migration }}
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-stores
+          image: {{ $.Values.storage_migration.init_image | default "busybox" }}
+          command: ['sh', '-c', "until nslookup {{ $.Release.Name }}-garage.{{ $.Release.Namespace }}.svc.{{ $domain }}; do echo waiting for garage; sleep 2; done"]
+      containers:
+        - name: {{ $.Release.Name }}-storage-migrate
+          image: {{ $.Values.storage_migration.image | default $.Values.minio.image_mc }}
+          imagePullPolicy: {{ $.Values.storage_migration.pullPolicy | default "IfNotPresent" }}
+          envFrom:
+            - secretRef:
+                name: {{ $.Release.Name }}-storage-migration-secrets
+                optional: false
+          env:
+            - name: PASSES
+              value: {{ $passes | quote }}
+            - name: PASS_INTERVAL
+              value: {{ $.Values.storage_migration.pass_interval_seconds | default 300 | quote }}
+            - name: VERIFY
+              value: {{ $.Values.storage_migration.verify | default true | ternary "1" "0" | quote }}
+            {{- /* mc writes its config to $HOME, which is not writable when the chart's
+                   restricted securityContext is on. */}}
+            - name: MC_CONFIG_DIR
+              value: /tmp/mc
+            {{- if $.Values.extraEnv }}
+            {{- toYaml $.Values.extraEnv | nindent 12 }}
+            {{- end }}
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -eu
+              mc="/usr/bin/mc --config-dir $MC_CONFIG_DIR"
+              $mc alias set src "$SRC_ENDPOINT" "$SRC_ACCESS_KEY" "$SRC_SECRET_KEY" --api S3v4
+              $mc alias set dst "$DST_ENDPOINT" "$DST_ACCESS_KEY" "$DST_SECRET_KEY" --api S3v4
+              $mc mb --ignore-existing "dst/$DST_BUCKET"
+
+              # Whole-bucket on purpose. Keys are not all workspace-prefixed: user avatars
+              # sit at the bucket root, plus exports/, instance/, enterprise/ and plane_ai/.
+              # Any prefix filter would silently drop some. mirror skips same-size objects,
+              # so repeat runs are cheap and a killed Job is resumed by re-running it.
+              i=1
+              while [ "$i" -le "$PASSES" ]; do
+                echo "=== mirror pass $i of $PASSES ==="
+                n=0
+                until $mc mirror --overwrite --retry "src/$SRC_BUCKET" "dst/$DST_BUCKET"; do
+                  n=$((n+1))
+                  if [ "$n" -ge 5 ]; then echo "FATAL: mirror failed after $n attempts"; exit 1; fi
+                  echo "mirror attempt $n failed, retrying in 15s"; sleep 15
+                done
+                if [ "$i" -lt "$PASSES" ]; then echo "pass $i done, sleeping ${PASS_INTERVAL}s"; sleep "$PASS_INTERVAL"; fi
+                i=$((i+1))
+              done
+
+              [ "$VERIFY" = "1" ] || { echo "verification disabled"; exit 0; }
+
+              # mc diff compares existence and size. A non-empty "first" means the object is
+              # in the source and missing or different on the destination -- a failure. An
+              # empty "first" means it exists only on the destination, which is a write made
+              # after cutover and is expected. Matching the field rather than mc's numeric
+              # diff code keeps this stable across mc versions, and mc diff's own exit status
+              # is 0 even when objects differ so it cannot be relied on.
+              # Shell builtins only: the mc image ships no grep and no sed.
+              echo "=== verifying ==="
+              $mc diff --json "src/$SRC_BUCKET" "dst/$DST_BUCKET" > /tmp/diff.json
+              pending=0
+              while IFS= read -r line; do
+                case "$line" in
+                  *'"first":""'*) ;;
+                  *'"first":"'*) pending=$((pending+1)); echo "  MISSING/DIFFERS: $line" ;;
+                esac
+              done < /tmp/diff.json
+              if [ "$pending" -gt 0 ]; then
+                echo "VERIFY FAILED: $pending object(s) missing or size-mismatched on the destination"
+                exit 1
+              fi
+              s=$($mc ls --recursive "src/$SRC_BUCKET" | wc -l)
+              d=$($mc ls --recursive "dst/$DST_BUCKET" | wc -l)
+              echo "source objects=$s destination objects=$d"
+              [ "$d" -ge "$s" ] || { echo "VERIFY FAILED: destination has fewer objects than source"; exit 1; }
+              echo "OK: $s objects present on the destination"
+          volumeMounts:
+            - mountPath: /tmp
+              name: mc-scratch
+          resources:
+            requests:
+              memory: {{ $.Values.storage_migration.memoryRequest | default "256Mi" | quote }}
+              cpu: {{ $.Values.storage_migration.cpuRequest | default "100m" | quote }}
+            limits:
+              memory: {{ $.Values.storage_migration.memoryLimit | default "1Gi" | quote }}
+              cpu: {{ $.Values.storage_migration.cpuLimit | default "1000m" | quote }}
+      volumes:
+        - name: mc-scratch
+          emptyDir: {}
+      serviceAccount: {{ include "plane.serviceAccountName" $ }}
+      serviceAccountName: {{ include "plane.serviceAccountName" $ }}
+      terminationGracePeriodSeconds: 120
+{{- end }}
+{{- end }}

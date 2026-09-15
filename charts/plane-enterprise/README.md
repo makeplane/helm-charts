@@ -811,7 +811,48 @@ the bundled datastores off. Three things to know before you use it:
 | env.opensearch_index_prefix              |              plane_               |          | Prefix to be used for OpenSearch indices. This helps organize indices in a multi-tenant or multi-environment setup.                                                                                                                                                                                                                        |
 | env.opensearch_embedding_dimension       |               1536                |          | Embedding vector dimension used for OpenSearch semantic/vector indexing.                                                                                                                                                                                                                               |
 
-### Doc Store (Minio/S3/GCS) Setup
+### Doc Store (Garage/S3/GCS) Setup
+
+Chart 4.0.0 replaces the bundled MinIO with [Garage](https://garagehq.deuxfleurs.fr). MinIO
+still renders so an existing release can keep serving from it while its objects are copied
+across, and is removed in 5.0.0. **An existing release must not simply upgrade** — see
+[Migrating from bundled MinIO to Garage](#migrating-from-bundled-minio-to-garage). The chart
+refuses the upgrade until you have said which stage you are at.
+
+| Key | Default | Required | Description |
+| --- | --- | --- | --- |
+| services.garage.local_setup | true | | Deploy the bundled Garage object store. Set `false` when using external S3 or GCS. |
+| services.garage.image | dxflrs/garage:v2.4.1 | | Garage image. Needs v2.3.0 or newer for `--single-node`. |
+| services.garage.dataVolumeSize | 10Gi | | Object data volume. Size it from the measured size of the store you are migrating from, with headroom — an undersized volume fails *mid-copy*. |
+| services.garage.metaVolumeSize | 2Gi | | LMDB index volume. Small but latency-sensitive. |
+| services.garage.metaStorageClass | | | Storage class for the metadata volume. Defaults to `env.storageClass`; point it at a faster class if you have one. |
+| services.garage.access_key | | | `GK` plus exactly 24 lowercase hex characters. Empty derives a stable value from the release name and namespace, which are **public**. |
+| services.garage.secret_key | | | 64 lowercase hex characters (`openssl rand -hex 32`). **Rotating this alone makes Garage refuse to start** — change it together with `access_key`. |
+| services.garage.rpc_secret | | | 64 lowercase hex characters. Delivered as `GARAGE_RPC_SECRET`, so `garage.toml` holds no secrets. |
+| services.garage.admin_token | | | Bearer token for the admin API on port 3903. |
+| services.garage.s3_region | | | Region Garage accepts. The chart renders `AWS_REGION` from the same value so the two cannot drift. Empty falls back to `env.aws_region`, then `us-east-1`. Garage rejects a request signed for any other region with `AuthorizationHeaderMalformed`. |
+| services.garage.metadata_fsync | true | | Sync metadata writes. LMDB can be corrupted by an unclean shutdown and a pod eviction is one; at replication factor 1 there is no peer to resync from. Costs write throughput. |
+| services.garage.db_engine | lmdb | | `lmdb` or `sqlite`. |
+| services.garage.compression_level | 1 | | Zstd level, or `none`. |
+| services.garage.extra_config | | | Raw TOML appended to `garage.toml`. |
+| services.garage.env.endpoint_ssl | false | | Reach the bundled store over https. Renders `MINIO_ENDPOINT_SSL`, which is the app-side variable name. |
+| external_secrets.garage_existingSecret | | | Supply `GARAGE_*` from a Secret you manage instead. |
+
+Garage is deployed as a single node with `replication_factor = 1`, matching the durability
+the single MinIO pod gave. It self-provisions: `--single-node` creates its own cluster layout
+on first boot and `--default-bucket` creates the bucket and access key, both idempotent on
+restart. There is no bucket-creation Job.
+
+Garage has **no web console**, so there is no equivalent of `ingress.minioHost`. Its admin API
+on port 3903 is full cluster control and is deliberately never exposed through an ingress;
+reach it with `kubectl port-forward svc/<release>-garage 3903:3903` and the `admin_token`.
+
+Garage implements no bucket policies, so there is no equivalent of the MinIO bucket Job's
+`mc anonymous set download`. That is harmless: Plane serves every object through presigned
+GET URLs and never relies on anonymous reads.
+
+### Legacy MinIO Setup (deprecated)
+
 
 | Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------- | :----------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1413,6 +1454,159 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | Setting  | Default | Required | Description                                                                                                                                                                                                                                                                                                                       |
 | -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
+
+## Migrating from bundled MinIO to Garage
+
+**Just run `helm upgrade`.** The chart looks for a bundled MinIO in the cluster and, when it
+finds one, drives the migration itself over two ordinary upgrades:
+
+| | What the upgrade does | Plane serves from |
+| --- | --- | --- |
+| 1st `helm upgrade` | Brings Garage up beside MinIO and copies every object into it. Plane is untouched. | MinIO |
+| 2nd `helm upgrade` | Once that copy verifies, moves Plane onto Garage and reconciles anything written since. | Garage |
+| after | Nothing. No copy Job renders. | Garage |
+
+Run the second one when the first copy Job has succeeded. `NOTES` tells you which stage you
+are in and what the next upgrade will do. MinIO stays deployed until you remove it, so
+rollback is available the whole time.
+
+The only user-visible effect is during the second upgrade: pods roll while the ingress route
+flips at once, so for a minute or three an asset request served by a pod that has not
+restarted yet fails and needs a retry. Nothing is lost, and no write goes to the wrong store.
+
+Why two upgrades and not one: Helm applies manifests, it does not sequence "copy, wait, then
+switch". Doing both at once would point Plane at an empty bucket for the length of the copy.
+
+### One upgrade instead of two
+
+Set `services.storage_migration.single_upgrade: true` and the whole migration happens in a single
+`helm upgrade`. Garage and the copy run as **pre-upgrade hooks**, and Helm applies nothing
+from the new manifest until they finish, so Plane serves from MinIO for the entire copy and
+only then moves to Garage. A post-upgrade hook reconciles whatever landed in MinIO while
+pods were rolling.
+
+```bash
+helm upgrade RELEASE CHART -f values.yaml \
+  --set services.storage_migration.single_upgrade=true \
+  --timeout 6h
+```
+
+What you give up:
+
+- **The command blocks** for the length of the copy plus the reconcile. The default
+  `--timeout` is 5 minutes, so pass a generous one. On a large bucket this is hours.
+- **Do not pass `--wait`.** It would make the reconcile hook wait for every workload to go
+  healthy first, so one unrelated crash-looping pod means the reconcile never runs.
+- **Not for GitOps.** Argo CD and Rancher Fleet treat Helm hooks differently. Use the
+  default two-upgrade flow there.
+- If the upgrade fails partway, `helm uninstall` will not remove the hook-created Garage,
+  because hook resources are not tracked in the release. Delete it by hand if you abandon
+  the migration.
+- After the migration the live Garage StatefulSet keeps a stale `helm.sh/hook` annotation.
+  It is inert: Helm only reads hook annotations from the manifest, never from the cluster.
+
+If the copy fails, the upgrade fails and the configuration never moves. Plane stays on
+MinIO and you retry.
+
+### Driving it by hand
+
+Set `services.storage_migration.auto: false` to turn the automatic progression off, or set
+`services.storage_migration.stage` to pin a stage. An explicit stage always wins.
+
+| stage | Serving | Copy Job |
+| --- | --- | --- |
+| `bulk-sync` | MinIO | MinIO → Garage, one pass |
+| `cutover` | Garage | MinIO → Garage, 3 passes 5 minutes apart |
+| `rollback` | MinIO | Garage → MinIO |
+| `done` | Garage | none |
+| `no-minio-data` | Garage | none — for a release that never used the bundled MinIO |
+
+Because Helm's cluster lookups return nothing during `--dry-run`, a dry run renders as
+though no MinIO were present. Pin the stage explicitly to make one faithful.
+
+The copy is **additive and idempotent**. It never deletes from the source, which is what
+makes every step reversible until you delete the MinIO volume yourself.
+
+### Phase 0 — before you start
+
+### Doing it step by step
+
+```bash
+helm upgrade <rel> plane/plane-enterprise --version 4.0.0 -f values.yaml \
+  --set services.minio.local_setup=true \
+  --set services.garage.local_setup=true \
+  --set services.storage_migration.stage=bulk-sync
+```
+
+Garage starts alongside MinIO and creates its bucket and key. Plane is untouched: the
+doc-store Secret, the `/uploads` ingress route and the TLS SANs all still point at MinIO.
+
+```bash
+kubectl logs -f -n <ns> job/<rel>-storage-migrate-<timestamp>
+```
+
+Repeat the same command as often as you like. Each run copies only what is new, so runs get
+shorter. Move on when a run finishes in minutes.
+
+### Phase 2 — cutover
+
+```bash
+helm upgrade <rel> ... --set services.storage_migration.stage=cutover
+```
+
+This points the doc-store Secret, the ingress route and the TLS SANs at Garage, rolls every
+pod, and starts a three-pass reconcile Job.
+
+**What users see.** Pods roll gradually while the ingress route flips at once, so for the
+length of the rollout — typically one to three minutes — a request served by a pod that has
+not yet restarted signs its presigned URL with MinIO's key and Garage rejects it. Uploads and
+asset loads **error and are retryable**; they never split silently across two stores.
+Server-side writes from workers that have not yet rolled still land in MinIO, which is exactly
+what the reconcile passes are for.
+
+If the Job fails verification here it means a write landed in MinIO after its last pass, not
+that anything was lost. Run the same command again.
+
+### Phase 3 — verify
+
+- The Job reached `Succeeded` and its log ends `OK: N objects present on the destination`.
+- Upload a new attachment in the UI. This exercises the presigned POST path and is the most
+  important single check.
+- Open an **old** attachment, an **old** user avatar and a workspace logo. Avatars live at the
+  bucket root rather than under a workspace prefix, so they catch a partial copy.
+- Export a page to ZIP, which exercises multipart upload and ranged GET.
+- `kubectl logs -n <ns> deploy/<rel>-api | grep -i AuthorizationHeaderMalformed` — any hit
+  means the region in `garage.toml` and `AWS_REGION` disagree.
+
+### Phase 4 — settle
+
+```bash
+helm upgrade <rel> ... --set services.storage_migration.stage=done
+```
+
+No copy Job renders. Leave MinIO deployed for a retention window of days. Then set
+`services.minio.local_setup=false`.
+
+> `helm upgrade` deletes the MinIO StatefulSet but **retains its PersistentVolumeClaim**.
+> Deleting `pvc-<rel>-minio-vol-<rel>-minio-wl-0` is a separate, irreversible step. Snapshot
+> first, and only do it once you are certain.
+
+### Rolling back
+
+Available at any point before you delete that volume:
+
+```bash
+helm upgrade <rel> ... --set services.storage_migration.stage=rollback
+```
+
+MinIO serves again and the Job copies Garage back into it, recovering anything uploaded since
+cutover. Once that Job is green, set `services.garage.local_setup=false`.
+
+### Migrating from an external store
+
+The same Job copies from any S3-compatible source, not just the bundled MinIO. Set
+`services.storage_migration.source.{endpoint,access_key,secret_key,bucket}` and the bundled
+MinIO is not needed at all.
 
 ## Keeping credentials out of values.yaml
 

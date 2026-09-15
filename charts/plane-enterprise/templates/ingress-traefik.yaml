@@ -110,7 +110,17 @@ spec:
         port: 8000
   {{- end }}
 
-  {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
+  {{- /* Follows the ACTIVE store: two rules on one path would hand presigned URLs
+         signed for one store to the other. */}}
+  {{- if and (eq (include "plane.garageActive" .) "true") .Values.env.docstore_bucket }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-garage
+        port: 3900
+  {{- else if and (eq (include "plane.minioActive" .) "true") .Values.env.docstore_bucket }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
     kind: Rule
     middlewares:

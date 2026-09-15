@@ -1688,10 +1688,118 @@ questions:
     type: string
     show_if: "services.rabbitmq.local_setup=false"
 
-- variable: services.minio.local_setup
-  label: "Install Minio"
+- variable: services.garage.local_setup
+  label: "Install Garage (bundled object store)"
   type: boolean
   default: true
+  group: "Storage Setup"
+  subquestions:
+  - variable: services.garage.image
+    label: "Docker Image"
+    type: string
+    default: "dxflrs/garage:v2.4.1"
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.pullPolicy
+    label: "Garage Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.dataVolumeSize
+    label: "Data Volume Size"
+    description: "Object data. Must comfortably exceed the size of the store you are migrating from -- an undersized volume fails mid-copy."
+    type: string
+    default: "10Gi"
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.metaVolumeSize
+    label: "Metadata Volume Size"
+    type: string
+    default: "2Gi"
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.metaStorageClass
+    label: "Metadata Storage Class"
+    description: "Defaults to env.storageClass. Set to a faster class for the LMDB index."
+    type: string
+    default: ""
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.access_key
+    label: "Access Key"
+    description: "GK followed by exactly 24 lowercase hex characters. Empty derives a stable one from the release name and namespace, which are public."
+    type: string
+    default: ""
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.secret_key
+    label: "Secret Key"
+    description: "64 lowercase hex characters (openssl rand -hex 32). Rotating this alone makes Garage refuse to start -- change it together with the access key."
+    type: password
+    default: ""
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.rpc_secret
+    label: "RPC Secret"
+    type: password
+    default: ""
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.s3_region
+    label: "S3 Region"
+    description: "Must match what the app signs with; the chart renders AWS_REGION from this same value. Empty falls back to env.aws_region, then us-east-1."
+    type: string
+    default: ""
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+    show_if: "services.garage.local_setup=true"
+  - variable: services.garage.env.endpoint_ssl
+    label: "Endpoint SSL"
+    type: boolean
+    default: false
+    show_if: "services.garage.local_setup=true"
+
+- variable: services.storage_migration.stage
+  label: "Storage Migration Stage"
+  description: "Copies objects from the bundled MinIO into Garage. Leave empty unless migrating. See the chart README for the runbook."
+  type: enum
+  options:
+  - ""
+  - "no-minio-data"
+  - "bulk-sync"
+  - "cutover"
+  - "rollback"
+  - "done"
+  default: ""
+  group: "Storage Setup"
+  subquestions:
+  - variable: services.storage_migration.source.endpoint
+    label: "Copy Source Endpoint"
+    description: "Defaults to the bundled MinIO. Set to migrate from an external MinIO or S3-compatible store."
+    type: string
+    default: ""
+  - variable: services.storage_migration.source.access_key
+    label: "Copy Source Access Key"
+    type: string
+    default: ""
+  - variable: services.storage_migration.source.secret_key
+    label: "Copy Source Secret Key"
+    type: password
+    default: ""
+  - variable: services.storage_migration.source.bucket
+    label: "Copy Source Bucket"
+    type: string
+    default: ""
+  - variable: services.storage_migration.verify
+    label: "Verify After Copy"
+    type: boolean
+    default: true
+
+- variable: services.minio.local_setup
+  label: "Install MinIO (legacy, migration source only)"
+  description: "DEPRECATED in 4.0.0 and removed in 5.0.0. Enable only to keep an existing MinIO serving while its objects are copied into Garage."
+  type: boolean
+  default: false
   group: "Storage Setup"
   subquestions:
   - variable: services.minio.image
@@ -1814,7 +1922,7 @@ questions:
   # show_subquestion_if: true
   subquestions:
   - variable: ingress.minioHost
-    label: "Minio Host"
+    label: "Minio Host (legacy console)"
     type: string
     default: ""
     show_if: "services.minio.local_setup=true"

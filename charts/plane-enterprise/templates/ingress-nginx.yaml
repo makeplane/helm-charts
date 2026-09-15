@@ -115,7 +115,18 @@ spec:
             path: /pi/
             pathType: Prefix
           {{- end }}
-          {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
+          {{- /* Exactly one backend on this path. During a migration both stores are
+                 deployed, and routing presigned URLs signed for one store to the other
+                 fails every upload -- so this follows the ACTIVE store, not the deployed one. */}}
+          {{- if and (eq (include "plane.garageActive" .) "true") .Values.env.docstore_bucket }}
+          - backend:
+              service:
+                port:
+                  number: 3900
+                name: {{ .Release.Name }}-garage
+            path: /{{ .Values.env.docstore_bucket }}
+            pathType: Prefix
+          {{- else if and (eq (include "plane.minioActive" .) "true") .Values.env.docstore_bucket }}
           - backend:
               service:
                 port:
@@ -125,7 +136,7 @@ spec:
             pathType: Prefix
           {{- end }}
 
-    {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+    {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
     - host: {{ .Values.ingress.minioHost }}
       http:
         paths:
@@ -154,7 +165,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.license.licenseDomain | quote }}
-      {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+      {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{ end }}
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
@@ -165,7 +176,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.license.licenseDomain | quote }}
-      {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+      {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{ end }}
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}

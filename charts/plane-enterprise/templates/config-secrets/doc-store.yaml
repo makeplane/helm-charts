@@ -41,7 +41,22 @@ data:
   GCS_CREDENTIALS_JSON: {{ . | b64enc | quote }}
   {{- end }}
   {{- end }}
-  {{- else if .Values.services.minio.local_setup }}
+  {{- else if eq (include "plane.garageActive" .) "true" }}
+  {{/* USE_MINIO=1 is not a statement about MinIO. It selects the app's "bundled store
+       behind our own ingress" mode: browser-facing presigned URLs are signed against
+       request.get_host() while server-side calls use AWS_S3_ENDPOINT_URL. That keeps
+       uploads same-origin through the /<bucket> ingress route, so the bucket needs no
+       CORS rules -- and it is why USE_MINIO=0 would break here, signing browser URLs
+       against an in-cluster DNS name no browser can resolve. */}}
+  USE_MINIO: {{ "1" | b64enc | quote }}
+  AWS_ACCESS_KEY_ID: {{ include "plane.garageAccessKey" . | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ include "plane.garageSecretKey" . | b64enc | quote }}
+  AWS_S3_ENDPOINT_URL: {{ printf "http://%s-garage.%s.svc.%s:3900" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") | b64enc | quote }}
+  {{/* Required, unlike the MinIO branch which renders no region at all: Garage rejects a
+       request signed for any other region, and silo refuses to start without it. Rendered
+       from the same helper that writes s3_region into garage.toml so they cannot drift. */}}
+  AWS_REGION: {{ include "plane.garageRegion" . | b64enc | quote }}
+  {{- else if eq (include "plane.minioActive" .) "true" }}
   USE_MINIO: {{ "1" | b64enc | quote }}
   MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | b64enc | quote }}
   MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | b64enc | quote }}

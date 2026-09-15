@@ -1,0 +1,39 @@
+{{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
+{{- $stage := include "plane.storageStage" . -}}
+{{- /* One template serves both directions: rollback swaps source and destination. */ -}}
+{{- $reverse := eq $stage "rollback" -}}
+{{- $bucket := .Values.env.docstore_bucket | default "uploads" -}}
+{{- $domain := .Values.env.default_cluster_domain | default "cluster.local" -}}
+{{- $src := .Values.services.storage_migration.source -}}
+{{- $oldEndpoint := $src.endpoint | default (printf "http://%s-minio.%s.svc.%s:9000" .Release.Name .Release.Namespace $domain) -}}
+{{- $oldKey := $src.access_key | default .Values.services.minio.root_user | default "admin" -}}
+{{- $oldSecret := $src.secret_key | default .Values.services.minio.root_password | default "password" -}}
+{{- $oldBucket := $src.bucket | default $bucket -}}
+{{- $newEndpoint := printf "http://%s-garage.%s.svc.%s:3900" .Release.Name .Release.Namespace $domain -}}
+{{- $newKey := include "plane.garageAccessKey" . -}}
+{{- $newSecret := include "plane.garageSecretKey" . -}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-storage-migration-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- /* In single-upgrade mode the copy Job is a pre-upgrade hook, so the credentials it
+         reads must be created in that phase too -- a normal resource does not exist yet. */}}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
+{{/* The copy Job needs BOTH credential sets at once, and the doc-store Secret only ever
+     carries the active one -- hence a Secret of its own. */}}
+data:
+  SRC_ENDPOINT: {{ (ternary $newEndpoint $oldEndpoint $reverse) | b64enc | quote }}
+  SRC_ACCESS_KEY: {{ (ternary $newKey $oldKey $reverse) | b64enc | quote }}
+  SRC_SECRET_KEY: {{ (ternary $newSecret $oldSecret $reverse) | b64enc | quote }}
+  SRC_BUCKET: {{ (ternary $bucket $oldBucket $reverse) | b64enc | quote }}
+  DST_ENDPOINT: {{ (ternary $oldEndpoint $newEndpoint $reverse) | b64enc | quote }}
+  DST_ACCESS_KEY: {{ (ternary $oldKey $newKey $reverse) | b64enc | quote }}
+  DST_SECRET_KEY: {{ (ternary $oldSecret $newSecret $reverse) | b64enc | quote }}
+  DST_BUCKET: {{ (ternary $oldBucket $bucket $reverse) | b64enc | quote }}
+{{- end }}
