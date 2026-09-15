@@ -1,0 +1,66 @@
+{{- if .Values.services.mcp_server.enabled }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-mcp-server-vars
+data:
+  MCP_PATH_PREFIX: {{ .Values.services.mcp_server.path_prefix | default "/mcp" | quote }}
+  {{- $scheme := "http" }}
+  {{- if eq (include "plane.tlsEnabled" .) "true" }}
+  {{- $scheme = "https" }}
+  {{- end }}
+  PLANE_BASE_URL: {{ default (printf "%s://%s" $scheme .Values.license.licenseDomain) .Values.services.mcp_server.plane_base_url | quote }}
+  PLANE_INTERNAL_BASE_URL: {{ default (printf "http://%s-api.%s.svc.%s:8000" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local")) .Values.services.mcp_server.plane_internal_base_url | quote }}
+
+---
+
+{{- if empty .Values.external_secrets.mcp_server_env_existingSecret }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-mcp-server-secrets
+stringData:
+  {{- if .Values.services.mcp_server.plane_oauth.enabled }}
+  PLANE_OAUTH_PROVIDER_CLIENT_ID: {{ .Values.services.mcp_server.plane_oauth.client_id | quote }}
+  PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.mcp_server.plane_oauth.client_secret | quote }}
+  PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.mcp_server.plane_oauth.provider_base_url | quote }}
+  {{- end }}
+  {{- if include "plane.externalRedis" . }}
+  {{/* Redis comes from external_secrets.redis as discrete REDIS_* env entries on the
+       deployment (plane.redisCredsEnv), the same way live and Plane AI consume it. */}}
+  {{- else if .Values.services.redis.local_setup }}
+  REDIS_HOST: {{ include "plane.redisHost" . | quote }}
+  REDIS_PORT: {{ .Values.services.redis.servicePort | default 6379 | quote }}
+  {{- else }}
+  {{- /* Remote redis without external_secrets.redis: the MCP server reads discrete
+         REDIS_* parts, so derive them from env.remote_redis_url
+         (redis[s]://[user[:password]]@host[:port][/db]). */}}
+  {{- $redisUrl := .Values.env.remote_redis_url | default "" }}
+  {{- $stripped := $redisUrl | trimPrefix "rediss://" | trimPrefix "redis://" }}
+  {{- $authority := (split "/" $stripped)._0 }}
+  {{- $password := "" }}
+  {{- if contains "@" $authority }}
+  {{- $parts := splitList "@" $authority }}
+  {{- $userinfo := index $parts 0 }}
+  {{- $authority = last $parts }}
+  {{- if contains ":" $userinfo }}
+  {{- $password = (splitList ":" $userinfo) | rest | join ":" }}
+  {{- end }}
+  {{- end }}
+  {{- $hostParts := splitList ":" $authority }}
+  REDIS_HOST: {{ index $hostParts 0 | quote }}
+  REDIS_PORT: {{ (gt (len $hostParts) 1) | ternary (index $hostParts 1) "6379" | quote }}
+  {{- if $password }}
+  REDIS_PASSWORD: {{ $password | quote }}
+  {{- end }}
+  {{- if hasPrefix "rediss://" $redisUrl }}
+  REDIS_SSL: "true"
+  {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- end }}

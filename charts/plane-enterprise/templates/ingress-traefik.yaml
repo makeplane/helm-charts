@@ -110,6 +110,16 @@ spec:
         port: 8000
   {{- end }}
 
+  {{- if .Values.services.mcp_server.enabled }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ .Values.services.mcp_server.path_prefix | default "/mcp" }}`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-mcp-server
+        port: 8211
+  {{- end }}
+
   {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
     kind: Rule
