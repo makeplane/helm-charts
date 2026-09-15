@@ -13,6 +13,33 @@ only helm upgrade and helm upgrade --dry-run.
 {{- end }}
 
 {{- /*
+Garage is enabled by DEFAULT in this major version, so a release that was using external
+object storage and never had a garage key in its values would silently have its endpoint
+replaced by the bundled store -- the app would come up pointing at an empty bucket. The two
+are a genuine contradiction, so refuse rather than pick a winner.
+Not reachable with storage_provider=GCS, which disables the bundled store outright.
+*/ -}}
+{{- if and (eq (include "plane.garageEnabled" .) "true") (or .Values.env.aws_s3_endpoint_url .Values.env.aws_access_key .Values.external_secrets.storage.secretName) }}
+{{- fail `
+The bundled Garage is enabled AND external object storage is configured
+(env.aws_s3_endpoint_url, env.aws_access_key or external_secrets.storage.secretName).
+Only one of them can serve the app.
+
+plane-enterprise 4.0.0 enables the bundled Garage by default, so a release that was using
+external storage and never set a garage key inherits it on upgrade. That would point every
+service at an empty bucket.
+
+  Keeping your external store (most likely): set services.garage.local_setup=false
+  Moving to the bundled Garage:             clear env.aws_s3_endpoint_url,
+                                            env.aws_access_key, env.aws_secret_access_key
+                                            and external_secrets.storage.secretName
+
+To copy objects out of that external store into Garage, leave it configured as the copy
+source instead: services.storage_migration.source.{endpoint,access_key,secret_key,bucket}.
+` }}
+{{- end }}
+
+{{- /*
 The dangerous path: a 3.7.x release whose values never mentioned either store inherits
 4.0.0's new defaults and would silently point every service at an EMPTY Garage bucket.
 Nothing is deleted, but every existing attachment 404s. There is no in-values signal that

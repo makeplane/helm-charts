@@ -1476,6 +1476,15 @@ every step reversible until you delete the MinIO volume yourself.
 | `done` | Garage | none |
 | `no-minio-data` | Garage | none — for a release that never used the bundled MinIO |
 
+### Already using external S3 or GCS?
+
+Garage is enabled by default in this major version, so a release that used external object
+storage and never had a `garage` key in its values would inherit the bundled store on
+upgrade. The chart refuses that outright rather than replacing your endpoint. Set
+`services.garage.local_setup=false` and your configuration is otherwise unchanged. GCS
+(`env.storage_provider: GCS`) already disables the bundled store, so those releases upgrade
+with no change at all.
+
 ### Phase 0 — before you start
 
 1. **Measure the source.** `kubectl exec <rel>-minio-wl-0 -n <ns> -- du -sh /data`. Set
