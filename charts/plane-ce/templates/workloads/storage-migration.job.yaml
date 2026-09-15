@@ -1,5 +1,5 @@
 {{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
-{{- $stage := .Values.storage_migration.stage | default "" -}}
+{{- $stage := include "plane.storageStage" . -}}
 {{- /* cutover runs several passes because writes are not frozen: pods roll gradually, so
        a not-yet-rolled worker can still write to the old store for a minute or two. */ -}}
 {{- $passes := .Values.storage_migration.passes | default (eq $stage "cutover" | ternary 3 1) -}}
@@ -12,7 +12,21 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-storage-migrate-{{ .Release.Revision }}
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.storage_migration) }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- /* On the Job's OWN metadata: plane.storageStage reads it back through `lookup`
+           to advance the migration on the next upgrade. */}}
+    plane.so/storage-migration-stage: {{ $stage | quote }}
+    {{- with .Values.storage_migration.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- /* Each upgrade renders a new Job name, so without this Helm would delete the
+           previous one -- the record plane.storageStage reads to know what is done. */}}
+    helm.sh/resource-policy: keep
+    {{- with .Values.storage_migration.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   backoffLimit: {{ .Values.storage_migration.backoffLimit | default 3 }}
   {{- with .Values.storage_migration.ttlSecondsAfterFinished }}
@@ -32,7 +46,7 @@ spec:
       initContainers:
         - name: wait-for-stores
           image: {{ .Values.storage_migration.init_image | default "busybox" }}
-          command: ['sh', '-c', "until nslookup {{ .Release.Name }}-garage; do echo waiting for garage; sleep 2; done"]
+          command: ['sh', '-c', "until nslookup {{ .Release.Name }}-garage.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}; do echo waiting for garage; sleep 2; done"]
       containers:
         - name: {{ .Release.Name }}-storage-migrate
           image: {{ .Values.storage_migration.image | default .Values.minio.image_mc }}

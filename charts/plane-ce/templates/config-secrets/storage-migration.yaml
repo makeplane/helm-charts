@@ -1,14 +1,14 @@
 {{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
-{{- $stage := .Values.storage_migration.stage | default "" -}}
+{{- $stage := include "plane.storageStage" . -}}
 {{- /* One template serves both directions: rollback swaps source and destination. */ -}}
 {{- $reverse := eq $stage "rollback" -}}
 {{- $bucket := .Values.env.docstore_bucket | default "uploads" -}}
 {{- $src := .Values.storage_migration.source -}}
-{{- $oldEndpoint := $src.endpoint | default (printf "http://%s-minio:9000" .Release.Name) -}}
+{{- $oldEndpoint := $src.endpoint | default (printf "http://%s-minio.%s.svc.%s:9000" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local")) -}}
 {{- $oldKey := $src.access_key | default .Values.minio.root_user | default "admin" -}}
 {{- $oldSecret := $src.secret_key | default .Values.minio.root_password | default "password" -}}
 {{- $oldBucket := $src.bucket | default $bucket -}}
-{{- $newEndpoint := printf "http://%s-garage:3900" .Release.Name -}}
+{{- $newEndpoint := printf "http://%s-garage.%s.svc.%s:3900" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
 {{- $newKey := include "plane.garageAccessKey" . -}}
 {{- $newSecret := include "plane.garageSecretKey" . -}}
 apiVersion: v1

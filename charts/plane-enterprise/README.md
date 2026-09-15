@@ -1457,16 +1457,30 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 
 ## Migrating from bundled MinIO to Garage
 
-Chart 4.0.0 makes Garage the bundled object store. Upgrading an existing release is a data
-migration, not a values change: the chart **refuses** any upgrade that would newly enable
-Garage until `services.storage_migration.stage` is set, because there is no way for it to
-tell a 3.7.x release with a full MinIO bucket from a fresh install, and guessing wrong points
-every service at an empty bucket.
+**Just run `helm upgrade`.** The chart looks for a bundled MinIO in the cluster and, when it
+finds one, drives the migration itself over two ordinary upgrades:
 
-The copy is **additive and idempotent**. It never deletes from the source, which is what makes
-every step reversible until you delete the MinIO volume yourself.
+| | What the upgrade does | Plane serves from |
+| --- | --- | --- |
+| 1st `helm upgrade` | Brings Garage up beside MinIO and copies every object into it. Plane is untouched. | MinIO |
+| 2nd `helm upgrade` | Once that copy verifies, moves Plane onto Garage and reconciles anything written since. | Garage |
+| after | Nothing. No copy Job renders. | Garage |
 
-### What the stages mean
+Run the second one when the first copy Job has succeeded. `NOTES` tells you which stage you
+are in and what the next upgrade will do. MinIO stays deployed until you remove it, so
+rollback is available the whole time.
+
+The only user-visible effect is during the second upgrade: pods roll while the ingress route
+flips at once, so for a minute or three an asset request served by a pod that has not
+restarted yet fails and needs a retry. Nothing is lost, and no write goes to the wrong store.
+
+Why two upgrades and not one: Helm applies manifests, it does not sequence "copy, wait, then
+switch". Doing both at once would point Plane at an empty bucket for the length of the copy.
+
+### Driving it by hand
+
+Set `services.storage_migration.auto: false` to turn the automatic progression off, or set
+`services.storage_migration.stage` to pin a stage. An explicit stage always wins.
 
 | stage | Serving | Copy Job |
 | --- | --- | --- |
@@ -1476,35 +1490,15 @@ every step reversible until you delete the MinIO volume yourself.
 | `done` | Garage | none |
 | `no-minio-data` | Garage | none — for a release that never used the bundled MinIO |
 
-### Already using external S3 or GCS?
+Because Helm's cluster lookups return nothing during `--dry-run`, a dry run renders as
+though no MinIO were present. Pin the stage explicitly to make one faithful.
 
-Garage is enabled by default in this major version, so a release that used external object
-storage and never had a `garage` key in its values would inherit the bundled store on
-upgrade. The chart refuses that outright rather than replacing your endpoint. Set
-`services.garage.local_setup=false` and your configuration is otherwise unchanged. GCS
-(`env.storage_provider: GCS`) already disables the bundled store, so those releases upgrade
-with no change at all.
+The copy is **additive and idempotent**. It never deletes from the source, which is what
+makes every step reversible until you delete the MinIO volume yourself.
 
 ### Phase 0 — before you start
 
-1. **Measure the source.** `kubectl exec <rel>-minio-wl-0 -n <ns> -- du -sh /data`. Set
-   `services.garage.dataVolumeSize` well above that. Both volumes exist at once, so the
-   cluster needs roughly `source + 1.5 x source` free — on the same node if your storage
-   class is node-local. This is the most likely thing to go wrong.
-2. **Snapshot the MinIO volume.** The copy never deletes from it, but this is the only
-   recovery from a mistake made outside the chart.
-3. **On long-lived installs only**, check for legacy absolute URLs left by the pre-`FileAsset`
-   schema:
-   ```sql
-   SELECT count(*) FROM users      WHERE avatar LIKE '%:9000%' OR cover_image LIKE '%:9000%';
-   SELECT count(*) FROM workspaces WHERE logo LIKE '%:9000%';
-   SELECT count(*) FROM projects   WHERE cover_image LIKE '%:9000%';
-   ```
-   These columns are fallbacks behind the `*_asset` foreign keys, so a non-zero count is
-   cosmetic rather than fatal — but it is the one case where copying the objects is not
-   sufficient, and it needs a one-off `UPDATE` afterwards.
-
-### Phase 1 — bulk sync, with Plane fully live
+### Doing it step by step
 
 ```bash
 helm upgrade <rel> plane/plane-enterprise --version 4.0.0 -f values.yaml \

@@ -163,6 +163,13 @@ garage:
 # An upgrade that would newly enable Garage with this unset is refused -- see
 # templates/validations.yaml and the README runbook.
 storage_migration:
+  # Advance the migration automatically, so a plain `helm upgrade` is all that is needed:
+  # the chart looks for a bundled MinIO in the cluster, keeps the app on it while Garage
+  # fills alongside, moves the app across once that copy is verified, and finishes once the
+  # reconcile is verified. Set false to require every step to be named explicitly.
+  auto: true
+  # Force a stage, overriding the automatic choice. Also the way to make `--dry-run`
+  # faithful, since Helm's cluster lookups return nothing during one.
   stage: ''
   source:
     endpoint: ''

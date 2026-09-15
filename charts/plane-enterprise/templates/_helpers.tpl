@@ -100,15 +100,94 @@ must disable the MinIO StatefulSet, bucket job, ingress routes and certs regardl
 of the local_setup flag's value.
 */}}
 {{- define "plane.minioEnabled" -}}
-  {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
-    true
+  {{- if ne (.Values.env.storage_provider | default "S3" | upper) "GCS" -}}
+    {{- if or .Values.services.minio.local_setup (and (has (include "plane.storageStage" .) (list "bulk-sync" "cutover" "rollback")) (not .Values.services.storage_migration.source.endpoint)) -}}
+      true
+    {{- end -}}
   {{- end -}}
 {{- end -}}
 
 {{/*
-Returns "true" when the bundled Garage should be deployed. Mirrors plane.minioEnabled:
-GCS native mode never uses a bundled store, so selecting it disables Garage too.
+Does this release still have a bundled MinIO holding objects? Answered from the CLUSTER,
+because a 3.7.x release that never set a storage key looks identical in its values to a
+fresh install -- and guessing wrong points every service at an empty bucket.
+The PVC is checked too: it outlives the StatefulSet, so data can remain after MinIO is
+scaled away.
 */}}
+{{- define "plane.minioDeployed" -}}
+{{- if lookup "apps/v1" "StatefulSet" .Release.Namespace (printf "%s-minio-wl" .Release.Name) -}}
+true
+{{- else if lookup "v1" "PersistentVolumeClaim" .Release.Namespace (printf "pvc-%s-minio-vol-%s-minio-wl-0" .Release.Name .Release.Name) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Has a storage-migration Job for this stage finished successfully? Jobs are named per run,
+so they are matched on the stage label rather than by name.
+*/}}
+{{- define "plane.migrationJobSucceeded" -}}
+{{- $ctx := .context -}}
+{{- $want := .stage -}}
+{{- $found := "" -}}
+{{- range (lookup "batch/v1" "Job" $ctx.Release.Namespace "").items -}}
+  {{- if and (eq (get (.metadata.labels | default dict) "plane.so/storage-migration-stage") $want) (gt (int (get (.status | default dict) "succeeded" | default 0)) 0) -}}
+    {{- $found = "true" -}}
+  {{- end -}}
+{{- end -}}
+{{- $found -}}
+{{- end -}}
+
+{{/*
+Has the app already been moved to Garage? Read from the LIVE doc-store Secret, which is
+the one durable record of which store is in use. This makes the progression one-way: once
+the app is on Garage it can never fall back to bulk-sync and start serving from MinIO
+again, which would hide everything uploaded since the cutover.
+*/}}
+{{- define "plane.appOnGarage" -}}
+{{- $sec := lookup "v1" "Secret" .Release.Namespace (printf "%s-doc-store-secrets" .Release.Name) -}}
+{{- if $sec -}}
+{{- $enc := get ($sec.data | default dict) "AWS_S3_ENDPOINT_URL" | default "" -}}
+{{- if and $enc (contains (printf "%s-garage" .Release.Name) ($enc | b64dec)) -}}
+true
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The stage actually in force. An explicit services.storage_migration.stage always wins.
+Otherwise the chart advances itself, so a plain `helm upgrade` is enough:
+
+  MinIO present, app on MinIO   -> bulk-sync  (app stays put, Garage fills alongside)
+  bulk-sync verified            -> cutover    (app moves to Garage, reconcile runs)
+  app on Garage, cutover done   -> done       (Garage serves everything, no Job)
+
+Ordering matters: the app-on-Garage test comes first so the sequence only ever moves
+forward. While the app is on Garage and MinIO still exists, an unverified state repeats
+the reconcile, which is idempotent and cheap -- the safe direction to fail in.
+
+lookup returns empty under `helm template` and `--dry-run`, so those render as a clean
+install. Set the stage explicitly to make a dry-run faithful.
+*/}}
+{{- define "plane.storageStage" -}}
+{{- $explicit := .Values.services.storage_migration.stage | default "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if and .Values.services.storage_migration.auto (eq (include "plane.garageEnabled" .) "true") -}}
+{{- if eq (include "plane.appOnGarage" .) "true" -}}
+{{- if or (eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "cutover")) "true") (ne (include "plane.minioDeployed" .) "true") -}}
+done
+{{- else -}}
+cutover
+{{- end -}}
+{{- else if eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "bulk-sync")) "true" -}}
+cutover
+{{- else if eq (include "plane.minioDeployed" .) "true" -}}
+bulk-sync
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "plane.garageEnabled" -}}
   {{- if and .Values.services.garage.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
     true
@@ -122,7 +201,7 @@ exactly one serves traffic. Two active stores would put two backends on the same
 /<bucket> ingress path and hand presigned URLs signed for one store to the other.
 */}}
 {{- define "plane.minioActive" -}}
-  {{- $stage := .Values.services.storage_migration.stage | default "" -}}
+  {{- $stage := include "plane.storageStage" . -}}
   {{- if eq (include "plane.minioEnabled" .) "true" -}}
     {{- if or (ne (include "plane.garageEnabled" .) "true") (has $stage (list "bulk-sync" "rollback")) -}}
       true
@@ -216,7 +295,7 @@ https", so it follows whichever store is active rather than the MinIO values key
 Returns "true" when a storage-migration copy Job should render.
 */}}
 {{- define "plane.storageMigrationEnabled" -}}
-{{- if has (.Values.services.storage_migration.stage | default "") (list "bulk-sync" "cutover" "rollback") -}}
+{{- if has (include "plane.storageStage" .) (list "bulk-sync" "cutover" "rollback") -}}
 true
 {{- end -}}
 {{- end -}}

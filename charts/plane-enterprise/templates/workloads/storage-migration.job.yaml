@@ -1,5 +1,5 @@
 {{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
-{{- $stage := .Values.services.storage_migration.stage | default "" -}}
+{{- $stage := include "plane.storageStage" . -}}
 {{- /* cutover runs several passes because writes are not frozen: pods roll gradually, so
        a not-yet-rolled worker can still write to the old store for a minute or two. */ -}}
 {{- $passes := .Values.services.storage_migration.passes | default (eq $stage "cutover" | ternary 3 1) -}}
@@ -13,7 +13,21 @@ kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-storage-migrate-{{ now | date "20060102-150405" }}
-  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.storage_migration) }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+    {{- /* On the Job's OWN metadata, not just the pod template: plane.storageStage reads
+           it back through `lookup` to advance the migration on the next upgrade. */}}
+    plane.so/storage-migration-stage: {{ $stage | quote }}
+    {{- with .Values.services.storage_migration.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- /* Each upgrade renders a new timestamped name, so without this Helm would delete
+           the previous Job -- the record plane.storageStage reads to know what is done. */}}
+    helm.sh/resource-policy: keep
+    {{- with .Values.services.storage_migration.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   backoffLimit: {{ .Values.services.storage_migration.backoffLimit | default 3 }}
   {{- with .Values.services.storage_migration.ttlSecondsAfterFinished }}
@@ -24,6 +38,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-storage-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        plane.so/storage-migration-stage: {{ $stage | quote }}
         {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
         timestamp: {{ now | quote }}

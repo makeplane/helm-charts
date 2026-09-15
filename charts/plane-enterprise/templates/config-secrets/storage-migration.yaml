@@ -1,5 +1,5 @@
 {{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
-{{- $stage := .Values.services.storage_migration.stage | default "" -}}
+{{- $stage := include "plane.storageStage" . -}}
 {{- /* One template serves both directions: rollback swaps source and destination. */ -}}
 {{- $reverse := eq $stage "rollback" -}}
 {{- $bucket := .Values.env.docstore_bucket | default "uploads" -}}

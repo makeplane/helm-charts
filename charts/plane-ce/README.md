@@ -265,20 +265,36 @@ reach it with `kubectl port-forward svc/<release>-garage 3903:3903` and the `adm
 
 ## Migrating from bundled MinIO to Garage
 
-Chart 2.0.0 makes Garage the bundled object store. Upgrading an existing release is a data
-migration, not a values change: the chart **refuses** any upgrade that would newly enable
-Garage until `storage_migration.stage` is set, because there is no way for it to tell a 1.x
-release with a full MinIO bucket from a fresh install, and guessing wrong points every
-service at an empty bucket.
+**Just run `helm upgrade`.** The chart looks for a bundled MinIO in the cluster and, when it
+finds one, drives the migration itself over two ordinary upgrades:
 
-The copy is **additive and idempotent**. It never deletes from the source, which is what makes
-every step reversible until you delete the MinIO volume yourself.
+| | What the upgrade does | Plane serves from |
+| --- | --- | --- |
+| 1st `helm upgrade` | Brings Garage up beside MinIO and copies every object into it. Plane is untouched. | MinIO |
+| 2nd `helm upgrade` | Once that copy verifies, moves Plane onto Garage and reconciles anything written since. | Garage |
+| after | Nothing. No copy Job renders. | Garage |
+
+Run the second one when the first copy Job has succeeded
+(`kubectl logs -f -n <ns> job/<release>-storage-migrate-<revision>`). MinIO stays deployed
+until you remove it, so rollback is available the whole time.
+
+The only user-visible effect is during the second upgrade: pods roll while the ingress route
+flips at once, so for a minute or three an asset request served by a pod that has not
+restarted yet fails and needs a retry. Nothing is lost, and no write goes to the wrong store.
+
+Why two upgrades and not one: Helm applies manifests, it does not sequence "copy, wait, then
+switch". Doing both at once would point Plane at an empty bucket for the length of the copy.
 
 > **One-off, required.** Chart 2.0.0 changes the doc-store Secret from `stringData` to
 > `data`, because Helm cannot remove a key it stops rendering when the manifest writes
 > `stringData` and the live object stores `data`. Before the first 2.0.0 upgrade, run
 > `kubectl delete secret <release>-doc-store-secrets -n <ns>` once; `helm upgrade` recreates
 > it. Skip this and a stale `AWS_ACCESS_KEY_ID` can shadow the new one.
+
+### Driving it by hand
+
+Set `storage_migration.auto: false` to turn the automatic progression off, or set
+`storage_migration.stage` to pin a stage. An explicit stage always wins.
 
 | stage | Serving | Copy Job |
 | --- | --- | --- |
@@ -288,14 +304,11 @@ every step reversible until you delete the MinIO volume yourself.
 | `done` | Garage | none |
 | `no-minio-data` | Garage | none — for a release that never used the bundled MinIO |
 
-### Already using external S3 or GCS?
+Because Helm's cluster lookups return nothing during `--dry-run`, a dry run renders as
+though no MinIO were present. Pin the stage explicitly to make one faithful.
 
-Garage is enabled by default in this major version, so a release that used external object
-storage and never had a `garage` key in its values would inherit the bundled store on
-upgrade. The chart refuses that outright rather than replacing your endpoint. Set
-`garage.local_setup=false` and your configuration is otherwise unchanged. GCS
-(`env.storage_provider: GCS`) already disables the bundled store, so those releases upgrade
-with no change at all.
+The copy is **additive and idempotent**. It never deletes from the source, which is what
+makes every step reversible until you delete the MinIO volume yourself.
 
 **Phase 0.** Measure the source with
 `kubectl exec <rel>-minio-wl-0 -n <ns> -- du -sh /data` and set `garage.dataVolumeSize` well

@@ -145,12 +145,12 @@ as "sign with SigV4".
 {{- end }}
 
 {{- /* Storage migration in progress: say which store is serving and what comes next. */}}
-{{- $stage := .Values.services.storage_migration.stage | default "" }}
+{{- $stage := include "plane.storageStage" . }}
 {{- if eq $stage "bulk-sync" }}
-{{- $warnings = append $warnings (printf "Storage migration stage is 'bulk-sync'. Plane is still serving from %s-minio; Garage is\n    running alongside it and a copy Job is filling it. Re-run this same `helm upgrade` as\n    often as you like -- each run copies only what is new. When a run finishes quickly,\n    move to stage 'cutover'." .Release.Name) }}
+{{- $warnings = append $warnings (printf "Storage migration in progress, stage 'bulk-sync'. Plane is STILL SERVING FROM %s-minio\n    and is unaffected; Garage is running alongside and a copy Job is filling it.\n    Watch it:  kubectl logs -f -n %s -l app.name=%s-%s-storage-migrate\n    WHEN THAT JOB SUCCEEDS, THE NEXT `helm upgrade` MOVES PLANE ONTO GARAGE. Expect a\n    couple of minutes of retryable asset errors while pods roll. To choose that moment\n    yourself instead, set services.storage_migration.auto=false." .Release.Name .Release.Namespace .Release.Namespace .Release.Name) }}
 {{- end }}
 {{- if eq $stage "cutover" }}
-{{- $warnings = append $warnings (printf "Storage migration stage is 'cutover'. Plane now reads and writes %s-garage, and a\n    multi-pass reconcile Job is copying anything that landed in MinIO while pods were\n    rolling. Expect brief asset errors during the rollout. Check the Job succeeded, then\n    set the stage to 'done'. If it fails verification, re-run this same upgrade." .Release.Name) }}
+{{- $warnings = append $warnings (printf "Storage migration stage 'cutover'. Plane now reads and writes %s-garage, and a\n    reconcile Job is copying anything that landed in MinIO while pods were rolling.\n    Brief asset errors during the rollout are expected and retryable. Once that Job\n    succeeds the migration is complete and no further copy Job renders. If it fails\n    verification, just run `helm upgrade` again -- the copy is idempotent." .Release.Name) }}
 {{- end }}
 {{- if eq $stage "rollback" }}
 {{- $warnings = append $warnings (printf "Storage migration stage is 'rollback'. Plane is serving from %s-minio again and a Job\n    is copying Garage back into it. Once that Job is green, set\n    services.garage.local_setup=false." .Release.Name) }}
