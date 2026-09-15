@@ -1,0 +1,146 @@
+{{- if eq (include "plane.garageEnabled" .) "true" }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-garage
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-garage
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+spec:
+  type: ClusterIP
+  {{- if not .Values.garage.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: garage-s3-3900
+    port: 3900
+    protocol: TCP
+    targetPort: 3900
+  {{- /* Admin API. Never expose this through an ingress -- it is full cluster control. */}}
+  - name: garage-admin-3903
+    port: 3903
+    protocol: TCP
+    targetPort: 3903
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-garage
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-garage-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.garage) }}
+spec:
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-garage
+  serviceName: {{ .Release.Name }}-garage
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-garage
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+    spec:
+      {{- include "plane.podScheduling" .Values.garage }}
+      containers:
+      - name: {{ .Release.Name }}-garage
+        image: {{ .Values.garage.image | default "dxflrs/garage:v2.4.1" }}
+        imagePullPolicy: {{ .Values.garage.pullPolicy | default "IfNotPresent" }}
+        {{- /* The image ships no shell, so /garage is invoked directly. --single-node
+               stages a layout only when the layout version is 0, so restarts are no-ops;
+               --default-bucket implies --default-access-key and reads GARAGE_DEFAULT_*. */}}
+        command:
+          - /garage
+        args:
+          - server
+          - --single-node
+          - --default-access-key
+          - --default-bucket
+        ports:
+        - name: s3
+          containerPort: 3900
+        - name: admin
+          containerPort: 3903
+        env:
+          {{- /* Mounting the ConfigMap as a directory rather than a subPath keeps it
+                 updatable; GARAGE_CONFIG_FILE points at it without an argument-order flag. */}}
+          - name: GARAGE_CONFIG_FILE
+            value: /etc/garage/garage.toml
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.garage_existingSecret) }}{{ .Values.external_secrets.garage_existingSecret }}{{ else }}{{ .Release.Name }}-garage-secrets{{ end }}
+              optional: false
+        {{- /* /health on the admin port needs no token (Authorization::None upstream). */}}
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3903
+          periodSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3903
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        resources:
+          requests:
+            memory: {{ .Values.garage.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.garage.cpuRequest | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.garage.memoryLimit | default "1Gi" | quote }}
+            cpu: {{ .Values.garage.cpuLimit | default "1000m" | quote }}
+        volumeMounts:
+        - mountPath: /mnt/meta
+          name: pvc-{{ .Release.Name }}-garage-meta
+        - mountPath: /mnt/data
+          name: pvc-{{ .Release.Name }}-garage-data
+        - mountPath: /etc/garage
+          name: {{ .Release.Name }}-garage-config
+          readOnly: true
+      volumes:
+      - name: {{ .Release.Name }}-garage-config
+        configMap:
+          name: {{ .Release.Name }}-garage-config
+          items:
+          - key: garage.toml
+            path: garage.toml
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      namespace: {{ .Release.Namespace }}
+      name: pvc-{{ .Release.Name }}-garage-meta
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.garage.metaVolumeSize | default "2Gi" | quote }}
+      storageClassName: {{ .Values.garage.metaStorageClass | default .Values.garage.storageClass | quote }}
+      volumeMode: Filesystem
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      namespace: {{ .Release.Namespace }}
+      name: pvc-{{ .Release.Name }}-garage-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.garage.dataVolumeSize | default "10Gi" | quote }}
+      storageClassName: {{ .Values.garage.storageClass | quote }}
+      volumeMode: Filesystem
+{{- end }}

@@ -107,11 +107,94 @@ rabbitmq:
   tolerations: []
   affinity: {}
 
+# Bundled object store. Garage replaces MinIO as of chart 2.0.0.
+# Self-provisions: --single-node creates its own cluster layout on first boot and
+# --default-bucket creates the bucket and access key, both idempotent on restart.
+garage:
+  local_setup: true
+  image: dxflrs/garage:v2.4.1
+  pullPolicy: IfNotPresent
+  # Object data. Sized well above the MinIO default on purpose: an undersized data volume
+  # fails MID-COPY during a migration, which is the worst place to run out of room.
+  dataVolumeSize: 10Gi
+  # LMDB index. Small but latency-sensitive, so it gets its own claim.
+  metaVolumeSize: 2Gi
+  storageClass: ""
+  metaStorageClass: ""        # defaults to garage.storageClass
+  # LMDB can be corrupted by an unclean shutdown, and a pod eviction is one; at
+  # replication_factor 1 there is no peer to resync from. Costs write throughput.
+  metadata_fsync: true
+  data_fsync: false
+  db_engine: lmdb
+  compression_level: 1
+  # MUST match what the app signs with; the chart renders AWS_REGION from the same value
+  # so the two cannot drift. Empty falls back to env.aws_region, then us-east-1.
+  s3_region: ''
+  # Leave empty and the chart derives stable values from the release name and namespace --
+  # which are PUBLIC, so set these at FIRST install in production. access_key must be
+  # GK + 24 lowercase hex; secret_key and rpc_secret must be 64 lowercase hex.
+  # Rotating secret_key alone makes Garage refuse to start: change both keys together.
+  access_key: ''
+  secret_key: ''
+  rpc_secret: ''
+  admin_token: ''
+  extra_config: ''            # raw TOML appended to garage.toml
+  bind_address: '[::]'
+  assign_cluster_ip: false
+  memoryLimit: 1Gi
+  cpuLimit: 1000m
+  memoryRequest: 256Mi
+  cpuRequest: 100m
+  env:
+    endpoint_ssl: false
+  labels: {}
+  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Copies every object from the old store into the new one. Drives the whole migration:
+#   ''             no migration in progress (the default)
+#   no-minio-data  this release never used the bundled MinIO, or its bucket is empty
+#   bulk-sync      app keeps serving from MinIO; Garage runs alongside; copy Job runs
+#   cutover        app switches to Garage; multi-pass reconcile Job runs
+#   rollback       app switches back to MinIO; copies Garage -> MinIO
+#   done           migration complete; Garage serves everything; no Job
+# An upgrade that would newly enable Garage with this unset is refused -- see
+# templates/validations.yaml and the README runbook.
+storage_migration:
+  stage: ''
+  source:
+    endpoint: ''
+    access_key: ''
+    secret_key: ''
+    bucket: ''
+  passes: 0                   # 0 -> 1 pass for bulk-sync, 3 for cutover
+  pass_interval_seconds: 300
+  verify: true
+  image: ''                   # defaults to minio.image_mc
+  init_image: busybox
+  pullPolicy: IfNotPresent
+  backoffLimit: 3
+  ttlSecondsAfterFinished: '' # unset: the Job log is the audit record
+  memoryLimit: 1Gi
+  cpuLimit: 1000m
+  memoryRequest: 256Mi
+  cpuRequest: 100m
+  labels: {}
+  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# DEPRECATED as of chart 2.0.0: the bundled object store is now Garage (see garage above).
+# MinIO still renders so an existing release can keep serving from it while its objects are
+# copied across -- the only supported reason to enable it. Removed in 3.0.0.
 minio:
   image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
   image_mc: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
   init_image: busybox
-  local_setup: true
+  local_setup: false
   pullPolicy: IfNotPresent
   root_password: password
   root_user: admin
@@ -308,6 +391,11 @@ external_secrets:
   rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
   doc_store_existingSecret: ''
+  # Secret carrying MINIO_ROOT_USER / MINIO_ROOT_PASSWORD for the bundled MinIO server.
+  minio_existingSecret: ''
+  # Secret carrying GARAGE_RPC_SECRET, GARAGE_ADMIN_TOKEN, GARAGE_DEFAULT_ACCESS_KEY,
+  # GARAGE_DEFAULT_SECRET_KEY and GARAGE_DEFAULT_BUCKET for the bundled Garage.
+  garage_existingSecret: ''
   app_env_existingSecret: ''
   live_env_existingSecret: ''
 

@@ -811,7 +811,48 @@ the bundled datastores off. Three things to know before you use it:
 | env.opensearch_index_prefix              |              plane_               |          | Prefix to be used for OpenSearch indices. This helps organize indices in a multi-tenant or multi-environment setup.                                                                                                                                                                                                                        |
 | env.opensearch_embedding_dimension       |               1536                |          | Embedding vector dimension used for OpenSearch semantic/vector indexing.                                                                                                                                                                                                                               |
 
-### Doc Store (Minio/S3/GCS) Setup
+### Doc Store (Garage/S3/GCS) Setup
+
+Chart 4.0.0 replaces the bundled MinIO with [Garage](https://garagehq.deuxfleurs.fr). MinIO
+still renders so an existing release can keep serving from it while its objects are copied
+across, and is removed in 5.0.0. **An existing release must not simply upgrade** — see
+[Migrating from bundled MinIO to Garage](#migrating-from-bundled-minio-to-garage). The chart
+refuses the upgrade until you have said which stage you are at.
+
+| Key | Default | Required | Description |
+| --- | --- | --- | --- |
+| services.garage.local_setup | true | | Deploy the bundled Garage object store. Set `false` when using external S3 or GCS. |
+| services.garage.image | dxflrs/garage:v2.4.1 | | Garage image. Needs v2.3.0 or newer for `--single-node`. |
+| services.garage.dataVolumeSize | 10Gi | | Object data volume. Size it from the measured size of the store you are migrating from, with headroom — an undersized volume fails *mid-copy*. |
+| services.garage.metaVolumeSize | 2Gi | | LMDB index volume. Small but latency-sensitive. |
+| services.garage.metaStorageClass | | | Storage class for the metadata volume. Defaults to `env.storageClass`; point it at a faster class if you have one. |
+| services.garage.access_key | | | `GK` plus exactly 24 lowercase hex characters. Empty derives a stable value from the release name and namespace, which are **public**. |
+| services.garage.secret_key | | | 64 lowercase hex characters (`openssl rand -hex 32`). **Rotating this alone makes Garage refuse to start** — change it together with `access_key`. |
+| services.garage.rpc_secret | | | 64 lowercase hex characters. Delivered as `GARAGE_RPC_SECRET`, so `garage.toml` holds no secrets. |
+| services.garage.admin_token | | | Bearer token for the admin API on port 3903. |
+| services.garage.s3_region | | | Region Garage accepts. The chart renders `AWS_REGION` from the same value so the two cannot drift. Empty falls back to `env.aws_region`, then `us-east-1`. Garage rejects a request signed for any other region with `AuthorizationHeaderMalformed`. |
+| services.garage.metadata_fsync | true | | Sync metadata writes. LMDB can be corrupted by an unclean shutdown and a pod eviction is one; at replication factor 1 there is no peer to resync from. Costs write throughput. |
+| services.garage.db_engine | lmdb | | `lmdb` or `sqlite`. |
+| services.garage.compression_level | 1 | | Zstd level, or `none`. |
+| services.garage.extra_config | | | Raw TOML appended to `garage.toml`. |
+| services.garage.env.endpoint_ssl | false | | Reach the bundled store over https. Renders `MINIO_ENDPOINT_SSL`, which is the app-side variable name. |
+| external_secrets.garage_existingSecret | | | Supply `GARAGE_*` from a Secret you manage instead. |
+
+Garage is deployed as a single node with `replication_factor = 1`, matching the durability
+the single MinIO pod gave. It self-provisions: `--single-node` creates its own cluster layout
+on first boot and `--default-bucket` creates the bucket and access key, both idempotent on
+restart. There is no bucket-creation Job.
+
+Garage has **no web console**, so there is no equivalent of `ingress.minioHost`. Its admin API
+on port 3903 is full cluster control and is deliberately never exposed through an ingress;
+reach it with `kubectl port-forward svc/<release>-garage 3903:3903` and the `admin_token`.
+
+Garage implements no bucket policies, so there is no equivalent of the MinIO bucket Job's
+`mc anonymous set download`. That is harmless: Plane serves every object through presigned
+GET URLs and never relies on anonymous reads.
+
+### Legacy MinIO Setup (deprecated)
+
 
 | Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------- | :----------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1413,6 +1454,125 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | Setting  | Default | Required | Description                                                                                                                                                                                                                                                                                                                       |
 | -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
+
+## Migrating from bundled MinIO to Garage
+
+Chart 4.0.0 makes Garage the bundled object store. Upgrading an existing release is a data
+migration, not a values change: the chart **refuses** any upgrade that would newly enable
+Garage until `services.storage_migration.stage` is set, because there is no way for it to
+tell a 3.7.x release with a full MinIO bucket from a fresh install, and guessing wrong points
+every service at an empty bucket.
+
+The copy is **additive and idempotent**. It never deletes from the source, which is what makes
+every step reversible until you delete the MinIO volume yourself.
+
+### What the stages mean
+
+| stage | Serving | Copy Job |
+| --- | --- | --- |
+| `bulk-sync` | MinIO | MinIO → Garage, one pass |
+| `cutover` | Garage | MinIO → Garage, 3 passes 5 minutes apart |
+| `rollback` | MinIO | Garage → MinIO |
+| `done` | Garage | none |
+| `no-minio-data` | Garage | none — for a release that never used the bundled MinIO |
+
+### Phase 0 — before you start
+
+1. **Measure the source.** `kubectl exec <rel>-minio-wl-0 -n <ns> -- du -sh /data`. Set
+   `services.garage.dataVolumeSize` well above that. Both volumes exist at once, so the
+   cluster needs roughly `source + 1.5 x source` free — on the same node if your storage
+   class is node-local. This is the most likely thing to go wrong.
+2. **Snapshot the MinIO volume.** The copy never deletes from it, but this is the only
+   recovery from a mistake made outside the chart.
+3. **On long-lived installs only**, check for legacy absolute URLs left by the pre-`FileAsset`
+   schema:
+   ```sql
+   SELECT count(*) FROM users      WHERE avatar LIKE '%:9000%' OR cover_image LIKE '%:9000%';
+   SELECT count(*) FROM workspaces WHERE logo LIKE '%:9000%';
+   SELECT count(*) FROM projects   WHERE cover_image LIKE '%:9000%';
+   ```
+   These columns are fallbacks behind the `*_asset` foreign keys, so a non-zero count is
+   cosmetic rather than fatal — but it is the one case where copying the objects is not
+   sufficient, and it needs a one-off `UPDATE` afterwards.
+
+### Phase 1 — bulk sync, with Plane fully live
+
+```bash
+helm upgrade <rel> plane/plane-enterprise --version 4.0.0 -f values.yaml \
+  --set services.minio.local_setup=true \
+  --set services.garage.local_setup=true \
+  --set services.storage_migration.stage=bulk-sync
+```
+
+Garage starts alongside MinIO and creates its bucket and key. Plane is untouched: the
+doc-store Secret, the `/uploads` ingress route and the TLS SANs all still point at MinIO.
+
+```bash
+kubectl logs -f -n <ns> job/<rel>-storage-migrate-<timestamp>
+```
+
+Repeat the same command as often as you like. Each run copies only what is new, so runs get
+shorter. Move on when a run finishes in minutes.
+
+### Phase 2 — cutover
+
+```bash
+helm upgrade <rel> ... --set services.storage_migration.stage=cutover
+```
+
+This points the doc-store Secret, the ingress route and the TLS SANs at Garage, rolls every
+pod, and starts a three-pass reconcile Job.
+
+**What users see.** Pods roll gradually while the ingress route flips at once, so for the
+length of the rollout — typically one to three minutes — a request served by a pod that has
+not yet restarted signs its presigned URL with MinIO's key and Garage rejects it. Uploads and
+asset loads **error and are retryable**; they never split silently across two stores.
+Server-side writes from workers that have not yet rolled still land in MinIO, which is exactly
+what the reconcile passes are for.
+
+If the Job fails verification here it means a write landed in MinIO after its last pass, not
+that anything was lost. Run the same command again.
+
+### Phase 3 — verify
+
+- The Job reached `Succeeded` and its log ends `OK: N objects present on the destination`.
+- Upload a new attachment in the UI. This exercises the presigned POST path and is the most
+  important single check.
+- Open an **old** attachment, an **old** user avatar and a workspace logo. Avatars live at the
+  bucket root rather than under a workspace prefix, so they catch a partial copy.
+- Export a page to ZIP, which exercises multipart upload and ranged GET.
+- `kubectl logs -n <ns> deploy/<rel>-api | grep -i AuthorizationHeaderMalformed` — any hit
+  means the region in `garage.toml` and `AWS_REGION` disagree.
+
+### Phase 4 — settle
+
+```bash
+helm upgrade <rel> ... --set services.storage_migration.stage=done
+```
+
+No copy Job renders. Leave MinIO deployed for a retention window of days. Then set
+`services.minio.local_setup=false`.
+
+> `helm upgrade` deletes the MinIO StatefulSet but **retains its PersistentVolumeClaim**.
+> Deleting `pvc-<rel>-minio-vol-<rel>-minio-wl-0` is a separate, irreversible step. Snapshot
+> first, and only do it once you are certain.
+
+### Rolling back
+
+Available at any point before you delete that volume:
+
+```bash
+helm upgrade <rel> ... --set services.storage_migration.stage=rollback
+```
+
+MinIO serves again and the Job copies Garage back into it, recovering anything uploaded since
+cutover. Once that Job is green, set `services.garage.local_setup=false`.
+
+### Migrating from an external store
+
+The same Job copies from any S3-compatible source, not just the bundled MinIO. Set
+`services.storage_migration.source.{endpoint,access_key,secret_key,bucket}` and the bundled
+MinIO is not needed at all.
 
 ## Keeping credentials out of values.yaml
 

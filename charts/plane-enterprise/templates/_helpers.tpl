@@ -106,6 +106,122 @@ of the local_setup flag's value.
 {{- end -}}
 
 {{/*
+Returns "true" when the bundled Garage should be deployed. Mirrors plane.minioEnabled:
+GCS native mode never uses a bundled store, so selecting it disables Garage too.
+*/}}
+{{- define "plane.garageEnabled" -}}
+  {{- if and .Values.services.garage.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+ENABLED means "the StatefulSet is deployed"; ACTIVE means "the app and the ingress point
+here". They differ only during a storage migration, when both stores are deployed but
+exactly one serves traffic. Two active stores would put two backends on the same
+/<bucket> ingress path and hand presigned URLs signed for one store to the other.
+*/}}
+{{- define "plane.minioActive" -}}
+  {{- $stage := .Values.services.storage_migration.stage | default "" -}}
+  {{- if eq (include "plane.minioEnabled" .) "true" -}}
+    {{- if or (ne (include "plane.garageEnabled" .) "true") (has $stage (list "bulk-sync" "rollback")) -}}
+      true
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.garageActive" -}}
+  {{- if and (eq (include "plane.garageEnabled" .) "true") (ne (include "plane.minioActive" .) "true") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when ANY chart-owned object store is deployed. This, not minioEnabled
+alone, is the condition that must suppress external_secrets.storage.
+*/}}
+{{- define "plane.bundledObjectStore" -}}
+  {{- if or (eq (include "plane.garageEnabled" .) "true") (eq (include "plane.minioEnabled" .) "true") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Region for the bundled Garage. Garage rejects a request signed for any other region with
+AuthorizationHeaderMalformed, and silo refuses to start without AWS_REGION -- so unlike
+the MinIO branch (which renders no region at all) both sides must agree. Defaults to
+env.aws_region rather than Garage's own "garage": AWS_REGION reaches every container and
+the API signs Amazon OpenSearch Service requests with it too.
+*/}}
+{{- define "plane.garageRegion" -}}
+{{- .Values.services.garage.s3_region | default .Values.env.aws_region | default "us-east-1" -}}
+{{- end -}}
+
+{{/*
+Garage access key. Key::import requires the literal prefix GK plus exactly 24 lowercase
+hex characters, so a user-supplied value is validated rather than silently rejected at
+runtime. The derived fallback is stable across upgrades, which matters: Garage exits at
+startup if the key id already exists with a different secret.
+*/}}
+{{- define "plane.garageAccessKey" -}}
+{{- $v := .Values.services.garage.access_key | default "" -}}
+{{- if $v -}}
+  {{- if not (regexMatch "^GK[0-9a-f]{24}$" $v) -}}
+    {{- fail (printf "services.garage.access_key %q is not a valid Garage access key: it must be the literal prefix GK followed by exactly 24 LOWERCASE hex characters (26 total), e.g. GK0123456789abcdef01234567. Generate one with: printf 'GK%%s' \"$(openssl rand -hex 12)\". Leave it empty to let the chart derive a stable one." $v) -}}
+  {{- end -}}
+  {{- $v -}}
+{{- else -}}
+  {{- printf "GK%s" (printf "plane-garage-access-key/%s/%s" .Release.Namespace .Release.Name | sha256sum | trunc 24) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Garage secret key: exactly 64 lowercase hex characters. sha256sum returns that shape, so
+the derived fallback is format-correct by construction.
+Rotating this ALONE makes Garage refuse to start -- change access_key and secret_key together.
+*/}}
+{{- define "plane.garageSecretKey" -}}
+{{- $v := .Values.services.garage.secret_key | default "" -}}
+{{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
+  {{- fail (printf "services.garage.secret_key must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
+{{- end -}}
+{{- include "plane.secretValue" (dict "context" . "name" "services.garage.secret_key" "value" $v "fallback" (printf "plane-garage-secret-key/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- end -}}
+
+{{- define "plane.garageRpcSecret" -}}
+{{- $v := .Values.services.garage.rpc_secret | default "" -}}
+{{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
+  {{- fail (printf "services.garage.rpc_secret must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
+{{- end -}}
+{{- include "plane.secretValue" (dict "context" . "name" "services.garage.rpc_secret" "value" $v "fallback" (printf "plane-garage-rpc-secret/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- end -}}
+
+{{- define "plane.garageAdminToken" -}}
+{{- include "plane.secretValue" (dict "context" . "name" "services.garage.admin_token" "value" (.Values.services.garage.admin_token | default "") "fallback" (printf "plane-garage-admin-token/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- end -}}
+
+{{/*
+MINIO_ENDPOINT_SSL is an app-side contract meaning "the bundled store is reached over
+https", so it follows whichever store is active rather than the MinIO values key.
+*/}}
+{{- define "plane.storageEndpointSsl" -}}
+{{- if eq (include "plane.garageActive" .) "true" -}}
+{{- .Values.services.garage.env.endpoint_ssl | default false | ternary "1" "0" -}}
+{{- else -}}
+{{- .Values.services.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when a storage-migration copy Job should render.
+*/}}
+{{- define "plane.storageMigrationEnabled" -}}
+{{- if has (.Values.services.storage_migration.stage | default "") (list "bulk-sync" "cutover" "rollback") -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
 Selects which ingress template renders, decoupling the controller *type* (which
 resource kind to emit) from the ingress *class name* (a free-form string).
 Returns "traefik" (IngressRoute), "openshift" (Route per path), "ingress"
@@ -456,12 +572,13 @@ must stay in lockstep across services, so a shared trigger is the safe default.
 
 The list is every config-secret template a workload mounts via envFrom. docker-registry
 and cert-issuers are excluded on purpose: neither is pod env, so hashing them would roll
-every workload for a change no running container can observe.
+every workload for a change no running container can observe. storage-migration is excluded
+for the same reason: only a per-run Job consumes it.
 */}}
 {{- define "plane.configChecksum" -}}
 {{- $ctx := . -}}
 {{- $acc := "" -}}
-{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" "argus-env" "minio" "garage" -}}
 {{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
 {{- end -}}
 {{- $acc | sha256sum -}}
@@ -720,11 +837,11 @@ the live server needs Redis and nothing else.
 
 {{/*
 Returns "true" when object-storage credentials come from an externally managed Secret.
-Never true while the bundled MinIO is deployed — that supplies its own credentials, and
-overriding them would break the in-cluster client.
+Never true while a bundled store (MinIO or Garage) is deployed — that supplies its own
+credentials, and overriding them would break the in-cluster client.
 */}}
 {{- define "plane.externalStorage" -}}
-{{- if and .Values.external_secrets.storage.secretName (not (include "plane.minioEnabled" .)) -}}
+{{- if and .Values.external_secrets.storage.secretName (not (include "plane.bundledObjectStore" .)) -}}
 true
 {{- end -}}
 {{- end -}}

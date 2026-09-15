@@ -7,34 +7,61 @@ metadata:
   name: {{ .Release.Name }}-doc-store-secrets
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
-stringData:
-  FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default 5242880 | quote }}
-  AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
-  {{- if .Values.minio.local_setup }}
-  USE_MINIO: "1"
-  MINIO_ROOT_USER: {{ .Values.minio.root_user | default "admin" | quote }}
-  MINIO_ROOT_PASSWORD: {{ .Values.minio.root_password | default "password" | quote}}
-  AWS_ACCESS_KEY_ID: {{ .Values.minio.root_user | default "admin" | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.minio.root_password | default "password" | quote  }}
-  AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio:9000
+{{/* `data` with b64enc, not `stringData`. This is the one Secret in the chart whose key
+     SET changes between valid configurations -- a bundled store renders AWS_ACCESS_KEY_ID
+     and friends, external storage renders none of them. Helm cannot remove a key it stops
+     rendering when the manifest writes `stringData` and the live object stores `data`: the
+     three-way merge patches stringData, the API server keeps data, and the old key
+     survives. A leftover AWS_ACCESS_KEY_ID is found first in boto3's credential chain and
+     shadows the pod's identity, so every S3 call fails with InvalidClientTokenId while the
+     configuration looks correct.
+     One-time note for releases upgrading FROM chart 1.x, which used stringData: the stale
+     keys still have to go once, with
+       kubectl delete secret <release>-doc-store-secrets
+     followed by `helm upgrade`, which recreates it. Afterwards this never recurs. */}}
+data:
+  FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "5242880" | toString | b64enc | quote }}
+  AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | toString | b64enc | quote }}
+  {{- if eq (include "plane.garageActive" .) "true" }}
+  {{/* USE_MINIO=1 is not a statement about MinIO. It selects the app's "bundled store
+       behind our own ingress" mode: browser-facing presigned URLs are signed against
+       request.get_host() while server-side calls use AWS_S3_ENDPOINT_URL. That keeps
+       uploads same-origin through the /<bucket> ingress route, so the bucket needs no
+       CORS rules -- and it is why USE_MINIO=0 would break here, signing browser URLs
+       against an in-cluster DNS name no browser can resolve. */}}
+  USE_MINIO: {{ "1" | b64enc | quote }}
+  AWS_ACCESS_KEY_ID: {{ include "plane.garageAccessKey" . | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ include "plane.garageSecretKey" . | b64enc | quote }}
+  AWS_S3_ENDPOINT_URL: {{ printf "http://%s-garage:3900" .Release.Name | b64enc | quote }}
+  {{/* Required, unlike the MinIO branch which renders no region at all: Garage rejects a
+       request signed for any other region. Rendered from the same helper that writes
+       s3_region into garage.toml so they cannot drift. */}}
+  AWS_REGION: {{ include "plane.garageRegion" . | b64enc | quote }}
+  {{- else if eq (include "plane.minioActive" .) "true" }}
+  USE_MINIO: {{ "1" | b64enc | quote }}
+  MINIO_ROOT_USER: {{ .Values.minio.root_user | default "admin" | b64enc | quote }}
+  MINIO_ROOT_PASSWORD: {{ .Values.minio.root_password | default "password" | b64enc | quote }}
+  AWS_ACCESS_KEY_ID: {{ .Values.minio.root_user | default "admin" | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ .Values.minio.root_password | default "password" | b64enc | quote }}
+  AWS_S3_ENDPOINT_URL: {{ printf "http://%s-minio:9000" .Release.Name | b64enc | quote }}
   {{- else }}
-  USE_MINIO: "0"
+  USE_MINIO: {{ "0" | b64enc | quote }}
   {{/* Rendered only when supplied. Leaving these unset is the preferred configuration on
        a cloud: the SDK then walks its default credential chain and picks up the pod's
        identity. An empty AWS_ACCESS_KEY_ID would be found first and used, failing every
        request; and an empty AWS_REGION is *present*, so a code-side default never
        applies and a signed request would go out with no region. */}}
   {{- with .Values.env.aws_access_key }}
-  AWS_ACCESS_KEY_ID: {{ . | quote }}
+  AWS_ACCESS_KEY_ID: {{ . | b64enc | quote }}
   {{- end }}
   {{- with .Values.env.aws_secret_access_key }}
-  AWS_SECRET_ACCESS_KEY: {{ . | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ . | b64enc | quote }}
   {{- end }}
   {{- with .Values.env.aws_s3_endpoint_url }}
-  AWS_S3_ENDPOINT_URL: {{ . | quote }}
+  AWS_S3_ENDPOINT_URL: {{ . | b64enc | quote }}
   {{- end }}
   {{- with .Values.env.aws_region }}
-  AWS_REGION: {{ . | quote }}
+  AWS_REGION: {{ . | b64enc | quote }}
   {{- end }}
   {{- end }}
 ---

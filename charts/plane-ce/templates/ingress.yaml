@@ -61,7 +61,18 @@ spec:
                 name: {{ .Release.Name }}-admin
             path: /god-mode
             pathType: Prefix
-          {{- if and .Values.minio.local_setup .Values.env.docstore_bucket }}
+          {{- /* Exactly one backend on this path. During a migration both stores are
+                 deployed, and routing presigned URLs signed for one store to the other
+                 fails every upload -- so this follows the ACTIVE store. */}}
+          {{- if and (eq (include "plane.garageActive" .) "true") .Values.env.docstore_bucket }}
+          - backend:
+              service:
+                port:
+                  number: 3900
+                name: {{ .Release.Name }}-garage
+            path: /{{ .Values.env.docstore_bucket }}
+            pathType: Prefix
+          {{- else if and (eq (include "plane.minioActive" .) "true") .Values.env.docstore_bucket }}
           - backend:
               service:
                 port:
@@ -71,7 +82,7 @@ spec:
             pathType: Prefix
           {{- end }}
 
-    {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+    {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
     - host: {{ .Values.ingress.minioHost }}
       http:
         paths:
@@ -100,7 +111,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.ingress.appHost | quote }}
-      {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+      {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{- end }}
       {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
@@ -111,7 +122,7 @@ spec:
   tls:
     - hosts:
       - {{ .Values.ingress.appHost | quote }}
-      {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+      {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
       - {{ .Values.ingress.minioHost | quote }}
       {{- end }}
       {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}

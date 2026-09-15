@@ -219,10 +219,120 @@ Indentation is baked in for the container envFrom position, so call it bare.
 
 {{/*
 Returns "true" when object-storage credentials come from an externally managed Secret.
-Never true while the bundled MinIO is deployed, which supplies its own.
+Never true while a bundled store (MinIO or Garage) is deployed, which supplies its own.
 */}}
+{{/*
+Returns "true" when the bundled Garage should be deployed.
+*/}}
+{{- define "plane.garageEnabled" -}}
+  {{- if .Values.garage.local_setup -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.minioEnabled" -}}
+  {{- if .Values.minio.local_setup -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+ENABLED means "the StatefulSet is deployed"; ACTIVE means "the app and the ingress point
+here". They differ only during a storage migration, when both stores are deployed but
+exactly one serves traffic. Two active stores would put two backends on the same
+/<bucket> ingress path and hand presigned URLs signed for one store to the other.
+*/}}
+{{- define "plane.minioActive" -}}
+  {{- $stage := .Values.storage_migration.stage | default "" -}}
+  {{- if .Values.minio.local_setup -}}
+    {{- if or (not .Values.garage.local_setup) (has $stage (list "bulk-sync" "rollback")) -}}
+      true
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.garageActive" -}}
+  {{- if and .Values.garage.local_setup (ne (include "plane.minioActive" .) "true") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.bundledObjectStore" -}}
+  {{- if or .Values.garage.local_setup .Values.minio.local_setup -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Region for the bundled Garage. Garage rejects a request signed for any other region with
+AuthorizationHeaderMalformed, so unlike the MinIO branch (which renders no region at all)
+both sides must agree. The chart writes this into garage.toml AND into AWS_REGION.
+*/}}
+{{- define "plane.garageRegion" -}}
+{{- .Values.garage.s3_region | default .Values.env.aws_region | default "us-east-1" -}}
+{{- end -}}
+
+{{/*
+Garage access key. Key::import requires the literal prefix GK plus exactly 24 lowercase hex
+characters. The derived fallback is stable across upgrades, which matters: Garage exits at
+startup if the key id already exists with a different secret.
+*/}}
+{{- define "plane.garageAccessKey" -}}
+{{- $v := .Values.garage.access_key | default "" -}}
+{{- if $v -}}
+  {{- if not (regexMatch "^GK[0-9a-f]{24}$" $v) -}}
+    {{- fail (printf "garage.access_key %q is not a valid Garage access key: it must be the literal prefix GK followed by exactly 24 LOWERCASE hex characters (26 total). Leave it empty to let the chart derive a stable one." $v) -}}
+  {{- end -}}
+  {{- $v -}}
+{{- else -}}
+  {{- printf "GK%s" (printf "plane-garage-access-key/%s/%s" .Release.Namespace .Release.Name | sha256sum | trunc 24) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Garage secret key: exactly 64 lowercase hex characters, the shape sha256sum returns.
+Rotating this ALONE makes Garage refuse to start -- change access_key and secret_key together.
+*/}}
+{{- define "plane.garageSecretKey" -}}
+{{- $v := .Values.garage.secret_key | default "" -}}
+{{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
+  {{- fail (printf "garage.secret_key must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
+{{- end -}}
+{{- include "plane.secretValue" (dict "context" . "name" "garage.secret_key" "value" $v "fallback" (printf "plane-garage-secret-key/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- end -}}
+
+{{- define "plane.garageRpcSecret" -}}
+{{- $v := .Values.garage.rpc_secret | default "" -}}
+{{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
+  {{- fail (printf "garage.rpc_secret must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
+{{- end -}}
+{{- include "plane.secretValue" (dict "context" . "name" "garage.rpc_secret" "value" $v "fallback" (printf "plane-garage-rpc-secret/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- end -}}
+
+{{- define "plane.garageAdminToken" -}}
+{{- include "plane.secretValue" (dict "context" . "name" "garage.admin_token" "value" (.Values.garage.admin_token | default "") "fallback" (printf "plane-garage-admin-token/%s/%s" .Release.Namespace .Release.Name | sha256sum)) -}}
+{{- end -}}
+
+{{/*
+MINIO_ENDPOINT_SSL is an app-side contract meaning "the bundled store is reached over
+https", so it follows whichever store is active rather than the MinIO values key.
+*/}}
+{{- define "plane.storageEndpointSsl" -}}
+{{- if eq (include "plane.garageActive" .) "true" -}}
+{{- .Values.garage.env.endpoint_ssl | default false | ternary "1" "0" -}}
+{{- else -}}
+{{- .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.storageMigrationEnabled" -}}
+{{- if has (.Values.storage_migration.stage | default "") (list "bulk-sync" "cutover" "rollback") -}}
+true
+{{- end -}}
+{{- end -}}
+
 {{- define "plane.externalStorage" -}}
-{{- if and .Values.external_secrets.storage.secretName (not .Values.minio.local_setup) -}}
+{{- if and .Values.external_secrets.storage.secretName (not (include "plane.bundledObjectStore" .)) -}}
 true
 {{- end -}}
 {{- end -}}
