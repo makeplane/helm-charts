@@ -121,7 +121,7 @@ spec:
                 port:
                   number: 8211
                 name: {{ .Release.Name }}-mcp-server
-            path: {{ .Values.services.mcp_server.path_prefix | default "/mcp" }}
+            path: {{ .Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/" }}/
             pathType: Prefix
           {{- end }}
           {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}

@@ -111,7 +111,7 @@ spec:
   {{- end }}
 
   {{- if .Values.services.mcp_server.enabled }}
-  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ .Values.services.mcp_server.path_prefix | default "/mcp" }}`)
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ .Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/" }}/`)
     kind: Rule
     middlewares:
       - name: {{ .Release.Name }}-body-limit
