@@ -1064,7 +1064,7 @@ questions:
   - variable: services.mcp_server.tag
     label: "Image Tag"
     type: string
-    default: "v0.3.0"
+    default: "v0.3.2"
   - variable: services.mcp_server.replicas
     label: "Default Replica Count"
     type: int

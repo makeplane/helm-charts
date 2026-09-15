@@ -786,7 +786,7 @@ services:
     memoryRequest: 150Mi
     cpuRequest: 100m
     image: makeplane/plane-mcp-server
-    tag: v0.3.0
+    tag: v0.3.2
     pullPolicy: Always
     assign_cluster_ip: false
     path_prefix: '/mcp'

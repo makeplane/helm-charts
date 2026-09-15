@@ -30,36 +30,14 @@ stringData:
   PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.mcp_server.plane_oauth.provider_base_url | quote }}
   {{- end }}
   {{- if include "plane.externalRedis" . }}
-  {{/* Redis comes from external_secrets.redis as discrete REDIS_* env entries on the
-       deployment (plane.redisCredsEnv), the same way live and Plane AI consume it. */}}
+  {{/* Credentials come from external_secrets.redis as discrete REDIS_* env entries on
+       the deployment (plane.redisCredsEnv), the same way live and Plane AI consume
+       them. REDIS_URL must stay unset on that path: the MCP server (v0.3.2+) lets a URL
+       win over host/port, so a stale URL here would shadow the rotated credential. */}}
   {{- else if .Values.services.redis.local_setup }}
-  REDIS_HOST: {{ include "plane.redisHost" . | quote }}
-  REDIS_PORT: {{ .Values.services.redis.servicePort | default 6379 | quote }}
+  REDIS_URL: "redis://{{ include "plane.redisHost" . }}:{{ .Values.services.redis.servicePort | default 6379 }}/"
   {{- else }}
-  {{- /* Remote redis without external_secrets.redis: the MCP server reads discrete
-         REDIS_* parts, so derive them from env.remote_redis_url
-         (redis[s]://[user[:password]]@host[:port][/db]). */}}
-  {{- $redisUrl := .Values.env.remote_redis_url | default "" }}
-  {{- $stripped := $redisUrl | trimPrefix "rediss://" | trimPrefix "redis://" }}
-  {{- $authority := (split "/" $stripped)._0 }}
-  {{- $password := "" }}
-  {{- if contains "@" $authority }}
-  {{- $parts := splitList "@" $authority }}
-  {{- $userinfo := index $parts 0 }}
-  {{- $authority = last $parts }}
-  {{- if contains ":" $userinfo }}
-  {{- $password = (splitList ":" $userinfo) | rest | join ":" }}
-  {{- end }}
-  {{- end }}
-  {{- $hostParts := splitList ":" $authority }}
-  REDIS_HOST: {{ index $hostParts 0 | quote }}
-  REDIS_PORT: {{ (gt (len $hostParts) 1) | ternary (index $hostParts 1) "6379" | quote }}
-  {{- if $password }}
-  REDIS_PASSWORD: {{ $password | quote }}
-  {{- end }}
-  {{- if hasPrefix "rediss://" $redisUrl }}
-  REDIS_SSL: "true"
-  {{- end }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
   {{- end }}
 {{- end }}
 
