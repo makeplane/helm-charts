@@ -61,6 +61,9 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- if .Values.services.pi.enabled }}
 {{- $routes = append $routes (dict "slug" "pi" "path" "/pi/" "svc" (printf "%s-pi-api" $name) "port" 8000) }}
 {{- end }}
+{{- if .Values.services.mcp_server.enabled }}
+{{- $routes = append $routes (dict "slug" "mcp" "path" (printf "%s/" (.Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/")) "svc" (printf "%s-mcp-server" $name) "port" 8211) }}
+{{- end }}
 {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
 {{- $routes = append $routes (dict "slug" "docstore" "path" (printf "/%s" .Values.env.docstore_bucket) "svc" (printf "%s-minio" $name) "port" 9000) }}
 {{- end }}

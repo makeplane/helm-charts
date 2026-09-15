@@ -778,6 +778,31 @@ services:
     labels: {}
     annotations: {}
 
+  mcp_server:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 150Mi
+    cpuRequest: 100m
+    image: makeplane/plane-mcp-server
+    tag: v0.3.2
+    pullPolicy: Always
+    assign_cluster_ip: false
+    path_prefix: '/mcp'
+    plane_base_url: ''
+    plane_internal_base_url: ''
+    plane_oauth:
+      enabled: false
+      client_id: ''
+      client_secret: ''
+      provider_base_url: ''
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
 # ============================================================
 # ServiceAccount / cloud workload identity
 # ============================================================
@@ -840,6 +865,7 @@ serviceAccount:
 #
 # 2. Whole-Secret replacement (*_existingSecret) — the chart skips rendering that
 #    Secret and every workload reads yours instead. You own all of its keys.
+# ============================================================
 external_secrets:
   database:
     # Secret mirroring your managed-database credential (e.g. the RDS secret).
@@ -1012,6 +1038,7 @@ external_secrets:
   # Supplies OTEL_EXPORTER_OTLP_HEADERS (collector ingestion credential) when
   # observability.otel.enabled is set; leave blank to let the chart create it.
   otel_env_existingSecret: ''
+  mcp_server_env_existingSecret: ''
 
 # ============================================================
 # Stakater Reloader
