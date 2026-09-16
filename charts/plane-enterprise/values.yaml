@@ -1148,7 +1148,9 @@ env:
   sentry_environment: ''
 
   cors_allowed_origins: ''
-  instance_admin_email: ''
+  # instance_admin_email removed in 3.7.3: it was never read by any template, so
+  # setting it did nothing. The first instance admin is created through the
+  # /god-mode/ setup page.
   web_url: ''
 
   # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
