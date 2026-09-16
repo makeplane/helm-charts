@@ -51,7 +51,7 @@ spec:
       - name: {{ .Release.Name }}-mcp-server
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.mcp_server.pullPolicy | default "Always" }}
-        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server" }}:{{ .Values.services.mcp_server.tag | default "v0.3.2" }}
+        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
         stdin: true
         tty: true
         ports:

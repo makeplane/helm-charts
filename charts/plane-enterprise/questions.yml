@@ -1060,11 +1060,7 @@ questions:
   - variable: services.mcp_server.image
     label: "Docker Image"
     type: string
-    default: "makeplane/plane-mcp-server"
-  - variable: services.mcp_server.tag
-    label: "Image Tag"
-    type: string
-    default: "v0.3.2"
+    default: "makeplane/plane-mcp-server:v0.3.2"
   - variable: services.mcp_server.replicas
     label: "Default Replica Count"
     type: int
