@@ -20,6 +20,14 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- end }}
 {{- end }}
 
+{{- /* The marketplace OAuth apps' redirect URIs are built from license.licenseDomain,
+       not from env.web_url. When the two disagree the callback the app advertises is
+       not the host the browser is on, and every integration's OAuth round-trip fails
+       the redirect check -- with nothing in the logs naming the cause. */}}
+{{- if and .Values.env.web_url (ne .Values.env.web_url (printf "http://%s" .Values.license.licenseDomain)) (ne .Values.env.web_url (printf "https://%s" .Values.license.licenseDomain)) }}
+{{- $warnings = append $warnings (printf "env.web_url (%s) does not match license.licenseDomain (%s).\n    Integration redirect URIs are generated from licenseDomain, so they will point at\n    a host your users are not on and OAuth will fail the redirect check. Set both to\n    the host users actually reach." .Values.env.web_url .Values.license.licenseDomain) }}
+{{- end }}
+
 {{- /* Externalized credentials with no way to pick up a rotation. */}}
 {{- if or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName .Values.external_secrets.app_keys_existingSecret }}
 {{- $warnings = append $warnings "Credentials come from an external Secret. Whatever refreshes that Secret does not\n    restart anything, so pods keep the values they started with and a rotated\n    credential does not take effect until something rolls them. Install Stakater\n    Reloader and annotate the workloads that read it:\n      services.<name>.annotations:\n        reloader.stakater.com/auto: \"true\"" }}
