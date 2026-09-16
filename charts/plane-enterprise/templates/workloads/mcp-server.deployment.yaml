@@ -1,0 +1,87 @@
+{{- if .Values.services.mcp_server.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-mcp-server
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-mcp-server
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+spec:
+  type: ClusterIP
+  {{- if not .Values.services.mcp_server.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: mcp-server-8211
+    port: 8211
+    protocol: TCP
+    targetPort: 8211
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-mcp-server
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-mcp-server-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.mcp_server) }}
+spec:
+  replicas: {{ .Values.services.mcp_server.replicas | default 1 }}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-mcp-server
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-mcp-server
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+      annotations:
+        {{- include "plane.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.mcp_server }}
+      {{- include "plane.podSecurityContext" . }}
+      containers:
+      - name: {{ .Release.Name }}-mcp-server
+        {{- include "plane.containerSecurityContext" . }}
+        imagePullPolicy: {{ .Values.services.mcp_server.pullPolicy | default "Always" }}
+        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
+        stdin: true
+        tty: true
+        ports:
+        - name: http
+          containerPort: 8211
+          protocol: TCP
+        resources:
+          requests:
+            memory: {{ .Values.services.mcp_server.memoryRequest | default "150Mi" | quote }}
+            cpu: {{ .Values.services.mcp_server.cpuRequest | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.services.mcp_server.memoryLimit | default "1000Mi" | quote }}
+            cpu: {{ .Values.services.mcp_server.cpuLimit | default "500m" | quote }}
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-mcp-server-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.mcp_server_env_existingSecret) }}{{ .Values.external_secrets.mcp_server_env_existingSecret }}{{ else }}{{ .Release.Name }}-mcp-server-secrets{{ end }}
+              optional: false
+        {{- if or .Values.extraEnv (include "plane.redisCredsEnv" .) }}
+        env:
+          {{- with (include "plane.redisCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+        {{- end }}
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
+---
+{{- end }}
