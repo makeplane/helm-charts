@@ -1,0 +1,67 @@
+{{- /*
+PodDisruptionBudgets for the stateless, horizontally-scalable workloads.
+
+WHAT A BUDGET DOES, AND WHAT IT DOES NOT. A PDB constrains VOLUNTARY disruption only: a node
+drain, a cluster upgrade, a Karpenter/Cluster-Autoscaler consolidation, a spot reclaim that the
+provider drains gracefully. Without one, the eviction API will let a drain remove every replica
+of a Deployment at once and the service is down until a fresh pod passes its readiness probe.
+With one, the next replica is evicted only after the previous one is Ready somewhere else.
+
+It does NOT protect against a node dying outright, an OOM kill, or a rolling update -- a rollout
+is governed by the Deployment's own maxUnavailable/maxSurge, not by the budget.
+
+ONLY THE SCALABLE WORKLOADS ARE ELIGIBLE. The list below is deliberate, not generated: a budget
+on a single-replica workload has no second copy to keep serving, so it cannot protect anything --
+it can only refuse the eviction until the drain gives up or the node dies under it. That rules
+out the Tier-2 singletons (`beatworker`, `pi_beat_worker`, `monitor`, `argus`, the migration
+Jobs) and the Tier-3 in-chart stateful services, which are single-replica on RWO volumes. Those
+keys are absent here on purpose; `validations.yaml` fails the render if a budget is requested for
+one so the omission is never silent.
+
+A budget is also skipped for an eligible service still at `replicas: 1`, for the same reason. Set
+`replicas: 2` or more first -- that is what makes the workload protectable.
+
+SELECTOR. Each budget selects the chart's own pod label, `app.name: <namespace>-<release>-<svc>`,
+which is what the Deployment carries in `spec.selector.matchLabels`. It is NOT the workload name:
+the Deployment is `<release>-api-wl`, the label value is `<namespace>-<release>-api`. Several
+values keys do not match their label either (`email_service` renders `email-app`, `pi` renders
+`pi-api`), which is why the mapping is spelled out below rather than derived.
+
+CONFIGURATION. `podDisruptionBudget` at the top level sets the default for every workload here;
+`services.<svc>.podDisruptionBudget` overrides it per workload. See values.yaml.
+*/ -}}
+
+{{- $tier1 := include "plane.pdbEligible" . | fromYaml -}}
+{{- $global := .Values.podDisruptionBudget | default dict -}}
+
+{{- range $key, $app := $tier1 }}
+{{- $svc := (index $.Values.services $key) | default dict -}}
+{{- $opts := $svc.podDisruptionBudget | default dict -}}
+{{- $enabled := ternary $opts.enabled $global.enabled (hasKey $opts "enabled") -}}
+{{- $replicas := $svc.replicas | default 1 | int -}}
+{{- if and $enabled (ne $svc.enabled false) (ge $replicas 2) }}
+{{- $minAvailable := ternary $opts.minAvailable $global.minAvailable (hasKey $opts "minAvailable") -}}
+{{- $maxUnavailable := ternary $opts.maxUnavailable $global.maxUnavailable (hasKey $opts "maxUnavailable") -}}
+{{- $evictionPolicy := ternary $opts.unhealthyPodEvictionPolicy $global.unhealthyPodEvictionPolicy (hasKey $opts "unhealthyPodEvictionPolicy") -}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $.Release.Name }}-{{ $app }}-pdb
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.name: {{ $.Release.Namespace }}-{{ $.Release.Name }}-{{ $app }}
+spec:
+  {{- if $minAvailable }}
+  minAvailable: {{ $minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $maxUnavailable | default 1 }}
+  {{- end }}
+  {{- with $evictionPolicy }}
+  unhealthyPodEvictionPolicy: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.name: {{ $.Release.Namespace }}-{{ $.Release.Name }}-{{ $app }}
+{{ end }}
+{{- end }}

@@ -1,0 +1,65 @@
+{{- /*
+Renders no resource. Holds the checks that must run regardless of which templates are
+switched off, so they live here rather than inside a conditional template.
+*/ -}}
+
+{{- /*
+PodDisruptionBudget misuse. A budget that cannot protect anything is not inert -- it blocks
+drains -- so the three ways to ask for one that will not work are refused rather than ignored.
+*/ -}}
+{{- $eligible := include "plane.pdbEligible" . | fromYaml -}}
+
+{{- range $key, $svc := .Values.services }}
+{{- $opts := (default dict $svc).podDisruptionBudget | default dict }}
+{{- if and (hasKey $opts "enabled") $opts.enabled (not (hasKey $eligible $key)) }}
+{{- fail (printf `
+services.%s.podDisruptionBudget.enabled is set, but %s cannot have a budget.
+
+It is either a single-replica workload by design (beatworker, pi_beat_worker, monitor, argus,
+the migration Jobs) or an in-chart stateful service on a ReadWriteOnce volume (postgres, redis,
+rabbitmq, opensearch, minio).
+
+A PodDisruptionBudget only decides whether an eviction is ALLOWED. With one replica there is no
+second copy to keep serving, so the budget cannot protect the workload -- it can only refuse the
+eviction until the drain gives up or the node is removed under it, which turns a routine node
+rotation into a stuck one.
+
+  Scheduled/coordinator singletons: leave them unprotected. They reschedule in seconds.
+  Stateful services: set local_setup=false and use a managed, multi-AZ equivalent.
+` $key $key) }}
+{{- end }}
+{{- end }}
+
+{{- range $key, $app := $eligible }}
+{{- $svc := (index $.Values.services $key) | default dict }}
+{{- $opts := $svc.podDisruptionBudget | default dict }}
+{{- $replicas := $svc.replicas | default 1 | int }}
+{{- if and (hasKey $opts "enabled") $opts.enabled (lt $replicas 2) }}
+{{- fail (printf `
+services.%s.podDisruptionBudget.enabled is set, but services.%s.replicas is %d.
+
+A budget needs a second replica to hand the traffic to. At one replica the only thing it can do
+is refuse the eviction, so a node drain stalls instead of the service staying up.
+
+  Set services.%s.replicas to 2 or more, then the budget protects it.
+  Or drop the podDisruptionBudget key and accept the restart window on drains.
+
+The chart-wide default (podDisruptionBudget.enabled) deliberately does NOT fail here -- it skips
+single-replica workloads silently so that turning budgets on globally stays a one-line change.
+This message only appears when the budget was asked for on this specific service.
+` $key $key $replicas $key) }}
+{{- end }}
+{{- end }}
+
+{{- range $key, $opts := (dict "<chart-wide>" (.Values.podDisruptionBudget | default dict)) }}
+{{- if and $opts.minAvailable $opts.maxUnavailable }}
+{{- fail (printf "podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one. Prefer maxUnavailable: it keeps its meaning when the replica count changes, where minAvailable can wedge every drain of a workload that was scaled back to 1." $opts.minAvailable $opts.maxUnavailable) }}
+{{- end }}
+{{- end }}
+
+{{- range $key, $app := $eligible }}
+{{- $opts := ((index $.Values.services $key) | default dict).podDisruptionBudget | default dict }}
+{{- if and $opts.minAvailable $opts.maxUnavailable }}
+{{- fail (printf "services.%s.podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one." $key $opts.minAvailable $opts.maxUnavailable) }}
+{{- end }}
+{{- end }}

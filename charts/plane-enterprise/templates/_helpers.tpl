@@ -6,6 +6,98 @@
 {{- printf "%s%s%s%s" .Values.license.licenseServer .Values.license.licenseDomain .Release.Namespace .Release.Name | sha256sum  -}}
 {{- end -}}
 
+{{/*
+The stateless, horizontally-scalable workloads, as a map of
+  <values key under .Values.services>: <the suffix of its app.name pod label>
+
+Both halves are needed because neither can be derived from the other: `email_service` renders a
+pod labelled `email-app`, `pi` renders `pi-api`, and the rest merely swap underscores for dashes.
+Consumed by templates/pdb.yaml (which workloads may have a PodDisruptionBudget) and by
+validations.yaml (which workloads may not). Keep it in sync when a workload is added or renamed.
+
+Deliberately EXCLUDED, and not by oversight:
+  beatworker, pi_beat_worker, monitor, argus  Tier-2 singletons -- one replica by design, so a
+                                              budget has no second copy to protect and a spread
+                                              constraint has nothing to spread
+  postgres, redis, rabbitmq, opensearch,      Tier-3 in-chart stateful -- single replica on RWO
+  minio                                       volumes; use managed services for HA instead
+  migrator, pi-migrator, storage_migration    run-once Jobs
+*/}}
+{{- define "plane.pdbEligible" -}}
+api: api
+web: web
+space: space
+admin: admin
+live: live
+live_exporter: live-exporter
+worker: worker
+worker_importers: worker-importers
+silo: silo
+email_service: email-app
+external_api: external-api
+outbox_poller: outbox-poller
+automation_consumer: automation-consumer
+webhook_consumer: webhook-consumer
+agent_consumer: agent-consumer
+pi: pi-api
+pi_worker: pi-worker
+runner: runner
+iframely: iframely
+{{- end }}
+
+{{/*
+topologySpreadConstraints for one workload. Place inside spec.template.spec, beside
+plane.podScheduling, and call with the service values, the workload's app.name suffix and the
+root context:
+
+  {{- include "plane.podSpread" (dict "svc" .Values.services.api "app" "api" "root" .) }}
+
+WHY THIS EXISTS SEPARATELY from the `affinity` passthrough: podAntiAffinity can express "keep
+these apart", but it is all-or-nothing per topology domain -- a hard rule needs one node per
+replica or pods sit Pending, and a soft rule gives no control over how uneven the spread may
+get. topologySpreadConstraints says the thing you actually mean: at most `maxSkew` difference
+between domains, and what to do when that cannot be met.
+
+The labelSelector is filled in for you with this workload's own `app.name`, because getting it
+wrong is silent -- a constraint whose selector matches nothing is satisfied by every placement.
+Pass an explicit `labelSelector` only to spread against something other than the workload
+itself.
+
+Anything the API supports may be set per constraint; only topologyKey is required. maxSkew
+defaults to 1 and whenUnsatisfiable to ScheduleAnyway, the pair that spreads without ever
+leaving a pod unschedulable.
+*/}}
+{{- define "plane.podSpread" -}}
+{{- $app := printf "%s-%s-%s" .root.Release.Namespace .root.Release.Name .app -}}
+{{- with (.svc | default dict).topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range . }}
+        - topologyKey: {{ .topologyKey }}
+          maxSkew: {{ .maxSkew | default 1 }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable | default "ScheduleAnyway" }}
+          {{- with .minDomains }}
+          minDomains: {{ . }}
+          {{- end }}
+          {{- with .nodeAffinityPolicy }}
+          nodeAffinityPolicy: {{ . }}
+          {{- end }}
+          {{- with .nodeTaintsPolicy }}
+          nodeTaintsPolicy: {{ . }}
+          {{- end }}
+          {{- with .matchLabelKeys }}
+          matchLabelKeys: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .labelSelector }}
+          labelSelector: {{- toYaml .labelSelector | nindent 12 }}
+          {{- else }}
+          labelSelector:
+            matchLabels:
+              app.name: {{ $app }}
+          {{- end }}
+        {{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "plane.podScheduling" -}}
   {{- with .nodeSelector }} 
       nodeSelector: {{ toYaml . | nindent 8 }}

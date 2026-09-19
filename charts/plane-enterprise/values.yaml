@@ -242,6 +242,21 @@ securityContext:
     seccompProfile:
       type: RuntimeDefault
 
+# PodDisruptionBudgets for the stateless, horizontally-scalable workloads.
+#
+# enabled: true gives every eligible workload a budget. Workloads at replicas: 1 are skipped -- with
+# no second copy a budget cannot protect anything, it can only block the drain. Asking for one on a
+# single-replica or stateful service fails the render (see templates/validations.yaml).
+#
+# Override per workload at services.<svc>.podDisruptionBudget.
+# Prefer maxUnavailable -- minAvailable: 1 wedges every drain if the workload is later scaled to 1.
+# unhealthyPodEvictionPolicy: AlwaysAllow (k8s >= 1.27) stops a crashlooping pod holding a node.
+podDisruptionBudget:
+  enabled: false
+  maxUnavailable: 1
+  # minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
 services:
   redis:
     local_setup: true
@@ -345,6 +360,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -360,6 +377,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -390,6 +409,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -405,6 +426,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -424,6 +447,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -440,6 +465,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -455,6 +482,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -469,6 +498,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -481,6 +512,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -494,6 +527,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -526,6 +561,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
     connectors:
@@ -580,6 +617,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     # This service mounts a cert-manager TLS Secret, so it needs a restart when the
     # certificate is renewed. Add reloader.stakater.com/auto: "true" here (and install
@@ -598,6 +637,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -612,6 +653,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -626,6 +669,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -640,6 +685,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -682,6 +729,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
     ai_providers:
@@ -759,6 +808,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -775,6 +826,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
