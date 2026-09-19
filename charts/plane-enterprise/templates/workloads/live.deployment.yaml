@@ -45,6 +45,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.live "app" "live" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CANodeVolumes" .) }}
 {{ . | indent 6 }}

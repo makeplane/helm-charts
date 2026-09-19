@@ -21,6 +21,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.worker }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.worker "app" "worker" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
