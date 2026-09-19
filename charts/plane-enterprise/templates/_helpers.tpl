@@ -72,7 +72,7 @@ leaving a pod unschedulable.
 {{- with (.svc | default dict).topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- range . }}
-        - topologyKey: {{ .topologyKey }}
+        - topologyKey: {{ required "topologySpreadConstraints[] needs a topologyKey (e.g. topology.kubernetes.io/zone or kubernetes.io/hostname)" .topologyKey | quote }}
           maxSkew: {{ .maxSkew | default 1 }}
           whenUnsatisfiable: {{ .whenUnsatisfiable | default "ScheduleAnyway" }}
           {{- with .minDomains }}

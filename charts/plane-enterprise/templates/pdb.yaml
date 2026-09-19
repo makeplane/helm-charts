@@ -40,8 +40,6 @@ CONFIGURATION. `podDisruptionBudget` at the top level sets the default for every
 {{- $enabled := ternary $opts.enabled $global.enabled (hasKey $opts "enabled") -}}
 {{- $replicas := $svc.replicas | default 1 | int -}}
 {{- if and $enabled (ne $svc.enabled false) (ge $replicas 2) }}
-{{- $minAvailable := ternary $opts.minAvailable $global.minAvailable (hasKey $opts "minAvailable") -}}
-{{- $maxUnavailable := ternary $opts.maxUnavailable $global.maxUnavailable (hasKey $opts "maxUnavailable") -}}
 {{- $evictionPolicy := ternary $opts.unhealthyPodEvictionPolicy $global.unhealthyPodEvictionPolicy (hasKey $opts "unhealthyPodEvictionPolicy") -}}
 ---
 apiVersion: policy/v1
@@ -52,10 +50,25 @@ metadata:
   labels:
     app.name: {{ $.Release.Namespace }}-{{ $.Release.Name }}-{{ $app }}
 spec:
-  {{- if $minAvailable }}
-  minAvailable: {{ $minAvailable }}
+  {{- /*
+  minAvailable and maxUnavailable are mutually exclusive in the API, so precedence is per LEVEL
+  rather than per key: if the workload sets either field it decides alone, otherwise the
+  chart-wide block does. Resolving them key by key would let the chart-wide maxUnavailable
+  survive alongside a workload's minAvailable and emit both.
+
+  hasKey rather than truthiness, because 0 is meaningful on both fields and falsey in a template:
+  maxUnavailable: 0 forbids all voluntary eviction, minAvailable: 0 permits it all.
+  */}}
+  {{- if hasKey $opts "minAvailable" }}
+  minAvailable: {{ $opts.minAvailable }}
+  {{- else if hasKey $opts "maxUnavailable" }}
+  maxUnavailable: {{ $opts.maxUnavailable }}
+  {{- else if hasKey $global "minAvailable" }}
+  minAvailable: {{ $global.minAvailable }}
+  {{- else if hasKey $global "maxUnavailable" }}
+  maxUnavailable: {{ $global.maxUnavailable }}
   {{- else }}
-  maxUnavailable: {{ $maxUnavailable | default 1 }}
+  maxUnavailable: 1
   {{- end }}
   {{- with $evictionPolicy }}
   unhealthyPodEvictionPolicy: {{ . }}

@@ -253,7 +253,9 @@ securityContext:
 # unhealthyPodEvictionPolicy: AlwaysAllow (k8s >= 1.27) stops a crashlooping pod holding a node.
 podDisruptionBudget:
   enabled: false
-  maxUnavailable: 1
+  # Set ONE of these. Left unset, the renderer uses maxUnavailable: 1 -- shipping it as a concrete
+  # value here would merge into a user's minAvailable and be refused as "both fields set".
+  # maxUnavailable: 1
   # minAvailable: 1
   unhealthyPodEvictionPolicy: AlwaysAllow
 

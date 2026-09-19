@@ -52,14 +52,14 @@ This message only appears when the budget was asked for on this specific service
 {{- end }}
 
 {{- range $key, $opts := (dict "<chart-wide>" (.Values.podDisruptionBudget | default dict)) }}
-{{- if and $opts.minAvailable $opts.maxUnavailable }}
+{{- if and (hasKey $opts "minAvailable") (hasKey $opts "maxUnavailable") }}
 {{- fail (printf "podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one. Prefer maxUnavailable: it keeps its meaning when the replica count changes, where minAvailable can wedge every drain of a workload that was scaled back to 1." $opts.minAvailable $opts.maxUnavailable) }}
 {{- end }}
 {{- end }}
 
 {{- range $key, $app := $eligible }}
 {{- $opts := ((index $.Values.services $key) | default dict).podDisruptionBudget | default dict }}
-{{- if and $opts.minAvailable $opts.maxUnavailable }}
+{{- if and (hasKey $opts "minAvailable") (hasKey $opts "maxUnavailable") }}
 {{- fail (printf "services.%s.podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one." $key $opts.minAvailable $opts.maxUnavailable) }}
 {{- end }}
 {{- end }}
