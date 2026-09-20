@@ -44,6 +44,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.space }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.space "app" "space" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-space
