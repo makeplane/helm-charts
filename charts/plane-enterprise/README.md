@@ -481,7 +481,7 @@ ingress:
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.2.0 # or the last released version
+   PLANE_VERSION=v3.2.2 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -537,7 +537,7 @@ ingress:
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.2.0 <or the last released version>`
+     - `planeVersion: v3.2.2 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.controller: <traefik | openshift | nginx — required unless ingressClass is exactly nginx/openshift/traefik*>`
@@ -564,7 +564,7 @@ ingress:
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.2.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.2.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -1849,3 +1849,65 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com       | /uploads/\*  | <http://plane-app-minio.plane:9000>     | Yes (Only if using local setup)                                             |
 | plane-minio.example.com |      /       | <http://plane-app-minio.plane:9090>     | (Optional) if using local setup, this will enable minio console access      |
 | plane-mq.example.com    |      /       | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |
+
+## High Availability: PodDisruptionBudgets and pod spreading
+
+Two settings decide whether losing a node is a blip or an outage: where the replicas are placed, and how
+many of them Kubernetes may evict at once. Neither is on by default, and both need `replicas: 2` or more
+to mean anything.
+
+Full guide, including the verification steps: <https://developers.plane.so/self-hosting/govern/kubernetes-best-practices>
+
+### PodDisruptionBudgets
+
+A budget caps **voluntary** disruption — a node drain, a cluster upgrade, an autoscaler consolidation.
+Without one, the eviction API can take every replica of a Deployment at once. It does not cover a node
+crashing, an OOM kill, or a rolling update (those follow the Deployment's own `maxUnavailable`/`maxSurge`).
+
+```yaml
+# Chart-wide: a budget for every eligible workload that has 2+ replicas
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow # k8s >= 1.27; keeps a crashlooping pod from blocking a drain
+
+services:
+  worker:
+    replicas: 6
+    podDisruptionBudget: # per-workload override, merged key by key
+      maxUnavailable: 2
+```
+
+| Key                          | Default | Notes                                                                       |
+| ---------------------------- | ------- | --------------------------------------------------------------------------- |
+| `enabled`                    | `false` | Chart-wide switch; override per workload under `services.<svc>`              |
+| `maxUnavailable`             | `1`     | Preferred. Degrades to a no-op if the workload is scaled back to 1 replica   |
+| `minAvailable`               | unset   | Mutually exclusive with `maxUnavailable` — setting both fails the render     |
+| `unhealthyPodEvictionPolicy` | unset   | `AlwaysAllow` lets a drain evict not-Ready pods while the budget is at limit |
+
+Budgets are rendered only for the stateless, horizontally-scalable workloads. Single-replica workloads
+(`beatworker`, `pi_beat_worker`, `monitor`, `argus`, the migration Jobs) and the in-chart stateful services
+are excluded by design: with no second copy a budget cannot protect anything, it can only block the drain.
+Requesting one for them **fails the render with an explanation**. An eligible workload still at `replicas: 1`
+is skipped silently, so the chart-wide switch stays a safe one-line change.
+
+### Spreading pods across zones and nodes
+
+```yaml
+services:
+  api:
+    replicas: 3
+    topologySpreadConstraints:
+      - topologyKey: kubernetes.io/hostname # never two replicas on one node
+        whenUnsatisfiable: DoNotSchedule
+      - topologyKey: topology.kubernetes.io/zone # prefer an even spread across AZs
+        whenUnsatisfiable: ScheduleAnyway
+```
+
+Only `topologyKey` is required. `maxSkew` defaults to `1`, `whenUnsatisfiable` to `ScheduleAnyway`, and the
+`labelSelector` is filled in with the workload's own `app.name` label — a constraint whose selector matches
+nothing is satisfied by every placement, so having the chart write it removes the failure mode. `minDomains`,
+`nodeAffinityPolicy`, `nodeTaintsPolicy` and `matchLabelKeys` are passed through if set.
+
+`DoNotSchedule` guarantees the spread but needs at least as many schedulable nodes as replicas, or pods sit
+`Pending`. On small or just-in-time-provisioned clusters, use `ScheduleAnyway` for the hostname rule too.
