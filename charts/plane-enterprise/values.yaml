@@ -846,10 +846,19 @@ services:
     path_prefix: '/mcp'
     plane_base_url: ''
     plane_internal_base_url: ''
+    # The MCP server's HTTP transport authenticates MCP clients through a Plane OAuth
+    # application and refuses to start without one, so client_id and client_secret
+    # are required whenever this service is enabled (or ship them through
+    # external_secrets.mcp_server_env_existingSecret). Register the application in
+    # Plane (workspace settings > Integrations) with the redirect URIs
+    #   https://<licenseDomain><path_prefix>/http/auth/callback
+    #   https://<licenseDomain><path_prefix>/auth/callback
     plane_oauth:
-      enabled: false
       client_id: ''
       client_secret: ''
+      # Public URL the MCP server's OAuth endpoints are served on; the server appends
+      # "<path_prefix>/http" itself. Leave empty to derive it from
+      # license.licenseDomain and the ingress TLS setting, like plane_base_url.
       provider_base_url: ''
     nodeSelector: {}
     tolerations: []

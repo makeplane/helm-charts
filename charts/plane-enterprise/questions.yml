@@ -1097,25 +1097,18 @@ questions:
     label: "Plane Internal Base URL (leave empty to use in-cluster API)"
     type: string
     default: ""
-  - variable: services.mcp_server.plane_oauth.enabled
-    label: "Enable Plane OAuth"
-    type: boolean
-    default: false
   - variable: services.mcp_server.plane_oauth.client_id
-    label: "OAuth Client ID"
+    label: "Plane OAuth Client ID (required, the MCP server does not start without it)"
     type: string
     default: ""
-    show_if: "services.mcp_server.plane_oauth.enabled=true"
   - variable: services.mcp_server.plane_oauth.client_secret
-    label: "OAuth Client Secret"
+    label: "Plane OAuth Client Secret (required)"
     type: password
     default: ""
-    show_if: "services.mcp_server.plane_oauth.enabled=true"
   - variable: services.mcp_server.plane_oauth.provider_base_url
-    label: "OAuth Provider Base URL"
+    label: "OAuth Provider Base URL (leave empty to auto-derive from license domain)"
     type: string
     default: ""
-    show_if: "services.mcp_server.plane_oauth.enabled=true"
 
 - variable: services.iframely.enabled
   label: "Enable Iframely"
