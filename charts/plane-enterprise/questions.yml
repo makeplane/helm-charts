@@ -650,6 +650,7 @@ questions:
     default: ""
   - variable: env.webhook_allowed_hosts
     label: "Webhook Allowed Hosts"
+    description: "Comma-separated hosts that webhooks may target, bypassing the SSRF and disallowed-domain checks. Leave empty to default to the license domain with the scheme derived from the TLS settings, like Web URL."
     type: string
     default: ""
   - variable: env.gunicorn_workers
