@@ -146,6 +146,24 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
         {{- end }}
+        readinessProbe:
+          httpGet:
+            path: /silo/health
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 10
+          failureThreshold: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        livenessProbe:
+          httpGet:
+            path: /silo/health
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 15
+          failureThreshold: 3
+          successThreshold: 1
+          timeoutSeconds: 3
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
