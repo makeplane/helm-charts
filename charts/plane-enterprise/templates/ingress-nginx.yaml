@@ -115,6 +115,32 @@ spec:
             path: /pi/
             pathType: Prefix
           {{- end }}
+          {{- if .Values.services.mcp_server.enabled }}
+          {{- $mcpPrefix := .Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/" }}
+          - backend:
+              service:
+                port:
+                  number: 8211
+                name: {{ .Release.Name }}-mcp-server
+            path: {{ $mcpPrefix }}/
+            pathType: Prefix
+          {{- /* OAuth discovery documents live at the host root (path-inserted, RFC 9728 /
+                 RFC 8414) and are served by the MCP server itself; see ingress-traefik.yaml. */}}
+          - backend:
+              service:
+                port:
+                  number: 8211
+                name: {{ .Release.Name }}-mcp-server
+            path: /.well-known/oauth-protected-resource{{ $mcpPrefix }}
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8211
+                name: {{ .Release.Name }}-mcp-server
+            path: /.well-known/oauth-authorization-server{{ $mcpPrefix }}
+            pathType: Prefix
+          {{- end }}
           {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
           - backend:
               service:
