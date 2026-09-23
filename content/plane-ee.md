@@ -481,7 +481,7 @@ ingress:
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.2.2 # or the last released version
+   PLANE_VERSION=v3.2.3 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -537,7 +537,7 @@ ingress:
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.2.2 <or the last released version>`
+     - `planeVersion: v3.2.3 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.controller: <traefik | openshift | nginx — required unless ingressClass is exactly nginx/openshift/traefik*>`
@@ -564,7 +564,7 @@ ingress:
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.2.2       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.2.3       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -973,7 +973,7 @@ the bundled datastores off. Three things to know before you use it:
 | env.api_key_rate_limit         |                    60/minute                    |          | (optional) User can set the maximum number of requests the API can handle in a given time frame.                                                                                                                |
 | env.web_url                    |                                                 |          | (optional) Custom Web URL for the application. If not set, it will be auto-generated based on the license domain and SSL settings                                 |
 | env.webhook_allowed_ips        |                                                 |          | (optional) Comma-separated list of IPs/CIDRs that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
-| env.webhook_allowed_hosts      |                                                 |          | (optional) Comma-separated list of hostnames that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
+| env.webhook_allowed_hosts      |                                                 |          | (optional) Comma-separated hosts that webhooks may target, bypassing the SSRF and disallowed-domain checks. If not set, it will be auto-generated based on the license domain and SSL settings, like `env.web_url`. |
 | env.gunicorn_workers           |                        1                        |          | Number of Gunicorn worker processes for the API server. Increase for higher concurrency (e.g. `2 * CPU cores + 1`).                                                                                             |
 | env.gunicorn_max_requests      |                      1000                       |          | Maximum requests a gunicorn worker handles before restart. Set to `0` to disable rotation.                                                                                                                       |
 | env.gunicorn_max_requests_jitter |                     150                        |          | Random jitter added to `GUNICORN_MAX_REQUESTS` to stagger worker restarts across replicas. Set to `0` when rotation is disabled.                                                                                |
