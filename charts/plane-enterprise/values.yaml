@@ -1,4 +1,4 @@
-planeVersion: v3.2.2
+planeVersion: v3.2.3
 
 dockerRegistry:
   enabled: false
@@ -1206,9 +1206,12 @@ env:
   instance_admin_email: ''
   web_url: ''
 
-  # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
-  # Leave empty to allow all (no restriction).
+  # Comma-separated list of IPs/CIDRs that webhooks may target even when they resolve
+  # to private ranges. Leave empty for no extra allowance.
   webhook_allowed_ips: ''
+  # Comma-separated list of hosts that webhooks may target, bypassing the SSRF and
+  # disallowed-domain checks. Leave empty to default to the license domain with
+  # the scheme derived from the TLS settings, the same way WEB_URL is built.
   webhook_allowed_hosts: ''
 
   live_sentry_dsn: ""
