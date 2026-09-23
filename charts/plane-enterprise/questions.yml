@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.2.2
+  default: v3.2.3
   required: true
   group: "Docker Registry"
   subquestions:
@@ -650,6 +650,7 @@ questions:
     default: ""
   - variable: env.webhook_allowed_hosts
     label: "Webhook Allowed Hosts"
+    description: "Comma-separated hosts or full URLs that webhooks may target (for example: https://app.plane.so,https://hooks.example.com), bypassing the SSRF and disallowed-domain checks. Leave empty to default to the license domain with the scheme derived from the TLS settings, like Web URL."
     type: string
     default: ""
   - variable: env.gunicorn_workers
