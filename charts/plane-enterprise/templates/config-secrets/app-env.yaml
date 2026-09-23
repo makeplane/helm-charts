@@ -163,6 +163,26 @@ data:
   RUNNER_BASE_URL: "http://{{ .Release.Name }}-runner.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000"
   {{- end }}
 
+  # Read only by god-mode's system checks -- no request path uses these. The api
+  # is the only container that can be asked whether the deployment is healthy, so
+  # it needs its neighbours' addresses and the queue names they read. Queue names
+  # come from the values the consumers themselves are given, not re-defaulted.
+  SPACE_BASE_URL: "http://{{ .Release.Name }}-space.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000"
+  EXPORT_QUEUE_NAME: {{ .Values.env.export_queue_name | default "plane-exports" | quote }}
+  AUTOMATION_EVENT_STREAM_QUEUE_NAME: {{ .Values.env.automation_consumer_envs.event_stream_queue_name | default "plane.event_stream.automations" | quote }}
+  AGENT_QUEUE_NAME: {{ .Values.env.agent_consumer_envs.queue_name | default "plane.agent" | quote }}
+  WEBHOOK_QUEUE_NAME: {{ .Values.env.webhook_consumer_envs.queue_name | default "plane.webhook" | quote }}
+
+  {{- if .Values.env.external_iframely_url }}
+  IFRAMELY_URL: {{ .Values.env.external_iframely_url | quote }}
+  {{- else if .Values.services.iframely.enabled }}
+  IFRAMELY_URL: "http://{{ .Release.Name }}-iframely.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8061"
+  {{- end }}
+
+  {{- if .Values.services.argus.enabled }}
+  ARGUS_BASE_URL: "http://{{ .Release.Name }}-argus.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8100{{ trimSuffix "/" .Values.env.argus_envs.base_path }}"
+  {{- end }}
+
   {{- if .Values.airgapped.enabled }}
   IS_AIRGAPPED: "1"
   {{- end }}
