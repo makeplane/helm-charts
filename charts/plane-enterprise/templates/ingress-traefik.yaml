@@ -141,14 +141,12 @@ spec:
         port: 9000
   {{- end }}
 
-  {{- /* makeplane/drawio serves its webapp at "/" and loads every asset relatively, so the
-         prefix is stripped and a bare /drawio is redirected to /drawio/ -- without the
-         trailing slash the browser resolves js/, styles/ ... against the domain root. */}}
+  {{- /* makeplane/drawio serves its webapp at "/", so the /drawio prefix is stripped
+         before forwarding. */}}
   {{- if .Values.services.drawio.local_setup }}
-  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/drawio`)
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/drawio/`)
     kind: Rule
     middlewares:
-      - name: {{ .Release.Name }}-drawio-redirect-slash
       - name: {{ .Release.Name }}-drawio-stripprefix
       - name: {{ .Release.Name }}-body-limit
     services:
