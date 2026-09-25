@@ -137,8 +137,10 @@ data:
   DRAWIO_EMBED_URL: "https://{{ .Values.license.licenseDomain }}/drawio"
   {{- else if .Values.services.drawio.local_setup }}
   DRAWIO_EMBED_URL: "http://{{ .Values.license.licenseDomain }}/drawio"
+  {{- else if .Values.env.drawio_remote_url }}
+  DRAWIO_EMBED_URL: {{ .Values.env.drawio_remote_url | quote }}
   {{- else }}
-  DRAWIO_EMBED_URL: {{ .Values.env.drawio_remote_url | default "https://embed.diagrams.net" | quote }}
+  DRAWIO_EMBED_URL: ""
   {{- end }}
 
   SENTRY_DSN: {{ .Values.env.sentry_dsn | default "" | quote}}

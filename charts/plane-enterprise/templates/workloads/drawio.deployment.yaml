@@ -1,8 +1,8 @@
 {{- /*
 Self-hosted draw.io, the diagram editor behind the Wiki editor's diagram extension.
 Gated by services.drawio.local_setup (off by default), like the other bundled services:
-with it off, DRAWIO_EMBED_URL comes from env.drawio_remote_url, which defaults to the
-public diagrams.net cloud (https://embed.diagrams.net).
+with it off, DRAWIO_EMBED_URL comes from env.drawio_remote_url, or the editor falls back
+to the diagrams.net cloud when that is empty too.
 
 makeplane/drawio is versioned independently of planeVersion, so the image is pinned
 here rather than built from it. The ingress templates expose it on the /drawio subpath
