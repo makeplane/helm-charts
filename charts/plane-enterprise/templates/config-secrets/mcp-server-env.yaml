@@ -1,0 +1,53 @@
+{{- if .Values.services.mcp_server.enabled }}
+{{- $scheme := "http" }}
+{{- if eq (include "plane.tlsEnabled" .) "true" }}
+{{- $scheme = "https" }}
+{{- end }}
+{{- $publicOrigin := printf "%s://%s" $scheme .Values.license.licenseDomain }}
+{{- /* The image's default `http` transport builds its Plane OAuth provider
+       unconditionally, and that provider raises on an empty client id or secret, so
+       fail at render time with the reason instead of shipping a crash-looping pod. */}}
+{{- if and (empty .Values.external_secrets.mcp_server_env_existingSecret) (or (empty .Values.services.mcp_server.plane_oauth.client_id) (empty .Values.services.mcp_server.plane_oauth.client_secret)) }}
+{{- fail "services.mcp_server.enabled is true but services.mcp_server.plane_oauth.client_id / client_secret are empty. The MCP server does not start without a Plane OAuth application: register one in Plane (workspace settings > Integrations) and set both values, or supply PLANE_OAUTH_PROVIDER_CLIENT_ID and PLANE_OAUTH_PROVIDER_CLIENT_SECRET via external_secrets.mcp_server_env_existingSecret." }}
+{{- end }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-mcp-server-vars
+data:
+  MCP_PATH_PREFIX: {{ .Values.services.mcp_server.path_prefix | default "/mcp" | quote }}
+  PLANE_BASE_URL: {{ default $publicOrigin .Values.services.mcp_server.plane_base_url | quote }}
+  PLANE_INTERNAL_BASE_URL: {{ default (printf "http://%s-api.%s.svc.%s:8000" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local")) .Values.services.mcp_server.plane_internal_base_url | quote }}
+  {{/* Public origin the OAuth endpoints are served on. The server appends
+       "<MCP_PATH_PREFIX>/http" itself, so this is the bare origin the ingress routes
+       the prefix on. Not a secret, so it lives here and an existing Secret does not
+       have to carry it (a value there still wins: envFrom reads the Secret last). */}}
+  PLANE_OAUTH_PROVIDER_BASE_URL: {{ default $publicOrigin .Values.services.mcp_server.plane_oauth.provider_base_url | quote }}
+
+---
+
+{{- if empty .Values.external_secrets.mcp_server_env_existingSecret }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-mcp-server-secrets
+stringData:
+  PLANE_OAUTH_PROVIDER_CLIENT_ID: {{ .Values.services.mcp_server.plane_oauth.client_id | quote }}
+  PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.mcp_server.plane_oauth.client_secret | quote }}
+  {{- if include "plane.externalRedis" . }}
+  {{/* Credentials come from external_secrets.redis as discrete REDIS_* env entries on
+       the deployment (plane.redisCredsEnv), the same way live and Plane AI consume
+       them. REDIS_URL must stay unset on that path: the MCP server (v0.3.2+) lets a URL
+       win over host/port, so a stale URL here would shadow the rotated credential. */}}
+  {{- else if .Values.services.redis.local_setup }}
+  REDIS_URL: "redis://{{ include "plane.redisHost" . }}:{{ .Values.services.redis.servicePort | default 6379 }}/"
+  {{- else }}
+  REDIS_URL: {{ .Values.env.remote_redis_url | default "" | quote }}
+  {{- end }}
+{{- end }}
+
+{{- end }}

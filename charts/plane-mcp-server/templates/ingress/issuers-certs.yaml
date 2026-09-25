@@ -1,0 +1,64 @@
+{{- if and .Values.ingress.enabled .Values.ingress.ssl.enabled .Values.ingress.host }}
+
+{{- $validIssuers := list "cloudflare" "digitalocean" "http" }}
+{{- if not (has .Values.ingress.ssl.issuer $validIssuers) }}
+  {{- fail (printf "ingress.ssl.issuer '%s' is not supported. Allowed values: cloudflare, digitalocean, http" .Values.ingress.ssl.issuer) }}
+{{- end }}
+
+{{- if ne .Values.ingress.ssl.issuer "http" }}
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-issuer-api-token-secret
+type: Opaque
+stringData:
+  api-token: {{ required "ingress.ssl.token is required for DNS01 issuers (cloudflare/digitalocean)" .Values.ingress.ssl.token | quote }}
+
+---
+{{- end }}
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-cert-issuer
+spec:
+  acme:
+    email: {{ .Values.ingress.ssl.email }}
+    server: {{ .Values.ingress.ssl.server }}
+    privateKeySecretRef:
+      name: {{ .Release.Name }}-cert-issuer-key
+    solvers:
+    {{- if eq .Values.ingress.ssl.issuer "cloudflare" }}
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            name: {{ .Release.Name }}-issuer-api-token-secret
+            key: api-token
+    {{- else if eq .Values.ingress.ssl.issuer "digitalocean" }}
+    - dns01:
+        digitalocean:
+          tokenSecretRef:
+            name: {{ .Release.Name }}-issuer-api-token-secret
+            key: api-token
+    {{- else if eq .Values.ingress.ssl.issuer "http" }}
+    - http01:
+        ingress:
+          ingressClassName: {{ if eq .Values.ingress.ingressController "traefik" }}{{ .Values.ingress.traefik.ingressClassName }}{{ else }}{{ .Values.ingress.nginx.ingressClassName }}{{ end }}
+    {{- end }}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-ssl-cert
+spec:
+  dnsNames:
+  - {{ .Values.ingress.host | quote }}
+  issuerRef:
+    name: {{ .Release.Name }}-cert-issuer
+  secretName: {{ .Release.Name }}-ssl-cert
+
+{{- end }}

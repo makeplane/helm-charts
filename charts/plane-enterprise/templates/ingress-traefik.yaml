@@ -1,13 +1,15 @@
-{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) .Values.license.licenseDomain }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "traefik") .Values.license.licenseDomain }}
 
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-ingress
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-    - websecure
+    {{- include "plane.traefikEntryPoints" . | nindent 4 }}
 
   routes:
 
@@ -79,6 +81,18 @@ spec:
         port: 3000
   {{- end }}
 
+  {{- /* PathPrefix does not strip the prefix -- Argus serves every route under
+         ARGUS_BASE_PATH, which must equal the web build's VITE_ARGUS_BASE_PATH. */}}
+  {{- if .Values.services.argus.enabled }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ trimSuffix "/" .Values.env.argus_envs.base_path }}/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-argus
+        port: 8100
+  {{- end }}
+
   {{- if .Values.services.pi.enabled }}
   # File uploads in pi: keep the body-size limit (more specific path matches first)
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/attachments/`)
@@ -96,7 +110,28 @@ spec:
         port: 8000
   {{- end }}
 
-  {{- if and .Values.services.minio.local_setup .Values.env.docstore_bucket }}
+  {{- if .Values.services.mcp_server.enabled }}
+  {{- $mcpPrefix := .Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/" }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ $mcpPrefix }}/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-mcp-server
+        port: 8211
+  {{- /* OAuth discovery (RFC 9728 / RFC 8414) is path-inserted at the ROOT of the host:
+         /.well-known/oauth-protected-resource<prefix>/http/mcp and
+         /.well-known/oauth-authorization-server<prefix>/http. The MCP server serves them
+         itself and advertises the first in its WWW-Authenticate header, so they must
+         reach it rather than the web app. Plane serves nothing under /.well-known. */}}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && (PathPrefix(`/.well-known/oauth-protected-resource{{ $mcpPrefix }}`) || PathPrefix(`/.well-known/oauth-authorization-server{{ $mcpPrefix }}`))
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-mcp-server
+        port: 8211
+  {{- end }}
+
+  {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/{{ .Values.env.docstore_bucket }}`)
     kind: Rule
     middlewares:
@@ -115,7 +150,9 @@ spec:
       - name: {{ .Release.Name }}-web
         port: 3000
 
+  {{- if eq (include "plane.chartManagedCert" .) "true" }}
   tls:
     secretName: {{ default (printf "%s-ssl-cert" .Release.Name) .Values.ssl.tls_secret_name }}
+  {{- end }}
 
 {{- end }}

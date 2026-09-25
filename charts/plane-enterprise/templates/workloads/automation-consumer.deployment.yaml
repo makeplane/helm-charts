@@ -4,9 +4,10 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-automation-consumer-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.automation_consumer }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.automation_consumer) }}
 spec:
   replicas: {{ .Values.services.automation_consumer.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
@@ -15,22 +16,25 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-automation-consumer
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.automation_consumer }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.automation_consumer "app" "automation-consumer" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-automation-consumer
         {{- include "plane.containerSecurityContext" . }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
         stdin: true
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.automation_consumer.memoryRequest  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.automation_consumer.cpuRequest | default "500m" | quote}}
+            memory: {{ .Values.services.automation_consumer.memoryRequest  | default "256Mi" | quote }}
+            cpu: {{ .Values.services.automation_consumer.cpuRequest | default "100m" | quote}}
           limits:
             memory: {{ .Values.services.automation_consumer.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.automation_consumer.cpuLimit | default "500m" | quote}}
@@ -52,11 +56,24 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* LAST in envFrom, deliberately: envFrom is later-source-wins, so these must
+                 follow app_env/silo_env/live_env. Those may carry their own copy of a key a
+                 group hook owns, and first would let the stale copy win on one workload but
+                 not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
+                 or live-server auth fails with nothing logged. */}}
+          {{- include "plane.appKeysSecretRef" . }}
+        {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") (include "plane.infraCredsEnv" .) }}
         env:
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "automation-consumer")) }}{{ . | nindent 10 }}{{- end }}
+          {{- with (include "plane.infraCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
         {{- end }}
 
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 {{- end }}

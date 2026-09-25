@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v2.6.2
+  default: v3.3.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -51,6 +51,10 @@ questions:
     type: string
     required: true
     default: "makeplane/live-commercial"
+  - variable: services.live.init_image
+    label: Live Init Docker Image
+    type: string
+    default: "busybox"
   - variable: services.monitor.image
     label: Monitor Docker Image
     type: string
@@ -61,6 +65,15 @@ questions:
     type: string
     required: true
     default: "makeplane/silo-commercial"
+  - variable: services.argus.image
+    label: Argus Docker Image
+    type: string
+    required: true
+    default: "makeplane/argus-commercial"
+  - variable: services.silo.init_image
+    label: Silo Init Docker Image
+    type: string
+    default: "busybox"
   - variable: services.api.image
     label: Backend Docker Image
     type: string
@@ -80,6 +93,11 @@ questions:
   - variable: env.storageClass
     label: "Storage Class for Persistent Volume Claims"
     type: storageclass
+  - variable: env.default_cluster_domain
+    label: "Default Cluster Domain"
+    description: "Kubernetes internal cluster domain used to build in-cluster service URLs"
+    type: string
+    default: "cluster.local"
 
 - variable: license.licenseServer
   label: "License Server"
@@ -133,11 +151,11 @@ questions:
   - variable: services.web.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 128Mi
   - variable: services.web.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.web.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -168,11 +186,11 @@ questions:
   - variable: services.space.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.space.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.space.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -203,11 +221,11 @@ questions:
   - variable: services.admin.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 128Mi
   - variable: services.admin.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.admin.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -230,7 +248,7 @@ questions:
   - variable: services.live.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2000Mi
   - variable: services.live.cpuLimit
     label: "CPU Limit"
     type: string
@@ -238,11 +256,11 @@ questions:
   - variable: services.live.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 512Mi
   - variable: services.live.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.live.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -262,6 +280,52 @@ questions:
     label: "Live Server Secret Key"
     type: string
     default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  - variable: env.export_queue_name
+    label: "Export Queue Name"
+    description: "RabbitMQ queue name for background PDF/DOCX export jobs consumed by the live-exporter service."
+    type: string
+    default: "plane-exports"
+  - variable: env.export_download_base_url
+    label: "Export Download Base URL"
+    description: "Base URL for export download redirects. Defaults to licenseDomain with protocol inferred from SSL settings."
+    type: string
+    default: ""
+
+- variable: services.live_exporter.enabled
+  label: "Install Live Exporter Service"
+  type: boolean
+  default: true
+  group: "Live Exporter Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.live_exporter.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.live_exporter.pullPolicy
+    label: "Live Exporter Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "Always"
+  - variable: services.live_exporter.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2000Mi
+  - variable: services.live_exporter.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 1000m
+  - variable: services.live_exporter.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.live_exporter.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
 
 - variable: services.silo.enabled
   label: "Install Silo Service"
@@ -285,11 +349,11 @@ questions:
   - variable: services.silo.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.silo.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.silo.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -306,6 +370,10 @@ questions:
     label: "Request Interval"
     type: int
     default: 400
+  - variable: env.silo_envs.importers_queue_name
+    label: "Importers Queue Name"
+    type: string
+    default: "celery"
   - variable: env.silo_envs.sentry_dsn
     label: "Silo Sentry DSN"
     type: string
@@ -330,7 +398,18 @@ questions:
     label: "Silo CORS Allowed Origins"
     type: string
     default: ""
-
+  - variable: env.silo_envs.jira_server_issues_page_size
+    label: "Jira Server Issues Page Size"
+    type: int
+    default: 50
+  - variable: env.silo_envs.jira_server_issues_parallel_pages
+    label: "Jira Server Issues Parallel Pages"
+    type: int
+    default: 1
+  - variable: env.silo_envs.cursor_webhook_secret
+    label: "Cursor Webhook Secret"
+    type: string
+    default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
   type: boolean
@@ -344,6 +423,14 @@ questions:
     default: ""
   - variable: services.silo.connectors.slack.client_secret
     label: "Slack Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.base_url
+    label: "Slack Base URL"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.slack.signing_secret
+    label: "Slack Signing Secret"
     type: string
     default: ""
 
@@ -372,6 +459,10 @@ questions:
     default: ""
   - variable: services.silo.connectors.github.private_key
     label: "Github Private Key"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.github.webhook_secret
+    label: "Github Webhook Secret"
     type: string
     default: ""
 
@@ -415,6 +506,42 @@ questions:
     type: string
     default: ""
 
+- variable: services.silo.connectors.bitbucket.enabled
+  label: "Bitbucket Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.bitbucket.client_id
+    label: "Bitbucket Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.client_secret
+    label: "Bitbucket Client Secret"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.bitbucket.webhook_secret
+    label: "Bitbucket Webhook Secret"
+    type: string
+    default: ""
+
+- variable: services.silo.connectors.hubspot.enabled
+  label: "HubSpot Integration"
+  type: boolean
+  default: false
+  group: "Silo Connectors"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.silo.connectors.hubspot.client_id
+    label: "HubSpot Client ID"
+    type: string
+    default: ""
+  - variable: services.silo.connectors.hubspot.client_secret
+    label: "HubSpot Client Secret"
+    type: string
+    default: ""
+
 - variable: services.monitor.pullPolicy
   label: "Monitor Pull Policy"
   type: enum
@@ -436,11 +563,11 @@ questions:
   - variable: services.monitor.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 128Mi
   - variable: services.monitor.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.monitor.volumeSize
     label: "Volume Size"
     type: string
@@ -467,19 +594,19 @@ questions:
   - variable: services.api.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2Gi
   - variable: services.api.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 1000m
   - variable: services.api.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 512Mi
   - variable: services.api.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 200m
   - variable: services.api.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -522,6 +649,71 @@ questions:
     description: "Self-hosted drawio endpoint for the Wiki editor's diagram extension. Leave empty to use the diagrams.net cloud."
     type: string
     default: ""
+  - variable: env.webhook_allowed_ips
+    label: "Webhook Allowed IPs"
+    type: string
+    default: ""
+  - variable: env.webhook_allowed_hosts
+    label: "Webhook Allowed Hosts"
+    description: "Comma-separated hosts or full URLs that webhooks may target (for example: https://app.plane.so,https://hooks.example.com), bypassing the SSRF and disallowed-domain checks. Leave empty to default to the license domain with the scheme derived from the TLS settings, like Web URL."
+    type: string
+    default: ""
+  - variable: env.gunicorn_workers
+    label: "Gunicorn Workers"
+    description: "Number of Gunicorn worker processes for the API server. Recommended: 2 * CPU cores + 1."
+    type: int
+    default: 1
+  - variable: env.gunicorn_max_requests
+    label: "Gunicorn Max Requests"
+    description: "Maximum number of requests a gunicorn worker handles before being restarted. Set to 0 to disable rotation."
+    type: int
+    default: 1000
+  - variable: env.gunicorn_max_requests_jitter
+    label: "Gunicorn Max Requests Jitter"
+    description: "Random jitter added to GUNICORN_MAX_REQUESTS to stagger worker restarts. Set to 0 when rotation is disabled."
+    type: int
+    default: 150
+  - variable: env.celery_task_publish_retry
+    label: "Celery Task Publish Retry"
+    description: "Retry task publishing on transient AMQP failures instead of silently dropping tasks."
+    type: boolean
+    default: true
+  - variable: env.celery_broker_pool_limit
+    label: "Celery Broker Pool Limit"
+    description: "Maximum number of connections in the Celery broker connection pool. Limits stale connection accumulation."
+    type: int
+    default: 10
+- variable: services.external_api.enabled
+  label: "Enable External API"
+  type: boolean
+  default: false
+  group: "External API Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.external_api.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.external_api.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2Gi
+  - variable: services.external_api.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 1000m
+  - variable: services.external_api.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 512Mi
+  - variable: services.external_api.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 200m
+  - variable: services.external_api.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
 - variable: services.worker.replicas
   label: "Default Replica Count"
   type: int
@@ -531,19 +723,46 @@ questions:
   - variable: services.worker.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2Gi
   - variable: services.worker.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 1000m
   - variable: services.worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 1Gi
   - variable: services.worker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 200m
+- variable: services.worker_importers.enabled
+  label: "Enable Importer Worker"
+  type: boolean
+  default: false
+  group: "Importer Worker Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.worker_importers.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.worker_importers.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 2Gi
+  - variable: services.worker_importers.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 1000m
+  - variable: services.worker_importers.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 512Mi
+  - variable: services.worker_importers.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 200m
 - variable: services.beatworker.replicas
   label: "Default Replica Count"
   type: int
@@ -553,7 +772,7 @@ questions:
   - variable: services.beatworker.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2Gi
   - variable: services.beatworker.cpuLimit
     label: "CPU Limit"
     type: string
@@ -561,11 +780,11 @@ questions:
   - variable: services.beatworker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 512Mi
   - variable: services.beatworker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
 - variable: services.email_service.enabled
   label: "Enable Email Service"
   type: boolean
@@ -588,11 +807,11 @@ questions:
   - variable: services.email_service.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 128Mi
   - variable: services.email_service.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: env.email_service_envs.smtp_domain
     label: "SMTP Domain"
     type: string
@@ -647,11 +866,11 @@ questions:
   - variable: services.outbox_poller.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.outbox_poller.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.outbox_poller.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -731,11 +950,11 @@ questions:
   - variable: services.automation_consumer.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.automation_consumer.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.automation_consumer.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -757,6 +976,146 @@ questions:
     type: string
     default: "issue"
 
+- variable: services.webhook_consumer.enabled
+  label: "Enable Webhook Consumer"
+  type: boolean
+  default: false
+  group: "Webhook Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.webhook_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.webhook_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.webhook_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.webhook_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.webhook_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.webhook_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.webhook_consumer_envs.queue_name
+    label: "Webhook Queue Name"
+    type: string
+    default: "plane.webhook"
+  - variable: env.webhook_consumer_envs.prefetch_count
+    label: "Webhook Prefetch Count"
+    type: int
+    default: 10
+
+- variable: services.agent_consumer.enabled
+  label: "Enable Agent Consumer"
+  type: boolean
+  default: false
+  group: "Agent Consumer Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.agent_consumer.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.agent_consumer.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.agent_consumer.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.agent_consumer.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.agent_consumer.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.agent_consumer.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: env.agent_consumer_envs.queue_name
+    label: "Agent Queue Name"
+    type: string
+    default: "plane.agent"
+  - variable: env.agent_consumer_envs.prefetch_count
+    label: "Agent Prefetch Count"
+    type: int
+    default: 10
+
+- variable: services.mcp_server.enabled
+  label: "Enable MCP Server"
+  type: boolean
+  default: false
+  group: "MCP Server Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.mcp_server.image
+    label: "Docker Image"
+    type: string
+    default: "makeplane/plane-mcp-server:v0.3.2"
+  - variable: services.mcp_server.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.mcp_server.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.mcp_server.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.mcp_server.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 150Mi
+  - variable: services.mcp_server.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.mcp_server.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: services.mcp_server.path_prefix
+    label: "MCP Path Prefix"
+    type: string
+    default: "/mcp"
+  - variable: services.mcp_server.plane_base_url
+    label: "Plane Base URL (leave empty to auto-derive from license domain)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_internal_base_url
+    label: "Plane Internal Base URL (leave empty to use in-cluster API)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_oauth.client_id
+    label: "Plane OAuth Client ID (required, the MCP server does not start without it)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_oauth.client_secret
+    label: "Plane OAuth Client Secret (required)"
+    type: password
+    default: ""
+  - variable: services.mcp_server.plane_oauth.provider_base_url
+    label: "OAuth Provider Base URL (leave empty to auto-derive from license domain)"
+    type: string
+    default: ""
+
 - variable: services.iframely.enabled
   label: "Enable Iframely"
   type: boolean
@@ -767,7 +1126,7 @@ questions:
   - variable: services.iframely.image
     label: "Docker Image"
     type: string
-    default: "makeplane/iframely:v1.2.0"
+    default: "makeplane/iframely:v2.5.4"
   - variable: services.iframely.pullPolicy
     label: "Iframely Pull Policy"
     type: enum
@@ -787,16 +1146,112 @@ questions:
   - variable: services.iframely.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 1000m
   - variable: services.iframely.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.iframely.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
   - variable: services.iframely.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
+- variable: services.argus.enabled
+  label: "Install Argus (Sensitive Data & PII Scanner)"
+  description: "Single-replica by design. Requires a unique Fingerprint Secret (openssl rand -hex 32)."
+  type: boolean
+  default: false
+  group: "Argus Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: env.argus_envs.fingerprint_secret
+    label: "Argus Fingerprint Secret"
+    description: "REQUIRED. HKDF master key for finding fingerprints, at least 32 characters, unique per deployment (openssl rand -hex 32). Rotating it invalidates every stored fingerprint."
+    type: password
+    required: true
+    default: ""
+  - variable: env.argus_envs.base_path
+    label: "Argus Base Path"
+    description: "Route mount prefix (also the ingress path). Must equal the web build's VITE_ARGUS_BASE_PATH, which defaults to /argus."
+    type: string
+    default: "/argus"
+  - variable: env.argus_envs.schema
+    label: "Argus Database Schema"
+    description: "Schema Argus creates and owns inside the Plane database."
+    type: string
+    default: "argus"
+  - variable: env.argus_envs.database_url
+    label: "Argus Database URL"
+    description: "Leave empty to derive the Plane database DSN from the Postgres settings."
+    type: password
+    default: ""
+  - variable: env.argus_envs.content_database_url
+    label: "Argus Content Database URL"
+    description: "Optional read replica for content scans. Empty falls back to the Postgres read replica if enabled, else to the main DSN."
+    type: password
+    default: ""
+  - variable: env.argus_envs.internal_secret
+    label: "Argus Internal Secret"
+    type: password
+    default: "LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i"
+  - variable: env.argus_envs.cors_allowed_origins
+    label: "Argus CORS Allowed Origins"
+    description: "Empty is correct for path-routed (same-origin) deployments. '*' is rejected at startup."
+    type: string
+    default: ""
+  - variable: env.argus_envs.trusted_proxies
+    label: "Argus Trusted Proxies"
+    description: "Comma-separated CIDRs your ingress connects from, so audit rows record real client IPs. Empty trusts no proxy."
+    type: string
+    default: ""
+  - variable: env.argus_envs.metrics_addr
+    label: "Argus Metrics Listen Address"
+    description: "Private /metrics listener. ':9100' exposes it on the pod network, '' disables it."
+    type: string
+    default: "127.0.0.1:9100"
+  - variable: env.argus_envs.worker_pool
+    label: "Argus Worker Pool"
+    description: "Empty uses Argus' own default of min(8, NumCPU)."
+    type: string
+    default: ""
+  - variable: env.argus_envs.default_rate_rps
+    label: "Argus Default Scan Rate (rps)"
+    type: int
+    default: 500
+  - variable: env.argus_envs.max_rate_rps
+    label: "Argus Max Scan Rate (rps)"
+    type: int
+    default: 10000
+  - variable: env.argus_envs.data_dir
+    label: "Argus Data Directory"
+    description: "Where findings-export CSVs are written. /home/nonroot/data for argus-commercial, /app/data for the FIPS image."
+    type: string
+    default: "/home/nonroot/data"
+  - variable: services.argus.termination_grace_period_seconds
+    label: "Termination Grace Period (seconds)"
+    type: int
+    default: 60
+  - variable: services.argus.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.argus.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.argus.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 250Mi
+  - variable: services.argus.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 50m
+  - variable: services.argus.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: false
@@ -815,19 +1270,19 @@ questions:
   - variable: services.pi.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2Gi
   - variable: services.pi.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 1000m
   - variable: services.pi.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 512Mi
   - variable: services.pi.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 200m
   - variable: services.pi.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
@@ -844,6 +1299,14 @@ questions:
     label: "CORS Allowed Origins"
     type: string
     default: ""
+  - variable: env.pi_envs.ai_usage_agent_max_tokens_budget
+    label: "AI Usage Agent Max Tokens Budget"
+    type: string
+    default: ""
+  - variable: env.pi_envs.ai_usage_enforcement_enabled
+    label: "AI Usage Enforcement Enabled"
+    type: boolean
+    default: true
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean
@@ -898,11 +1361,11 @@ questions:
   - variable: services.pi_worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.pi_worker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
 - variable: services.pi_beat_worker.replicas
   label: "Default Replica Count"
   type: int
@@ -920,11 +1383,11 @@ questions:
   - variable: services.pi_beat_worker.memoryRequest
     label: "Memory Request"
     type: string
-    default: 50Mi
+    default: 256Mi
   - variable: services.pi_beat_worker.cpuRequest
     label: "CPU Request"
     type: string
-    default: 50m
+    default: 100m
 
 - variable: services.pi.ai_providers.openai.enabled
   label: "Enable OpenAI Provider"
@@ -1300,7 +1763,7 @@ questions:
   - variable: services.minio.image
     label: "Docker Image"
     type: string
-    default: "minio/minio:latest"
+    default: "docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.pullPolicy
     label: "Minio Pull Policy"
@@ -1313,7 +1776,12 @@ questions:
   - variable: services.minio.image_mc
     label: "MinIO Client Docker Image"
     type: string
-    default: "minio/mc:latest"
+    default: "docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z"
+    show_if: "services.minio.local_setup=true"
+  - variable: services.minio.init_image
+    label: "Init Docker Image"
+    type: string
+    default: "busybox"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.root_user
     label: "Root User"
@@ -1369,6 +1837,40 @@ questions:
     default: false
     show_if: "services.minio.local_setup=true"
 
+- variable: env.storage_provider
+  label: "Storage Provider"
+  description: "S3 (default; covers MinIO and S3-compatible services) or GCS (Google Cloud Storage native mode)."
+  type: enum
+  options:
+  - "S3"
+  - "GCS"
+  default: "S3"
+  group: "Storage Setup"
+  subquestions:
+  - variable: env.gcs_bucket_name
+    label: "GCS Bucket Name"
+    description: "Falls back to the Doc Store bucket name when left empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_project_id
+    label: "GCP Project ID"
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_json
+    label: "GCS Service Account JSON"
+    description: "Inline service-account JSON. Highest-priority credential source. Leave empty to use a mounted file path or GKE Workload Identity."
+    type: password
+    default: ""
+    show_if: "env.storage_provider=GCS"
+  - variable: env.gcs_credentials_path
+    label: "GCS Credentials File Path"
+    description: "In-container path to a service-account file you mount yourself (e.g. /etc/gcs/service-account.json). Used when the inline JSON is empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=GCS"
+
 - variable: ingress.enabled
   label: "Enable Ingress"
   type: boolean
@@ -1387,8 +1889,15 @@ questions:
     type: string
     default: ""
     show_if: "services.rabbitmq.local_setup=true"
+  - variable: ingress.controller
+    label: "Ingress Controller Type"
+    description: "Which kind of ingress resource to render. Supported: 'traefik' a Traefik IngressRoute, 'openshift' one OpenShift Route per path, 'nginx' a standard networking.k8s.io/v1 Ingress using the Ingress Classname below verbatim. REQUIRED when your class name is not exactly 'nginx', 'openshift' or 'traefik*' - left empty, any other class renders no ingress at all."
+    type: string
+    default: ""
+    show_if: "ingress.enabled=true"
   - variable: ingress.ingressClass
     label: "Ingress Classname"
+    description: "Class name written to the standard Ingress' spec.ingressClassName. Unused by the Traefik IngressRoute and by OpenShift Routes. While Ingress Controller Type above is empty this also selects which template renders, and only 'nginx', 'openshift' and 'traefik*' are recognised."
     type: string
     required: true
     default: "nginx"
@@ -1436,6 +1945,22 @@ questions:
   group: "Ingress"
   show_if: "ssl.createIssuer=false"
 
+- variable: ssl.externalTermination
+  label: "TLS Terminated in Front of Plane"
+  description: "Enable when TLS is terminated before traffic reaches Plane (cloud load balancer, Cloudflare, service mesh, or a Traefik entrypoint carrying its own cert) and this chart manages no certificate. App URLs are rendered https:// but no tls block is emitted. Leave off if you set a TLS secret name or generate certificates. See the chart README's 'TLS options' section."
+  type: boolean
+  default: false
+  group: "Ingress"
+  show_if: "ingress.enabled=true"
+
+- variable: ingress.traefik.entryPoints
+  label: "Traefik Entrypoints Override"
+  description: "Traefik entrypoints the IngressRoute binds to, e.g. 'websecure'. Leave empty to derive from the SSL settings (websecure when this chart manages a certificate, otherwise web). Required as 'websecure' when TLS is terminated by Traefik's own entrypoint. Ignored unless the controller resolves to traefik."
+  type: string
+  default: ""
+  group: "Ingress"
+  show_if: "ingress.enabled=true"
+
 - variable: external_secrets.rabbitmq_existingSecret
   label: "RabbitMQ Secrets File Name"
   type: string
@@ -1471,8 +1996,227 @@ questions:
   type: string
   default: ""
   group: "External Secrets"
+- variable: external_secrets.argus_env_existingSecret
+  label: "Argus Envs Secrets File Name"
+  type: string
+  default: ""
+  group: "External Secrets"
 - variable: external_secrets.pi_api_env_existingSecret
   label: "Plane AI (PI) API Envs Secrets File Name"
   type: string
   default: ""
   group: "External Secrets"
+
+# --- Credential mirrors -------------------------------------------------------
+# A Secret that MIRRORS the managed one your cloud already rotates — the RDS secret
+# created with the instance, an ElastiCache auth-token secret, an Amazon MQ secret.
+# The chart reads the parts out of it and never composes a connection string, so a
+# rotation lands with nothing to recompute. That is why these are separate from the
+# whole-Secret replacements above, which pin a DSN the rotation can never reach.
+- variable: external_secrets.database.secretName
+  label: "Postgres Credential Mirror Secret"
+  description: "A Secret carrying the Postgres username and password as separate keys — point it at a verbatim mirror of your RDS/Cloud SQL secret so a rotation needs no second copy."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.database.usernameKey
+  label: "Postgres Username Key"
+  type: string
+  default: "username"
+  group: "Credential Mirrors"
+  show_if: "external_secrets.database.secretName!="
+- variable: external_secrets.database.passwordKey
+  label: "Postgres Password Key"
+  type: string
+  default: "password"
+  group: "Credential Mirrors"
+  show_if: "external_secrets.database.secretName!="
+- variable: external_secrets.database.hostKey
+  label: "Postgres Host Key (optional)"
+  description: "Only when the mirrored Secret carries the endpoint too. Otherwise the host comes from env.pgdb_remote_host."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.database.secretName!="
+- variable: external_secrets.rabbitmq.secretName
+  label: "RabbitMQ Credential Mirror Secret"
+  description: "For Amazon MQ also set env.rabbitmq_ssl=true and env.rabbitmq_port=5671 — the parts path has no URL scheme to carry TLS, and Amazon MQ refuses plaintext."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.redis.secretName
+  label: "Redis Credential Mirror Secret"
+  description: "For ElastiCache the auth token goes in the password key; also set env.redis_ssl=true."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.storage.secretName
+  label: "Object Storage Credential Secret"
+  description: "Leave empty and annotate the ServiceAccount instead — a pod identity beats a stored access key. Only the key names you fill in below are emitted."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+- variable: external_secrets.storage.accessKeyIdKey
+  label: "Storage Access Key ID Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.storage.secretAccessKeyKey
+  label: "Storage Secret Access Key Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.storage.gcsCredentialsJsonKey
+  label: "GCS Credentials JSON Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.opensearch.secretName
+  label: "OpenSearch Credential Mirror Secret"
+  description: "For an AWS-managed domain, leave this empty and let the pods authenticate with SigV4 through their cloud identity."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+
+# --- Shared key groups --------------------------------------------------------
+# One Secret carrying one group of keys, mirrored into as many namespaces as you like.
+# The chart stops rendering those keys, which is what makes the sharing work: an empty
+# string under envFrom does not defer to another Secret, it overwrites it.
+- variable: external_secrets.app_keys_existingSecret
+  label: "Signing Keys Secret"
+  description: "SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, SILO_HMAC_SECRET_KEY, RUNNER_HMAC_SECRET_KEY. These encrypt stored data: never share them between environments and never rotate them."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+- variable: external_secrets.ai_providers_existingSecret
+  label: "AI Provider Keys Secret"
+  description: "OPENAI / CLAUDE / GEMINI / COHERE / CUSTOM_LLM keys. One AI account normally serves every deployment, so this is the group worth sharing."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+- variable: external_secrets.silo_connectors_existingSecret
+  label: "Silo Connector Secrets Secret"
+  description: "Connector OAuth client secrets and the GitHub App private key. An OAuth app is registered once, so its secret is the same wherever the connector is enabled."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+- variable: external_secrets.ssl_token_existingSecret
+  label: "DNS-01 Token Secret"
+  description: "cert-manager DNS provider API token, under the key api-token."
+  type: string
+  default: ""
+  group: "Shared Secrets"
+
+# --- Cloud identity -----------------------------------------------------------
+- variable: serviceAccount.create
+  label: "Create the ServiceAccount"
+  description: "Turn off to run as a ServiceAccount managed outside this chart — one created by Terraform or Crossplane and already bound to a cloud role."
+  type: boolean
+  default: true
+  group: "Service Account"
+- variable: serviceAccount.name
+  label: "ServiceAccount Name"
+  description: "Defaults to <release>-srv-account."
+  type: string
+  default: ""
+  group: "Service Account"
+- variable: serviceAccount.annotations
+  label: "ServiceAccount Annotations"
+  description: "Where a workload identity binding goes: eks.amazonaws.com/role-arn for IRSA, iam.gke.io/gcp-service-account for GKE, azure.workload.identity/client-id for Azure. EKS Pod Identity needs no annotation — it binds by name."
+  type: string
+  default: ""
+  group: "Service Account"
+- variable: serviceAccount.cloudIdentity
+  label: "ServiceAccount Has a Cloud Identity"
+  description: "Advisory. A Pod Identity association is an EKS API object invisible to the pod spec, so the chart cannot detect it; setting this turns on the install notes that catch static credentials shadowing the identity."
+  type: boolean
+  default: false
+  group: "Service Account"
+- variable: env.requireExplicitSecrets
+  label: "Refuse to Render Default Signing Keys"
+  description: "Fails the install instead of falling back to the published defaults for SECRET_KEY and friends. Worth turning on once the keys come from a Secret."
+  type: boolean
+  default: false
+  group: "Service Account"
+- variable: external_secrets.otel_env_existingSecret
+  label: "OpenTelemetry Envs Secrets File Name"
+  description: "Supplies OTEL_EXPORTER_OTLP_HEADERS. Leave blank to let the chart create the Secret from the OTLP Exporter Headers value."
+  type: string
+  default: ""
+  group: "External Secrets"
+
+- variable: observability.otel.enabled
+  label: "Enable OpenTelemetry"
+  description: "Export traces, logs and metrics from the backend services over OTLP. Off by default."
+  type: boolean
+  default: false
+  group: "OpenTelemetry"
+  show_subquestion_if: true
+  subquestions:
+  - variable: observability.otel.endpoint
+    label: "OTLP Endpoint"
+    description: "OTLP collector endpoint. An https:// endpoint uses secure gRPC."
+    type: string
+    default: ""
+  - variable: observability.otel.protocol
+    label: "OTLP Protocol"
+    type: enum
+    options:
+    - "grpc"
+    - "http/protobuf"
+    default: "grpc"
+  - variable: observability.otel.headers
+    label: "OTLP Exporter Headers"
+    description: "Extra OTLP exporter headers as k1=v1,k2=v2 (e.g. a collector ingestion/auth key). Stored in a Secret, not a ConfigMap."
+    type: string
+    default: ""
+  - variable: observability.otel.environment
+    label: "Deployment Environment"
+    description: "Emitted as deployment.environment.name (e.g. prod, staging). Use for cross-service environment filtering."
+    type: string
+    default: ""
+  - variable: observability.otel.resourceAttributes
+    label: "Extra Resource Attributes"
+    description: "Additional OTel resource attributes as k1=v1,k2=v2."
+    type: string
+    default: ""
+  - variable: observability.otel.sampler
+    label: "Trace Sampler"
+    description: "always_on captures every trace (recommended for test/debug). In production use parentbased_traceidratio; unlike always_on it honours an upstream traceparent's sampling decision."
+    type: enum
+    options:
+    - "always_on"
+    - "parentbased_traceidratio"
+    - "traceidratio"
+    - "always_off"
+    default: "always_on"
+  - variable: observability.otel.samplerArg
+    label: "Trace Sampler Ratio"
+    description: "Sampling ratio 0.0-1.0 for ratio-based samplers. Ignored by always_on."
+    type: string
+    default: "1.0"
+    show_if: "observability.otel.sampler=parentbased_traceidratio || observability.otel.sampler=traceidratio"
+  - variable: observability.otel.debugConsole
+    label: "Print Spans to Stdout (debug)"
+    type: boolean
+    default: false
+  - variable: observability.otel.frontend.enabled
+    label: "Enable Browser Tracing"
+    description: "Browser tracing for web/admin/space, served to browsers by the API. Requires a browser OTLP endpoint below."
+    type: boolean
+    default: false
+  - variable: observability.otel.frontend.endpoint
+    label: "Browser OTLP Endpoint"
+    description: "Public OTLP/HTTP endpoint the browser posts to (must be internet-reachable and CORS-enabled)."
+    type: string
+    default: ""
+    show_if: "observability.otel.frontend.enabled=true"
+  - variable: observability.otel.frontend.headers
+    label: "Browser OTLP Headers"
+    description: "A non-empty value forces the browser exporter onto XHR (required cross-origin; sendBeacon fails CORS)."
+    type: string
+    default: "x-otlp-browser=1"
+    show_if: "observability.otel.frontend.enabled=true"

@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-admin
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.admin.assign_cluster_ip }}
@@ -26,7 +27,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-admin-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.admin }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.admin) }}
 spec:
   replicas: {{ .Values.services.admin.replicas | default 1 }}
   selector:
@@ -37,10 +38,13 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-admin
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.admin }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.admin "app" "admin" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-admin
@@ -51,8 +55,8 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.admin.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.admin.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.admin.memoryRequest | default "128Mi" | quote }}
+            cpu: {{ .Values.services.admin.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.admin.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.admin.cpuLimit | default "500m" | quote}}
@@ -60,6 +64,6 @@ spec:
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---

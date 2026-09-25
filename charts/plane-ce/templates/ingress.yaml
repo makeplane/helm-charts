@@ -5,9 +5,11 @@ kind: Ingress
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-ingress
-  {{- if gt (len .Values.ingress.ingress_annotations) 0 }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with .Values.ingress.ingress_annotations }}
   annotations:
-    {{- range $key, $value := .Values.ingress.ingress_annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}

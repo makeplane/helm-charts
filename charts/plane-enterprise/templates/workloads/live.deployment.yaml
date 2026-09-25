@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-live
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.live.assign_cluster_ip }}
@@ -26,9 +27,10 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-live-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.live }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.live) }}
 spec:
   replicas: {{ .Values.services.live.replicas | default 1}}
+  {{- include "plane.rollingUpdateStrategy" . | nindent 2 }}
   selector:
     matchLabels:
       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
@@ -37,10 +39,13 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.live "app" "live" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CANodeVolumes" .) }}
 {{ . | indent 6 }}
@@ -48,7 +53,7 @@ spec:
       {{- if include "plane.s3CAEnabled" . }}
       initContainers:
       - name: prepare-ca-bundle
-        image: busybox
+        image: {{ .Values.services.live.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
@@ -79,30 +84,48 @@ spec:
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.live.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.live.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.live.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.live.cpuRequest | default "100m" | quote }}
           limits:
-            memory: {{ .Values.services.live.memoryLimit  | default "1000Mi" | quote }}
+            memory: {{ .Values.services.live.memoryLimit  | default "2000Mi" | quote }}
             cpu: {{ .Values.services.live.cpuLimit | default "500m" | quote}}
         {{- with (include "plane.s3CANodeBundleMount" .) }}
 {{ . | indent 8 }}
         {{- end }}
         envFrom:
+          {{- include "plane.aiProvidersSecretRef" . }}
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
               optional: false
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) }}
+          {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* LAST in envFrom, deliberately: envFrom is later-source-wins, so these must
+                 follow app_env/silo_env/live_env. Those may carry their own copy of a key a
+                 group hook owns, and first would let the stale copy win on one workload but
+                 not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
+                 or live-server auth fails with nothing logged. */}}
+          {{- include "plane.appKeysSecretRef" . }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.redisCredsEnv" .) (include "plane.rabbitmqCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
 {{ . | indent 10 }}
           {{- end }}
+          {{/* live reads the broker as discrete parts from the release that added
+               composeAmqpUrlFromParts(); before that it read only AMQP_URL, so the mirror
+               reached every service except this one and only exports failed. */}}
+          {{- with (include "plane.rabbitmqCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.redisCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---

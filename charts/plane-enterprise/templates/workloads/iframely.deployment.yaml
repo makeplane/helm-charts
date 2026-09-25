@@ -6,6 +6,7 @@ metadata:
   name: {{ .Release.Name }}-iframely
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   clusterIP: None
   ports:
@@ -23,7 +24,7 @@ kind: Deployment
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-iframely-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.iframely }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.iframely) }}
 spec:
   replicas: {{ .Values.services.iframely.replicas | default 1 }}
   selector:
@@ -34,25 +35,28 @@ spec:
       namespace: {{ .Release.Namespace }}
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.iframely }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.iframely "app" "iframely" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-iframely
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v1.2.0" }}
+        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v2.5.4" }}
         stdin: true
         tty: true
         resources:
           requests:
-            memory: {{ .Values.services.iframely.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.iframely.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.iframely.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.iframely.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.iframely.memoryLimit | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.iframely.cpuLimit | default "500m" | quote }}
+            cpu: {{ .Values.services.iframely.cpuLimit | default "1000m" | quote }}
         command:
           - node
         args:
@@ -61,6 +65,6 @@ spec:
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 {{- end }}

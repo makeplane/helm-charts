@@ -6,6 +6,98 @@
 {{- printf "%s%s%s%s" .Values.license.licenseServer .Values.license.licenseDomain .Release.Namespace .Release.Name | sha256sum  -}}
 {{- end -}}
 
+{{/*
+The stateless, horizontally-scalable workloads, as a map of
+  <values key under .Values.services>: <the suffix of its app.name pod label>
+
+Both halves are needed because neither can be derived from the other: `email_service` renders a
+pod labelled `email-app`, `pi` renders `pi-api`, and the rest merely swap underscores for dashes.
+Consumed by templates/pdb.yaml (which workloads may have a PodDisruptionBudget) and by
+validations.yaml (which workloads may not). Keep it in sync when a workload is added or renamed.
+
+Deliberately EXCLUDED, and not by oversight:
+  beatworker, pi_beat_worker, monitor, argus  Tier-2 singletons -- one replica by design, so a
+                                              budget has no second copy to protect and a spread
+                                              constraint has nothing to spread
+  postgres, redis, rabbitmq, opensearch,      Tier-3 in-chart stateful -- single replica on RWO
+  minio                                       volumes; use managed services for HA instead
+  migrator, pi-migrator, storage_migration    run-once Jobs
+*/}}
+{{- define "plane.pdbEligible" -}}
+api: api
+web: web
+space: space
+admin: admin
+live: live
+live_exporter: live-exporter
+worker: worker
+worker_importers: worker-importers
+silo: silo
+email_service: email-app
+external_api: external-api
+outbox_poller: outbox-poller
+automation_consumer: automation-consumer
+webhook_consumer: webhook-consumer
+agent_consumer: agent-consumer
+pi: pi-api
+pi_worker: pi-worker
+runner: runner
+iframely: iframely
+{{- end }}
+
+{{/*
+topologySpreadConstraints for one workload. Place inside spec.template.spec, beside
+plane.podScheduling, and call with the service values, the workload's app.name suffix and the
+root context:
+
+  {{- include "plane.podSpread" (dict "svc" .Values.services.api "app" "api" "root" .) }}
+
+WHY THIS EXISTS SEPARATELY from the `affinity` passthrough: podAntiAffinity can express "keep
+these apart", but it is all-or-nothing per topology domain -- a hard rule needs one node per
+replica or pods sit Pending, and a soft rule gives no control over how uneven the spread may
+get. topologySpreadConstraints says the thing you actually mean: at most `maxSkew` difference
+between domains, and what to do when that cannot be met.
+
+The labelSelector is filled in for you with this workload's own `app.name`, because getting it
+wrong is silent -- a constraint whose selector matches nothing is satisfied by every placement.
+Pass an explicit `labelSelector` only to spread against something other than the workload
+itself.
+
+Anything the API supports may be set per constraint; only topologyKey is required. maxSkew
+defaults to 1 and whenUnsatisfiable to ScheduleAnyway, the pair that spreads without ever
+leaving a pod unschedulable.
+*/}}
+{{- define "plane.podSpread" -}}
+{{- $app := printf "%s-%s-%s" .root.Release.Namespace .root.Release.Name .app -}}
+{{- with (.svc | default dict).topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range . }}
+        - topologyKey: {{ required "topologySpreadConstraints[] needs a topologyKey (e.g. topology.kubernetes.io/zone or kubernetes.io/hostname)" .topologyKey | quote }}
+          maxSkew: {{ .maxSkew | default 1 }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable | default "ScheduleAnyway" }}
+          {{- with .minDomains }}
+          minDomains: {{ . }}
+          {{- end }}
+          {{- with .nodeAffinityPolicy }}
+          nodeAffinityPolicy: {{ . }}
+          {{- end }}
+          {{- with .nodeTaintsPolicy }}
+          nodeTaintsPolicy: {{ . }}
+          {{- end }}
+          {{- with .matchLabelKeys }}
+          matchLabelKeys: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .labelSelector }}
+          labelSelector: {{- toYaml .labelSelector | nindent 12 }}
+          {{- else }}
+          labelSelector:
+            matchLabels:
+              app.name: {{ $app }}
+          {{- end }}
+        {{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "plane.podScheduling" -}}
   {{- with .nodeSelector }} 
       nodeSelector: {{ toYaml . | nindent 8 }}
@@ -42,14 +134,103 @@ Place inside a container/initContainer entry — call with the root context, e.g
 {{- end }}
 {{- end -}}
 
-{{- define "plane.labelsAndAnnotations" -}}
-  {{- with .labels }}
-  labels: {{ toYaml . | nindent 4 }}
-  {{- end }}
-  {{- with .annotations }}
+{{/*
+Chart name and version, sanitized for use as the `helm.sh/chart` label value.
+*/}}
+{{- define "plane.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Standard Kubernetes recommended labels shared by every resource the chart renders.
+These are additive metadata labels only; they are intentionally kept out of
+spec.selector/matchLabels (which stay on the immutable `app.name` label) so that
+upgrading an existing release never tries to mutate an immutable selector.
+Call with the root context, e.g. {{ include "plane.commonLabels" $ }}
+*/}}
+{{- define "plane.commonLabels" -}}
+helm.sh/chart: {{ include "plane.chart" . }}
+app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Chart.AppVersion }}
+app.kubernetes.io/version: {{ . | quote }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Render a resource's `labels` and `annotations` metadata.
+Always emits the standard recommended labels (see plane.commonLabels) and merges
+any per-component labels supplied under the component's `labels` value. Per-component
+annotations are emitted when present.
+Call with a dict carrying the root context and the component values:
+  {{ include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.api) }}
+*/}}
+{{- define "plane.labelsAndAnnotations" }}
+  labels:
+    {{- include "plane.commonLabels" .context | nindent 4 }}
+    {{- with .values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- /*
+  Emitted on the WORKLOAD resource, not the pod template. That matters for anything
+  keyed on the workload -- Stakater Reloader reads its annotation there -- so a
+  deployment wanting a rotated Secret to trigger a restart sets
+  services.<name>.annotations."reloader.stakater.com/auto": "true" here rather than the
+  chart imposing it.
+  */}}
+  {{- with .values.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
+
+{{/*
+Returns "true" when the bundled MinIO should be deployed.
+MinIO is deployed only when services.minio.local_setup is enabled AND the storage
+provider is not GCS — GCS native mode never uses the bundled MinIO, so selecting it
+must disable the MinIO StatefulSet, bucket job, ingress routes and certs regardless
+of the local_setup flag's value.
+*/}}
+{{- define "plane.minioEnabled" -}}
+  {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Selects which ingress template renders, decoupling the controller *type* (which
+resource kind to emit) from the ingress *class name* (a free-form string).
+Returns "traefik" (IngressRoute), "openshift" (Route per path), "ingress"
+(networking.k8s.io/v1 Ingress, i.e. ingress-nginx) or "none" (render nothing).
+
+ingress.controller decides when set: "traefik*" -> traefik, "openshift" ->
+openshift, anything else -> a standard Ingress, whatever the class name is. That
+last case exists so a non-"nginx" class name can still be served, e.g.
+controller "nginx" with ingressClass "nginx-new".
+
+When ingress.controller is EMPTY the selection is the pre-3.5.5 one, exactly:
+only "traefik*", "openshift" and "nginx" are recognised and any other class
+returns "none", rendering no ingress. That silent no-op is kept deliberately --
+widening it would make an upgrade create a <release>-ingress for operators who
+are on such a class today and already run an ingress of their own. Set
+ingress.controller to opt into the standard Ingress for any class name.
+*/}}
+{{- define "plane.ingressController" -}}
+  {{- $c := .Values.ingress.controller | default "" | trim | lower -}}
+  {{- if $c -}}
+    {{- if hasPrefix "traefik" $c -}}traefik
+    {{- else if eq $c "openshift" -}}openshift
+    {{- else -}}ingress
+    {{- end -}}
+  {{- else -}}
+    {{- $k := .Values.ingress.ingressClass | default "" -}}
+    {{- if hasPrefix "traefik" $k -}}traefik
+    {{- else if eq $k "openshift" -}}openshift
+    {{- else if eq $k "nginx" -}}ingress
+    {{- else -}}none
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
 
 {{/*
 Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
@@ -107,18 +288,86 @@ volumeMounts:
 {{/*
 Render the shell init script that installs custom CA certificates.
 Output is raw shell; caller embeds it inside the command block.
+
+The trust store differs by image variant and cannot be known when the chart
+renders: the standard images are Alpine/Debian (update-ca-certificates,
+anchors in /usr/local/share/ca-certificates, bundle at
+/etc/ssl/certs/ca-certificates.crt) and the FIPS images are UBI
+(update-ca-trust, anchors in /etc/pki/ca-trust/source/anchors, bundle at
+/etc/pki/tls/certs/ca-bundle.crt). So the tool is detected at runtime and the
+SSL_* variables are exported here, overriding the pod spec's Alpine/Debian
+defaults from plane.s3CAEnvVars -- an export in this shell survives the exec
+that follows.
+
+Nothing below may fail the container. The caller runs under `set -e`, and a
+trust-store problem must not stop the service from starting; when the install
+does not happen the pod-spec defaults are unset rather than left pointing at a
+bundle this image does not have, because a non-existent SSL_CERT_FILE breaks
+every outbound TLS call instead of just the private-CA ones.
 */}}
 {{- define "plane.s3CAInitScript" -}}
 {{- if include "plane.s3CAEnabled" . -}}
-echo "Installing custom CA certificates..."
-mkdir -p /usr/local/share/ca-certificates
-if [ "$(ls -A /s3-custom-ca)" ]; then
-  echo "Found certificates in /s3-custom-ca. Installing..."
-  cp /s3-custom-ca/* /usr/local/share/ca-certificates/
-  update-ca-certificates
-  echo "CA certificates installed successfully"
+plane_copy_ca_anchors() {
+  # Debian's update-ca-certificates reads only anchors whose name ends in .crt,
+  # and the Secret key supplies that name, so normalise rather than trust it.
+  for _plane_src in /s3-custom-ca/*; do
+    [ -f "$_plane_src" ] || continue
+    _plane_dst=${_plane_src##*/}
+    case "$_plane_dst" in *.crt) ;; *) _plane_dst="$_plane_dst.crt" ;; esac
+    cp "$_plane_src" "$1/$_plane_dst" 2>/dev/null || return 1
+  done
+  return 0
+}
+
+plane_install_custom_ca() {
+  if [ ! -d /s3-custom-ca ] || [ -z "$(ls -A /s3-custom-ca 2>/dev/null)" ]; then
+    echo "plane: no custom CA certificates supplied, skipping"
+    return 1
+  fi
+
+  if command -v update-ca-trust >/dev/null 2>&1; then
+    _plane_anchors=/etc/pki/ca-trust/source/anchors
+    _plane_bundle=/etc/pki/tls/certs/ca-bundle.crt
+    mkdir -p "$_plane_anchors" 2>/dev/null \
+      && plane_copy_ca_anchors "$_plane_anchors" \
+      && update-ca-trust extract >/dev/null 2>&1 \
+      || return 1
+  elif command -v update-ca-certificates >/dev/null 2>&1; then
+    _plane_anchors=/usr/local/share/ca-certificates
+    _plane_bundle=/etc/ssl/certs/ca-certificates.crt
+    mkdir -p "$_plane_anchors" 2>/dev/null \
+      && plane_copy_ca_anchors "$_plane_anchors" \
+      && update-ca-certificates >/dev/null 2>&1 \
+      || return 1
+  else
+    echo "plane: no CA trust tool found in this image" >&2
+    return 1
+  fi
+
+  [ -f "$_plane_bundle" ] || return 1
+
+  # Both tools exit 0 when they ignore an input file, so a zero exit and an
+  # existing bundle are not evidence the certificate is trusted. Confirm one of
+  # the supplied certificates is in the output before exporting anything.
+  _plane_probe=$(cat /s3-custom-ca/* 2>/dev/null | grep -m1 -A1 'BEGIN CERTIFICATE' | tail -1)
+  if [ -n "$_plane_probe" ] && ! grep -qF "$_plane_probe" "$_plane_bundle" 2>/dev/null; then
+    echo "plane: supplied CA certificates were not picked up by the trust store" >&2
+    return 1
+  fi
+
+  export SSL_CERT_FILE="$_plane_bundle"
+  export SSL_CERT_DIR="${_plane_bundle%/*}"
+  export REQUESTS_CA_BUNDLE="$_plane_bundle"
+  export CURL_CA_BUNDLE="$_plane_bundle"
+  echo "plane: custom CA certificates installed ($_plane_bundle)"
+  return 0
+}
+
+if plane_install_custom_ca; then
+  :
 else
-  echo "No custom S3 CA certificate found, skipping..."
+  echo "plane: WARNING custom CA certificates were not installed; falling back to this image's own trust store" >&2
+  unset SSL_CERT_FILE SSL_CERT_DIR REQUESTS_CA_BUNDLE CURL_CA_BUNDLE
 fi
 {{- end }}
 {{- end -}}
@@ -126,6 +375,12 @@ fi
 {{/*
 Render the SSL/TLS env vars needed when custom CA certs are installed.
 Caller must nindent to the correct depth.
+
+These are the Alpine/Debian paths, i.e. correct for the standard images only.
+They are a starting value, not the final word: plane.s3CAInitScript runs in
+every container that gets these and either re-exports them with the path this
+image's trust store actually produced, or unsets them. Every workload that
+includes this helper also includes that one -- keep it that way.
 */}}
 {{- define "plane.s3CAEnvVars" -}}
 {{- if include "plane.s3CAEnabled" . -}}
@@ -194,4 +449,657 @@ Caller must nindent to the correct depth.
 - name: NODE_EXTRA_CA_CERTS
   value: "/ca-bundle/custom-ca-bundle.crt"
 {{- end }}
+{{- end -}}
+
+{{/*
+OpenTelemetry — returns "true" when observability.otel.enabled is set, else "".
+*/}}
+{{- define "plane.otel.enabled" -}}
+{{- if and .Values.observability .Values.observability.otel .Values.observability.otel.enabled -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when the OTLP exporter headers are sourced from a Secret — either
+because observability.otel.headers is set (chart-managed Secret) or because an
+existing Secret was supplied. Empty otherwise, so no secretRef is emitted for a
+deployment that needs no ingestion credentials.
+*/}}
+{{- define "plane.otel.secretEnabled" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+{{- if or .Values.observability.otel.headers .Values.external_secrets.otel_env_existingSecret -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+envFrom entries for the shared OTEL ConfigMap (+ the OTLP headers Secret, when
+one is in play). Call with the root context and nindent to the envFrom list
+depth, e.g.
+  {{- include "plane.otel.envFrom" $ | nindent 10 }}
+*/}}
+{{- define "plane.otel.envFrom" -}}
+{{- if eq (include "plane.otel.enabled" .) "true" -}}
+- configMapRef:
+    name: {{ .Release.Name }}-otel-vars
+    optional: false
+{{- if eq (include "plane.otel.secretEnabled" .) "true" }}
+- secretRef:
+    name: {{ if not (empty .Values.external_secrets.otel_env_existingSecret) }}{{ .Values.external_secrets.otel_env_existingSecret }}{{ else }}{{ .Release.Name }}-otel-secrets{{ end }}
+    optional: false
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Per-workload OTEL_SERVICE_NAME (overrides the shared ConfigMap so each workload
+reports its own service.name). Call with a dict and nindent, e.g.
+  {{- include "plane.otel.serviceEnv" (dict "ctx" $ "service" "api") | nindent 10 }}
+*/}}
+{{- define "plane.otel.serviceEnv" -}}
+{{- if eq (include "plane.otel.enabled" .ctx) "true" -}}
+- name: OTEL_SERVICE_NAME
+  value: {{ .service | quote }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Name of the ServiceAccount every workload runs as. Defaults to the release-scoped
+account the chart creates; override with serviceAccount.name to run as a
+ServiceAccount you manage yourself (e.g. one created by Crossplane/Terraform and
+already bound to a cloud IAM role, or an EKS Pod Identity association target).
+*/}}
+{{- define "plane.serviceAccountName" -}}
+{{- .Values.serviceAccount.name | default (printf "%s-srv-account" .Release.Name) -}}
+{{- end -}}
+
+{{/*
+Returns "true" when the chart should render the ServiceAccount itself.
+Skipped when serviceAccount.create is false — i.e. the account is managed outside
+the chart (GitOps, Terraform) and only referenced here.
+*/}}
+{{- define "plane.createServiceAccount" -}}
+{{- if .Values.serviceAccount.create -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Pod-template labels required by some workload-identity implementations
+(notably Azure Workload Identity, which needs azure.workload.identity/use: "true"
+on the pod). Indentation is baked in for the pod-template label position, so call it
+bare: {{- include "plane.serviceAccountPodLabels" . }}
+*/}}
+{{- define "plane.serviceAccountPodLabels" -}}
+{{- with .Values.serviceAccount.podLabels }}
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Aggregate sha256 over every Secret/ConfigMap the chart renders from values.
+Used as a pod-template annotation so `helm upgrade` rolls workloads when — and
+only when — chart-rendered configuration actually changed. Secrets that live
+outside the chart (External Secrets Operator, sealed secrets, manual) are not
+visible here by design: rotation of those is Reloader's job, driven by a
+reloader.stakater.com/auto annotation set through services.<name>.annotations.
+
+The hash intentionally covers all config-secret templates rather than a per-workload
+subset: several keys (AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET)
+must stay in lockstep across services, so a shared trigger is the safe default.
+
+The list is every config-secret template a workload mounts via envFrom. docker-registry
+and cert-issuers are excluded on purpose: neither is pod env, so hashing them would roll
+every workload for a change no running container can observe.
+*/}}
+{{- define "plane.configChecksum" -}}
+{{- $ctx := . -}}
+{{- $acc := "" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
+{{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
+{{- end -}}
+{{- $acc | sha256sum -}}
+{{- end -}}
+
+{{/*
+Pod-template annotations shared by every workload.
+
+  checksum/config   always — rolls the pod when chart-rendered config changes
+  timestamp         only when global.forceRedeploy — restores the pre-3.1 behaviour
+                    of rolling every workload on every upgrade
+
+The Reloader annotation is NOT here: Reloader watches the workload resource's own
+annotations, so it is merged into plane.labelsAndAnnotations instead.
+
+Call with the root context. Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.podAnnotations" -}}
+checksum/config: {{ include "plane.configChecksum" . | quote }}
+{{- if .Values.global.forceRedeploy }}
+timestamp: {{ now | quote }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Rolling-update strategy that keeps full capacity during a rollout, so a
+Reloader-triggered restart after a credential rotation never drops requests.
+Rendered only for replicated Deployments (surge needs room to schedule).
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.rollingUpdateStrategy" -}}
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+{{- end -}}
+
+{{/*
+Resolve a secret value with an optional insecure fallback.
+
+Returns .value when set. Otherwise fails the render when env.requireExplicitSecrets
+is true, and falls back to .fallback when it is false (the pre-3.1 behaviour, kept
+so existing installs keep working). The fallback values shipped by this chart are
+PUBLIC CONSTANTS — any production install must supply its own.
+
+Call with a dict: (dict "context" $ "name" "SECRET_KEY" "value" .Values.env.secret_key "fallback" "...")
+*/}}
+{{- define "plane.secretValue" -}}
+{{- if .value -}}
+{{- .value -}}
+{{- else if .context.Values.env.requireExplicitSecrets -}}
+{{- required (printf "%s has no value. Set it in values.yaml, or supply it through external_secrets.app_keys_existingSecret, or set env.requireExplicitSecrets=false to fall back to the chart's insecure default." .name) nil -}}
+{{- else -}}
+{{- .fallback -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+envFrom entry for the Secret carrying the shared signing/encryption keys
+(SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
+SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET). Renders nothing unless
+external_secrets.app_keys_existingSecret is set.
+
+These keys are duplicated across the api, live, silo and pi Secrets, and several of
+them must agree for those services to talk to each other. Pointing all of them at
+one Secret makes that agreement structural instead of something an operator has to
+remember to update in four places. When it is in use the chart stops emitting those
+keys in its own Secrets, so this is their only source.
+
+Placed first in envFrom so that a key you have already externalized through one of
+the older *_existingSecret groups keeps taking precedence.
+
+Indentation is baked in for the container envFrom position, so call it bare:
+{{- include "plane.appKeysSecretRef" . }}
+*/}}
+{{- define "plane.appKeysSecretRef" -}}
+{{- with .Values.external_secrets.app_keys_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
+envFrom entry for the Secret carrying the AI/LLM provider keys. Renders nothing
+unless external_secrets.ai_providers_existingSecret is set.
+
+Separate from the Plane AI Secret because provider accounts are shared across
+environments while everything else in that Secret is per-environment. Mounted on the
+Plane AI workloads and on live (whose AI_OPENAI_API_KEY has no values key at all).
+
+Placed before the chart's own Secret so an operator who has already externalized
+pi_api_env keeps that precedence. While this is set the chart emits none of these
+keys itself — including the empty-string branches, which would otherwise overwrite
+this Secret's values, since envFrom resolves later-source-wins.
+
+Indentation is baked in for the container envFrom position, so call it bare.
+*/}}
+{{- define "plane.aiProvidersSecretRef" -}}
+{{- with .Values.external_secrets.ai_providers_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
+envFrom entry for the Secret carrying the silo connector credentials. Renders nothing
+unless external_secrets.silo_connectors_existingSecret is set.
+
+Mounted on every workload that mounts silo-secrets today, not just silo: the Django
+auth adapter reads GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET from that Secret on the api
+family, so mounting this only on silo would drop those variables there.
+
+Indentation is baked in for the container envFrom position, so call it bare.
+*/}}
+{{- define "plane.siloConnectorsSecretRef" -}}
+{{- with .Values.external_secrets.silo_connectors_existingSecret }}
+          - secretRef:
+              name: {{ . }}
+              optional: false
+{{- end }}
+{{- end -}}
+
+{{/*
+Returns "true" when an externally managed Secret supplies the Postgres credentials,
+in which case the chart must not render a composed DATABASE_URL that would take
+precedence over the discrete POSTGRES_* parts.
+*/}}
+{{- define "plane.externalDatabase" -}}
+{{- if .Values.external_secrets.database.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.externalRabbitmq" -}}
+{{- if .Values.external_secrets.rabbitmq.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.externalRedis" -}}
+{{- if .Values.external_secrets.redis.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Only meaningful for a remote OpenSearch: when the chart runs the bundled cluster it
+owns those credentials on both sides, so externalizing just the application's half
+would leave the two disagreeing. Use opensearch_existingSecret for that case.
+*/}}
+{{- define "plane.externalOpensearch" -}}
+{{- if and .Values.external_secrets.opensearch.secretName (not .Values.services.opensearch.local_setup) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Postgres host/port/database the app should connect to in externalized-credential
+mode. Endpoint details are not secret, so they come from values (or from the
+mirrored cloud secret when it happens to carry them — see hostKey/portKey/dbNameKey).
+*/}}
+{{- define "plane.postgresHost" -}}
+{{- if .Values.services.postgres.local_setup -}}
+{{- printf "%s-pgdb.%s.svc.%s" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
+{{- else -}}
+{{- .Values.env.pgdb_host -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.rabbitmqHost" -}}
+{{- if .Values.services.rabbitmq.local_setup -}}
+{{- printf "%s-rabbitmq.%s.svc.%s" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
+{{- else -}}
+{{- .Values.env.rabbitmq_host -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.redisHost" -}}
+{{- if .Values.services.redis.local_setup -}}
+{{- printf "%s-redis.%s.svc.%s" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") -}}
+{{- else -}}
+{{- .Values.env.redis_host -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Emit one env entry sourced from a key inside an externally managed Secret.
+Call with a dict: (dict "name" "POSTGRES_USER" "secret" $name "key" $key)
+
+Emits a leading newline so that call sites can use a left-trim marker
+({{- include ... }}) without swallowing the separator from the previous entry.
+*/}}
+{{- define "plane.secretKeyEnv" }}
+- name: {{ .name }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ .secret }}
+      key: {{ .key }}
+{{- end -}}
+
+{{/*
+Discrete infrastructure credentials for the Django services (api, workers,
+consumers, poller, migrator). Renders nothing unless at least one of
+external_secrets.{database,redis,rabbitmq}.secretName is set.
+
+Design: the cluster Secret is a verbatim mirror of the cloud secret — an RDS or
+CloudSQL managed-rotation secret holds only {"username","password"} — so the chart
+maps whatever keys that secret happens to use onto the env var names the app reads,
+and takes the non-secret endpoint (host/port/database) from values. Nothing needs
+templating or recomposing on rotation, and there is exactly one secret to watch.
+
+The app composes its own connection URLs from these parts, so a rotated password
+propagates with no URL rewriting anywhere in the chain.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.infraCredsEnv" -}}
+{{- include "plane.postgresCredsEnv" . }}
+{{- include "plane.rabbitmqCredsEnv" . }}
+{{- include "plane.redisCredsEnv" . }}
+{{- include "plane.opensearchCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Postgres credentials from an externally managed Secret. Split out of
+plane.infraCredsEnv so a workload can take only the backends it actually uses —
+the live server needs Redis and nothing else.
+*/}}
+{{- define "plane.postgresCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- if $db.secretName }}
+- name: POSTGRES_HOST
+  value: {{ include "plane.postgresHost" . | quote }}
+- name: POSTGRES_PORT
+  value: {{ .Values.env.pgdb_port | default "5432" | quote }}
+- name: POSTGRES_DB
+  value: {{ .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_USER" "secret" $db.secretName "key" ($db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_PASSWORD" "secret" $db.secretName "key" ($db.passwordKey | default "password")) }}
+{{- with $db.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_HOST" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- with $db.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_PORT" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- with $db.dbNameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_DB" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- include "plane.postgresReadReplicaCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Returns "true" when object-storage credentials come from an externally managed Secret.
+Never true while the bundled MinIO is deployed — that supplies its own credentials, and
+overriding them would break the in-cluster client.
+*/}}
+{{- define "plane.externalStorage" -}}
+{{- if and .Values.external_secrets.storage.secretName (not (include "plane.minioEnabled" .)) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Object-storage credentials as explicit env entries, so they win over the doc-store
+Secret mounted via envFrom.
+
+Only the keys the operator names are emitted: an S3 deployment sets the two access-key
+keys, a GCS deployment sets gcsCredentialsJsonKey, and a deployment using a pod identity
+sets none of them and relies on the SDK credential chain.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.storageCredsEnv" -}}
+{{- $st := .Values.external_secrets.storage -}}
+{{- if include "plane.externalStorage" . }}
+{{- with $st.accessKeyIdKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AWS_ACCESS_KEY_ID" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- with $st.secretAccessKeyKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AWS_SECRET_ACCESS_KEY" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- with $st.gcsCredentialsJsonKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "GCS_CREDENTIALS_JSON" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Returns "true" when the read replica's credentials come from an externally managed
+Secret. Falls back to the primary's Secret, since a replica normally accepts the same
+credential — set readReplica.secretName only when it has its own user.
+*/}}
+{{- define "plane.externalReadReplica" -}}
+{{- if .Values.services.postgres.read_replica.enabled -}}
+{{- if or .Values.external_secrets.database.readReplica.secretName .Values.external_secrets.database.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Read-replica credentials as discrete parts.
+
+services.postgres.read_replica.remote_url is a DSN carrying the password, so a managed
+rotation can never update it. The API reads POSTGRES_READ_REPLICA_* natively — Django
+takes the parts straight into a config dict, so nothing composes a URL — which makes
+this a chart-only change.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.postgresReadReplicaCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- $rr := $db.readReplica -}}
+{{- $secret := $rr.secretName | default $db.secretName -}}
+{{/* The newline after this `if` is deliberate: call sites use a left-trim marker, so
+     the output has to open with one to keep this entry off the previous line. */}}
+{{- if include "plane.externalReadReplica" . }}
+- name: POSTGRES_READ_REPLICA_HOST
+  value: {{ .Values.env.pgdb_read_replica_host | quote }}
+- name: POSTGRES_READ_REPLICA_PORT
+  value: {{ .Values.env.pgdb_read_replica_port | default "5432" | quote }}
+- name: POSTGRES_READ_REPLICA_DB
+  value: {{ .Values.env.pgdb_read_replica_name | default .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_USER" "secret" $secret "key" ($rr.usernameKey | default $db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_PASSWORD" "secret" $secret "key" ($rr.passwordKey | default $db.passwordKey | default "password")) }}
+{{- with $rr.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_HOST" "secret" $secret "key" .) }}
+{{- end }}
+{{- with $rr.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_PORT" "secret" $secret "key" .) }}
+{{- end }}
+{{- with $rr.dbNameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "POSTGRES_READ_REPLICA_DB" "secret" $secret "key" .) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+RabbitMQ credentials from an externally managed Secret.
+*/}}
+{{- define "plane.rabbitmqCredsEnv" -}}
+{{- $mq := .Values.external_secrets.rabbitmq -}}
+{{- if $mq.secretName }}
+- name: RABBITMQ_HOST
+  value: {{ include "plane.rabbitmqHost" . | quote }}
+- name: RABBITMQ_PORT
+  value: {{ .Values.env.rabbitmq_port | default "5672" | quote }}
+- name: RABBITMQ_VHOST
+  value: {{ .Values.env.rabbitmq_vhost | default "/" | quote }}
+- name: RABBITMQ_SSL
+  {{/* The parts path has no URL scheme to carry TLS, so it needs an explicit flag.
+       Amazon MQ for RabbitMQ listens on 5671 and refuses plaintext. */}}
+  value: {{ .Values.env.rabbitmq_ssl | default false | ternary "1" "0" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PASSWORD" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
+{{- with $mq.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_HOST" "secret" $mq.secretName "key" .) }}
+{{- end }}
+{{- with $mq.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PORT" "secret" $mq.secretName "key" .) }}
+{{- end }}
+{{- with $mq.vhostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_VHOST" "secret" $mq.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Redis credentials from an externally managed Secret. Consumed on its own by the
+live server, and by Plane AI, whose Celery broker is Redis in Helm deployments.
+*/}}
+{{- define "plane.redisCredsEnv" -}}
+{{- $redis := .Values.external_secrets.redis -}}
+{{- if $redis.secretName }}
+- name: REDIS_HOST
+  value: {{ include "plane.redisHost" . | quote }}
+- name: REDIS_PORT
+  value: {{ .Values.env.redis_port | default "6379" | quote }}
+- name: REDIS_SSL
+  value: {{ .Values.env.redis_ssl | default false | ternary "1" "0" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_PASSWORD" "secret" $redis.secretName "key" ($redis.passwordKey | default "password")) }}
+{{- with $redis.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_HOST" "secret" $redis.secretName "key" .) }}
+{{- end }}
+{{- with $redis.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_PORT" "secret" $redis.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+OpenSearch credentials from an externally managed Secret. Kept separate from
+plane.infraCredsEnv (which includes it) because Plane AI's workloads need these
+without the database/broker/cache parts.
+
+The application reads OPENSEARCH_USERNAME and OPENSEARCH_PASSWORD directly, so there
+is no URL to recompose here either. Leaving both unset on AWS makes the API use SigV4
+IAM auth instead, which is the better option when the domain supports it.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.opensearchCredsEnv" -}}
+{{- $os := .Values.external_secrets.opensearch -}}
+{{- if include "plane.externalOpensearch" . }}
+{{- include "plane.secretKeyEnv" (dict "name" "OPENSEARCH_USERNAME" "secret" $os.secretName "key" ($os.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "OPENSEARCH_PASSWORD" "secret" $os.secretName "key" ($os.passwordKey | default "password")) }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Infrastructure credentials for silo: Postgres, RabbitMQ and Redis, using the same
+env var names as the Django services. Not OpenSearch — silo never queries it.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.siloInfraCredsEnv" -}}
+{{- include "plane.postgresCredsEnv" . }}
+{{- include "plane.rabbitmqCredsEnv" . }}
+{{- include "plane.redisCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Database credentials for Plane AI, which reads its own env var names rather than
+the POSTGRES_* set: PLANE_PI_POSTGRES_* for its own database and
+FOLLOWER_POSTGRES_* for its read path into the main Plane database. Both come from
+the same external_secrets.database Secret — one managed instance hosting two
+databases is the shape the chart provisions. A deployment with genuinely separate
+credentials per database should use pi_api_env_existingSecret instead.
+
+Redis is included because Plane AI's Celery broker is Redis in Helm deployments.
+RabbitMQ deliberately is NOT: pi resolves an AMQP broker ahead of a Redis one, so
+emitting RABBITMQ_* here would silently move its queue off Redis.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.piInfraCredsEnv" -}}
+{{- $db := .Values.external_secrets.database -}}
+{{- if $db.secretName }}
+- name: PLANE_PI_POSTGRES_HOST
+  value: {{ include "plane.postgresHost" . | quote }}
+- name: PLANE_PI_POSTGRES_PORT
+  value: {{ .Values.env.pgdb_port | default "5432" | quote }}
+- name: PLANE_PI_POSTGRES_DB
+  value: {{ .Values.env.pg_pi_db_name | default "plane_pi" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_USER" "secret" $db.secretName "key" ($db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_PASSWORD" "secret" $db.secretName "key" ($db.passwordKey | default "password")) }}
+- name: FOLLOWER_POSTGRES_HOST
+  value: {{ include "plane.postgresHost" . | quote }}
+- name: FOLLOWER_POSTGRES_PORT
+  value: {{ .Values.env.pgdb_port | default "5432" | quote }}
+- name: FOLLOWER_POSTGRES_DB
+  value: {{ .Values.env.pgdb_name | default "plane" | quote }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_USER" "secret" $db.secretName "key" ($db.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_PASSWORD" "secret" $db.secretName "key" ($db.passwordKey | default "password")) }}
+{{- with $db.hostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_HOST" "secret" $db.secretName "key" .) }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_HOST" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- with $db.portKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "PLANE_PI_POSTGRES_PORT" "secret" $db.secretName "key" .) }}
+{{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_PORT" "secret" $db.secretName "key" .) }}
+{{- end }}
+{{- end }}
+{{- include "plane.redisCredsEnv" . }}
+{{- include "plane.opensearchCredsEnv" . }}
+{{- include "plane.storageCredsEnv" . }}
+{{- end -}}
+
+{{/*
+Returns "true" when THIS CHART has a TLS Secret to point an ingress at: either
+the user supplied one via ssl.tls_secret_name, or cert-manager is set up to mint
+one (ssl.generateCerts + ssl.createIssuer, which is what gates
+templates/certs/certs.yaml).
+
+Gates the `tls:` blocks. Never widen this to cover externally-terminated TLS --
+referencing a Secret that nothing creates is the bug this helper exists to stop.
+*/}}
+{{- define "plane.chartManagedCert" -}}
+  {{- if or .Values.ssl.tls_secret_name (and .Values.ssl.generateCerts .Values.ssl.createIssuer) -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when users reach Plane over https://, whoever terminates it.
+
+That is either a chart-managed certificate, or ssl.externalTermination for TLS
+handled in front of Plane -- a cloud load balancer, Cloudflare, a service mesh,
+or a Traefik entrypoint with its own certificate (`websecure.http.tls=true`).
+The chart owns no Secret in that second case, so this must NOT be used to emit a
+`tls:` block; use plane.chartManagedCert for that.
+
+Drives ONLY the scheme of every self-referential URL handed to the app
+(APP_BASE_URL, PLANE_FRONTEND_URL, PLANE_OAUTH_REDIRECT_URI,
+EXPORT_DOWNLOAD_BASE_URL, ...).
+
+Deliberately NOT the Traefik entrypoint. "Users are on https" says nothing about
+which entrypoint traffic arrives on: an upstream terminator (ALB, NLB TLS
+listener, Cloudflare) forwards cleartext, which lands on `web`, while a Traefik
+entrypoint carrying its own certificate lands on `websecure`. Those need
+opposite entrypoints from the same value, so the entrypoint derives from
+plane.chartManagedCert instead and ingress.traefik.entryPoints overrides it.
+*/}}
+{{- define "plane.tlsEnabled" -}}
+  {{- if or (eq (include "plane.chartManagedCert" .) "true") .Values.ssl.externalTermination -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Traefik entrypoint names for the IngressRoute.
+
+Honours an explicit ingress.traefik.entryPoints override (some clusters rename
+the defaults, and it is the way to select `websecure` when Traefik's own
+entrypoint terminates TLS); otherwise derives them from whether THIS CHART
+terminates TLS, so an install with SSL left off is reachable over plain HTTP
+instead of serving Traefik's fallback self-signed certificate.
+
+Keyed on plane.chartManagedCert, NOT plane.tlsEnabled: with TLS terminated
+upstream the chart must still bind `web`, because the terminator forwards
+cleartext and a route attached only to `websecure` would never match it.
+
+An empty value is the "derive it" sentinel, never a literal empty list -- the
+CRD requires at least one entrypoint. A bare string is accepted and wrapped into
+a single-item list, since `--set ingress.traefik.entryPoints=websecure` yields a
+scalar and would otherwise render a list-less mapping the CRD rejects.
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.traefikEntryPoints" -}}
+  {{- with .Values.ingress.traefik.entryPoints -}}
+    {{- if kindIs "string" . -}}
+      {{- toYaml (list .) -}}
+    {{- else -}}
+      {{- toYaml . -}}
+    {{- end -}}
+  {{- else -}}
+    {{- if eq (include "plane.chartManagedCert" $) "true" -}}
+- websecure
+    {{- else -}}
+- web
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
