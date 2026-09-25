@@ -1157,7 +1157,7 @@ questions:
 
 - variable: services.drawio.local_setup
   label: "Install Draw.io"
-  description: "Deploy draw.io for the Wiki diagram extension, served on /drawio. Leave off to use a remote drawio (below) or the diagrams.net cloud."
+  description: "Deploy draw.io for the Wiki diagram extension, served on /drawio. Leave off to use the Remote Draw.io URL below (defaults to the public diagrams.net cloud)."
   type: boolean
   default: false
   group: "Draw.io Setup"
@@ -1201,9 +1201,9 @@ questions:
     default: false
 - variable: env.drawio_remote_url
   label: "Remote Draw.io URL"
-  description: "URL of a drawio hosted outside this chart (DRAWIO_EMBED_URL). Used only when Install Draw.io is off; leave empty for the diagrams.net cloud."
+  description: "drawio endpoint (DRAWIO_EMBED_URL) used when Install Draw.io is off. Defaults to the public diagrams.net cloud; change it to a self-hosted drawio."
   type: string
-  default: ""
+  default: "https://embed.diagrams.net"
   show_if: "services.drawio.local_setup=false"
   group: "Draw.io Setup"
 

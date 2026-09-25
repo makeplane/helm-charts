@@ -369,9 +369,9 @@ services:
 
   # Self-hosted draw.io for the Wiki editor's diagram extension. With
   # local_setup: true it is deployed in the chart, served on the /drawio subpath
-  # of the license domain, and DRAWIO_EMBED_URL points there. Set it to false to
-  # use a remotely hosted drawio via env.drawio_remote_url, or leave both unset
-  # for the diagrams.net cloud. The image is versioned independently of
+  # of the license domain, and DRAWIO_EMBED_URL points there. With false (the
+  # default), DRAWIO_EMBED_URL is env.drawio_remote_url, which defaults to the
+  # public diagrams.net cloud. The image is versioned independently of
   # planeVersion.
   drawio:
     local_setup: false
@@ -1230,10 +1230,10 @@ env:
   allow_all_attachment_types: false
   enable_drf_spectacular: false
 
-  # INCASE OF REMOTE DRAWIO ONLY: URL of a drawio hosted outside this chart,
-  # rendered as DRAWIO_EMBED_URL. Ignored when services.drawio.local_setup is
-  # true. Leave empty (with local_setup false) to use the diagrams.net cloud.
-  drawio_remote_url: ''
+  # drawio endpoint rendered as DRAWIO_EMBED_URL when services.drawio.local_setup
+  # is false (ignored when true). Defaults to the public diagrams.net cloud;
+  # point it at a drawio hosted outside this chart to self-host.
+  drawio_remote_url: 'https://embed.diagrams.net'
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
