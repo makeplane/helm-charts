@@ -141,6 +141,19 @@ spec:
         port: 9000
   {{- end }}
 
+  {{- /* makeplane/drawio serves its webapp at "/", so the /drawio prefix is stripped
+         before forwarding. */}}
+  {{- if .Values.services.drawio.local_setup }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/drawio/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-drawio-stripprefix
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-drawio
+        port: 8080
+  {{- end }}
+
   # LAST: catch all
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/`)
     kind: Rule

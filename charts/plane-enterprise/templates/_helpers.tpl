@@ -43,6 +43,7 @@ pi: pi-api
 pi_worker: pi-worker
 runner: runner
 iframely: iframely
+drawio: drawio
 {{- end }}
 
 {{/*

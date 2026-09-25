@@ -1155,6 +1155,58 @@ questions:
     type: boolean
     default: false
 
+- variable: services.drawio.local_setup
+  label: "Install Draw.io"
+  description: "Deploy draw.io for the Wiki diagram extension, served on /drawio. Leave off to use a remote drawio (below) or the diagrams.net cloud."
+  type: boolean
+  default: false
+  group: "Draw.io Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.drawio.image
+    label: "Docker Image"
+    type: string
+    default: "makeplane/drawio:v2.5.0"
+  - variable: services.drawio.pullPolicy
+    label: "Draw.io Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+  - variable: services.drawio.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.drawio.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 512Mi
+  - variable: services.drawio.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.drawio.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.drawio.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.drawio.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+- variable: env.drawio_remote_url
+  label: "Remote Draw.io URL"
+  description: "URL of a drawio hosted outside this chart (DRAWIO_EMBED_URL). Used only when Install Draw.io is off; leave empty for the diagrams.net cloud."
+  type: string
+  default: ""
+  show_if: "services.drawio.local_setup=false"
+  group: "Draw.io Setup"
+
 - variable: services.argus.enabled
   label: "Install Argus (Sensitive Data & PII Scanner)"
   description: "Single-replica by design. Requires a unique Fingerprint Secret (openssl rand -hex 32)."

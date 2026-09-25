@@ -200,4 +200,50 @@ spec:
       secretName: {{ .Release.Name }}-ssl-cert
   {{- end }}
 
+{{- /*
+drawio gets its own Ingress: makeplane/drawio serves at "/", so the /drawio/ prefix is
+stripped with rewrite-target, a per-Ingress nginx annotation that must not leak onto the
+Plane routes above. ingress.ingress_annotations is intentionally not copied here -- a
+cert-manager annotation on a second Ingress sharing the same TLS secret would fight the
+first.
+*/}}
+{{- if .Values.services.drawio.local_setup }}
+{{- $drawioTlsSecret := "" }}
+{{- if .Values.ssl.tls_secret_name }}
+{{- $drawioTlsSecret = .Values.ssl.tls_secret_name }}
+{{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
+{{- $drawioTlsSecret = printf "%s-ssl-cert" .Release.Name }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-drawio
+            path: /drawio/(.*)
+            pathType: ImplementationSpecific
+  {{- with $drawioTlsSecret }}
+  tls:
+    - hosts:
+      - {{ $.Values.license.licenseDomain | quote }}
+      secretName: {{ . }}
+  {{- end }}
+{{- end }}
+
 {{- end }}
