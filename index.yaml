@@ -5,6 +5,23 @@ entries:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
     appVersion: 1.4.1
+    created: "2026-09-25T04:49:58.423630571Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 78463dc03c7d4fd9c45a488335024f13ae921992ad823d9f0bddde82ec5f34c8
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.8.2/plane-ce-1.8.2.tgz
+    version: 1.8.2
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 1.4.1
     created: "2026-09-13T12:16:50.947101626Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -648,6 +665,21 @@ entries:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.13/plane-ce-1.0.13.tgz
     version: 1.0.13
   plane-enterprise:
+  - apiVersion: v2
+    appVersion: 3.3.0
+    created: "2026-09-25T04:49:58.649666384Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 2f9a5e3794f1fdc04b846de257eb3ac7a114a058c991ad9eb6a483d352c85e9a
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-3.9.2/plane-enterprise-3.9.2.tgz
+    version: 3.9.2
   - apiVersion: v2
     appVersion: 3.3.0
     created: "2026-09-24T14:20:16.656582827Z"
@@ -2267,4 +2299,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-mcp-server-1.0.0/plane-mcp-server-1.0.0.tgz
     version: 1.0.0
-generated: "2026-09-24T14:20:16.656944529Z"
+generated: "2026-09-25T04:49:58.650333051Z"
