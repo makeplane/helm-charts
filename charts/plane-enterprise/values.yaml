@@ -333,8 +333,8 @@ services:
 
   minio:
     local_setup: true
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    image_mc: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    image_mc: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     init_image: busybox
     volumeSize: 3Gi
     pullPolicy: IfNotPresent
