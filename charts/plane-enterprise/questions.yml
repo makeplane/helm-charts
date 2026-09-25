@@ -644,11 +644,6 @@ questions:
     label: "Web URL"
     type: string
     default: ""
-  - variable: env.drawio_embed_url
-    label: "Drawio Embed URL"
-    description: "drawio endpoint for the Wiki editor's diagram extension. Leave empty to use the in-chart drawio (/drawio) when enabled, or the diagrams.net cloud otherwise."
-    type: string
-    default: ""
   - variable: env.webhook_allowed_ips
     label: "Webhook Allowed IPs"
     type: string
@@ -1160,9 +1155,9 @@ questions:
     type: boolean
     default: false
 
-- variable: services.drawio.enabled
-  label: "Enable Draw.io"
-  description: "Self-hosted draw.io for the Wiki diagram extension, served on /drawio. Off uses the diagrams.net cloud."
+- variable: services.drawio.local_setup
+  label: "Install Draw.io"
+  description: "Deploy draw.io for the Wiki diagram extension, served on /drawio. Leave off to use a remote drawio (below) or the diagrams.net cloud."
   type: boolean
   default: false
   group: "Draw.io Setup"
@@ -1204,6 +1199,13 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+- variable: env.drawio_remote_url
+  label: "Remote Draw.io URL"
+  description: "URL of a drawio hosted outside this chart (DRAWIO_EMBED_URL). Used only when Install Draw.io is off; leave empty for the diagrams.net cloud."
+  type: string
+  default: ""
+  show_if: "services.drawio.local_setup=false"
+  group: "Draw.io Setup"
 
 - variable: services.argus.enabled
   label: "Install Argus (Sensitive Data & PII Scanner)"

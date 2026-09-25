@@ -207,7 +207,7 @@ relatively, so /drawio must be stripped (rewrite-target) and a bare /drawio redi
 above. ingress.ingress_annotations is intentionally not copied here -- a cert-manager
 annotation on a second Ingress sharing the same TLS secret would fight the first.
 */}}
-{{- if .Values.services.drawio.enabled }}
+{{- if .Values.services.drawio.local_setup }}
 {{- $drawioTlsSecret := "" }}
 {{- if .Values.ssl.tls_secret_name }}
 {{- $drawioTlsSecret = .Values.ssl.tls_secret_name }}

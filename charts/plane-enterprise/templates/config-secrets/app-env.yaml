@@ -133,12 +133,12 @@ data:
   ENABLE_READ_REPLICA: {{ .Values.services.postgres.read_replica.enabled | default false | ternary "1" "0" | quote }}
   INTAKE_EMAIL_DOMAIN: {{ .Values.env.email_service_envs.smtp_domain | default "" | quote }}
 
-  {{- if .Values.env.drawio_embed_url }}
-  DRAWIO_EMBED_URL: {{ .Values.env.drawio_embed_url | quote }}
-  {{- else if and .Values.services.drawio.enabled (eq (include "plane.tlsEnabled" .) "true") }}
+  {{- if and .Values.services.drawio.local_setup (eq (include "plane.tlsEnabled" .) "true") }}
   DRAWIO_EMBED_URL: "https://{{ .Values.license.licenseDomain }}/drawio"
-  {{- else if .Values.services.drawio.enabled }}
+  {{- else if .Values.services.drawio.local_setup }}
   DRAWIO_EMBED_URL: "http://{{ .Values.license.licenseDomain }}/drawio"
+  {{- else if .Values.env.drawio_remote_url }}
+  DRAWIO_EMBED_URL: {{ .Values.env.drawio_remote_url | quote }}
   {{- else }}
   DRAWIO_EMBED_URL: ""
   {{- end }}

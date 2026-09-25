@@ -39,7 +39,7 @@ CONFIGURATION. `podDisruptionBudget` at the top level sets the default for every
 {{- $opts := $svc.podDisruptionBudget | default dict -}}
 {{- $enabled := ternary $opts.enabled $global.enabled (hasKey $opts "enabled") -}}
 {{- $replicas := $svc.replicas | default 1 | int -}}
-{{- if and $enabled (ne $svc.enabled false) (ge $replicas 2) }}
+{{- if and $enabled (ne $svc.enabled false) (ne $svc.local_setup false) (ge $replicas 2) }}
 {{- $evictionPolicy := ternary $opts.unhealthyPodEvictionPolicy $global.unhealthyPodEvictionPolicy (hasKey $opts "unhealthyPodEvictionPolicy") -}}
 ---
 apiVersion: policy/v1

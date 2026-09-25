@@ -10,7 +10,7 @@ spec:
   buffering:
     maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 }}
 
-{{- if .Values.services.drawio.enabled }}
+{{- if .Values.services.drawio.local_setup }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

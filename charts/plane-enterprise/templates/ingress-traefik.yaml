@@ -144,7 +144,7 @@ spec:
   {{- /* makeplane/drawio serves its webapp at "/" and loads every asset relatively, so the
          prefix is stripped and a bare /drawio is redirected to /drawio/ -- without the
          trailing slash the browser resolves js/, styles/ ... against the domain root. */}}
-  {{- if .Values.services.drawio.enabled }}
+  {{- if .Values.services.drawio.local_setup }}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/drawio`)
     kind: Rule
     middlewares:

@@ -1,16 +1,18 @@
 {{- /*
 Self-hosted draw.io, the diagram editor behind the Wiki editor's diagram extension.
-Off by default -- with it off, the editor uses the diagrams.net cloud.
+Gated by services.drawio.local_setup (off by default), like the other bundled services:
+with it off, DRAWIO_EMBED_URL comes from env.drawio_remote_url, or the editor falls back
+to the diagrams.net cloud when that is empty too.
 
 makeplane/drawio is versioned independently of planeVersion, so the image is pinned
 here rather than built from it. The ingress templates expose it on the /drawio subpath
-and app-env.yaml points DRAWIO_EMBED_URL at that path unless env.drawio_embed_url is set.
+and app-env.yaml points DRAWIO_EMBED_URL at that path.
 
 The pod- and container-level securityContext helpers are deliberately not applied: the
 image is third-party-based (Tomcat) and is not verified against the PSA "restricted"
 profile the way first-party Plane images are.
 */ -}}
-{{- if .Values.services.drawio.enabled }}
+{{- if .Values.services.drawio.local_setup }}
 apiVersion: v1
 kind: Service
 metadata:

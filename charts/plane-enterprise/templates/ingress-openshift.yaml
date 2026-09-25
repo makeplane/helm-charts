@@ -75,7 +75,7 @@ Differences from the Traefik IngressRoute this mirrors:
 {{/* drawio serves its webapp at "/", so HAProxy strips the /drawio prefix. Assets load
      relatively and there is no trailing-slash redirect here, so the editor must be opened
      as /drawio/ -- which is what Plane requests (DRAWIO_EMBED_URL + "/?embed=1..."). */}}
-{{- if .Values.services.drawio.enabled }}
+{{- if .Values.services.drawio.local_setup }}
 {{- $routes = append $routes (dict "slug" "drawio" "path" "/drawio" "svc" (printf "%s-drawio" $name) "port" 8080 "annotations" (dict "haproxy.router.openshift.io/rewrite-target" "/")) }}
 {{- end }}
 {{/* Catch-all LAST, purely for readability. */}}
