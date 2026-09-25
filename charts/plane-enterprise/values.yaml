@@ -367,6 +367,29 @@ services:
     labels: {}
     annotations: {}
 
+  # Self-hosted draw.io for the Wiki editor's diagram extension. Served on the
+  # /drawio subpath of the license domain; while env.drawio_embed_url is empty,
+  # DRAWIO_EMBED_URL is pointed there automatically. Off by default -- the editor
+  # then uses the diagrams.net cloud. The image is versioned independently of
+  # planeVersion.
+  drawio:
+    enabled: false
+    replicas: 1
+    memoryLimit: 512Mi
+    cpuLimit: 500m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
+    image: makeplane/drawio:v2.5.0
+    pullPolicy: IfNotPresent
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
+    labels: {}
+    annotations: {}
+
   web:
     replicas: 1
     memoryLimit: 1000Mi
@@ -1206,8 +1229,10 @@ env:
   allow_all_attachment_types: false
   enable_drf_spectacular: false
 
-  # Self-hosted drawio endpoint for the Wiki editor's diagram extension.
-  # Leave empty to use the diagrams.net cloud.
+  # drawio endpoint for the Wiki editor's diagram extension (DRAWIO_EMBED_URL).
+  # Leave empty to use the in-chart drawio at <scheme>://<licenseDomain>/drawio
+  # when services.drawio.enabled is true, or the diagrams.net cloud otherwise.
+  # Set it to point at a drawio hosted outside this chart.
   drawio_embed_url: ''
 
   #OPENSEARCH ENVS

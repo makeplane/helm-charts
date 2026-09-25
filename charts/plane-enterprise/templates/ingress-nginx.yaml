@@ -200,4 +200,79 @@ spec:
       secretName: {{ .Release.Name }}-ssl-cert
   {{- end }}
 
+{{- /*
+drawio gets its own Ingress objects: makeplane/drawio serves at "/" and loads its assets
+relatively, so /drawio must be stripped (rewrite-target) and a bare /drawio redirected to
+/drawio/. Both are per-Ingress nginx annotations and must not leak onto the Plane routes
+above. ingress.ingress_annotations is intentionally not copied here -- a cert-manager
+annotation on a second Ingress sharing the same TLS secret would fight the first.
+*/}}
+{{- if .Values.services.drawio.enabled }}
+{{- $drawioTlsSecret := "" }}
+{{- if .Values.ssl.tls_secret_name }}
+{{- $drawioTlsSecret = .Values.ssl.tls_secret_name }}
+{{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
+{{- $drawioTlsSecret = printf "%s-ssl-cert" .Release.Name }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-drawio
+            path: /drawio(/|$)(.*)
+            pathType: ImplementationSpecific
+  {{- with $drawioTlsSecret }}
+  tls:
+    - hosts:
+      - {{ $.Values.license.licenseDomain | quote }}
+      secretName: {{ . }}
+  {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio-redirect-slash
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: {{ printf "%s://%s/drawio/" (ternary "https" "http" (eq (include "plane.tlsEnabled" .) "true")) .Values.license.licenseDomain | quote }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-drawio
+            path: /drawio
+            pathType: Exact
+  {{- with $drawioTlsSecret }}
+  tls:
+    - hosts:
+      - {{ $.Values.license.licenseDomain | quote }}
+      secretName: {{ . }}
+  {{- end }}
+{{- end }}
+
 {{- end }}

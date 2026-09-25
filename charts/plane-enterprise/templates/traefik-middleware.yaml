@@ -10,4 +10,33 @@ spec:
   buffering:
     maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 }}
 
+{{- if .Values.services.drawio.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-drawio-stripprefix
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /drawio
+---
+{{- /* The regex matches the bare path only, so asset requests under /drawio/ pass through. */}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-drawio-redirect-slash
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  redirectRegex:
+    regex: ^(https?://[^/]+)/drawio$
+    replacement: ${1}/drawio/
+    permanent: true
+{{- end }}
+
 {{- end }}

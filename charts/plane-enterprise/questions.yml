@@ -646,7 +646,7 @@ questions:
     default: ""
   - variable: env.drawio_embed_url
     label: "Drawio Embed URL"
-    description: "Self-hosted drawio endpoint for the Wiki editor's diagram extension. Leave empty to use the diagrams.net cloud."
+    description: "drawio endpoint for the Wiki editor's diagram extension. Leave empty to use the in-chart drawio (/drawio) when enabled, or the diagrams.net cloud otherwise."
     type: string
     default: ""
   - variable: env.webhook_allowed_ips
@@ -1156,6 +1156,51 @@ questions:
     type: string
     default: 100m
   - variable: services.iframely.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
+- variable: services.drawio.enabled
+  label: "Enable Draw.io"
+  description: "Self-hosted draw.io for the Wiki diagram extension, served on /drawio. Off uses the diagrams.net cloud."
+  type: boolean
+  default: false
+  group: "Draw.io Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.drawio.image
+    label: "Docker Image"
+    type: string
+    default: "makeplane/drawio:v2.5.0"
+  - variable: services.drawio.pullPolicy
+    label: "Draw.io Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+  - variable: services.drawio.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.drawio.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 512Mi
+  - variable: services.drawio.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.drawio.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.drawio.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.drawio.assign_cluster_ip
     label: "Assign Cluster IP"
     type: boolean
     default: false
