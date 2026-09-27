@@ -474,7 +474,7 @@ questions:
   - variable: minio.image
     label: "Docker Image"
     type: string
-    default: "docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
+    default: "docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z"
     show_if: "minio.local_setup=true"
   - variable: minio.image_mc
     label: "MinIO Client Docker Image"
