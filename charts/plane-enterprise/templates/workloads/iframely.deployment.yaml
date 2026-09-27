@@ -41,6 +41,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.iframely }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.iframely "app" "iframely" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-iframely

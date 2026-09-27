@@ -44,6 +44,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.web }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.web "app" "web" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-web

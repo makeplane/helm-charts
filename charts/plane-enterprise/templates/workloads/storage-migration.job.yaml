@@ -70,7 +70,7 @@ spec:
       containers:
         - name: {{ $.Release.Name }}-storage-migrate
           {{- include "plane.containerSecurityContext" $ }}
-          image: {{ $.Values.services.storage_migration.image | default $.Values.services.minio.image_mc }}
+          image: {{ $.Values.services.storage_migration.image | default $.Values.services.api.image | default "makeplane/backend-commercial" }}:{{ $.Values.planeVersion }}
           imagePullPolicy: {{ $.Values.services.storage_migration.pullPolicy | default "IfNotPresent" }}
           envFrom:
             - secretRef:
@@ -90,61 +90,20 @@ spec:
             {{- if $.Values.extraEnv }}
             {{- toYaml $.Values.extraEnv | nindent 12 }}
             {{- end }}
+          {{- /* The copier is a management command in the backend image, so it reuses boto3 and
+                 the app's own storage settings -- what it proves about the store is what the app
+                 will experience. It also keeps the migration path off the MinIO client, whose
+                 registry has moved three times in a month. */}}
           command:
-            - /bin/sh
-            - -c
+            - python
+            - manage.py
+            - storage_migrate
           args:
-            - |
-              set -eu
-              mc="/usr/bin/mc --config-dir $MC_CONFIG_DIR"
-              $mc alias set src "$SRC_ENDPOINT" "$SRC_ACCESS_KEY" "$SRC_SECRET_KEY" --api S3v4
-              $mc alias set dst "$DST_ENDPOINT" "$DST_ACCESS_KEY" "$DST_SECRET_KEY" --api S3v4
-              $mc mb --ignore-existing "dst/$DST_BUCKET"
-
-              # Whole-bucket on purpose. Keys are not all workspace-prefixed: user avatars
-              # sit at the bucket root, plus exports/, instance/, enterprise/ and plane_ai/.
-              # Any prefix filter would silently drop some. mirror skips same-size objects,
-              # so repeat runs are cheap and a killed Job is resumed by re-running it.
-              i=1
-              while [ "$i" -le "$PASSES" ]; do
-                echo "=== mirror pass $i of $PASSES ==="
-                n=0
-                until $mc mirror --overwrite --retry "src/$SRC_BUCKET" "dst/$DST_BUCKET"; do
-                  n=$((n+1))
-                  if [ "$n" -ge 5 ]; then echo "FATAL: mirror failed after $n attempts"; exit 1; fi
-                  echo "mirror attempt $n failed, retrying in 15s"; sleep 15
-                done
-                if [ "$i" -lt "$PASSES" ]; then echo "pass $i done, sleeping ${PASS_INTERVAL}s"; sleep "$PASS_INTERVAL"; fi
-                i=$((i+1))
-              done
-
-              [ "$VERIFY" = "1" ] || { echo "verification disabled"; exit 0; }
-
-              # mc diff compares existence and size. A non-empty "first" means the object is
-              # in the source and missing or different on the destination -- a failure. An
-              # empty "first" means it exists only on the destination, which is a write made
-              # after cutover and is expected. Matching the field rather than mc's numeric
-              # diff code keeps this stable across mc versions, and mc diff's own exit status
-              # is 0 even when objects differ so it cannot be relied on.
-              # Shell builtins only: the mc image ships no grep and no sed.
-              echo "=== verifying ==="
-              $mc diff --json "src/$SRC_BUCKET" "dst/$DST_BUCKET" > /tmp/diff.json
-              pending=0
-              while IFS= read -r line; do
-                case "$line" in
-                  *'"first":""'*) ;;
-                  *'"first":"'*) pending=$((pending+1)); echo "  MISSING/DIFFERS: $line" ;;
-                esac
-              done < /tmp/diff.json
-              if [ "$pending" -gt 0 ]; then
-                echo "VERIFY FAILED: $pending object(s) missing or size-mismatched on the destination"
-                exit 1
-              fi
-              s=$($mc ls --recursive "src/$SRC_BUCKET" | wc -l)
-              d=$($mc ls --recursive "dst/$DST_BUCKET" | wc -l)
-              echo "source objects=$s destination objects=$d"
-              [ "$d" -ge "$s" ] || { echo "VERIFY FAILED: destination has fewer objects than source"; exit 1; }
-              echo "OK: $s objects present on the destination"
+            - --passes={{ $passes }}
+            - --pass-interval={{ $.Values.services.storage_migration.pass_interval_seconds | default 300 }}
+{{- if not ($.Values.services.storage_migration.verify | default true) }}
+            - --no-verify
+{{- end }}
           volumeMounts:
             - mountPath: /tmp
               name: mc-scratch

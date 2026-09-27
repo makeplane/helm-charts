@@ -1,4 +1,4 @@
-planeVersion: v3.2.0
+planeVersion: v3.3.0
 
 dockerRegistry:
   enabled: false
@@ -242,6 +242,23 @@ securityContext:
     seccompProfile:
       type: RuntimeDefault
 
+# PodDisruptionBudgets for the stateless, horizontally-scalable workloads.
+#
+# enabled: true gives every eligible workload a budget. Workloads at replicas: 1 are skipped -- with
+# no second copy a budget cannot protect anything, it can only block the drain. Asking for one on a
+# single-replica or stateful service fails the render (see templates/validations.yaml).
+#
+# Override per workload at services.<svc>.podDisruptionBudget.
+# Prefer maxUnavailable -- minAvailable: 1 wedges every drain if the workload is later scaled to 1.
+# unhealthyPodEvictionPolicy: AlwaysAllow (k8s >= 1.27) stops a crashlooping pod holding a node.
+podDisruptionBudget:
+  enabled: false
+  # Set ONE of these. Left unset, the renderer uses maxUnavailable: 1 -- shipping it as a concrete
+  # value here would merge into a user's minAvailable and be refused as "both fields set".
+  # maxUnavailable: 1
+  # minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
 services:
   redis:
     local_setup: true
@@ -320,8 +337,8 @@ services:
   # Removed in 5.0.0. See "Migrating from bundled MinIO to Garage" in README.md.
   minio:
     local_setup: false
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    image_mc: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    image_mc: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     init_image: busybox
     volumeSize: 3Gi
     pullPolicy: IfNotPresent
@@ -451,6 +468,32 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
+    labels: {}
+    annotations: {}
+
+  # Self-hosted draw.io for the Wiki editor's diagram extension. With
+  # local_setup: true it is deployed in the chart, served on the /drawio/ path prefix
+  # of the license domain, and DRAWIO_EMBED_URL points there. Set it to false to
+  # use a remotely hosted drawio via env.drawio_remote_url, or leave both unset
+  # for the diagrams.net cloud. The image is versioned independently of
+  # planeVersion.
+  drawio:
+    local_setup: false
+    replicas: 1
+    memoryLimit: 512Mi
+    cpuLimit: 500m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
+    image: makeplane/drawio:v2.5.0
+    pullPolicy: IfNotPresent
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -466,6 +509,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -496,6 +541,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -511,6 +558,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -530,6 +579,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -546,6 +597,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -561,6 +614,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -575,6 +630,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -587,6 +644,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -600,6 +659,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -632,6 +693,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
     connectors:
@@ -686,6 +749,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     # This service mounts a cert-manager TLS Secret, so it needs a restart when the
     # certificate is renewed. Add reloader.stakater.com/auto: "true" here (and install
@@ -704,6 +769,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -718,6 +785,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -732,6 +801,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -746,6 +817,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -788,6 +861,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
     ai_providers:
@@ -865,6 +940,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -878,6 +955,41 @@ services:
     image: makeplane/node-runner-commercial
     pullPolicy: Always
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
+    labels: {}
+    annotations: {}
+
+  mcp_server:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 150Mi
+    cpuRequest: 100m
+    image: makeplane/plane-mcp-server:v0.3.2
+    pullPolicy: Always
+    assign_cluster_ip: false
+    path_prefix: '/mcp'
+    plane_base_url: ''
+    plane_internal_base_url: ''
+    # The MCP server's HTTP transport authenticates MCP clients through a Plane OAuth
+    # application and refuses to start without one, so client_id and client_secret
+    # are required whenever this service is enabled (or ship them through
+    # external_secrets.mcp_server_env_existingSecret). Register the application in
+    # Plane (workspace settings > Integrations) with the redirect URIs
+    #   https://<licenseDomain><path_prefix>/http/auth/callback
+    #   https://<licenseDomain><path_prefix>/auth/callback
+    plane_oauth:
+      client_id: ''
+      client_secret: ''
+      # Public URL the MCP server's OAuth endpoints are served on; the server appends
+      # "<path_prefix>/http" itself. Leave empty to derive it from
+      # license.licenseDomain and the ingress TLS setting, like plane_base_url.
+      provider_base_url: ''
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -946,6 +1058,7 @@ serviceAccount:
 #
 # 2. Whole-Secret replacement (*_existingSecret) — the chart skips rendering that
 #    Secret and every workload reads yours instead. You own all of its keys.
+# ============================================================
 external_secrets:
   database:
     # Secret mirroring your managed-database credential (e.g. the RDS secret).
@@ -1123,6 +1236,7 @@ external_secrets:
   # Supplies OTEL_EXPORTER_OTLP_HEADERS (collector ingestion credential) when
   # observability.otel.enabled is set; leave blank to let the chart create it.
   otel_env_existingSecret: ''
+  mcp_server_env_existingSecret: ''
 
 # ============================================================
 # Stakater Reloader
@@ -1227,6 +1341,11 @@ env:
   allow_all_attachment_types: false
   enable_drf_spectacular: false
 
+  # INCASE OF REMOTE DRAWIO ONLY: URL of a drawio hosted outside this chart,
+  # rendered as DRAWIO_EMBED_URL. Ignored when services.drawio.local_setup is
+  # true. Leave empty (with local_setup false) to use the diagrams.net cloud.
+  drawio_remote_url: ''
+
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
   opensearch_remote_username: ''
@@ -1262,9 +1381,12 @@ env:
   instance_admin_email: ''
   web_url: ''
 
-  # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
-  # Leave empty to allow all (no restriction).
+  # Comma-separated list of IPs/CIDRs that webhooks may target even when they resolve
+  # to private ranges. Leave empty for no extra allowance.
   webhook_allowed_ips: ''
+  # Comma-separated list of hosts that webhooks may target, bypassing the SSRF and
+  # disallowed-domain checks. Leave empty to default to the license domain with
+  # the scheme derived from the TLS settings, the same way WEB_URL is built.
   webhook_allowed_hosts: ''
 
   live_sentry_dsn: ""

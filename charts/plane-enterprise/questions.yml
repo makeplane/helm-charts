@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.2.0
+  default: v3.3.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -650,6 +650,7 @@ questions:
     default: ""
   - variable: env.webhook_allowed_hosts
     label: "Webhook Allowed Hosts"
+    description: "Comma-separated hosts or full URLs that webhooks may target (for example: https://app.plane.so,https://hooks.example.com), bypassing the SSRF and disallowed-domain checks. Leave empty to default to the license domain with the scheme derived from the TLS settings, like Web URL."
     type: string
     default: ""
   - variable: env.gunicorn_workers
@@ -1050,6 +1051,66 @@ questions:
     type: int
     default: 10
 
+- variable: services.mcp_server.enabled
+  label: "Enable MCP Server"
+  type: boolean
+  default: false
+  group: "MCP Server Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.mcp_server.image
+    label: "Docker Image"
+    type: string
+    default: "makeplane/plane-mcp-server:v0.3.2"
+  - variable: services.mcp_server.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.mcp_server.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 1000Mi
+  - variable: services.mcp_server.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.mcp_server.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 150Mi
+  - variable: services.mcp_server.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.mcp_server.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+  - variable: services.mcp_server.path_prefix
+    label: "MCP Path Prefix"
+    type: string
+    default: "/mcp"
+  - variable: services.mcp_server.plane_base_url
+    label: "Plane Base URL (leave empty to auto-derive from license domain)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_internal_base_url
+    label: "Plane Internal Base URL (leave empty to use in-cluster API)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_oauth.client_id
+    label: "Plane OAuth Client ID (required, the MCP server does not start without it)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_oauth.client_secret
+    label: "Plane OAuth Client Secret (required)"
+    type: password
+    default: ""
+  - variable: services.mcp_server.plane_oauth.provider_base_url
+    label: "OAuth Provider Base URL (leave empty to auto-derive from license domain)"
+    type: string
+    default: ""
+
 - variable: services.iframely.enabled
   label: "Enable Iframely"
   type: boolean
@@ -1093,6 +1154,58 @@ questions:
     label: "Assign Cluster IP"
     type: boolean
     default: false
+
+- variable: services.drawio.local_setup
+  label: "Install Draw.io"
+  description: "Deploy draw.io for the Wiki diagram extension, served on /drawio. Leave off to use a remote drawio (below) or the diagrams.net cloud."
+  type: boolean
+  default: false
+  group: "Draw.io Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.drawio.image
+    label: "Docker Image"
+    type: string
+    default: "makeplane/drawio:v2.5.0"
+  - variable: services.drawio.pullPolicy
+    label: "Draw.io Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+  - variable: services.drawio.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.drawio.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 512Mi
+  - variable: services.drawio.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 500m
+  - variable: services.drawio.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 256Mi
+  - variable: services.drawio.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 100m
+  - variable: services.drawio.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+- variable: env.drawio_remote_url
+  label: "Remote Draw.io URL"
+  description: "URL of a drawio hosted outside this chart (DRAWIO_EMBED_URL). Used only when Install Draw.io is off; leave empty for the diagrams.net cloud."
+  type: string
+  default: ""
+  show_if: "services.drawio.local_setup=false"
+  group: "Draw.io Setup"
 
 - variable: services.argus.enabled
   label: "Install Argus (Sensitive Data & PII Scanner)"
@@ -1805,7 +1918,7 @@ questions:
   - variable: services.minio.image
     label: "Docker Image"
     type: string
-    default: "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+    default: "docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.pullPolicy
     label: "Minio Pull Policy"
@@ -1818,7 +1931,7 @@ questions:
   - variable: services.minio.image_mc
     label: "MinIO Client Docker Image"
     type: string
-    default: "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
+    default: "docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z"
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.init_image
     label: "Init Docker Image"

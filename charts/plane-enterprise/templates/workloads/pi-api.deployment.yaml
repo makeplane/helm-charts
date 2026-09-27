@@ -46,6 +46,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.pi }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.pi "app" "pi-api" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}

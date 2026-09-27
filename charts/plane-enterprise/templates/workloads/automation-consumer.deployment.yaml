@@ -22,6 +22,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.automation_consumer }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.automation_consumer "app" "automation-consumer" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-automation-consumer

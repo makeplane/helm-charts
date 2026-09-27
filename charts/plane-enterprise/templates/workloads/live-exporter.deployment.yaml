@@ -22,6 +22,7 @@ spec:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live_exporter }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.live_exporter "app" "live-exporter" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-live-exporter

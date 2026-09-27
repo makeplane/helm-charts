@@ -481,7 +481,7 @@ ingress:
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.2.0 # or the last released version
+   PLANE_VERSION=v3.3.0 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -537,7 +537,7 @@ ingress:
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.2.0 <or the last released version>`
+     - `planeVersion: v3.3.0 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.controller: <traefik | openshift | nginx — required unless ingressClass is exactly nginx/openshift/traefik*>`
@@ -564,7 +564,7 @@ ingress:
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.2.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v3.3.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -857,8 +857,8 @@ GET URLs and never relies on anonymous reads.
 | Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------- | :----------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | services.minio.local_setup            |        true        |          | Plane uses `minio` as the default file storage drive. This storage can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws S3 or similar services). Set this to `true` when you choose to setup stateful deployment of `minio`. Mark it as `false` when using a remotely hosted database |
-| services.minio.image | quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z | | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`) |
-| services.minio.image_mc | quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z | | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `services.minio.local_setup=true`) |
+| services.minio.image | docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z | | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`) |
+| services.minio.image_mc | docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z | | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `services.minio.local_setup=true`) |
 | services.minio.init_image             |      busybox       |          | Using this key, user must provide the docker image name used by the init container of the `minio client` job, which waits for `minio` to become resolvable. (must be set when `services.minio.local_setup=true`)                                                                                                                                      |
 | services.minio.pullPolicy             |    IfNotPresent    |          | Using this key, user can set the pull policy for the stateful deployment of `minio`. (must be set when `services.minio.local_setup=true`)                                                                                                                                                                                                             |
 | services.minio.volumeSize             |        3Gi         |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                           |
@@ -1014,7 +1014,7 @@ GET URLs and never relies on anonymous reads.
 | env.api_key_rate_limit         |                    60/minute                    |          | (optional) User can set the maximum number of requests the API can handle in a given time frame.                                                                                                                |
 | env.web_url                    |                                                 |          | (optional) Custom Web URL for the application. If not set, it will be auto-generated based on the license domain and SSL settings                                 |
 | env.webhook_allowed_ips        |                                                 |          | (optional) Comma-separated list of IPs/CIDRs that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
-| env.webhook_allowed_hosts      |                                                 |          | (optional) Comma-separated list of hostnames that webhooks are allowed to target. Leave empty to allow all.                                                                                                      |
+| env.webhook_allowed_hosts      |                                                 |          | (optional) Comma-separated hosts that webhooks may target, bypassing the SSRF and disallowed-domain checks. If not set, it will be auto-generated based on the license domain and SSL settings, like `env.web_url`. |
 | env.gunicorn_workers           |                        1                        |          | Number of Gunicorn worker processes for the API server. Increase for higher concurrency (e.g. `2 * CPU cores + 1`).                                                                                             |
 | env.gunicorn_max_requests      |                      1000                       |          | Maximum requests a gunicorn worker handles before restart. Set to `0` to disable rotation.                                                                                                                       |
 | env.gunicorn_max_requests_jitter |                     150                        |          | Random jitter added to `GUNICORN_MAX_REQUESTS` to stagger worker restarts across replicas. Set to `0` when rotation is disabled.                                                                                |
@@ -1420,6 +1420,57 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 | services.iframely.affinity          |                      {}                      |          | This key allows you to set the affinity rules for the deployment of `iframely`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.       |
 | services.iframely.labels            |                      {}                      |          | Custom labels to add to the iframely deployment                                                                                                                                           |
 | services.iframely.annotations       |                      {}                      |          | Custom annotations to add to the iframely deployment                                                                                                                                      |
+
+### Draw.io Deployment
+
+Self-hosted [draw.io](https://www.drawio.com/) for the Wiki editor's diagram extension. Like the other bundled services it is gated by `services.drawio.local_setup` (default `false`). With `local_setup: true` the nginx, Traefik and OpenShift ingress templates serve it on the `/drawio/` path prefix of the license domain and `DRAWIO_EMBED_URL` is set to `<scheme>://<licenseDomain>/drawio`. With `local_setup: false`, `DRAWIO_EMBED_URL` comes from `env.drawio_remote_url`, and when that is empty too the editor uses the diagrams.net cloud. The image serves its webapp at `/`, so the ingress strips the `/drawio` prefix before forwarding. On nginx this uses a separate `<release>-drawio` Ingress with `rewrite-target`, which switches ingress-nginx to regex path matching for the whole host. `makeplane/drawio` is versioned independently of `planeVersion`.
+
+| Setting                                  |         Default          | Required | Description                                                                                                                                                                             |
+| ---------------------------------------- | :----------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.drawio.local_setup              |          false           |          | Set to `true` to deploy draw.io in the chart and route `/drawio/` to it. Mark it as `false` to use a remotely hosted drawio (`env.drawio_remote_url`) or the diagrams.net cloud            |
+| services.drawio.replicas                 |            1             |          | Number of replicas for the draw.io deployment                                                                                                                                           |
+| services.drawio.memoryLimit              |          512Mi           |          | Memory limit for the draw.io deployment                                                                                                                                                 |
+| services.drawio.cpuLimit                 |           500m           |          | CPU limit for the draw.io deployment                                                                                                                                                    |
+| services.drawio.memoryRequest            |          256Mi           |          | Memory request for the draw.io deployment                                                                                                                                               |
+| services.drawio.cpuRequest               |           100m           |          | CPU request for the draw.io deployment                                                                                                                                                  |
+| services.drawio.image                    | makeplane/drawio:v2.5.0  |          | Docker image for the draw.io deployment                                                                                                                                                 |
+| services.drawio.pullPolicy               |       IfNotPresent       |          | Image pull policy for the draw.io deployment                                                                                                                                            |
+| services.drawio.assign_cluster_ip        |          false           |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                       |
+| services.drawio.nodeSelector             |            {}            |          | Node selector for the draw.io deployment                                                                                                                                                |
+| services.drawio.tolerations              |            []            |          | Tolerations for the draw.io deployment                                                                                                                                                  |
+| services.drawio.affinity                 |            {}            |          | Affinity rules for the draw.io deployment                                                                                                                                               |
+| services.drawio.topologySpreadConstraints|            []            |          | Topology spread constraints for the draw.io pods                                                                                                                                        |
+| services.drawio.podDisruptionBudget      |            {}            |          | Per-workload PodDisruptionBudget override (see `podDisruptionBudget`)                                                                                                                  |
+| services.drawio.labels                   |            {}            |          | Custom labels to add to the draw.io deployment                                                                                                                                          |
+| services.drawio.annotations              |            {}            |          | Custom annotations to add to the draw.io deployment                                                                                                                                     |
+| env.drawio_remote_url                    |            ""            |          | URL of a drawio hosted outside this chart, rendered as `DRAWIO_EMBED_URL`. Ignored when `services.drawio.local_setup=true`. Leave empty (with `local_setup: false`) to use the diagrams.net cloud |
+
+### MCP Server Deployment
+
+Runs the [Plane MCP server](https://github.com/makeplane/plane-mcp-server) inside the release and routes `services.mcp_server.path_prefix` (default `/mcp`) on the Plane host to it. The server's HTTP transport authenticates MCP clients through a Plane OAuth application and does not start without one, so `plane_oauth.client_id` and `plane_oauth.client_secret` are required whenever `services.mcp_server.enabled` is `true` (`helm template` / `helm upgrade` fail with the reason otherwise); they can also come from `external_secrets.mcp_server_env_existingSecret`. Register the application in Plane (workspace settings > Integrations) with the redirect URIs `https://<licenseDomain><path_prefix>/http/auth/callback` and `https://<licenseDomain><path_prefix>/auth/callback`, which with the default prefix are `https://<licenseDomain>/mcp/http/auth/callback` and `https://<licenseDomain>/mcp/auth/callback`.
+
+| Setting                             |                   Default                    | Required | Description                                                                                                                                                                               |
+| ----------------------------------- | :------------------------------------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| services.mcp_server.enabled         |                    false                     |          | Set to `true` to run the Plane MCP server (`makeplane/plane-mcp-server`) inside the release. When enabled, the chart also routes `services.mcp_server.path_prefix` on the Plane ingress to it. |
+| services.mcp_server.replicas        |                      1                       |          | Number of replicas for the MCP server deployment.                                                                                                                                              |
+| services.mcp_server.memoryLimit     |                    1000Mi                    |          | Memory limit for the MCP server deployment.                                                                                                                                                    |
+| services.mcp_server.cpuLimit        |                     500m                     |          | CPU limit for the MCP server deployment.                                                                                                                                                       |
+| services.mcp_server.memoryRequest   |                    150Mi                     |          | Memory request for the MCP server deployment.                                                                                                                                                  |
+| services.mcp_server.cpuRequest      |                     100m                     |          | CPU request for the MCP server deployment.                                                                                                                                                     |
+| services.mcp_server.image           |     makeplane/plane-mcp-server:v0.3.2        |          | Docker image (with tag) for the MCP server. Not tied to `planeVersion`; the MCP server is released on its own cadence.                                                                        |
+| services.mcp_server.pullPolicy      |                    Always                    |          | Image pull policy for the MCP server deployment.                                                                                                                                                |
+| services.mcp_server.assign_cluster_ip |                   false                    |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                              |
+| services.mcp_server.path_prefix     |                    /mcp                      |          | URL path prefix (`MCP_PATH_PREFIX`) the MCP server is mounted on. The nginx, Traefik and OpenShift ingress templates route this prefix on the Plane host to the MCP server.                     |
+| services.mcp_server.plane_base_url  |                      ""                      |          | Public Plane URL (`PLANE_BASE_URL`) the MCP server advertises. Leave empty to derive it from `license.licenseDomain` and the ingress TLS setting.                                               |
+| services.mcp_server.plane_internal_base_url |                ""                    |          | In-cluster Plane API URL (`PLANE_INTERNAL_BASE_URL`). Leave empty to use the release's own `api` service.                                                                                       |
+| services.mcp_server.plane_oauth.client_id |                 ""                     | required if `services.mcp_server.enabled` is `true` | Plane OAuth client ID (`PLANE_OAUTH_PROVIDER_CLIENT_ID`); stored in the MCP server Secret                                                                     |
+| services.mcp_server.plane_oauth.client_secret |               ""                   | required if `services.mcp_server.enabled` is `true` | Plane OAuth client secret (`PLANE_OAUTH_PROVIDER_CLIENT_SECRET`); stored in the MCP server Secret                                                             |
+| services.mcp_server.plane_oauth.provider_base_url |             ""                 |          | Public URL the MCP server's OAuth endpoints are served on (`PLANE_OAUTH_PROVIDER_BASE_URL`); the server appends `<path_prefix>/http` itself. Leave empty to derive it from `license.licenseDomain` and the ingress TLS setting. |
+| services.mcp_server.nodeSelector    |                      {}                      |          | Node selector for the MCP server deployment.                                                                                                                                                    |
+| services.mcp_server.tolerations     |                      []                      |          | Tolerations for the MCP server deployment.                                                                                                                                                      |
+| services.mcp_server.affinity        |                      {}                      |          | Affinity rules for the MCP server deployment.                                                                                                                                                   |
+| services.mcp_server.labels          |                      {}                      |          | Custom labels to add to the MCP server deployment                                                                                                                                               |
+| services.mcp_server.annotations     |                      {}                      |          | Custom annotations to add to the MCP server deployment                                                                                                                                          |
 
 ### Ingress and SSL Setup
 
@@ -1969,6 +2020,10 @@ To configure the external secrets for your application, you need to define speci
 |                          | `SENTRY_CLIENT_SECRET`  | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry client secret key                    | `your_sentry_client_secret_key`                                                                                                                                                                      |
 |                          | `SENTRY_INTEGRATION_SLUG` | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry integration slug                   | `your_sentry_integration_slug`                                                                                                                                                                       |
 |                          | `CURSOR_WEBHOOK_SECRET` | Yes                                                             | Webhook secret for the Cursor agent integration | `TTqazTcoBajYKzIAeIKFZeTX9czAoUsG` (or your own value)                                                                                                                                               |
+| mcp_server_env_existingSecret | `REDIS_URL`         | Yes (if `services.mcp_server.enabled=true` and `external_secrets.redis.secretName` is unset) | Redis URL for the MCP server's OAuth token store (`rediss://` for TLS) | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                     |
+|                          | `PLANE_OAUTH_PROVIDER_CLIENT_ID` | Yes (if `services.mcp_server.enabled=true`)                | Plane OAuth application client ID                | `<client-id>`                                                                                                                                                                                        |
+|                          | `PLANE_OAUTH_PROVIDER_CLIENT_SECRET` | Yes (if `services.mcp_server.enabled=true`)            | Plane OAuth application client secret          | `<client-secret>`                                                                                                                                                                                    |
+|                          | `PLANE_OAUTH_PROVIDER_BASE_URL` | No (the chart derives it into the `<release>-mcp-server-vars` ConfigMap; set it here only to override) | Public URL the MCP server's OAuth endpoints are served on | `https://plane.example.com`                                                                                                                                                                          |
 | argus_env_existingSecret | `ARGUS_DATABASE_URL`    | Yes (if `services.argus.enabled=true`)                          | Plane database DSN; Argus owns its own schema inside it | `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local/plane`                                                                                                                       |
 |                          | `ARGUS_CONTENT_DATABASE_URL` | Optional                                                   | Read replica for content scans; empty falls back to `ARGUS_DATABASE_URL` | `postgresql://plane:plane@your-read-replica:5432/plane`                                                                                                                      |
 |                          | `ARGUS_FINGERPRINT_SECRET` | Yes (if `services.argus.enabled=true`)                       | HKDF master key for finding fingerprints, at least 32 characters and unique per deployment. Rotating it invalidates every stored fingerprint. | `<openssl rand -hex 32>`                                                                                                  |
@@ -2000,7 +2055,11 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com       |   /live/\*   | <http://plane-app-live.plane:3000>      | Yes                                                                         |
 | plane.example.com       |   /silo/\*   | <http://plane-app-silo.plane:3000>      | Yes (if `services.silo.enabled=true` )                                                                       |
 | plane.example.com       |   /pi/\*     | <http://plane-app-pi-api.plane:8000>    | Yes (if `services.pi.enabled=true`)                                         |
+| plane.example.com       |  /drawio/\*  | <http://plane-app-drawio.plane:8080>    | Yes (if `services.drawio.local_setup=true`; `/drawio` prefix stripped)      |
 | plane.example.com       |  /argus/\*   | <http://plane-app-argus.plane:8100>     | Yes (if `services.argus.enabled=true`)                                      |
+| plane.example.com       |   /mcp/\*    | <http://plane-app-mcp-server.plane:8211> | Yes (if `services.mcp_server.enabled=true`; `/mcp` is the default `services.mcp_server.path_prefix`, use your configured prefix) |
+| plane.example.com       | /.well-known/oauth-protected-resource/mcp\* | <http://plane-app-mcp-server.plane:8211> | Yes (if `services.mcp_server.enabled=true`; OAuth discovery, path-inserted at the host root by MCP clients; `/mcp` follows `services.mcp_server.path_prefix`) |
+| plane.example.com       | /.well-known/oauth-authorization-server/mcp\* | <http://plane-app-mcp-server.plane:8211> | Yes (if `services.mcp_server.enabled=true`; OAuth discovery, path-inserted at the host root by MCP clients; `/mcp` follows `services.mcp_server.path_prefix`) |
 | plane.example.com       |   /api/\*    | <http://plane-app-api.plane:8000>       | Yes                                                                         |
 | plane.example.com       |   /auth/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
 | plane.example.com       |   /graphql/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
@@ -2008,3 +2067,65 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com       | /uploads/\*  | <http://plane-app-minio.plane:9000>     | Yes (Only if using local setup)                                             |
 | plane-minio.example.com |      /       | <http://plane-app-minio.plane:9090>     | (Optional) if using local setup, this will enable minio console access      |
 | plane-mq.example.com    |      /       | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |
+
+## High Availability: PodDisruptionBudgets and pod spreading
+
+Two settings decide whether losing a node is a blip or an outage: where the replicas are placed, and how
+many of them Kubernetes may evict at once. Neither is on by default, and both need `replicas: 2` or more
+to mean anything.
+
+Full guide, including the verification steps: <https://developers.plane.so/self-hosting/govern/kubernetes-best-practices>
+
+### PodDisruptionBudgets
+
+A budget caps **voluntary** disruption — a node drain, a cluster upgrade, an autoscaler consolidation.
+Without one, the eviction API can take every replica of a Deployment at once. It does not cover a node
+crashing, an OOM kill, or a rolling update (those follow the Deployment's own `maxUnavailable`/`maxSurge`).
+
+```yaml
+# Chart-wide: a budget for every eligible workload that has 2+ replicas
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow # k8s >= 1.27; keeps a crashlooping pod from blocking a drain
+
+services:
+  worker:
+    replicas: 6
+    podDisruptionBudget: # per-workload override, merged key by key
+      maxUnavailable: 2
+```
+
+| Key                          | Default | Notes                                                                       |
+| ---------------------------- | ------- | --------------------------------------------------------------------------- |
+| `enabled`                    | `false` | Chart-wide switch; override per workload under `services.<svc>`              |
+| `maxUnavailable`             | `1`     | Preferred. Degrades to a no-op if the workload is scaled back to 1 replica   |
+| `minAvailable`               | unset   | Mutually exclusive with `maxUnavailable` — setting both fails the render     |
+| `unhealthyPodEvictionPolicy` | unset   | `AlwaysAllow` lets a drain evict not-Ready pods while the budget is at limit |
+
+Budgets are rendered only for the stateless, horizontally-scalable workloads. Single-replica workloads
+(`beatworker`, `pi_beat_worker`, `monitor`, `argus`, the migration Jobs) and the in-chart stateful services
+are excluded by design: with no second copy a budget cannot protect anything, it can only block the drain.
+Requesting one for them **fails the render with an explanation**. An eligible workload still at `replicas: 1`
+is skipped silently, so the chart-wide switch stays a safe one-line change.
+
+### Spreading pods across zones and nodes
+
+```yaml
+services:
+  api:
+    replicas: 3
+    topologySpreadConstraints:
+      - topologyKey: kubernetes.io/hostname # never two replicas on one node
+        whenUnsatisfiable: DoNotSchedule
+      - topologyKey: topology.kubernetes.io/zone # prefer an even spread across AZs
+        whenUnsatisfiable: ScheduleAnyway
+```
+
+Only `topologyKey` is required. `maxSkew` defaults to `1`, `whenUnsatisfiable` to `ScheduleAnyway`, and the
+`labelSelector` is filled in with the workload's own `app.name` label — a constraint whose selector matches
+nothing is satisfied by every placement, so having the chart write it removes the failure mode. `minDomains`,
+`nodeAffinityPolicy`, `nodeTaintsPolicy` and `matchLabelKeys` are passed through if set.
+
+`DoNotSchedule` guarantees the spread but needs at least as many schedulable nodes as replicas, or pods sit
+`Pending`. On small or just-in-time-provisioned clusters, use `ScheduleAnyway` for the hostname rule too.
