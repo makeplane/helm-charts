@@ -72,7 +72,23 @@ spec:
           {{- include "plane.containerSecurityContext" $ }}
           image: {{ $.Values.services.storage_migration.image | default $.Values.services.api.image | default "makeplane/backend-commercial" }}:{{ $.Values.planeVersion }}
           imagePullPolicy: {{ $.Values.services.storage_migration.pullPolicy | default "IfNotPresent" }}
+          {{- /* The copier is a Django management command, so Django loads settings before the
+                 command body runs -- which means it needs the same configuration the app gets,
+                 Redis included (plane/celery.py opens a connection at import). Mirrors
+                 migrator.job.yaml. The migration Secret comes LAST so its own keys win. */}}
           envFrom:
+            - configMapRef:
+                name: {{ $.Release.Name }}-app-vars
+                optional: false
+            - secretRef:
+                name: {{ if not (empty $.Values.external_secrets.app_env_existingSecret) }}{{ $.Values.external_secrets.app_env_existingSecret }}{{ else }}{{ $.Release.Name }}-app-secrets{{ end }}
+                optional: false
+            - secretRef:
+                name: {{ if not (empty $.Values.external_secrets.doc_store_existingSecret) }}{{ $.Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ $.Release.Name }}-doc-store-secrets{{ end }}
+                optional: false
+            - secretRef:
+                name: {{ if not (empty $.Values.external_secrets.opensearch_existingSecret) }}{{ $.Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ $.Release.Name }}-opensearch-secrets{{ end }}
+                optional: false
             - secretRef:
                 name: {{ $.Release.Name }}-storage-migration-secrets
                 optional: false
