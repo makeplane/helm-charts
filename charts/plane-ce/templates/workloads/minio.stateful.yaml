@@ -55,9 +55,12 @@ spec:
           - /data
           - --console-address 
           - :9090
+        {{/* Its own Secret, not doc-store: once doc-store points at Garage it stops
+             rendering MINIO_ROOT_*, and MinIO would restart on its minioadmin default
+             with the data intact but unreachable -- exactly the source the copy Job reads. */}}
         envFrom:
           - secretRef:
-              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              name: {{ if not (empty .Values.external_secrets.minio_existingSecret) }}{{ .Values.external_secrets.minio_existingSecret }}{{ else }}{{ .Release.Name }}-minio-secrets{{ end }}
               optional: false
         volumeMounts:
         - mountPath: /data
@@ -84,6 +87,7 @@ spec:
 
 ---
 
+{{- if eq (include "plane.minioActive" .) "true" }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -109,10 +113,13 @@ spec:
             - '-c'
             - >-
               /usr/bin/mc alias set plane-app-minio
-              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"; 
+              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; 
               /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME; 
               /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
           envFrom:
+            - secretRef:
+                name: {{ if not (empty .Values.external_secrets.minio_existingSecret) }}{{ .Values.external_secrets.minio_existingSecret }}{{ else }}{{ .Release.Name }}-minio-secrets{{ end }}
+                optional: false
             - secretRef:
                 name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
                 optional: false
@@ -123,4 +130,5 @@ spec:
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
       terminationGracePeriodSeconds: 120
+{{- end }}
 {{- end }}

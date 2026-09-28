@@ -10,7 +10,7 @@ metadata:
 spec:
   dnsNames:
   - {{ .Values.ingress.appHost | quote }}
-  {{- if and .Values.minio.local_setup .Values.ingress.minioHost }}
+  {{- if and (eq (include "plane.minioActive" .) "true") .Values.ingress.minioHost }}
   - {{ .Values.ingress.minioHost | quote }}
   {{- end }}
   {{- if and .Values.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}

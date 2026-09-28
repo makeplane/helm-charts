@@ -45,7 +45,7 @@ services:
   # ---------------------------------------------------------------------------
   # Bundled datastores MUST be external on OpenShift.
   #
-  # postgres / redis / rabbitmq / minio / opensearch are third-party images with
+  # postgres / redis / rabbitmq / garage / minio / opensearch are third-party images with
   # baked-in UID and data-directory ownership assumptions. They cannot run under
   # an arbitrary UID, and the chart deliberately does not apply the hardened
   # securityContext to them. Point the chart at managed services (RDS,
@@ -60,10 +60,16 @@ services:
     local_setup: false
   rabbitmq:
     local_setup: false
+  garage:
+    local_setup: false
   minio:
     local_setup: false
   opensearch:
     local_setup: false
+  # The bundled stores are off, so no objects are held in-cluster and there is
+  # nothing to migrate.
+  storage_migration:
+    stage: 'no-minio-data'
 
 # -----------------------------------------------------------------------------
 # Ingress

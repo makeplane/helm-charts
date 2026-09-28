@@ -1,0 +1,18 @@
+{{- if and (eq (include "plane.minioEnabled" .) "true") (empty .Values.external_secrets.minio_existingSecret) }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-minio-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+{{/* MinIO's own server credentials, split out of the doc-store Secret in 4.0.0. While
+     MinIO was the only store, sharing was harmless. Once doc-store points at Garage those
+     keys stop being rendered and Helm deletes them, and MinIO would restart on its built-in
+     minioadmin default -- data intact but unreachable with the configured credentials,
+     which is exactly the source the migration Job needs to read. */}}
+data:
+  MINIO_ROOT_USER: {{ .Values.minio.root_user | default "admin" | b64enc | quote }}
+  MINIO_ROOT_PASSWORD: {{ .Values.minio.root_password | default "password" | b64enc | quote }}
+{{- end }}
