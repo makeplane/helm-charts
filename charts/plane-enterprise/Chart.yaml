@@ -5,7 +5,11 @@ description: Meet Plane. An Enterprise software development tool to manage issue
 
 type: application
 
+<<<<<<< HEAD
 version: 3.13.2
+=======
+version: 3.14.0
+>>>>>>> c46190e (chore(charts): bump plane-enterprise to 3.14.0)
 appVersion: "4.0.1"
 
 home: https://plane.so/
