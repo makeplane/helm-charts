@@ -46,6 +46,10 @@ spec:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* LAST in envFrom, as in live.deployment.yaml: live-exporter reads the
+                 live-secrets copy of LIVE_SERVER_SECRET_KEY, which the chart stops
+                 emitting once app_keys_existingSecret is set. */}}
+          {{- include "plane.appKeysSecretRef" . }}
         env:
           - name: LIVE_MODE
             value: "exporter"
