@@ -1,11 +1,28 @@
-{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "traefik") .Values.license.licenseDomain }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: {{ .Release.Name }}-body-limit
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
   namespace: {{ .Release.Namespace }}
 spec:
   buffering:
     maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 }}
+
+{{- if .Values.services.drawio.local_setup }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-drawio-stripprefix
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /drawio
+{{- end }}
 
 {{- end }}

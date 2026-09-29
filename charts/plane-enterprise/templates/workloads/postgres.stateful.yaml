@@ -7,6 +7,7 @@ metadata:
   name: {{ .Release.Name }}-pgdb
   labels:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: ClusterIP
   {{- if not .Values.services.postgres.assign_cluster_ip }}
@@ -25,7 +26,7 @@ kind: StatefulSet
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-pgdb-wl
-  {{- include "plane.labelsAndAnnotations" .Values.services.postgres }}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.postgres) }}
 spec:
   selector:
     matchLabels:
@@ -35,6 +36,8 @@ spec:
     metadata:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-pgdb
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       {{- include "plane.podScheduling" .Values.services.postgres }}
       containers:
@@ -59,8 +62,8 @@ spec:
           subPath: ''
         - mountPath: /docker-entrypoint-initdb.d
           name: {{.Release.Name}}-init-script
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
       volumes:
       - name: {{.Release.Name}}-init-script
         configMap:

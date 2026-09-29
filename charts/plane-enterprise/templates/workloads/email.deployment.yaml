@@ -5,6 +5,8 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}-email-service
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local  # Important for email servers
@@ -30,9 +32,10 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}-email-app
   namespace: {{ .Release.Namespace }}
-  annotations:
-    reloader.stakater.com/auto: "true"
-  {{- include "plane.labelsAndAnnotations" .Values.services.email_service }}
+  {{/* Annotations come from services.email_service.annotations via the helper. A Reloader
+       annotation used to be a literal key here, which was silently dropped whenever that
+       value was also set, because the helper emits its own `annotations:` key. */}}
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.email_service) }}
 spec:
   replicas: {{ .Values.services.email_service.replicas | default 1 }}
   selector:
@@ -42,17 +45,37 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
       labels:
-       app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app 
-      annotations:  
-        timestamp: {{ now | quote }}
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+      annotations:
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.email_service }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.email_service "app" "email-app" "root" .) }}
       containers:
       - name: {{ .Release.Name }}-email-app
         imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
         image: {{ .Values.services.email_service.image | default "makeplane/email-commercial" }}:{{ .Values.planeVersion }}
-        securityContext:
-          runAsUser: 100
+        {{- /* The email image's app-user really is uid 100 and owns /opt/email, so
+             this service pins its own UID instead of taking runAsUser from the
+             shared block. It still takes everything else from that block when
+             securityContext.enabled is set -- runAsNonRoot, dropped capabilities
+             and seccompProfile are not UID-specific, and omitting them would
+             leave this the one unhardened workload. Set
+             services.email_service.runAsUser to null on platforms that assign the
+             UID themselves (OpenShift's restricted-v2 SCC rejects any runAsUser
+             outside the namespace's range). */}}
+        {{- $emailCtx := dict }}
+        {{- if .Values.securityContext.enabled }}
+        {{- $emailCtx = omit .Values.securityContext.containerSecurityContext "runAsUser" }}
+        {{- end }}
+        {{- with .Values.services.email_service.runAsUser }}
+        {{- $emailCtx = merge (dict "runAsUser" .) $emailCtx }}
+        {{- end }}
+        {{- with $emailCtx }}
+        securityContext: {{- toYaml . | nindent 10 }}
+        {{- end }}
         stdin: true
         tty: true
         readinessProbe:
@@ -68,8 +91,8 @@ spec:
           failureThreshold: 3
         resources:
           requests:
-            memory: {{ .Values.services.email_service.memoryRequest | default "50Mi" | quote }}
-            cpu: {{ .Values.services.email_service.cpuRequest | default "50m" | quote }}
+            memory: {{ .Values.services.email_service.memoryRequest | default "128Mi" | quote }}
+            cpu: {{ .Values.services.email_service.cpuRequest | default "100m" | quote }}
           limits:
             memory: {{ .Values.services.email_service.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.email_service.cpuLimit | default "500m" | quote}}
@@ -103,7 +126,7 @@ spec:
             - key: tls.key
               path: key.pem
             optional: false
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---
 {{- end }}

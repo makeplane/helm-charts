@@ -1,0 +1,1 @@
+{{- /* Docker registry secret removed; image pull is handled by node-level credentials or imagePullSecrets set externally */ -}}

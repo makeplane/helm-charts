@@ -1,0 +1,20 @@
+apiVersion: v2
+
+name: plane-mcp-server
+description: plane-mcp-server Setup
+
+type: application
+
+version: 1.0.0
+appVersion: "v0.3.0"
+
+home: https://plane.so
+icon: https://plane.so/favicon/favicon-32x32.png
+sources:
+  - https://github.com/makeplane/plane-mcp-server
+
+dependencies:
+  - name: valkey
+    version: "~0.11.0"
+    repository: https://valkey.io/valkey-helm/
+    condition: services.valkey.local_setup

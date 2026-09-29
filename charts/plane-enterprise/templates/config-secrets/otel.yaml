@@ -1,0 +1,63 @@
+{{- if eq (include "plane.otel.enabled" .) "true" }}
+# Shared OpenTelemetry env for the backend workloads. Mounted via envFrom; each
+# workload additionally sets an inline OTEL_SERVICE_NAME (see plane.otel.serviceEnv).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-otel-vars
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+data:
+  OTEL_ENABLED: "1"
+  {{- with .Values.observability.otel.endpoint }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otel.protocol | default "grpc" | quote }}
+  {{- with .Values.observability.otel.environment }}
+  # Read by every service and emitted as the deployment.environment.name resource
+  # attribute (the current semconv key, NOT the legacy deployment.environment).
+  # Set here rather than hand-written into OTEL_RESOURCE_ATTRIBUTES: the node/pi
+  # services pass this value as an explicit attribute, which wins over anything
+  # the env detector picks up from OTEL_RESOURCE_ATTRIBUTES.
+  OTEL_ENVIRONMENT: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.observability.otel.resourceAttributes }}
+  OTEL_RESOURCE_ATTRIBUTES: {{ . | quote }}
+  {{- end }}
+  {{- if .Values.observability.otel.debugConsole }}
+  OTEL_DEBUG_CONSOLE: "1"
+  {{- end }}
+  {{- with .Values.observability.otel.sampler }}
+  OTEL_TRACES_SAMPLER: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.observability.otel.samplerArg }}
+  OTEL_TRACES_SAMPLER_ARG: {{ . | quote }}
+  {{- end }}
+  {{- if and .Values.observability.otel.frontend.enabled .Values.observability.otel.frontend.endpoint }}
+  # Browser tracing config. Read only by the API, which serves it to browsers
+  # over its UNAUTHENTICATED instance endpoint — these three values are public by
+  # design, so they belong in the ConfigMap and not in the Secret below.
+  FRONTEND_OTEL_ENABLED: "1"
+  FRONTEND_OTLP_ENDPOINT: {{ .Values.observability.otel.frontend.endpoint | quote }}
+  {{- with .Values.observability.otel.frontend.headers }}
+  FRONTEND_OTLP_HEADERS: {{ . | quote }}
+  {{- end }}
+  {{- end }}
+{{- if and (eq (include "plane.otel.secretEnabled" .) "true") (empty .Values.external_secrets.otel_env_existingSecret) }}
+---
+# OTEL_EXPORTER_OTLP_HEADERS carries the collector ingestion credential, so it is
+# kept out of the ConfigMap. Set external_secrets.otel_env_existingSecret to
+# supply it from a Secret you manage instead (ESO, Vault, sealed-secrets, ...).
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-otel-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+stringData:
+  OTEL_EXPORTER_OTLP_HEADERS: {{ .Values.observability.otel.headers | quote }}
+{{- end }}
+{{- end }}

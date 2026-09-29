@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-secrets
+stringData:
+  PLANE_OAUTH_PROVIDER_CLIENT_ID: {{ .Values.services.api.plane_oauth.client_id | quote }}
+  PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.api.plane_oauth.client_secret | quote }}
+  PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.api.plane_oauth.provider_base_url | quote }}
+  MCP_PATH_PREFIX: {{ .Values.services.api.path_prefix | quote }}
+  PLANE_BASE_URL: {{ .Values.services.api.plane_base_url | quote }}
+  PLANE_INTERNAL_BASE_URL: {{ .Values.services.api.plane_internal_base_url | quote }}
+  {{- if .Values.services.valkey.local_setup }}
+  {{- $valkeyName := printf "%s-%s" .Release.Name (default "valkey" .Values.valkey.nameOverride) }}
+  REDIS_HOST: {{ $valkeyName }}
+  REDIS_PORT: "6379"
+  {{- if .Values.valkey.auth.enabled }}
+  REDIS_PASSWORD: {{ index .Values.valkey.auth.aclUsers "default" "password" | quote }}
+  {{- end }}
+  {{- else }}
+  REDIS_HOST: {{ .Values.services.valkey.remote_host | quote }}
+  REDIS_PORT: {{ .Values.services.valkey.remote_port | default 6379 | quote }}
+  REDIS_SSL: {{ .Values.services.valkey.remote_ssl | default false | quote }}
+  {{- if .Values.services.valkey.remote_password }}
+  REDIS_PASSWORD: {{ .Values.services.valkey.remote_password | quote }}
+  {{- end }}
+  {{- end }}

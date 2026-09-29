@@ -5,10 +5,12 @@ type: Opaque
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-opensearch-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
   {{- if .Values.services.opensearch.local_setup }}
   OPENSEARCH_ENABLED: "1"
-  OPENSEARCH_URL: "http://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.cluster.local:9200"
+  OPENSEARCH_URL: "http://{{ .Release.Name }}-opensearch.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9200"
   OPENSEARCH_USERNAME: {{ .Values.services.opensearch.username | default "plane" | quote }}
   OPENSEARCH_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
   OPENSEARCH_INITIAL_ADMIN_PASSWORD: {{ .Values.services.opensearch.password | default "Secure@Pass#123!%^&*" | quote }}
@@ -17,8 +19,12 @@ stringData:
   {{- else if .Values.env.opensearch_remote_url }}
   OPENSEARCH_ENABLED: "1"
   OPENSEARCH_URL: {{ .Values.env.opensearch_remote_url | quote }}
+  {{- if not (include "plane.externalOpensearch" .) }}
+  {{- /* Omitted when external_secrets.opensearch supplies them, so the externally
+       managed Secret is the only source and the two cannot drift. */}}
   OPENSEARCH_USERNAME: {{ .Values.env.opensearch_remote_username | default "" | quote }}
   OPENSEARCH_PASSWORD: {{ .Values.env.opensearch_remote_password | default "" | quote }}
+  {{- end }}
   OPENSEARCH_INDEX_PREFIX: {{ .Values.env.opensearch_index_prefix | default "" | quote }}
   OPENSEARCH_EMBEDDING_DIMENSION: {{ .Values.env.opensearch_embedding_dimension | default 1536 | quote }}
   {{- else }}
@@ -37,6 +43,8 @@ kind: ConfigMap
 metadata:
   namespace: {{ .Release.Namespace }}
   name: {{ .Release.Name }}-opensearch-init
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
 data:
   create-user.sh: |
     #!/bin/bash
