@@ -107,12 +107,131 @@ rabbitmq:
   tolerations: []
   affinity: {}
 
+# Bundled object store. Garage replaces MinIO as of chart 2.0.0.
+# Self-provisions: --single-node creates its own cluster layout on first boot and
+# --default-bucket creates the bucket and access key, both idempotent on restart.
+garage:
+  local_setup: true
+  image: dxflrs/garage:v2.4.1
+  pullPolicy: IfNotPresent
+  # Object data. Sized well above the MinIO default on purpose: an undersized data volume
+  # fails MID-COPY during a migration, which is the worst place to run out of room.
+  dataVolumeSize: 10Gi
+  # Metadata database. Small but latency-sensitive, so it gets its own claim. Also holds
+  # the automatic metadata snapshots (see metadata_auto_snapshot_interval), so leave room
+  # for two copies of the database on top of the live one.
+  metaVolumeSize: 2Gi
+  storageClass: ""
+  metaStorageClass: ""        # defaults to garage.storageClass
+  # Metadata durability. This is a single node (replication_factor 1), so there is no
+  # peer to rebuild metadata from -- the settings below are what protect it instead.
+  #   db_engine: sqlite, not Garage's default lmdb. LMDB is documented as prone to
+  #     corruption after an unclean shutdown (a kill, an OOM, a node loss) and recovers only
+  #     from peers; SQLite is crash-safe on its own. Changing this on an EXISTING Garage
+  #     does not convert the database: run `garage convert-db` first.
+  #   metadata_fsync: fsync every metadata commit, so an acknowledged write survives a
+  #     crash. Costs write throughput; leave it on unless you have measured the cost.
+  #   metadata_auto_snapshot_interval: Garage copies the metadata database to
+  #     <metadata volume>/snapshots on this interval and keeps the last two, which is the
+  #     restore point if the live database is ever lost. Set false or '' to disable.
+  db_engine: sqlite
+  metadata_fsync: true
+  metadata_auto_snapshot_interval: 6h
+  # fsync each data block. With one replica nothing can heal a lost block, and no
+  # throughput cost was measurable on local disk; benchmark before disabling it.
+  data_fsync: true
+  compression_level: 1
+  # MUST match what the app signs with; the chart renders AWS_REGION from the same value
+  # so the two cannot drift. Empty falls back to env.aws_region, then us-east-1.
+  s3_region: ''
+  # Leave empty and the chart generates random values at first install and reuses them from
+  # <release>-garage-secrets on every upgrade -- do not delete that Secret. `helm template`
+  # and --dry-run cannot read it and render fresh values, so set these explicitly if you
+  # render manifests to disk. access_key must be GK + 24 lowercase hex; secret_key and
+  # rpc_secret must be 64 lowercase hex (openssl rand -hex 32).
+  # Rotating secret_key alone makes Garage refuse to start: change both keys together.
+  access_key: ''
+  secret_key: ''
+  rpc_secret: ''
+  admin_token: ''
+  extra_config: ''            # raw TOML appended to garage.toml
+  bind_address: '[::]'
+  assign_cluster_ip: false
+  memoryLimit: 1Gi
+  cpuLimit: 1000m
+  memoryRequest: 256Mi
+  cpuRequest: 100m
+  env:
+    endpoint_ssl: false
+  labels: {}
+  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Copies every object from the old store into the new one. Drives the whole migration:
+#   ''             no migration in progress (the default)
+#   no-minio-data  this release never used the bundled MinIO, or its bucket is empty
+#   bulk-sync      app keeps serving from MinIO; Garage runs alongside; copy Job runs
+#   cutover        app switches to Garage; multi-pass reconcile Job runs
+#   rollback       app switches back to MinIO; copies Garage -> MinIO
+#   done           migration complete; Garage serves everything; no Job
+# Left unset, the chart picks the stage itself from what it finds in the cluster (see `auto`
+# below and "Migrating from bundled MinIO to Garage" in README.md).
+storage_migration:
+  # Do the whole migration in ONE `helm upgrade`. Garage and the copy run as pre-upgrade
+  # hooks, so Helm applies nothing from the new manifest until the copy has finished and
+  # verified -- the app serves from MinIO throughout, then moves to Garage.
+  # The trade-off: `helm upgrade` BLOCKS for the length of the copy plus the post-upgrade
+  # reconcile. Pass a generous --timeout (the default is 5m); do NOT pass --wait, which
+  # would make the reconcile hook depend on every workload going healthy first. Argo CD and
+  # Rancher Fleet treat Helm hooks differently, so leave this off under GitOps.
+  single_upgrade: false
+  # Advance the migration automatically, so a plain `helm upgrade` is all that is needed:
+  # the chart looks for a bundled MinIO in the cluster, keeps the app on it while Garage
+  # fills alongside, moves the app across once that copy is verified, and finishes once the
+  # reconcile is verified. Set false to require every step to be named explicitly.
+  auto: true
+  # Force a stage, overriding the automatic choice. Also the way to make `--dry-run`
+  # faithful, since Helm's cluster lookups return nothing during one.
+  stage: ''
+  # Copy from an EXTERNAL S3-compatible store instead of the bundled MinIO. Refused while a
+  # bundled MinIO exists (migrate that first), and only accepted with single_upgrade=true:
+  # the chart cannot keep Plane on an external store while Garage fills, so only the hook
+  # flow, which holds the old configuration until the copy has verified, is safe.
+  source:
+    endpoint: ''
+    access_key: ''
+    secret_key: ''
+    bucket: ''
+  passes: 0                   # 0 -> 1 pass for bulk-sync, 3 for cutover
+  pass_interval_seconds: 300
+  # Fail the Job if anything is still missing or size-mismatched at the end. false is honoured.
+  verify: true
+  image: ''                   # the mc client image; defaults to minio.image_mc
+  init_image: busybox
+  pullPolicy: IfNotPresent
+  backoffLimit: 3
+  ttlSecondsAfterFinished: '' # unset: the Job log is the audit record
+  memoryLimit: 1Gi
+  cpuLimit: 1000m
+  memoryRequest: 256Mi
+  cpuRequest: 100m
+  labels: {}
+  annotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# DEPRECATED as of chart 2.0.0: the bundled object store is now Garage (see garage above).
+# MinIO still renders so an existing release can keep serving from it while its objects are
+# copied across -- the only supported reason to enable it. Removed in 3.0.0.
 minio:
   # pgsty/silo is pgsty/minio renamed: same S3 API, MINIO_* env vars and on-disk format.
   image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
   image_mc: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
   init_image: busybox
-  local_setup: true
+  local_setup: false
   pullPolicy: IfNotPresent
   root_password: password
   root_user: admin
@@ -309,6 +428,11 @@ external_secrets:
   rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
   doc_store_existingSecret: ''
+  # Secret carrying MINIO_ROOT_USER / MINIO_ROOT_PASSWORD for the bundled MinIO server.
+  minio_existingSecret: ''
+  # Secret carrying GARAGE_RPC_SECRET, GARAGE_ADMIN_TOKEN, GARAGE_DEFAULT_ACCESS_KEY,
+  # GARAGE_DEFAULT_SECRET_KEY and GARAGE_DEFAULT_BUCKET for the bundled Garage.
+  garage_existingSecret: ''
   app_env_existingSecret: ''
   live_env_existingSecret: ''
 

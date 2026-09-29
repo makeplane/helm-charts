@@ -1,0 +1,43 @@
+{{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
+{{- $stage := include "plane.storageStage" . -}}
+{{- /* One template serves both directions: rollback swaps source and destination. */ -}}
+{{- $reverse := eq $stage "rollback" -}}
+{{- $bucket := .Values.env.docstore_bucket | default "uploads" -}}
+{{- $domain := .Values.env.default_cluster_domain | default "cluster.local" -}}
+{{- $src := .Values.services.storage_migration.source -}}
+{{- $oldEndpoint := $src.endpoint | default (printf "http://%s-minio.%s.svc.%s:9000" .Release.Name .Release.Namespace $domain) -}}
+{{- $oldKey := $src.access_key | default .Values.services.minio.root_user | default "admin" -}}
+{{- $oldSecret := $src.secret_key | default .Values.services.minio.root_password | default "password" -}}
+{{- $oldBucket := $src.bucket | default $bucket -}}
+{{- $newEndpoint := printf "http://%s-garage.%s.svc.%s:3900" .Release.Name .Release.Namespace $domain -}}
+{{- $newKey := include "plane.garageAccessKey" . -}}
+{{- $newSecret := include "plane.garageSecretKey" . -}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-storage-migration-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- /* In single-upgrade mode the copy Job is a pre-upgrade hook, so the credentials it
+         reads must be created in that phase too -- a normal resource does not exist yet. */}}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
+{{/* These are the variables storage_migrate reads: the DESTINATION through the app's own
+     AWS_* names, and the source through STORAGE_MIGRATION_SOURCE_*. This Secret is LAST in the
+     Job's envFrom, so it overrides doc-store -- which is the point. During bulk-sync the app is
+     still pointed at MinIO and doc-store says so, while the copy's destination is Garage; and
+     the MinIO branch of doc-store renders no AWS_REGION at all, which Garage requires. */}}
+data:
+  AWS_S3_ENDPOINT_URL: {{ (ternary $oldEndpoint $newEndpoint $reverse) | b64enc | quote }}
+  AWS_ACCESS_KEY_ID: {{ (ternary $oldKey $newKey $reverse) | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ (ternary $oldSecret $newSecret $reverse) | b64enc | quote }}
+  AWS_S3_BUCKET_NAME: {{ (ternary $oldBucket $bucket $reverse) | b64enc | quote }}
+  AWS_REGION: {{ include "plane.garageRegion" . | b64enc | quote }}
+  STORAGE_MIGRATION_SOURCE_ENDPOINT: {{ (ternary $newEndpoint $oldEndpoint $reverse) | b64enc | quote }}
+  STORAGE_MIGRATION_SOURCE_ACCESS_KEY: {{ (ternary $newKey $oldKey $reverse) | b64enc | quote }}
+  STORAGE_MIGRATION_SOURCE_SECRET_KEY: {{ (ternary $newSecret $oldSecret $reverse) | b64enc | quote }}
+  STORAGE_MIGRATION_SOURCE_BUCKET: {{ (ternary $bucket $oldBucket $reverse) | b64enc | quote }}
+{{- end }}

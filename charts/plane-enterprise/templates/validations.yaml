@@ -1,8 +1,168 @@
 {{- /*
 Renders no resource. Holds the checks that must run regardless of which templates are
 switched off, so they live here rather than inside a conditional template.
-*/ -}}
 
+.Release.IsUpgrade is false under helm template, so plain rendering is never blocked --
+only helm upgrade and helm upgrade --dry-run.
+*/ -}}
+{{- $stage := include "plane.storageStage" . -}}
+{{- $explicit := .Values.services.storage_migration.stage | default "" -}}
+{{- $valid := list "no-minio-data" "bulk-sync" "cutover" "rollback" "done" -}}
+
+{{- if and $explicit (not (has $explicit $valid)) }}
+{{- fail (printf "services.storage_migration.stage must be one of: %s (got %q)." (join ", " $valid) $explicit) }}
+{{- end }}
+
+{{- /*
+Garage is enabled by DEFAULT in this major version, so a release that was using external
+object storage and never had a garage key in its values would silently have its endpoint
+replaced by the bundled store -- the app would come up pointing at an empty bucket. The two
+are a genuine contradiction, so refuse rather than pick a winner.
+Not reachable with storage_provider=GCS, which disables the bundled store outright.
+*/ -}}
+{{- if and (eq (include "plane.garageEnabled" .) "true") (or .Values.env.aws_s3_endpoint_url .Values.env.aws_access_key .Values.external_secrets.storage.secretName) }}
+{{- fail `
+The bundled Garage is enabled AND external object storage is configured
+(env.aws_s3_endpoint_url, env.aws_access_key or external_secrets.storage.secretName).
+Only one of them can serve the app.
+
+plane-enterprise 4.0.0 enables the bundled Garage by default, so a release that was using
+external storage and never set a garage key inherits it on upgrade. That would point every
+service at an empty bucket.
+
+  Keeping your external store (most likely): set services.garage.local_setup=false
+  Moving to the bundled Garage:             clear env.aws_s3_endpoint_url,
+                                            env.aws_access_key, env.aws_secret_access_key
+                                            and external_secrets.storage.secretName
+
+To copy objects out of that external store into Garage, leave it configured as the copy
+source instead: services.storage_migration.source.{endpoint,access_key,secret_key,bucket}.
+` }}
+{{- end }}
+
+{{- if and (eq $stage "rollback") (ne (include "plane.garageEnabled" .) "true") }}
+{{- fail "services.storage_migration.stage=rollback needs Garage deployed to copy back FROM. Keep services.garage.local_setup=true until the rollback copy has completed." }}
+{{- end }}
+
+{{- /*
+An external copy source. Two ways it goes wrong, both refused:
+  - A bundled MinIO is still here. The source then replaces it as what gets copied, so its
+    objects are silently skipped -- and because the source is not MinIO, MinIO is no longer
+    "active" and Plane is pointed at a half-filled Garage while the copy runs.
+  - The two-upgrade flow. The chart has no way to keep Plane serving from an external store
+    while Garage fills (Garage + external storage config is refused above), so Plane would
+    move to Garage BEFORE the copy finished. Only single_upgrade is safe: its pre-upgrade hook
+    copies while the previous release, still on the external store, keeps serving.
+Once Plane is already on Garage, re-running a copy from the source is additive and allowed.
+*/ -}}
+{{- if and .Values.services.storage_migration.source.endpoint (eq (include "plane.garageEnabled" .) "true") }}
+{{- if or .Values.services.minio.local_setup (eq (include "plane.minioDeployed" .) "true") }}
+{{- fail (printf `
+services.storage_migration.source.endpoint is set (%s), but this release still has a bundled MinIO
+(services.minio.local_setup=true, or its StatefulSet or PVC is still in the namespace).
+
+The external source would REPLACE MinIO as what gets copied, so every object only MinIO
+holds would be skipped, and Plane would be pointed at Garage before the copy finished.
+
+  Migrating the bundled MinIO (most likely): clear services.storage_migration.source.* and
+                                             run helm upgrade again.
+  Copying from the external store as well:   finish the MinIO migration first (stage done),
+                                             delete the retained MinIO volume, then set the
+                                             source -- or run storage_migrate by hand.
+` .Values.services.storage_migration.source.endpoint) }}
+{{- else if eq $stage "rollback" }}
+{{- fail (printf `
+services.storage_migration.stage=rollback with an external source.endpoint (%s).
+
+rollback points Plane back at the bundled MinIO, which this release does not have. To go back
+to the external store, set services.garage.local_setup=false and restore the external storage
+settings (env.aws_*); anything written to Garage since has to be copied back by hand.
+` .Values.services.storage_migration.source.endpoint) }}
+{{- else if and (eq (include "plane.storageMigrationEnabled" .) "true") (ne (include "plane.garageAsHook" .) "true") (ne (include "plane.appOnGarage" .) "true") }}
+{{- fail (printf `
+Copying from an external store (%s) needs services.storage_migration.single_upgrade=true.
+
+Without it Plane moves to Garage in this same upgrade while the copy Job is still running,
+so every object not yet copied is missing until it finishes. The chart cannot keep Plane on
+an external store while Garage is enabled. single_upgrade runs the copy as a pre-upgrade
+hook, so the previous release keeps serving from the external store until it has verified:
+
+  helm upgrade <release> <chart> -f values.yaml \
+    --set services.storage_migration.single_upgrade=true --timeout 6h
+` .Values.services.storage_migration.source.endpoint) }}
+{{- end }}
+{{- end }}
+
+{{- /*
+rollback re-points Plane at the bundled MinIO and copies Garage back into it. With no MinIO
+left -- no StatefulSet and no PVC -- it would create an EMPTY one and serve from that. A
+retained PVC alone is fine: the StatefulSet comes back on the same volume.
+Checked only on upgrade: under `helm template` and client-side --dry-run, lookup finds
+nothing, so everything would look deleted.
+*/ -}}
+{{- if and (eq $stage "rollback") .Release.IsUpgrade (ne (include "plane.minioDeployed" .) "true") }}
+{{- fail (printf `
+services.storage_migration.stage=rollback, but this release has no bundled MinIO left: neither
+StatefulSet %s-minio-wl nor PVC pvc-%s-minio-vol-%s-minio-wl-0 exists in namespace %s.
+
+Rolling back would point Plane at a NEW, EMPTY MinIO. There is nothing to roll back to, so
+stay on Garage (unset the stage, or set it to done). If MinIO's volume was restored under a
+different name, bind it to that PVC name first. If this is a client-side --dry-run, cluster
+lookups return nothing: use --dry-run=server.
+` .Release.Name .Release.Name .Release.Name .Release.Namespace) }}
+{{- end }}
+
+{{- /*
+Plane about to serve from Garage while a bundled MinIO with data is still here and the app
+has never moved -- i.e. no stage covers it. That happens with services.storage_migration.auto=false
+and no stage, and would point every service at a bucket nobody copied into. The automatic
+flow never gets here: it resolves to bulk-sync, which keeps Plane on MinIO.
+*/ -}}
+{{- if and .Release.IsUpgrade (eq (include "plane.garageActive" .) "true") (eq (include "plane.minioDeployed" .) "true") (ne (include "plane.appOnGarage" .) "true") (not (has $stage (list "cutover" "done" "no-minio-data"))) }}
+{{- fail (printf `
+This upgrade would move Plane onto Garage, but its objects are still in the bundled MinIO
+(%s-minio-wl or its PVC is in the namespace) and no migration stage copies them.
+
+  Let the chart migrate (recommended): services.storage_migration.auto=true, no stage
+  Drive it yourself:                    services.storage_migration.stage=bulk-sync
+  Stay on MinIO for now:                services.minio.local_setup=true, services.garage.local_setup=false
+  MinIO really holds nothing:           services.storage_migration.stage=no-minio-data
+` .Release.Name) }}
+{{- end }}
+
+{{- /*
+The copy Job runs `manage.py storage_migrate` from the backend image. On a release that
+predates the command the Job only fails at run time, with "Unknown command", after Garage is
+up -- so refuse it here. Tags that are not semver (custom builds) are not checked. A
+pre-release is compared as its release (v3.4.0-rc1 counts as v3.4.0).
+*/ -}}
+{{- if eq (include "plane.storageMigrationEnabled" .) "true" }}
+{{- $semver := "^v?[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.+-]+)?$" }}
+{{- $floor := .Values.services.storage_migration.min_plane_version | default "" | toString }}
+{{- $tag := include "plane.storageMigrationTag" . }}
+{{- if and $floor (not (regexMatch $semver $floor)) }}
+{{- fail (printf "services.storage_migration.min_plane_version must be a version like v3.4.0, or '' to skip the check (got %q)." $floor) }}
+{{- end }}
+{{- if and $floor (regexMatch $semver $tag) }}
+{{- $tagCore := regexReplaceAll "[-+].*$" (trimPrefix "v" $tag) "" }}
+{{- $floorCore := regexReplaceAll "[-+].*$" (trimPrefix "v" $floor) "" }}
+{{- if semverCompare (printf "< %s" $floorCore) $tagCore }}
+{{- fail (printf `
+A storage migration is due (stage %q), but its Job would run on backend image %s.
+
+The copy is "python manage.py storage_migrate", which the backend image only ships from
+%s (services.storage_migration.min_plane_version). An older image fails the Job with
+"Unknown command" after Garage is already up.
+
+  Upgrade Plane first:           set planeVersion to %s or newer
+  Run only the copy newer:       set services.storage_migration.tag to %s or newer
+  Stay on MinIO for now:         services.minio.local_setup=true, services.garage.local_setup=false
+` $stage (include "plane.storageMigrationImage" .) $floor $floor $floor) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- /* ---------- PodDisruptionBudget misuse ---------- */ -}}
 {{- /*
 PodDisruptionBudget misuse. A budget that cannot protect anything is not inert -- it blocks
 drains -- so the three ways to ask for one that will not work are refused rather than ignored.

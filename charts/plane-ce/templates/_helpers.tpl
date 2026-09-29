@@ -219,10 +219,346 @@ Indentation is baked in for the container envFrom position, so call it bare.
 
 {{/*
 Returns "true" when object-storage credentials come from an externally managed Secret.
-Never true while the bundled MinIO is deployed, which supplies its own.
+Never true while a bundled store (MinIO or Garage) is deployed, which supplies its own.
 */}}
+{{/*
+Returns "true" when the bundled Garage should be deployed.
+*/}}
+{{- define "plane.garageEnabled" -}}
+  {{- if .Values.garage.local_setup -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.minioEnabled" -}}
+  {{- if or .Values.minio.local_setup (and (has (include "plane.storageStage" .) (list "bulk-sync" "cutover" "rollback")) (not .Values.storage_migration.source.endpoint)) -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Does this release still have a bundled MinIO holding objects? Answered from the CLUSTER,
+because a 1.x release that never set a storage key looks identical in its values to a
+fresh install -- and guessing wrong points every service at an empty bucket.
+The PVC is checked too: it outlives the StatefulSet.
+*/}}
+{{- define "plane.minioDeployed" -}}
+{{- if lookup "apps/v1" "StatefulSet" .Release.Namespace (printf "%s-minio-wl" .Release.Name) -}}
+true
+{{- else if lookup "v1" "PersistentVolumeClaim" .Release.Namespace (printf "pvc-%s-minio-vol-%s-minio-wl-0" .Release.Name .Release.Name) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Has a storage-migration Job of THIS release, for this stage and one of these phases,
+finished successfully? Jobs are named per run, so they are matched on labels:
+  app.kubernetes.io/instance       the release -- lookup is namespace-wide, and without this
+                                   a second Plane release in the namespace could advance
+                                   this one to cutover before its own objects were copied
+  plane.so/storage-migration-stage the stage the Job ran for
+  plane.so/storage-migration-phase copy | reconcile | pre | post. The single-upgrade "pre"
+                                   hook also carries stage=cutover, so without the phase a
+                                   green pre-copy would hide a failed post-upgrade reconcile.
+A rollback resets the progression: only Jobs created AFTER this release's most recent
+rollback Job count. Otherwise the next plain upgrade after a rollback would find the old
+bulk-sync success and cut straight back over to Garage, and a re-migration would reach done
+on the strength of a reconcile that ran before the rollback.
+Call with: (dict "context" $ "stage" "<stage>" "phases" (list "<phase>" ...))
+*/}}
+{{- define "plane.migrationJobSucceeded" -}}
+{{- $ctx := .context -}}
+{{- $want := .stage -}}
+{{- $phases := .phases -}}
+{{- $jobs := list -}}
+{{- $lastRollback := "" -}}
+{{- range (lookup "batch/v1" "Job" $ctx.Release.Namespace "").items -}}
+  {{- $l := .metadata.labels | default dict -}}
+  {{- if eq (get $l "app.kubernetes.io/instance") $ctx.Release.Name -}}
+    {{- $jobs = append $jobs . -}}
+    {{- if and (eq (get $l "plane.so/storage-migration-stage") "rollback") (gt .metadata.creationTimestamp $lastRollback) -}}
+      {{- $lastRollback = .metadata.creationTimestamp -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $found := "" -}}
+{{- range $jobs -}}
+  {{- $l := .metadata.labels | default dict -}}
+  {{- if and (eq (get $l "plane.so/storage-migration-stage") $want) (has (get $l "plane.so/storage-migration-phase") $phases) (gt .metadata.creationTimestamp $lastRollback) (gt (int (get (.status | default dict) "succeeded" | default 0)) 0) -}}
+    {{- $found = "true" -}}
+  {{- end -}}
+{{- end -}}
+{{- $found -}}
+{{- end -}}
+
+{{/*
+The phase label a copy Job carries. $phase is the template's own: "pre"/"post" for the two
+single-upgrade hook Jobs, "plain" otherwise -- which is a "reconcile" at cutover and a
+"copy" at bulk-sync and rollback.
+Call with: (dict "phase" $phase "stage" $stage)
+*/}}
+{{- define "plane.storageMigrationPhase" -}}
+{{- if ne .phase "plain" -}}{{ .phase }}{{- else if eq .stage "cutover" -}}reconcile{{- else -}}copy{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when this upgrade should do the whole migration in one shot, with Garage
+and the copy running as pre-upgrade hooks.
+
+Helm applies NOTHING from the new manifest until its pre-upgrade hooks finish, so the app
+keeps serving from MinIO for the entire copy and only then moves to Garage. The cost is
+that `helm upgrade` blocks for the length of the copy plus the post-upgrade reconcile.
+
+Also the only mode that accepts an external copy source (storage_migration.source): the
+previous release's configuration, still pointing at that store, stays in force until the
+pre-upgrade copy has verified. The two-upgrade flow has no way to keep serving from it.
+
+Only ever true for the upgrade that actually migrates. Once the app is on Garage this goes
+false, the hook annotations disappear, and the release adopts Garage as a normal resource.
+*/}}
+{{- define "plane.garageAsHook" -}}
+{{- if and .Values.storage_migration.single_upgrade .Release.IsUpgrade .Values.garage.local_setup (or (eq (include "plane.minioDeployed" .) "true") .Values.storage_migration.source.endpoint) (ne (include "plane.appOnGarage" .) "true") -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Annotations that make a resource a pre-upgrade hook AND let the release adopt it
+afterwards. Without the ownership pair the next upgrade fails on "invalid ownership
+metadata" when the main manifest declares the same object.
+Call with a dict: (dict "context" $ "weight" "-20")
+*/}}
+{{- define "plane.garageHookAnnotations" -}}
+{{- if eq (include "plane.garageAsHook" .context) "true" }}
+helm.sh/hook: pre-upgrade
+helm.sh/hook-weight: {{ .weight | quote }}
+meta.helm.sh/release-name: {{ .context.Release.Name }}
+meta.helm.sh/release-namespace: {{ .context.Release.Namespace }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Has the app already been moved to Garage? Read from the LIVE doc-store Secret, the one
+durable record of which store is in use. This makes the progression one-way: once the app
+is on Garage it can never fall back to bulk-sync and serve from MinIO again, which would
+hide everything uploaded since the cutover.
+*/}}
+{{- define "plane.appOnGarage" -}}
+{{- $sec := lookup "v1" "Secret" .Release.Namespace (printf "%s-doc-store-secrets" .Release.Name) -}}
+{{- if $sec -}}
+{{- $enc := get ($sec.data | default dict) "AWS_S3_ENDPOINT_URL" | default "" -}}
+{{- if and $enc (contains (printf "%s-garage" .Release.Name) ($enc | b64dec)) -}}
+true
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The stage actually in force. An explicit storage_migration.stage always wins. Otherwise
+the chart advances itself, so a plain `helm upgrade` is enough:
+
+  MinIO present, app on MinIO   -> bulk-sync  (app stays put, Garage fills alongside)
+  bulk-sync verified            -> cutover    (app moves to Garage, reconcile runs)
+  app on Garage, cutover done   -> done       (Garage serves everything, no Job)
+
+Ordering matters: the app-on-Garage test comes first so the sequence only moves forward.
+
+lookup returns empty under `helm template` and `--dry-run`, so those render as a clean
+install. Set the stage explicitly to make a dry-run faithful.
+*/}}
+{{- define "plane.storageStage" -}}
+{{- $explicit := .Values.storage_migration.stage | default "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if and .Values.storage_migration.auto .Values.garage.local_setup -}}
+{{- if eq (include "plane.appOnGarage" .) "true" -}}
+{{- if or (eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "cutover" "phases" (list "post" "reconcile"))) "true") (ne (include "plane.minioDeployed" .) "true") -}}
+done
+{{- else -}}
+cutover
+{{- end -}}
+{{- else if eq (include "plane.garageAsHook" .) "true" -}}
+cutover
+{{- else if eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "bulk-sync" "phases" (list "copy"))) "true" -}}
+cutover
+{{- else if eq (include "plane.minioDeployed" .) "true" -}}
+bulk-sync
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+ENABLED means "the StatefulSet is deployed"; ACTIVE means "the app and the ingress point
+here". They differ only during a storage migration, when both stores are deployed but
+exactly one serves traffic. Two active stores would put two backends on the same
+/<bucket> ingress path and hand presigned URLs signed for one store to the other.
+*/}}
+{{- define "plane.minioActive" -}}
+  {{- $stage := include "plane.storageStage" . -}}
+  {{- if eq (include "plane.minioEnabled" .) "true" -}}
+    {{- if or (not .Values.garage.local_setup) (has $stage (list "bulk-sync" "rollback")) -}}
+      true
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.garageActive" -}}
+  {{- if and .Values.garage.local_setup (ne (include "plane.minioActive" .) "true") -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{- define "plane.bundledObjectStore" -}}
+  {{- if or .Values.garage.local_setup .Values.minio.local_setup -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Region for the bundled Garage. Garage rejects a request signed for any other region with
+AuthorizationHeaderMalformed, so unlike the MinIO branch (which renders no region at all)
+both sides must agree. The chart writes this into garage.toml AND into AWS_REGION.
+*/}}
+{{- define "plane.garageRegion" -}}
+{{- .Values.garage.s3_region | default .Values.env.aws_region | default "us-east-1" -}}
+{{- end -}}
+
+{{/*
+Resolve one Garage credential.
+
+NOT derived from the release name. The Garage S3 API is reachable from OUTSIDE the cluster
+through the /<docstore_bucket> ingress route, so a key anyone could reconstruct from the
+release and namespace would let them read, overwrite and delete every stored attachment.
+
+Order: an explicit value, then whatever is already stored in the release's Garage Secret so
+upgrades keep the same key, then a fresh random one. The generated value is cached on
+.Values so every template in the same render sees the SAME credential -- without that,
+doc-store and the Garage Secret would each generate a different one and nothing would
+authenticate.
+
+Note `lookup` returns nothing under `helm template` and `--dry-run`, so those render fresh
+values each time. Set the credentials explicitly for a rendered-manifest workflow.
+Call with: (dict "context" $ "key" "<secret key>" "value" <explicit> "name" "<values path>" "gk" true|false)
+*/}}
+{{- define "plane.garageCredential" -}}
+{{- $ctx := .context -}}
+{{- if .value -}}
+{{- .value -}}
+{{- else -}}
+{{- $sname := $ctx.Values.external_secrets.garage_existingSecret | default (printf "%s-garage-secrets" $ctx.Release.Name) -}}
+{{- $sec := lookup "v1" "Secret" $ctx.Release.Namespace $sname -}}
+{{- $stored := "" -}}
+{{- if $sec -}}{{- $stored = get ($sec.data | default dict) .key | default "" -}}{{- end -}}
+{{- if $stored -}}
+{{- $stored | b64dec -}}
+{{- else if $ctx.Values.env.requireExplicitSecrets -}}
+{{- required (printf "%s has no value. Set it, or set env.requireExplicitSecrets=false to let the chart generate one." .name) nil -}}
+{{- else -}}
+{{- $cache := printf "_garageGenerated_%s" .key -}}
+{{- if not (hasKey $ctx.Values $cache) -}}
+{{- $r := sha256sum (randBytes 32) -}}
+{{- $_ := set $ctx.Values $cache (ternary (printf "GK%s" (trunc 24 $r)) $r .gk) -}}
+{{- end -}}
+{{- get $ctx.Values $cache -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+garage.toml. A named template so the Garage pod can hash exactly this (checksum/config)
+and roll when it changes: Garage reads its config only at startup. Holds no secrets --
+those arrive as GARAGE_* env vars from the garage Secret.
+*/}}
+{{- define "plane.garageToml" -}}
+metadata_dir = "/mnt/meta"
+data_dir = "/mnt/data"
+{{- /* Single node, replication_factor 1: no peer exists to rebuild metadata from, so
+     the metadata engine itself must survive an unclean shutdown. SQLite is crash-safe
+     on its own; LMDB (Garage's default) is documented as prone to corruption after
+     one and recovers only from peers. */}}
+db_engine = {{ .Values.garage.db_engine | default "sqlite" | quote }}
+{{- /* `default` treats false and 0 as empty, so the booleans and numbers below use an
+     explicit undefined test -- otherwise an operator could never turn them off. */}}
+metadata_fsync = {{ ternary true .Values.garage.metadata_fsync (kindIs "invalid" .Values.garage.metadata_fsync) }}
+data_fsync = {{ ternary true .Values.garage.data_fsync (kindIs "invalid" .Values.garage.data_fsync) }}
+{{- /* Periodic copy of the metadata DB into <metadata_dir>/snapshots (Garage keeps two).
+     The restore point if the live database is ever lost. false, 0 or '' disable it. */}}
+{{- $snap := .Values.garage.metadata_auto_snapshot_interval }}
+{{- if kindIs "invalid" $snap }}{{ $snap = "6h" }}{{ end }}
+{{- if and $snap (ne (toString $snap) "0") }}
+metadata_auto_snapshot_interval = {{ $snap | toString | quote }}
+{{- end }}
+{{- $cl := ternary 1 .Values.garage.compression_level (kindIs "invalid" .Values.garage.compression_level) }}
+compression_level = {{ if eq (toString $cl) "none" }}"none"{{ else }}{{ $cl }}{{ end }}
+{{- /* Mandatory for --single-node, which refuses to start otherwise. */}}
+replication_factor = 1
+
+rpc_bind_addr = "{{ .Values.garage.bind_address | default "[::]" }}:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+api_bind_addr = "{{ .Values.garage.bind_address | default "[::]" }}:3900"
+s3_region = {{ include "plane.garageRegion" . | quote }}
+{{- /* root_domain is deliberately omitted, leaving path-style addressing only -- what
+     boto3 uses with a custom endpoint_url, and what silo forces explicitly. */}}
+
+[admin]
+api_bind_addr = "{{ .Values.garage.bind_address | default "[::]" }}:3903"
+{{- with .Values.garage.extra_config }}
+{{ . }}
+{{- end }}
+{{- end -}}
+
+{{- define "plane.garageAccessKey" -}}
+{{- $v := .Values.garage.access_key | default "" -}}
+{{- if and $v (not (regexMatch "^GK[0-9a-f]{24}$" $v)) -}}
+  {{- fail (printf "garage.access_key %q is not a valid Garage access key: it must be the literal prefix GK followed by exactly 24 LOWERCASE hex characters (26 total). Leave it empty to let the chart generate one." $v) -}}
+{{- end -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_DEFAULT_ACCESS_KEY" "value" $v "name" "garage.access_key" "gk" true) -}}
+{{- end -}}
+
+{{/* Rotating the secret key ALONE makes Garage refuse to start -- change access_key and
+     secret_key together, or clear both and let the chart generate a fresh pair. */}}
+{{- define "plane.garageSecretKey" -}}
+{{- $v := .Values.garage.secret_key | default "" -}}
+{{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
+  {{- fail (printf "garage.secret_key must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
+{{- end -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_DEFAULT_SECRET_KEY" "value" $v "name" "garage.secret_key" "gk" false) -}}
+{{- end -}}
+
+{{- define "plane.garageRpcSecret" -}}
+{{- $v := .Values.garage.rpc_secret | default "" -}}
+{{- if and $v (not (regexMatch "^[0-9a-f]{64}$" $v)) -}}
+  {{- fail (printf "garage.rpc_secret must be exactly 64 LOWERCASE hex characters (32 bytes); got %d. Generate one with: openssl rand -hex 32" (len $v)) -}}
+{{- end -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_RPC_SECRET" "value" $v "name" "garage.rpc_secret" "gk" false) -}}
+{{- end -}}
+
+{{- define "plane.garageAdminToken" -}}
+{{- include "plane.garageCredential" (dict "context" . "key" "GARAGE_ADMIN_TOKEN" "value" (.Values.garage.admin_token | default "") "name" "garage.admin_token" "gk" false) -}}
+{{- end -}}
+
+{{/*
+MINIO_ENDPOINT_SSL is an app-side contract meaning "the bundled store is reached over
+https", so it follows whichever store is active rather than the MinIO values key.
+*/}}
+{{- define "plane.storageEndpointSsl" -}}
+{{- if eq (include "plane.garageActive" .) "true" -}}
+{{- .Values.garage.env.endpoint_ssl | default false | ternary "1" "0" -}}
+{{- else -}}
+{{- .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "plane.storageMigrationEnabled" -}}
+{{- if has (include "plane.storageStage" .) (list "bulk-sync" "cutover" "rollback") -}}
+true
+{{- end -}}
+{{- end -}}
+
 {{- define "plane.externalStorage" -}}
-{{- if and .Values.external_secrets.storage.secretName (not .Values.minio.local_setup) -}}
+{{- if and .Values.external_secrets.storage.secretName (not (include "plane.bundledObjectStore" .)) -}}
 true
 {{- end -}}
 {{- end -}}

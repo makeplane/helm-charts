@@ -1,0 +1,39 @@
+{{- if eq (include "plane.garageEnabled" .) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-garage-config
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
+data:
+  garage.toml: |
+    {{- include "plane.garageToml" . | nindent 4 }}
+{{- if empty .Values.external_secrets.garage_existingSecret }}
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-garage-secrets
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with include "plane.garageHookAnnotations" (dict "context" $ "weight" "-20") }}
+  annotations: {{ . | nindent 4 }}
+  {{- end }}
+{{/* GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN are read from the environment, so garage.toml
+     above carries no secrets and needs no init container to template them in.
+     GARAGE_DEFAULT_* drive --default-access-key / --default-bucket, which create the key
+     and bucket in-process on first boot and are no-ops afterwards. */}}
+data:
+  GARAGE_RPC_SECRET: {{ include "plane.garageRpcSecret" . | b64enc | quote }}
+  GARAGE_ADMIN_TOKEN: {{ include "plane.garageAdminToken" . | b64enc | quote }}
+  GARAGE_DEFAULT_ACCESS_KEY: {{ include "plane.garageAccessKey" . | b64enc | quote }}
+  GARAGE_DEFAULT_SECRET_KEY: {{ include "plane.garageSecretKey" . | b64enc | quote }}
+  GARAGE_DEFAULT_BUCKET: {{ .Values.env.docstore_bucket | default "uploads" | toString | b64enc | quote }}
+{{- end }}
+{{- end }}
