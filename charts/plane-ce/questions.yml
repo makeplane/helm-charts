@@ -249,6 +249,10 @@ questions:
     label: "API Key Rate Limit"
     type: string
     default: "60/minute"
+  - variable: env.enable_drf_spectacular
+    label: "Enable DRF Spectacular (OpenAPI / Swagger UI)"
+    type: boolean
+    default: false
 
 - variable: worker.replicas
   label: "Default Replica Count"
