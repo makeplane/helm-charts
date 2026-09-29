@@ -48,6 +48,7 @@ Differences from the Traefik IngressRoute this mirrors:
       (dict "slug" "god-mode"    "path" "/god-mode/"    "svc" (printf "%s-admin" $name) "port" 3000)
       (dict "slug" "api"         "path" "/api/"         "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "auth"        "path" "/auth/"        "svc" (printf "%s-api" $name)   "port" 8000)
+      (dict "slug" "static"      "path" "/static/"      "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "graphql"     "path" "/graphql/"     "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "marketplace" "path" "/marketplace/" "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "live"        "path" "/live/"        "svc" (printf "%s-live" $name)  "port" 3000)
