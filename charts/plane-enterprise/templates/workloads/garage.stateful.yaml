@@ -59,7 +59,16 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        {{- include "plane.podAnnotations" . | nindent 8 }}
+        {{- /* Garage reads garage.toml and its GARAGE_* env only at startup, so a change to
+               either must roll the pod. Hashed on their own rather than through
+               plane.configChecksum, so an unrelated app-config change never restarts the store. */}}
+        checksum/config: {{ include "plane.garageToml" . | sha256sum | quote }}
+        {{- if empty .Values.external_secrets.garage_existingSecret }}
+        checksum/secret: {{ printf "%s/%s/%s/%s" (include "plane.garageRpcSecret" .) (include "plane.garageAdminToken" .) (include "plane.garageAccessKey" .) (include "plane.garageSecretKey" .) | sha256sum | quote }}
+        {{- end }}
+        {{- if .Values.global.forceRedeploy }}
+        timestamp: {{ now | quote }}
+        {{- end }}
     spec:
       {{- include "plane.podScheduling" .Values.services.garage }}
       {{- include "plane.podSecurityContext" . }}

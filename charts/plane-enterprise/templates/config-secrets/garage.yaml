@@ -11,33 +11,7 @@ metadata:
   {{- end }}
 data:
   garage.toml: |
-    metadata_dir = "/mnt/meta"
-    data_dir = "/mnt/data"
-    db_engine = {{ .Values.services.garage.db_engine | default "lmdb" | quote }}
-    {{- /* LMDB can be corrupted by an unclean shutdown and a pod eviction is one; at
-         replication factor 1 there is no peer to resync from. */}}
-    metadata_fsync = {{ ternary true .Values.services.garage.metadata_fsync (kindIs "invalid" .Values.services.garage.metadata_fsync) }}
-    data_fsync = {{ .Values.services.garage.data_fsync | default false }}
-    {{- /* `default` treats 0 and false as empty, so these two use an explicit
-           undefined test -- otherwise an operator could never turn them off. */}}
-    compression_level = {{ ternary 1 .Values.services.garage.compression_level (kindIs "invalid" .Values.services.garage.compression_level) }}
-    {{- /* Mandatory for --single-node, which refuses to start otherwise. */}}
-    replication_factor = 1
-
-    rpc_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3901"
-    rpc_public_addr = "127.0.0.1:3901"
-
-    [s3_api]
-    api_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3900"
-    s3_region = {{ include "plane.garageRegion" . | quote }}
-    {{- /* root_domain is deliberately omitted, leaving path-style addressing only -- what
-         boto3 uses with a custom endpoint_url, and what silo forces explicitly. */}}
-
-    [admin]
-    api_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3903"
-  {{- with .Values.services.garage.extra_config }}
-{{ . | indent 4 }}
-  {{- end }}
+    {{- include "plane.garageToml" . | nindent 4 }}
 {{- if empty .Values.external_secrets.garage_existingSecret }}
 ---
 apiVersion: v1

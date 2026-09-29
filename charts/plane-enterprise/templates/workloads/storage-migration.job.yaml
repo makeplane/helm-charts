@@ -11,6 +11,9 @@
        a not-yet-rolled worker can still write to the old store for a minute or two. */ -}}
 {{- $passes := $.Values.services.storage_migration.passes | default (eq $phase "pre" | ternary 1 (eq $stage "cutover" | ternary 3 1)) -}}
 {{- $domain := $.Values.env.default_cluster_domain | default "cluster.local" -}}
+{{- $phaseLabel := include "plane.storageMigrationPhase" (dict "phase" $phase "stage" $stage) -}}
+{{- /* `default true` would turn an explicit `verify: false` back into true. */ -}}
+{{- $verify := ternary true $.Values.services.storage_migration.verify (kindIs "invalid" $.Values.services.storage_migration.verify) -}}
 
 {{- /* Named per run because Job specs are immutable -- same convention as migrator.job.yaml.
        Carries no Helm hook, so it never blocks the upgrade: the copy is safe to run under
@@ -25,6 +28,7 @@ metadata:
     {{- /* On the Job's OWN metadata, not just the pod template: plane.storageStage reads
            it back through `lookup` to advance the migration on the next upgrade. */}}
     plane.so/storage-migration-stage: {{ $stage | quote }}
+    plane.so/storage-migration-phase: {{ $phaseLabel | quote }}
     {{- with $.Values.services.storage_migration.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -55,6 +59,7 @@ spec:
         app.name: {{ $.Release.Namespace }}-{{ $.Release.Name }}-storage-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
         plane.so/storage-migration-stage: {{ $stage | quote }}
+        plane.so/storage-migration-phase: {{ $phaseLabel | quote }}
         {{- include "plane.serviceAccountPodLabels" $ }}
       annotations:
         timestamp: {{ now | quote }}
@@ -70,7 +75,9 @@ spec:
       containers:
         - name: {{ $.Release.Name }}-storage-migrate
           {{- include "plane.containerSecurityContext" $ }}
-          image: {{ $.Values.services.storage_migration.image | default $.Values.services.api.image | default "makeplane/backend-commercial" }}:{{ $.Values.planeVersion }}
+          {{- /* The backend image, NOT an S3 client: the copier is `manage.py storage_migrate`.
+                 validations.yaml refuses a tag below storage_migration.min_plane_version. */}}
+          image: {{ include "plane.storageMigrationImage" $ }}
           imagePullPolicy: {{ $.Values.services.storage_migration.pullPolicy | default "IfNotPresent" }}
           {{- /* The copier is a Django management command, so Django loads settings before the
                  command body runs -- which means it needs the same configuration the app gets,
@@ -98,7 +105,7 @@ spec:
             - name: PASS_INTERVAL
               value: {{ $.Values.services.storage_migration.pass_interval_seconds | default 300 | quote }}
             - name: VERIFY
-              value: {{ $.Values.services.storage_migration.verify | default true | ternary "1" "0" | quote }}
+              value: {{ ternary "1" "0" $verify | quote }}
             {{- /* mc writes its config to $HOME, which is not writable when the chart's
                    restricted securityContext is on. */}}
             - name: MC_CONFIG_DIR
@@ -117,7 +124,7 @@ spec:
           args:
             - --passes={{ $passes }}
             - --pass-interval={{ $.Values.services.storage_migration.pass_interval_seconds | default 300 }}
-{{- if not ($.Values.services.storage_migration.verify | default true) }}
+{{- if not $verify }}
             - --no-verify
 {{- end }}
           volumeMounts:

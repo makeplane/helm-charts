@@ -11,6 +11,9 @@
        a not-yet-rolled worker can still write to the old store for a minute or two. */ -}}
 {{- $passes := $.Values.storage_migration.passes | default (eq $phase "pre" | ternary 1 (eq $stage "cutover" | ternary 3 1)) -}}
 {{- $domain := $.Values.env.default_cluster_domain | default "cluster.local" -}}
+{{- $phaseLabel := include "plane.storageMigrationPhase" (dict "phase" $phase "stage" $stage) -}}
+{{- /* `default true` would turn an explicit `verify: false` back into true. */ -}}
+{{- $verify := ternary true $.Values.storage_migration.verify (kindIs "invalid" $.Values.storage_migration.verify) -}}
 
 {{- /* Named per revision because Job specs are immutable -- same convention as
        migrator.job.yaml. In the default mode it carries no Helm hook, so it never blocks
@@ -25,6 +28,7 @@ metadata:
     {{- /* On the Job's OWN metadata, not just the pod template: plane.storageStage reads
            it back through `lookup` to advance the migration on the next upgrade. */}}
     plane.so/storage-migration-stage: {{ $stage | quote }}
+    plane.so/storage-migration-phase: {{ $phaseLabel | quote }}
     {{- with $.Values.storage_migration.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -55,6 +59,7 @@ spec:
         app.name: {{ $.Release.Namespace }}-{{ $.Release.Name }}-storage-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
         plane.so/storage-migration-stage: {{ $stage | quote }}
+        plane.so/storage-migration-phase: {{ $phaseLabel | quote }}
         {{- include "plane.serviceAccountPodLabels" $ }}
       annotations:
         timestamp: {{ now | quote }}
@@ -79,7 +84,7 @@ spec:
             - name: PASS_INTERVAL
               value: {{ $.Values.storage_migration.pass_interval_seconds | default 300 | quote }}
             - name: VERIFY
-              value: {{ $.Values.storage_migration.verify | default true | ternary "1" "0" | quote }}
+              value: {{ ternary "1" "0" $verify | quote }}
             {{- /* mc writes its config to $HOME, which is not writable when the chart's
                    restricted securityContext is on. */}}
             - name: MC_CONFIG_DIR

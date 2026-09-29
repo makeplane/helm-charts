@@ -216,19 +216,54 @@ true
 {{- end -}}
 
 {{/*
-Has a storage-migration Job for this stage finished successfully? Jobs are named per run,
-so they are matched on the stage label rather than by name.
+Has a storage-migration Job of THIS release, for this stage and one of these phases,
+finished successfully? Jobs are named per run, so they are matched on labels:
+  app.kubernetes.io/instance       the release -- lookup is namespace-wide, and without this
+                                   a second Plane release in the namespace could advance
+                                   this one to cutover before its own objects were copied
+  plane.so/storage-migration-stage the stage the Job ran for
+  plane.so/storage-migration-phase copy | reconcile | pre | post. The single-upgrade "pre"
+                                   hook also carries stage=cutover, so without the phase a
+                                   green pre-copy would hide a failed post-upgrade reconcile.
+A rollback resets the progression: only Jobs created AFTER this release's most recent
+rollback Job count. Otherwise the next plain upgrade after a rollback would find the old
+bulk-sync success and cut straight back over to Garage, and a re-migration would reach done
+on the strength of a reconcile that ran before the rollback.
+Call with: (dict "context" $ "stage" "<stage>" "phases" (list "<phase>" ...))
 */}}
 {{- define "plane.migrationJobSucceeded" -}}
 {{- $ctx := .context -}}
 {{- $want := .stage -}}
-{{- $found := "" -}}
+{{- $phases := .phases -}}
+{{- $jobs := list -}}
+{{- $lastRollback := "" -}}
 {{- range (lookup "batch/v1" "Job" $ctx.Release.Namespace "").items -}}
-  {{- if and (eq (get (.metadata.labels | default dict) "plane.so/storage-migration-stage") $want) (gt (int (get (.status | default dict) "succeeded" | default 0)) 0) -}}
+  {{- $l := .metadata.labels | default dict -}}
+  {{- if eq (get $l "app.kubernetes.io/instance") $ctx.Release.Name -}}
+    {{- $jobs = append $jobs . -}}
+    {{- if and (eq (get $l "plane.so/storage-migration-stage") "rollback") (gt .metadata.creationTimestamp $lastRollback) -}}
+      {{- $lastRollback = .metadata.creationTimestamp -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $found := "" -}}
+{{- range $jobs -}}
+  {{- $l := .metadata.labels | default dict -}}
+  {{- if and (eq (get $l "plane.so/storage-migration-stage") $want) (has (get $l "plane.so/storage-migration-phase") $phases) (gt .metadata.creationTimestamp $lastRollback) (gt (int (get (.status | default dict) "succeeded" | default 0)) 0) -}}
     {{- $found = "true" -}}
   {{- end -}}
 {{- end -}}
 {{- $found -}}
+{{- end -}}
+
+{{/*
+The phase label a copy Job carries. $phase is the template's own: "pre"/"post" for the two
+single-upgrade hook Jobs, "plain" otherwise -- which is a "reconcile" at cutover and a
+"copy" at bulk-sync and rollback.
+Call with: (dict "phase" $phase "stage" $stage)
+*/}}
+{{- define "plane.storageMigrationPhase" -}}
+{{- if ne .phase "plain" -}}{{ .phase }}{{- else if eq .stage "cutover" -}}reconcile{{- else -}}copy{{- end -}}
 {{- end -}}
 
 {{/*
@@ -238,13 +273,17 @@ and the copy running as pre-upgrade hooks.
 Helm applies NOTHING from the new manifest until its pre-upgrade hooks finish, so the app
 keeps serving from MinIO for the entire copy and only then moves to Garage. The cost is
 that `helm upgrade` blocks for the length of the copy: pass --timeout well above the 5m
-default, and --wait so the post-upgrade reconcile runs after the pods have rolled.
+default, and NOT --wait, which would make the post-upgrade reconcile wait on every workload.
+
+Also the only mode that accepts an external copy source (storage_migration.source): the
+previous release's configuration, still pointing at that store, stays in force until the
+pre-upgrade copy has verified. The two-upgrade flow has no way to keep serving from it.
 
 Only ever true for the upgrade that actually migrates. Once the app is on Garage this goes
 false, the hook annotations disappear, and the release adopts Garage as a normal resource.
 */}}
 {{- define "plane.garageAsHook" -}}
-{{- if and .Values.services.storage_migration.single_upgrade .Release.IsUpgrade (eq (include "plane.garageEnabled" .) "true") (eq (include "plane.minioDeployed" .) "true") (ne (include "plane.appOnGarage" .) "true") -}}
+{{- if and .Values.services.storage_migration.single_upgrade .Release.IsUpgrade (eq (include "plane.garageEnabled" .) "true") (or (eq (include "plane.minioDeployed" .) "true") .Values.services.storage_migration.source.endpoint) (ne (include "plane.appOnGarage" .) "true") -}}
 true
 {{- end -}}
 {{- end -}}
@@ -301,14 +340,14 @@ install. Set the stage explicitly to make a dry-run faithful.
 {{- $explicit -}}
 {{- else if and .Values.services.storage_migration.auto (eq (include "plane.garageEnabled" .) "true") -}}
 {{- if eq (include "plane.appOnGarage" .) "true" -}}
-{{- if or (eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "cutover")) "true") (ne (include "plane.minioDeployed" .) "true") -}}
+{{- if or (eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "cutover" "phases" (list "post" "reconcile"))) "true") (ne (include "plane.minioDeployed" .) "true") -}}
 done
 {{- else -}}
 cutover
 {{- end -}}
 {{- else if eq (include "plane.garageAsHook" .) "true" -}}
 cutover
-{{- else if eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "bulk-sync")) "true" -}}
+{{- else if eq (include "plane.migrationJobSucceeded" (dict "context" . "stage" "bulk-sync" "phases" (list "copy"))) "true" -}}
 cutover
 {{- else if eq (include "plane.minioDeployed" .) "true" -}}
 bulk-sync
@@ -405,6 +444,51 @@ Call with: (dict "context" $ "key" "<secret key>" "value" <explicit> "name" "<va
 {{- end -}}
 {{- end -}}
 
+{{/*
+garage.toml. A named template so the Garage pod can hash exactly this (checksum/config)
+and roll when it changes: Garage reads its config only at startup. Holds no secrets --
+those arrive as GARAGE_* env vars from the garage Secret.
+*/}}
+{{- define "plane.garageToml" -}}
+metadata_dir = "/mnt/meta"
+data_dir = "/mnt/data"
+{{- /* Single node, replication_factor 1: no peer exists to rebuild metadata from, so
+     the metadata engine itself must survive an unclean shutdown. SQLite is crash-safe
+     on its own; LMDB (Garage's default) is documented as prone to corruption after
+     one and recovers only from peers. */}}
+db_engine = {{ .Values.services.garage.db_engine | default "sqlite" | quote }}
+{{- /* `default` treats false and 0 as empty, so the booleans and numbers below use an
+     explicit undefined test -- otherwise an operator could never turn them off. */}}
+metadata_fsync = {{ ternary true .Values.services.garage.metadata_fsync (kindIs "invalid" .Values.services.garage.metadata_fsync) }}
+data_fsync = {{ ternary true .Values.services.garage.data_fsync (kindIs "invalid" .Values.services.garage.data_fsync) }}
+{{- /* Periodic copy of the metadata DB into <metadata_dir>/snapshots (Garage keeps two).
+     The restore point if the live database is ever lost. false, 0 or '' disable it. */}}
+{{- $snap := .Values.services.garage.metadata_auto_snapshot_interval }}
+{{- if kindIs "invalid" $snap }}{{ $snap = "6h" }}{{ end }}
+{{- if and $snap (ne (toString $snap) "0") }}
+metadata_auto_snapshot_interval = {{ $snap | toString | quote }}
+{{- end }}
+{{- $cl := ternary 1 .Values.services.garage.compression_level (kindIs "invalid" .Values.services.garage.compression_level) }}
+compression_level = {{ if eq (toString $cl) "none" }}"none"{{ else }}{{ $cl }}{{ end }}
+{{- /* Mandatory for --single-node, which refuses to start otherwise. */}}
+replication_factor = 1
+
+rpc_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+api_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3900"
+s3_region = {{ include "plane.garageRegion" . | quote }}
+{{- /* root_domain is deliberately omitted, leaving path-style addressing only -- what
+     boto3 uses with a custom endpoint_url, and what silo forces explicitly. */}}
+
+[admin]
+api_bind_addr = "{{ .Values.services.garage.bind_address | default "[::]" }}:3903"
+{{- with .Values.services.garage.extra_config }}
+{{ . }}
+{{- end }}
+{{- end -}}
+
 {{- define "plane.garageAccessKey" -}}
 {{- $v := .Values.services.garage.access_key | default "" -}}
 {{- if and $v (not (regexMatch "^GK[0-9a-f]{24}$" $v)) -}}
@@ -454,6 +538,19 @@ Returns "true" when a storage-migration copy Job should render.
 {{- if has (include "plane.storageStage" .) (list "bulk-sync" "cutover" "rollback") -}}
 true
 {{- end -}}
+{{- end -}}
+
+{{/*
+Image for the copy Job. The copier is `manage.py storage_migrate` in the backend image, so
+the tag must be a backend release that ships it -- storage_migration.tag when set (to run
+the copy from a newer release than the one being served), otherwise planeVersion.
+*/}}
+{{- define "plane.storageMigrationTag" -}}
+{{- .Values.services.storage_migration.tag | default .Values.planeVersion -}}
+{{- end -}}
+
+{{- define "plane.storageMigrationImage" -}}
+{{- .Values.services.storage_migration.image | default .Values.services.api.image | default "makeplane/backend-commercial" -}}:{{- include "plane.storageMigrationTag" . -}}
 {{- end -}}
 
 {{/*
@@ -808,12 +905,13 @@ must stay in lockstep across services, so a shared trigger is the safe default.
 The list is every config-secret template a workload mounts via envFrom. docker-registry
 and cert-issuers are excluded on purpose: neither is pod env, so hashing them would roll
 every workload for a change no running container can observe. storage-migration is excluded
-for the same reason: only a per-run Job consumes it.
+for the same reason: only a per-run Job consumes it. garage is excluded because only the Garage
+pod mounts it, and that pod carries its own checksum (see garage.stateful.yaml).
 */}}
 {{- define "plane.configChecksum" -}}
 {{- $ctx := . -}}
 {{- $acc := "" -}}
-{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" "argus-env" "minio" "garage" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" "argus-env" "minio" -}}
 {{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
 {{- end -}}
 {{- $acc | sha256sum -}}
