@@ -347,6 +347,8 @@ env:
   default_cluster_domain: cluster.local
 
   api_key_rate_limit: "60/minute"
+  # Serves the OpenAPI schema and Swagger UI at /api/schema/swagger-ui/ (ENABLE_DRF_SPECTACULAR).
+  enable_drf_spectacular: false
 
 # Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
 # things that let an environment hold no credentials -- an ESO SecretStore and the
