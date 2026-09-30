@@ -56,6 +56,14 @@ spec:
           - /data
           - --console-address 
           - :9090
+        {{- with .Values.services.minio.idle_timeout }}
+        env:
+          # How long MinIO keeps a connection whose client has stopped reading. Its
+          # default (~30-60s) drops long ranged reads (e.g. silo streaming an import
+          # ZIP while it writes batches); empty falls back to MinIO's default.
+          - name: MINIO_IDLE_TIMEOUT
+            value: {{ . | quote }}
+        {{- end }}
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}

@@ -340,6 +340,10 @@ services:
     pullPolicy: IfNotPresent
     root_user: admin
     root_password: password
+    # MINIO_IDLE_TIMEOUT: how long MinIO keeps a connection whose client has stopped
+    # reading. MinIO's default (~30-60s) resets silo's ranged read of a large import
+    # ZIP while silo writes batches. Empty = MinIO's default.
+    idle_timeout: 1h
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
@@ -573,8 +577,10 @@ services:
   silo:
     enabled: true
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
+    # Parsing an import (e.g. a Confluence entities.xml) is CPU-bound; at 500m the
+    # batch writes stall long enough for storage to drop the read.
+    memoryLimit: 2Gi
+    cpuLimit: 2000m
     memoryRequest: 256Mi
     cpuRequest: 100m
     image: makeplane/silo-commercial
