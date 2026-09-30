@@ -10,7 +10,11 @@ drains -- so the three ways to ask for one that will not work are refused rather
 {{- $eligible := include "plane.pdbEligible" . | fromYaml -}}
 
 {{- range $key, $svc := .Values.services }}
-{{- $opts := (default dict $svc).podDisruptionBudget | default dict }}
+{{- /* services may also hold scalar settings (e.g. storage_class) -- skip anything that is not a map. */ -}}
+{{- $opts := dict }}
+{{- if kindIs "map" $svc }}
+{{- $opts = $svc.podDisruptionBudget | default dict }}
+{{- end }}
 {{- if and (hasKey $opts "enabled") $opts.enabled (not (hasKey $eligible $key)) }}
 {{- fail (printf `
 services.%s.podDisruptionBudget.enabled is set, but %s cannot have a budget.
