@@ -110,8 +110,8 @@ spec:
             memory: {{ .Values.services.silo.memoryRequest | default "256Mi" | quote }}
             cpu: {{ .Values.services.silo.cpuRequest | default "100m" | quote }}
           limits:
-            memory: {{ .Values.services.silo.memoryLimit  | default "1000Mi" | quote }}
-            cpu: {{ .Values.services.silo.cpuLimit | default "500m" | quote}}
+            memory: {{ .Values.services.silo.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.silo.cpuLimit | default "2000m" | quote}}
         {{- with (include "plane.s3CANodeBundleMount" .) }}
 {{ . | indent 8 }}
         {{- end }}
