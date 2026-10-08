@@ -341,11 +341,11 @@ questions:
   - variable: services.silo.memoryLimit
     label: "Memory Limit"
     type: string
-    default: 1000Mi
+    default: 2Gi
   - variable: services.silo.cpuLimit
     label: "CPU Limit"
     type: string
-    default: 500m
+    default: 2000m
   - variable: services.silo.memoryRequest
     label: "Memory Request"
     type: string
@@ -1824,6 +1824,12 @@ questions:
     label: "MinIO Client Docker Image"
     type: string
     default: "docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z"
+    show_if: "services.minio.local_setup=true"
+  - variable: services.minio.idle_timeout
+    label: "MinIO Idle Timeout"
+    description: "MINIO_IDLE_TIMEOUT. How long MinIO keeps a stalled or idle connection open; leave empty for MinIO's 30s default. Set e.g. 1h if large imports fail with ECONNRESET \"aborted\"."
+    type: string
+    default: ""
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.init_image
     label: "Init Docker Image"

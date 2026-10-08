@@ -56,6 +56,13 @@ spec:
           - /data
           - --console-address 
           - :9090
+        {{- with .Values.services.minio.idle_timeout }}
+        env:
+          # Opt-in: MinIO's 30s default resets silo's ranged read of a large
+          # import ZIP while it writes batches.
+          - name: MINIO_IDLE_TIMEOUT
+            value: {{ . | quote }}
+        {{- end }}
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
