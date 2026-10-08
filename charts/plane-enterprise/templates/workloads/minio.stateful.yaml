@@ -58,9 +58,8 @@ spec:
           - :9090
         {{- with .Values.services.minio.idle_timeout }}
         env:
-          # How long MinIO keeps a connection whose client has stopped reading. Its
-          # default (~30-60s) drops long ranged reads (e.g. silo streaming an import
-          # ZIP while it writes batches); empty falls back to MinIO's default.
+          # Opt-in: MinIO's 30s default resets silo's ranged read of a large
+          # import ZIP while it writes batches.
           - name: MINIO_IDLE_TIMEOUT
             value: {{ . | quote }}
         {{- end }}

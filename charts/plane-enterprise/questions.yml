@@ -1827,9 +1827,9 @@ questions:
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.idle_timeout
     label: "MinIO Idle Timeout"
-    description: "MINIO_IDLE_TIMEOUT. How long MinIO keeps a connection whose client has stopped reading; leave empty for MinIO's default (~30-60s)."
+    description: "MINIO_IDLE_TIMEOUT. How long MinIO keeps a stalled or idle connection open; leave empty for MinIO's 30s default. Set e.g. 1h if large imports fail with ECONNRESET \"aborted\"."
     type: string
-    default: "1h"
+    default: ""
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.init_image
     label: "Init Docker Image"

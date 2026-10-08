@@ -340,10 +340,11 @@ services:
     pullPolicy: IfNotPresent
     root_user: admin
     root_password: password
-    # MINIO_IDLE_TIMEOUT: how long MinIO keeps a connection whose client has stopped
-    # reading. MinIO's default (~30-60s) resets silo's ranged read of a large import
-    # ZIP while silo writes batches. Empty = MinIO's default.
-    idle_timeout: 1h
+    # MINIO_IDLE_TIMEOUT: how long MinIO keeps a stalled or idle connection open.
+    # Empty keeps MinIO's 30s default. A large import (e.g. Confluence) can fail with
+    # ECONNRESET "aborted" when silo pauses its read longer than that; set e.g. 1h.
+    # Opt-in because it also lets any client hold a connection open that long.
+    idle_timeout: ""
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
