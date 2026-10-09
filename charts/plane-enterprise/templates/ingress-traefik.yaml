@@ -31,6 +31,15 @@ spec:
       - name: {{ .Release.Name }}-admin
         port: 3000
 
+  # Run activity stream (SSE): no buffering middleware, and an explicit priority so it
+  # wins over the /api/ route below, which applies the body-limit middleware.
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathRegexp(`^/api/workspaces/[^/]+/runs/[^/]+/activities/stream/`)
+    kind: Rule
+    priority: 1000
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/api/`)
     kind: Rule
     middlewares:
@@ -107,6 +116,12 @@ spec:
     kind: Rule
     middlewares:
       - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-pi-api
+        port: 8000
+  # Chat answer stream (SSE): no buffering middleware
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/chat/stream-answer/`)
+    kind: Rule
     services:
       - name: {{ .Release.Name }}-pi-api
         port: 8000
