@@ -25,6 +25,7 @@ data:
        the prefix on. Not a secret, so it lives here and an existing Secret does not
        have to carry it (a value there still wins: envFrom reads the Secret last). */}}
   PLANE_OAUTH_PROVIDER_BASE_URL: {{ default $publicOrigin .Values.services.mcp_server.plane_oauth.provider_base_url | quote }}
+  PLANE_OAUTH_ALLOWED_REDIRECT_URIS: {{ .Values.services.mcp_server.plane_oauth.allowed_redirect_uris | default "" | quote }}
 
 ---
 
