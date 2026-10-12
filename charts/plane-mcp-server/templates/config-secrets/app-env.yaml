@@ -8,6 +8,7 @@ stringData:
   PLANE_OAUTH_PROVIDER_CLIENT_ID: {{ .Values.services.api.plane_oauth.client_id | quote }}
   PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.api.plane_oauth.client_secret | quote }}
   PLANE_OAUTH_PROVIDER_BASE_URL: {{ .Values.services.api.plane_oauth.provider_base_url | quote }}
+  PLANE_OAUTH_ALLOWED_REDIRECT_URIS: {{ .Values.services.api.plane_oauth.allowed_redirect_uris | default "" | quote }}
   MCP_PATH_PREFIX: {{ .Values.services.api.path_prefix | quote }}
   PLANE_BASE_URL: {{ .Values.services.api.plane_base_url | quote }}
   PLANE_INTERNAL_BASE_URL: {{ .Values.services.api.plane_internal_base_url | quote }}

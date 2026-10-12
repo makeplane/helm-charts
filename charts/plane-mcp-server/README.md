@@ -43,7 +43,7 @@
 | Setting                      |        Default                | Required | Description                                                                 |
 | ---------------------------- | :---------------------------: | :------: | --------------------------------------------------------------------------- |
 | services.api.image           | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag)                                  |
-| services.api.tag             |       v0.3.0                 |          | Docker image tag for the MCP server                                         |
+| services.api.tag             |       v0.3.4                 |          | Docker image tag for the MCP server                                         |
 | services.api.replicas        |           1                   |          | Number of MCP Server replicas                                               |
 | services.api.memoryLimit     |        1000Mi                 |          | Memory limit for MCP Server pods                                            |
 | services.api.cpuLimit        |         500m                  |          | CPU limit for MCP Server pods                                               |
@@ -58,6 +58,7 @@
 | services.api.plane_oauth.client_id       |             |    Yes   | Plane OAuth Client ID for authentication                                    |
 | services.api.plane_oauth.client_secret   |             |    Yes   | Plane OAuth Client Secret for authentication                                |
 | services.api.plane_oauth.provider_base_url|            |    Yes   | Plane instance base URL for OAuth                                           |
+| services.api.plane_oauth.allowed_redirect_uris|        |          | Comma-separated redirect URIs the OAuth flow accepts (`PLANE_OAUTH_ALLOWED_REDIRECT_URIS`) |
 | services.api.plane_base_url              |             |    Yes   | Public base URL of your Plane instance                                      |
 | services.api.plane_internal_base_url     |             |          | Internal base URL of your Plane instance (for in-cluster communication)     |
 | services.api.path_prefix                 |             |          | HTTP route prefix when mounted behind a proxy. E.g. `/plane` serves `/plane/http/mcp` |

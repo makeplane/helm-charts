@@ -19,7 +19,7 @@ ingress:
 services:
   api:
     image: makeplane/plane-mcp-server
-    tag: v0.3.0
+    tag: v0.3.4
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m
@@ -33,6 +33,7 @@ services:
       client_id: ''
       client_secret: ''
       provider_base_url: ''
+      allowed_redirect_uris: '' # comma-separated
     labels: {}
     annotations: {}
     tolerations: []
