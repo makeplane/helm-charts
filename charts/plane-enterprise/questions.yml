@@ -1061,7 +1061,7 @@ questions:
   - variable: services.mcp_server.image
     label: "Docker Image"
     type: string
-    default: "makeplane/plane-mcp-server:v0.3.2"
+    default: "makeplane/plane-mcp-server:v0.3.4"
   - variable: services.mcp_server.replicas
     label: "Default Replica Count"
     type: int
@@ -1108,6 +1108,10 @@ questions:
     default: ""
   - variable: services.mcp_server.plane_oauth.provider_base_url
     label: "OAuth Provider Base URL (leave empty to auto-derive from license domain)"
+    type: string
+    default: ""
+  - variable: services.mcp_server.plane_oauth.allowed_redirect_uris
+    label: "OAuth Allowed Redirect URIs (comma-separated)"
     type: string
     default: ""
 

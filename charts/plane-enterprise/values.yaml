@@ -871,7 +871,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 150Mi
     cpuRequest: 100m
-    image: makeplane/plane-mcp-server:v0.3.2
+    image: makeplane/plane-mcp-server:v0.3.4
     pullPolicy: Always
     assign_cluster_ip: false
     path_prefix: '/mcp'
@@ -891,6 +891,8 @@ services:
       # "<path_prefix>/http" itself. Leave empty to derive it from
       # license.licenseDomain and the ingress TLS setting, like plane_base_url.
       provider_base_url: ''
+      # Comma-separated redirect URIs the MCP server's OAuth flow accepts.
+      allowed_redirect_uris: ''
     nodeSelector: {}
     tolerations: []
     affinity: {}
