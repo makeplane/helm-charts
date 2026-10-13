@@ -5,6 +5,23 @@ entries:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
     appVersion: 1.4.2
+    created: "2026-10-13T10:13:51.144840972Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 9d68ae1eb2d9e1a6181d1779063fa7feb949fcd48de31b2df4d847ea1eece755
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.8.5/plane-ce-1.8.5.tgz
+    version: 1.8.5
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 1.4.2
     created: "2026-09-29T12:58:54.230878298Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -682,6 +699,21 @@ entries:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.13/plane-ce-1.0.13.tgz
     version: 1.0.13
   plane-enterprise:
+  - apiVersion: v2
+    appVersion: 3.3.2
+    created: "2026-10-13T10:13:51.347415265Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 8c1b2bc9e8f6def236d164500f4084dff0083ef7c80fbbc40cc338a07ef4bc91
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-3.10.7/plane-enterprise-3.10.7.tgz
+    version: 3.10.7
   - apiVersion: v2
     appVersion: 3.3.2
     created: "2026-10-12T09:21:51.045826571Z"
@@ -2421,4 +2453,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-mcp-server-1.0.0/plane-mcp-server-1.0.0.tgz
     version: 1.0.0
-generated: "2026-10-12T09:21:51.046260266Z"
+generated: "2026-10-13T10:13:51.348299932Z"
