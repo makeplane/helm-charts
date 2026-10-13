@@ -32,7 +32,7 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- if $adopted }}
 {{- $warnings = append $warnings (printf "env.generateSecrets adopted the values this release already used for: %s.\n    These are still the PUBLIC values shipped by earlier chart versions. Moving to\n    private values means re-encrypting stored data, and no tool for that exists yet,\n    so SECRET_KEY and AES_SECRET_KEY cannot be changed in place on this release." (join ", " $adopted)) }}
 {{- end }}
-{{- $warnings = append $warnings (printf "The shared keys live in the Secret %s, which carries\n    helm.sh/resource-policy: keep and so survives helm uninstall. A reinstall under\n    the same release name reuses it. Delete it only when the data it protects is\n    gone too:\n      kubectl delete secret %s -n %s" $keysSecret $keysSecret .Release.Namespace) }}
+{{- $warnings = append $warnings (printf "The shared keys live in the Secret %s, which carries\n    helm.sh/resource-policy: keep and so survives helm uninstall. A reinstall under\n    the same release name reuses it. Delete it only when the data it protects is\n    gone too:\n      kubectl delete secret %s -n %s\n    Creating a new key on first install needs get permission on namespaces; installers\n    without it should supply values or use external_secrets.app_keys_existingSecret." $keysSecret $keysSecret .Release.Namespace) }}
 {{- end }}
 
 {{- /* Externalized credentials with no way to pick up a rotation. */}}

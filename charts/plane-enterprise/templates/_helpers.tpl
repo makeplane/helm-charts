@@ -654,8 +654,7 @@ strategy:
 {{- $ns := .Release.Namespace -}}
 {{- $legacy := fromJson (include "plane.legacyKeyDefaults" .) -}}
 {{- $strict := .Values.env.requireExplicitSecrets -}}
-{{- $probe := not (empty (lookup "v1" "Namespace" "" "kube-system")) -}}
-{{- $canGenerate := and .Release.IsInstall $probe -}}
+{{- $isInstall := .Release.IsInstall -}}
 {{- $own := (lookup "v1" "Secret" $ns (printf "%s-app-keys" $rel)).data | default dict -}}
 {{- $old := dict -}}
 {{- range $n := list "app-secrets" "silo-secrets" "live-secrets" "pi-api-secrets" "runner-secrets" -}}
@@ -690,12 +689,17 @@ strategy:
 {{- $val = get (get $old $n) $s.key | default "" | b64dec -}}
 {{- end -}}
 {{- end -}}
-{{- if and (not $val) (gt (int $s.len) 0) -}}
-{{- if not $canGenerate -}}
-{{- $reason := "the cluster could not be queried, which is the case for helm template, --dry-run, GitOps renderers and users without read access" -}}
-{{- if $probe -}}
-{{- $reason = "this is an upgrade, and an upgrade never creates a key" -}}
+{{- if and $strict $val (has $val (values $legacy)) -}}
+{{- fail (printf "%s resolves to a value that earlier versions of this chart shipped by default, so this install is still running on a published key. Changing SECRET_KEY or AES_SECRET_KEY on a running instance makes its encrypted data unreadable, so the chart will not do it for you. To keep the existing key, set env.requireExplicitSecrets=false or point external_secrets.app_keys_existingSecret at a Secret holding it. To move to private keys, plan a data migration first." $s.key) -}}
 {{- end -}}
+{{- if and (not $val) (gt (int $s.len) 0) -}}
+{{- $reason := "" -}}
+{{- if not $isInstall -}}
+{{- $reason = "this is an upgrade, and an upgrade never creates a key" -}}
+{{- else if empty (lookup "v1" "Namespace" "" "kube-system") -}}
+{{- $reason = "the cluster could not be queried, which is the case for helm template, --dry-run, GitOps renderers and users without read access. Generating a key also needs get permission on namespaces (kube-system is read as a reachability check)" -}}
+{{- end -}}
+{{- if $reason -}}
 {{- fail (printf "env.generateSecrets: no existing value for %s was found and a new one cannot be generated safely here (%s). Set %s, or point external_secrets.app_keys_existingSecret at a Secret that holds it. A key that encrypts stored data must never be generated over an existing install." $s.key $reason $s.path) -}}
 {{- end -}}
 {{- $val = randAlphaNum (int $s.len) -}}
