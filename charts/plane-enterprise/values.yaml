@@ -333,7 +333,8 @@ services:
 
   minio:
     local_setup: true
-    image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    # pgsty/silo is pgsty/minio renamed: same S3 API, MINIO_* env vars and on-disk format.
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     image_mc: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     init_image: busybox
     volumeSize: 3Gi

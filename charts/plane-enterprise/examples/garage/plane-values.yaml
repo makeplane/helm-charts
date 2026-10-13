@@ -1,0 +1,19 @@
+# Plane (plane-enterprise) values to use a self-managed Garage instead of the bundled MinIO.
+# Merge into your existing values and run `helm upgrade`. See README.md, step 5.
+services:
+  minio:
+    # Stops the bundled MinIO. Its PersistentVolumeClaim is kept, so rolling back is setting this to true again.
+    local_setup: false
+
+env:
+  docstore_bucket: uploads
+  # Garage's S3 API inside the cluster.
+  aws_s3_endpoint_url: "http://garage.garage.svc:3900"
+  # Must equal garage.s3.api.region in garage-values.yaml.
+  aws_region: "us-east-1"
+  # The key you created for Plane in Garage. Prefer external_secrets.storage (secretName,
+  # accessKeyIdKey, secretAccessKeyKey) over plain values in production.
+  aws_access_key: "GK..."
+  aws_secret_access_key: "..."
+  # Uploads and downloads go through Plane's API, so Garage needs no public endpoint and no CORS.
+  use_storage_proxy: true
