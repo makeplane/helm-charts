@@ -323,7 +323,7 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | live.nodeSelector      |                   {}                    |          | This key allows you to set the node selector for the deployment of `live`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                     |
 | live.tolerations       |                   []                    |          | This key allows you to set the tolerations for the deployment of `live`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                           |
 | live.affinity          |                   {}                    |          | This key allows you to set the affinity rules for the deployment of `live`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                 |
-| live_server_secret_key |   htbqvBJAgpm9bzvf3r4urJer0ENReatceh    |   Yes    | This key sets the secret key for the live server. This is required for secure communication and authentication in the live server component.                                                                    |
+| live_server_secret_key |   `""`    |   Yes    | This key sets the secret key for the live server. This is required for secure communication and authentication in the live server component.                                                                    |
 | live.labels | {} |  | Custom labels to add to the live deployment |
 | live.annotations | {} |  | Custom annotations to add to the live deployment |
 
@@ -641,7 +641,7 @@ If you configure TLS through `ssl.tls_secret_name` or `ssl.generateCerts` +
 
 | Setting                    |                      Default                       | Required | Description                                                                                                                                                                      |
 | -------------------------- | :------------------------------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| env.secret_key             | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 |   Yes    | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data |
+| env.secret_key             | `""` |   Yes    | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data |
 | env.default_cluster_domain |                   cluster.local                    |   Yes    | Set this value as configured in your kubernetes cluster. `cluster.local` is usally the default in most cases.                                                                    |
 
 ## External Secrets Config
@@ -664,11 +664,32 @@ To configure the external secrets for your application, you need to define speci
 |                          | `AWS_S3_ENDPOINT_URL`   | Yes                                     | Endpoint URL for AWS S3 or MinIO            | `http://plane-minio.plane-ns.svc.cluster.local:9000`                                                                                                                                                 |
 |                          | `AWS_REGION`            | Optional                                | AWS region where your S3 bucket is located  | `your_aws_region`                                                                                                                                                                                    |
 |                          | `FILE_SIZE_LIMIT`       | Yes                                     | Limit for file uploads in your system       | `5MB`                                                                                                                                                                                                |
-| app_env_existingSecret   | `SECRET_KEY`            | Yes                                     | Random secret key                           | `60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5`                                                                                                                                                 |
+| app_env_existingSecret   | `SECRET_KEY`            | Yes                                     | Random secret key                           | a random string                                                                                                                                                 |
 |                          | `REDIS_URL`             | Yes                                     | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
 |                          | `DATABASE_URL`          | Yes                                     | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                          | `AMQP_URL`              | Yes                                     | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
 | live_env_existingSecret  | `REDIS_URL`             | Yes                                     | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+
+## Shared signing keys
+
+`SECRET_KEY` and `LIVE_SERVER_SECRET_KEY` are set with `env.secret_key` and `env.live_server_secret_key`, or supplied through `external_secrets.app_keys_existingSecret` (a Secret containing both keys, used by every workload that needs them).
+
+The key values in `values.yaml` are empty. When one is left empty the chart still renders the value that earlier chart versions shipped by default, so existing installs keep rendering identical Secrets. Those values were published in the chart and are not appropriate for production use.
+
+> **Never change `SECRET_KEY` on a running instance.** It encrypts the instance-configuration rows (SMTP password, OAuth client secrets). Changing it makes them undecryptable, and the failure is silent.
+
+| Setting | Default | Description |
+| ------- | :-----: | ----------- |
+| `env.requireExplicitSecrets` | false | Fail the render when a key has no value or still holds a value shipped by earlier chart versions. |
+| `env.generateSecrets` | false | Create the keys as the Secret `<release>-app-keys` on first install and reuse them afterwards. Fails where the cluster cannot be queried. |
+
+With `env.generateSecrets: true` the chart renders one Secret, `<release>-app-keys`, and uses it in place of the keys in its own Secrets. For each key, in order: the value set in `values.yaml`; the value already in `<release>-app-keys`; the value already in the chart's existing Secrets for this release (so an install running on the previous values keeps exactly those); a newly generated random value. A new value is generated only on `helm install` (`helm upgrade --install` on a new release counts) and only when the chart can query the cluster. In every other case the render fails with a message instead of generating, including `helm template`, `--dry-run=client`, Argo CD, Pulumi and other tools that cannot query the cluster, upgrades of an existing release, and users without permission to read Secrets. In those cases supply the values yourself or use `external_secrets.app_keys_existingSecret`. `generateSecrets` is ignored when `external_secrets.app_keys_existingSecret` is set.
+
+The generated Secret carries `helm.sh/resource-policy: keep`, so it stays after `helm uninstall` and a reinstall under the same release name reuses it. This is deliberate: the Postgres volume outlives the release, and a new `SECRET_KEY` would leave its encrypted rows unreadable. Delete it yourself (`kubectl delete secret <release>-app-keys -n <namespace>`) only when that data is gone as well.
+
+Adopting `generateSecrets` on an existing install keeps the values that install already uses, including the previously shipped ones if that is what it was running on. Moving an existing instance to new private values requires re-encrypting its stored data, which this chart does not do. Do not turn `generateSecrets` off again once it has been used; the chart would go back to other key values.
+
+The defaults of `requireExplicitSecrets` and `generateSecrets` will change to `true` in the next major version.
 
 ## Custom Ingress Routes
 

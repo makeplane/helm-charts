@@ -186,7 +186,7 @@ questions:
   - variable: env.live_server_secret_key
     label: "Live Server Secret Key"
     type: string
-    default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+    default: ""
 
 - variable: api.image
   label: Backend Docker Image
@@ -243,8 +243,8 @@ questions:
   - variable: env.secret_key
     label: "Random Secret Key"
     type: string
-    required: true
-    default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+    required: false
+    default: ""
   - variable: env.api_key_rate_limit
     label: "API Key Rate Limit"
     type: string
@@ -702,7 +702,13 @@ questions:
   group: "Service Account"
 - variable: env.requireExplicitSecrets
   label: "Refuse to Render Default Signing Keys"
-  description: "Fails the render instead of falling back to this chart's PUBLIC example values for SECRET_KEY and LIVE_SERVER_SECRET_KEY."
+  description: "Fails the render when SECRET_KEY or LIVE_SERVER_SECRET_KEY has no value or still holds a value shipped by earlier chart versions."
+  type: boolean
+  default: false
+  group: "Service Account"
+- variable: env.generateSecrets
+  label: "Generate Signing Keys on First Install"
+  description: "Creates SECRET_KEY and LIVE_SERVER_SECRET_KEY as the Secret <release>-app-keys on first install and keeps them afterwards. Leave off when installing through a tool that cannot query the cluster. SECRET_KEY must never be changed on a running instance."
   type: boolean
   default: false
   group: "Service Account"
