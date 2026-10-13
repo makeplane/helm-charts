@@ -1,0 +1,121 @@
+# Copy Plane's bundled MinIO bucket into Garage, then verify the copy.
+#
+# A one-off Job in Plane's namespace. It reads MinIO over S3 and never writes to it, so the
+# MinIO volume stays an untouched rollback copy. Re-running it copies only what is missing.
+#
+#   1. Fill in the Secret below (see README.md, step 4).
+#   2. kubectl -n <plane-namespace> apply -f copy-minio-to-garage.yaml
+#   3. kubectl -n <plane-namespace> logs -f job/plane-minio-to-garage
+#   4. To run it again: kubectl -n <plane-namespace> delete job plane-minio-to-garage, then apply again.
+#
+# The Job succeeds only when every object in MinIO is in Garage with the same name and size.
+# Set VERIFY_CONTENT to "1" to also compare the SHA-256 of every object (slower).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: plane-minio-to-garage
+  labels:
+    app.kubernetes.io/name: plane-minio-to-garage
+type: Opaque
+stringData:
+  # Plane's bundled MinIO: http://<plane-release>-minio.<plane-namespace>.svc:9000
+  SOURCE_ENDPOINT: "http://plane-minio.plane.svc:9000"
+  # Plane's MinIO root user and password: services.minio.root_user / root_password in your
+  # Plane values (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD in the <release>-doc-store-secrets Secret).
+  SOURCE_ACCESS_KEY: "admin"
+  SOURCE_SECRET_KEY: "password"
+  # Your Garage's S3 API, reachable from this namespace.
+  DEST_ENDPOINT: "http://garage.garage.svc:3900"
+  # The key you created for Plane in Garage (README.md, step 3).
+  DEST_ACCESS_KEY: "GK..."
+  DEST_SECRET_KEY: "..."
+  # Plane's bucket: env.docstore_bucket in your Plane values.
+  BUCKET: "uploads"
+  VERIFY_CONTENT: "0"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: plane-minio-to-garage
+  labels:
+    app.kubernetes.io/name: plane-minio-to-garage
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: plane-minio-to-garage
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: copy
+          image: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: plane-minio-to-garage
+          env:
+            - name: MC_CONFIG_DIR
+              value: /tmp/mc
+            - name: HOME
+              value: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          command: ["/bin/sh", "-c"]
+          # The mc image has a shell but no grep, sed or awk, so this sticks to sh builtins and wc.
+          args:
+            - |
+              set -eu
+              mc alias set src "$SOURCE_ENDPOINT" "$SOURCE_ACCESS_KEY" "$SOURCE_SECRET_KEY" >/dev/null
+              mc alias set dst "$DEST_ENDPOINT" "$DEST_ACCESS_KEY" "$DEST_SECRET_KEY" >/dev/null
+
+              if ! mc ls "src/$BUCKET" >/dev/null 2>&1; then
+                echo "MinIO has no bucket '$BUCKET': nothing to copy."
+                exit 0
+              fi
+              mc ls "dst/$BUCKET" >/dev/null || { echo "ERROR: bucket '$BUCKET' is not reachable in Garage with this key (README.md, step 3)."; exit 1; }
+
+              case "$(mc anonymous get "src/$BUCKET" 2>/dev/null)" in
+                *download*|*public*) echo "WARNING: '$BUCKET' allows anonymous reads on MinIO. Garage has none, so links old Plane releases saved as /$BUCKET/<file> will not load." ;;
+              esac
+
+              echo "copying '$BUCKET' from MinIO to Garage"
+              # No --preserve: it would also copy the bucket policy, which Garage does not implement.
+              mc mirror --retry "src/$BUCKET" "dst/$BUCKET"
+
+              echo "verifying"
+              DIFF="$(mc diff "src/$BUCKET" "dst/$BUCKET" || true)"
+              SRC_COUNT="$(mc ls -r "src/$BUCKET" | wc -l | tr -d ' ')"
+              DST_COUNT="$(mc ls -r "dst/$BUCKET" | wc -l | tr -d ' ')"
+              if [ -n "$DIFF" ] || [ "$SRC_COUNT" != "$DST_COUNT" ]; then
+                echo "$DIFF" | head -20
+                echo "ERROR: MinIO has $SRC_COUNT objects, Garage has $DST_COUNT. Run the Job again to copy what is missing."
+                exit 1
+              fi
+
+              if [ "$VERIFY_CONTENT" = "1" ]; then
+                echo "comparing sha256 of every object"
+                hashes() { mc find "$1" | while IFS= read -r p; do printf '%s  %s\n' "$(mc cat "$p" | sha256sum | cut -d' ' -f1)" "${p#"$1"/}"; done | sort; }
+                [ "$(hashes "src/$BUCKET")" = "$(hashes "dst/$BUCKET")" ] || { echo "ERROR: some objects differ. Run the Job again."; exit 1; }
+              fi
+              echo "OK: $SRC_COUNT objects in Garage, names and sizes identical$( [ "$VERIFY_CONTENT" = "1" ] && echo ', sha256 identical')."
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
