@@ -9,15 +9,15 @@ metadata:
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
 stringData:
-  {{- if empty .Values.external_secrets.app_keys_existingSecret }}
-  SILO_HMAC_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.hmac_secret_key" "value" .Values.env.silo_envs.hmac_secret_key "fallback" "gzb7MRLr0FoN129NyWARZEs84P9LzQ") | quote }}
-  AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "fallback" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") | quote }}
+  {{- if empty (include "plane.appKeysSecretName" .) }}
+  SILO_HMAC_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.hmac_secret_key" "key" "SILO_HMAC_SECRET_KEY" "value" .Values.env.silo_envs.hmac_secret_key) | quote }}
+  AES_SECRET_KEY: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.aes_secret_key" "key" "AES_SECRET_KEY" "value" .Values.env.silo_envs.aes_secret_key) | quote }}
   {{- with .Values.env.silo_envs.aes_salt }}
   {{/* Rendered only when set: api, silo and pi all default to "aes-salt" internally,
        so emitting an empty value would break decryption on existing instances. */}}
   AES_SALT: {{ . | quote }}
   {{- end }}
-  CURSOR_WEBHOOK_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.cursor_webhook_secret" "value" .Values.env.silo_envs.cursor_webhook_secret "fallback" "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG") | quote }}
+  CURSOR_WEBHOOK_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.silo_envs.cursor_webhook_secret" "key" "CURSOR_WEBHOOK_SECRET" "value" .Values.env.silo_envs.cursor_webhook_secret) | quote }}
   {{- end }}
 
   {{- if include "plane.externalDatabase" . }}
