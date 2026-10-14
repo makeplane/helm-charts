@@ -1,5 +1,7 @@
 # External Secrets Setup
 
+> For the full guide (Pod Identity/IRSA, Vault Kubernetes auth, and which `external_secrets.*` value takes which Secret), see the [Plane docs](https://developers.plane.so/self-hosting/govern/external-secrets) and [`charts/plane-enterprise/examples/external-secrets/`](./charts/plane-enterprise/examples/external-secrets/).
+
 ## Using AWS Secret Manager
 
 ### Create AWS IAM User
@@ -78,7 +80,7 @@ kubectl create secret generic aws-creds-secret \
 ### Create ClusterSecretStore
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: cluster-aws-secretsmanager
@@ -92,16 +94,18 @@ spec:
         secretRef:
           accessKeyIDSecretRef:
             name: aws-creds-secret
+            namespace: <application_namespace> # required on a ClusterSecretStore
             key: access-key
           secretAccessKeySecretRef:
             name: aws-creds-secret
+            namespace: <application_namespace>
             key: secret-access-key
 ```
 
 ### Create ExternalSecret
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: secret
@@ -161,7 +165,7 @@ kubectl create secret generic vault-token -n <application_namespace> --from-lite
 
 ```yaml
 #  cluster-store.yaml 
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore 
 metadata:
   name: vault-backend
@@ -174,13 +178,14 @@ spec:
       auth:
         tokenSecretRef:
           name: "vault-token" #Use a k8s secret called vault-token
+          namespace: <application_namespace> # required on a ClusterSecretStore
           key: "token" #Use this key to access the vault token
 ```
 
 ### Create ExternalSecret
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: rabbitmq-external-secrets

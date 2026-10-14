@@ -46,6 +46,9 @@ spec:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* Same image and env check as live, which exits without LIVE_SERVER_SECRET_KEY;
+                 with app_keys set the live Secret no longer carries it. Last, as on live. */}}
+          {{- include "plane.appKeysSecretRef" . }}
         env:
           - name: LIVE_MODE
             value: "exporter"
