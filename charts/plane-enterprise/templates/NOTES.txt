@@ -81,9 +81,8 @@ unparsable value warns rather than failing the render — semverCompare would er
 {{- /*
 Duplicate shared keys across two Secrets. The chart suppresses its own copies when
 app_keys_existingSecret is set, but it cannot see inside an operator-supplied Secret.
-Because app-keys is mounted first, a duplicate in a legacy group wins on the workloads
-that mount that group and loses everywhere else — so two services end up with
-different values of a key that has to match.
+app-keys is mounted last, so it wins and the duplicate is ignored; but the duplicate
+silently becomes the live value again if app_keys_existingSecret is ever unset.
 */}}
 {{- if .Values.external_secrets.app_keys_existingSecret }}
 {{- $legacyGroups := list }}
@@ -93,8 +92,26 @@ different values of a key that has to match.
 {{- with .Values.external_secrets.pi_api_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "pi_api_env (%s)" .) }}{{ end }}
 {{- with .Values.external_secrets.runner_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "runner_env (%s)" .) }}{{ end }}
 {{- if $legacyGroups }}
-{{- $warnings = append $warnings (printf "app_keys_existingSecret is set alongside: %s.\n    Those Secrets must NOT contain SECRET_KEY, AES_SECRET_KEY, AES_SALT,\n    LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,\n    CURSOR_WEBHOOK_SECRET or RUNNER_HMAC_SECRET_KEY. A duplicate wins on the workloads\n    mounting that group and loses on the rest, leaving two services disagreeing on a\n    key that must match — which surfaces as auth failures or undecryptable data." (join ", " $legacyGroups)) }}
+{{- $warnings = append $warnings (printf "app_keys_existingSecret is set alongside: %s.\n    Those Secrets must NOT contain SECRET_KEY, AES_SECRET_KEY, AES_SALT,\n    LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,\n    CURSOR_WEBHOOK_SECRET or RUNNER_HMAC_SECRET_KEY. app_keys wins today, so a duplicate\n    is ignored; but unsetting app_keys_existingSecret later would make that stale copy\n    live, which surfaces as auth failures or undecryptable data. Remove the duplicates." (join ", " $legacyGroups)) }}
 {{- end }}
+{{- end }}
+
+{{- /*
+silo-secrets is mounted on the API workloads (they verify silo's HMAC) after app_env,
+so a Secret supplied as silo_env decides their DATABASE_URL/REDIS_URL/AMQP_URL too.
+Warn rather than reorder: reordering would change which value existing installs use.
+*/}}
+{{- if and .Values.services.silo.enabled .Values.external_secrets.silo_env_existingSecret }}
+{{- $warnings = append $warnings (printf "external_secrets.silo_env_existingSecret (%s) is mounted on the API workloads\n    after their own Secret, so its DATABASE_URL, REDIS_URL and AMQP_URL are the values\n    the API uses, and so is its AES_SECRET_KEY unless app_keys_existingSecret carries\n    that key (it is mounted last). Keep them identical to the API's, or leave the URLs\n    empty when you use external_secrets.database/redis/rabbitmq." .Values.external_secrets.silo_env_existingSecret) }}
+{{- end }}
+
+{{- /* pgdb/rabbitmq_existingSecret only reach the bundled servers; the apps' URLs are
+       still built from values.yaml. */}}
+{{- if and .Values.services.postgres.local_setup .Values.external_secrets.pgdb_existingSecret (empty .Values.external_secrets.app_env_existingSecret) }}
+{{- $warnings = append $warnings (printf "external_secrets.pgdb_existingSecret (%s) sets the bundled Postgres credentials\n    only. The applications still connect with env.pgdb_username/env.pgdb_password, so\n    the two must match, or supply the URLs through app_env/silo_env/pi_api_env." .Values.external_secrets.pgdb_existingSecret) }}
+{{- end }}
+{{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq_existingSecret (empty .Values.external_secrets.app_env_existingSecret) }}
+{{- $warnings = append $warnings (printf "external_secrets.rabbitmq_existingSecret (%s) sets the bundled RabbitMQ credentials\n    only. The applications still connect with services.rabbitmq.default_user/\n    default_password, so the two must match, or supply the URLs through\n    app_env/silo_env/live_env/pi_api_env." .Values.external_secrets.rabbitmq_existingSecret) }}
 {{- end }}
 
 {{- /* Secrets that env rotation cannot reach. */}}

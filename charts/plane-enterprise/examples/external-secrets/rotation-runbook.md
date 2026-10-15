@@ -97,8 +97,9 @@ rely on the Reloader restart like everything else.
 kubectl get externalsecret -n <ns> plane-rds \
   -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}{"\n"}'
 
-# 2. The Secret holds the new value
-kubectl get secret -n <ns> plane-rds -o jsonpath='{.data.password}' | base64 -d
+# 2. The Secret holds the new value. Compare a hash with the one from your store
+#    instead of printing the password into your terminal and shell history.
+kubectl get secret -n <ns> plane-rds -o jsonpath='{.data.password}' | base64 -d | sha256sum
 
 # 3. Reloader rolled the workloads
 kubectl rollout status -n <ns> deploy/<release>-api-wl

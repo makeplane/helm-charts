@@ -1574,11 +1574,11 @@ external_secrets:
   app_keys_existingSecret: plane-app-keys
 ```
 
-The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted first in `envFrom`, so a key you already externalized through one of the older `*_existingSecret` groups still wins — don't define the same key in both.
+The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted last in `envFrom`, so it wins over a copy of the same key in one of the older `*_existingSecret` groups — don't define the same key in both.
 
 The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. `RUNNER_HMAC_SECRET_KEY` belongs here too when the runner is deployed.
 
-Do not also define any of these keys in one of the `*_existingSecret` groups. Those Secrets are mounted after this one, so a duplicate wins on the workloads mounting that group and loses everywhere else — leaving two services disagreeing on a key that has to match. `helm upgrade` warns when it sees both set.
+Do not also define any of these keys in one of the `*_existingSecret` groups. This Secret is mounted after them on every workload, so the duplicate is ignored — until `app_keys_existingSecret` is unset, when the stale copy silently becomes the live value. `helm upgrade` warns when it sees both set.
 
 The trade-off: because it is one Secret, every service that mounts it sees all of its keys — the live server's pods get `SECRET_KEY` in their environment even though only the API uses it. These are all first-party Plane services in one namespace, so this is the same trust boundary the duplicated copies already shared. If you need the keys separated per service, keep using the per-group `*_existingSecret` mechanism and take on keeping the shared values in step yourself.
 
@@ -1722,7 +1722,7 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `serviceAccount.podLabels` | {} | Extra pod-template labels; Azure Workload Identity needs `azure.workload.identity/use: 'true'`. |
 | `external_secrets.database.*` | | Postgres credentials from an existing Secret — see above. |
 | `external_secrets.rabbitmq.*` | | RabbitMQ credentials from an existing Secret. |
-| `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.1.0+). |
+| `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.2.0+). |
 | `external_secrets.opensearch.*` | | OpenSearch username/password from an existing Secret; remote domains only. |
 | `env.rabbitmq_ssl` | false | Connect to RabbitMQ over TLS (`amqps`). Required by Amazon MQ. |
 | `env.redis_ssl` | false | Connect to Redis over TLS (`rediss`). Required by ElastiCache with in-transit encryption and Azure Cache. |

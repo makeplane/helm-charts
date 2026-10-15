@@ -1,13 +1,25 @@
 # External Secrets Operator -> Azure Key Vault, for the plane-enterprise chart.
 #
-# Replace: NAMESPACE, VAULT_NAME, and the secret names.
+# Replace: NAMESPACE, VAULT_NAME, CLIENT_ID, TENANT_ID, and the secret names.
 #
-# Authentication uses Azure Workload Identity on the External Secrets Operator's own
-# ServiceAccount — no static keys. The bound managed identity needs "Key Vault Secrets
-# User" (or a get/list access policy) on the vault.
+# Authentication uses Azure Workload Identity on a ServiceAccount in Plane's namespace
+# (a namespaced SecretStore can only reference ServiceAccounts in its own namespace) —
+# no static keys. Give the managed identity a federated credential for
+# system:serviceaccount:NAMESPACE:plane-eso and "Key Vault Secrets User" (or a get/list
+# access policy) on the vault.
 #
 # Note on naming: Key Vault secret names allow only alphanumerics and hyphens, so the
 # key names below use hyphens and are mapped onto the env var names the chart expects.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: plane-eso
+  namespace: NAMESPACE
+  annotations:
+    azure.workload.identity/client-id: CLIENT_ID
+    # ESO fails with "missing tenantID" without this (or spec.provider.azurekv.tenantId).
+    azure.workload.identity/tenant-id: TENANT_ID
 ---
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -20,9 +32,7 @@ spec:
       authType: WorkloadIdentity
       vaultUrl: https://VAULT_NAME.vault.azure.net
       serviceAccountRef:
-        # ESO's ServiceAccount, annotated with azure.workload.identity/client-id
-        name: external-secrets
-        namespace: external-secrets
+        name: plane-eso
 ---
 # 1. DATABASE (Azure Database for PostgreSQL Flexible Server).
 #
@@ -96,7 +106,7 @@ spec:
 # is the two-credential pattern the rotation runbook describes. Rotate the secondary,
 # point this secret at it, let Reloader roll, then rotate the primary.
 #
-# Chart side (needs planeVersion v3.1.0+):
+# Chart side (needs planeVersion v3.2.0+):
 #   external_secrets.redis.secretName: plane-redis
 #   external_secrets.redis.passwordKey: password
 #   env.redis_host: plane.redis.cache.windows.net
@@ -171,8 +181,13 @@ spec:
 #     podLabels:
 #       azure.workload.identity/use: 'true'
 ---
-# 6. SILO / LIVE / PLANE AI — these read a connection URL, not discrete parts, so ESO
-# composes the DSN here. urlEncode matters: Azure Redis access keys end in '=' and
+# 6. SILO / LIVE / PLANE AI — a composed DSN, for older releases.
+#
+# Only for planeVersion below v3.2.0. From v3.2.0 silo, live and Plane AI read the same
+# discrete parts as the API (external_secrets.database/rabbitmq/redis), so skip this.
+#
+# Before v3.2.0 these read a connection URL, not discrete parts, so ESO composes the
+# DSN here. urlEncode matters: Azure Redis access keys end in '=' and
 # generated passwords often contain @ : / #, any of which would break the URL.
 #
 # Chart side: external_secrets.silo_env_existingSecret: plane-silo-env
@@ -190,7 +205,7 @@ spec:
     name: plane-silo-env
     creationPolicy: Owner
     template:
-      engine: v2
+      engineVersion: v2
       data:
         DATABASE_URL: >-
           postgresql://{{ .username }}:{{ .password | urlEncode }}@plane.postgres.database.azure.com:5432/plane?sslmode=require

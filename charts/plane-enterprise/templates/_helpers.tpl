@@ -625,8 +625,9 @@ one Secret makes that agreement structural instead of something an operator has 
 remember to update in four places. When it is in use the chart stops emitting those
 keys in its own Secrets, so this is their only source.
 
-Placed first in envFrom so that a key you have already externalized through one of
-the older *_existingSecret groups keeps taking precedence.
+Callers place it LAST in envFrom (later source wins), so it beats a stale copy of a
+key in app_env/silo_env/live_env/pi_api_env/runner_env on every workload that mounts
+it. Every workload that mounts one of those groups must also mount this.
 
 Indentation is baked in for the container envFrom position, so call it bare:
 {{- include "plane.appKeysSecretRef" . }}

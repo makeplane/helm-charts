@@ -1068,9 +1068,10 @@ external_secrets:
   # undecryptable, and it fails silently. Store them in a secret that is NOT on a
   # rotation schedule.
   #
-  # Do NOT also define these keys in one of the *_existingSecret groups below. Those
-  # are mounted after this Secret, so a duplicate wins on some workloads and not
-  # others, leaving two services with different values of a key that must match.
+  # Do NOT also define these keys in one of the *_existingSecret groups below. This
+  # Secret is mounted after them on every workload, so its value wins and the
+  # duplicate is ignored -- until app_keys_existingSecret is unset, when the stale
+  # copy silently becomes the live value.
   app_keys_existingSecret: ''
 
   # AI/LLM provider keys ONLY.
@@ -1085,7 +1086,7 @@ external_secrets:
   #
   # Keys read (all optional; an omitted key is simply an absent env var):
   #   OPENAI_API_KEY  CLAUDE_API_KEY  GROQ_API_KEY  COHERE_API_KEY
-  #   CUSTOM_LLM_API_KEY
+  #   CUSTOM_LLM_API_KEY  AWS_BEARER_TOKEN_BEDROCK
   #   BR_AWS_ACCESS_KEY_ID  BR_AWS_SECRET_ACCESS_KEY  BR_AWS_SESSION_TOKEN
   #     Bedrock embeddings. On AWS omit all three and let the pod's identity sign —
   #     Plane AI falls back to AWS_ACCESS_KEY_ID and then to boto3's own chain.
@@ -1109,10 +1110,13 @@ external_secrets:
   #
   # Naturally per-environment: a connector's OAuth callback URL is per-host, so the
   # app registration differs per environment.
-  #   SLACK_CLIENT_ID/SECRET, SLACK_BASE_URL
-  #   GITHUB_CLIENT_ID/SECRET, GITHUB_APP_NAME, GITHUB_APP_ID, GITHUB_PRIVATE_KEY
+  #   SLACK_CLIENT_ID/SECRET, SLACK_SIGNING_SECRET, SLACK_BASE_URL
+  #   GITHUB_CLIENT_ID/SECRET, GITHUB_APP_NAME, GITHUB_APP_ID, GITHUB_PRIVATE_KEY,
+  #     GITHUB_WEBHOOK_SECRET
   #   GITLAB_CLIENT_ID/SECRET
   #   SENTRY_CLIENT_ID/SECRET, SENTRY_BASE_URL, SENTRY_INTEGRATION_SLUG
+  #   BITBUCKET_CLIENT_ID/SECRET, BITBUCKET_WEBHOOK_SECRET
+  #   HUBSPOT_CLIENT_ID/SECRET
   silo_connectors_existingSecret: ''
 
   # DNS-01 API token for the cert-manager Issuer (ssl.issuer cloudflare/digitalocean).
