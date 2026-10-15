@@ -1,6 +1,6 @@
 # External Secrets Operator -> Azure Key Vault, for the plane-enterprise chart.
 #
-# Replace: NAMESPACE, VAULT_NAME, CLIENT_ID, and the secret names.
+# Replace: NAMESPACE, VAULT_NAME, CLIENT_ID, TENANT_ID, and the secret names.
 #
 # Authentication uses Azure Workload Identity on a ServiceAccount in Plane's namespace
 # (a namespaced SecretStore can only reference ServiceAccounts in its own namespace) —
@@ -18,6 +18,8 @@ metadata:
   namespace: NAMESPACE
   annotations:
     azure.workload.identity/client-id: CLIENT_ID
+    # ESO fails with "missing tenantID" without this (or spec.provider.azurekv.tenantId).
+    azure.workload.identity/tenant-id: TENANT_ID
 ---
 apiVersion: external-secrets.io/v1
 kind: SecretStore

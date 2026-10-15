@@ -102,7 +102,7 @@ so a Secret supplied as silo_env decides their DATABASE_URL/REDIS_URL/AMQP_URL t
 Warn rather than reorder: reordering would change which value existing installs use.
 */}}
 {{- if and .Values.services.silo.enabled .Values.external_secrets.silo_env_existingSecret }}
-{{- $warnings = append $warnings (printf "external_secrets.silo_env_existingSecret (%s) is mounted on the API workloads\n    after their own Secret, so its DATABASE_URL, REDIS_URL, AMQP_URL and AES_SECRET_KEY\n    are the values the API uses. Keep them identical to the API's, or leave the URLs\n    empty when you use external_secrets.database/redis/rabbitmq." .Values.external_secrets.silo_env_existingSecret) }}
+{{- $warnings = append $warnings (printf "external_secrets.silo_env_existingSecret (%s) is mounted on the API workloads\n    after their own Secret, so its DATABASE_URL, REDIS_URL and AMQP_URL are the values\n    the API uses, and so is its AES_SECRET_KEY unless app_keys_existingSecret carries\n    that key (it is mounted last). Keep them identical to the API's, or leave the URLs\n    empty when you use external_secrets.database/redis/rabbitmq." .Values.external_secrets.silo_env_existingSecret) }}
 {{- end }}
 
 {{- /* pgdb/rabbitmq_existingSecret only reach the bundled servers; the apps' URLs are
