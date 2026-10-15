@@ -1285,9 +1285,9 @@ env:
   # Comma-separated list of IPs/CIDRs that webhooks may target even when they resolve
   # to private ranges. Leave empty for no extra allowance.
   webhook_allowed_ips: ''
-  # Comma-separated list of hosts that webhooks may target, bypassing the SSRF and
-  # disallowed-domain checks. Leave empty to default to the license domain with
-  # the scheme derived from the TLS settings, the same way WEB_URL is built.
+  # Comma-separated list of hostnames that webhooks may target, bypassing the SSRF and
+  # disallowed-domain checks (e.g. plane.example.com,hooks.example.com). Use bare
+  # hostnames, not URLs. Leave empty to default to the license domain.
   webhook_allowed_hosts: ''
 
   live_sentry_dsn: ""
