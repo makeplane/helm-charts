@@ -7,17 +7,32 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- $warnings := list }}
 
 {{- /* Credentials still living in values.yaml. */}}
-{{- if and (empty .Values.external_secrets.app_keys_existingSecret) (not .Values.env.requireExplicitSecrets) }}
+{{- $keysSecret := include "plane.appKeysSecretName" . }}
+{{- $generated := and .Values.env.generateSecrets (empty .Values.external_secrets.app_keys_existingSecret) }}
+{{- $legacyKeys := fromJson (include "plane.legacyKeyDefaults" .) }}
+{{- $publicLiterals := values $legacyKeys }}
+{{- if and (empty $keysSecret) (not .Values.env.requireExplicitSecrets) }}
 {{- $publicDefaults := list }}
-{{- if or (empty .Values.env.secret_key) (eq .Values.env.secret_key "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5") }}{{ $publicDefaults = append $publicDefaults "SECRET_KEY" }}{{ end }}
-{{- if or (empty .Values.env.live_server_secret_key) (eq .Values.env.live_server_secret_key "htbqvBJAgpm9bzvf3r4urJer0ENReatceh") }}{{ $publicDefaults = append $publicDefaults "LIVE_SERVER_SECRET_KEY" }}{{ end }}
-{{- if or (empty .Values.env.silo_envs.aes_secret_key) (eq .Values.env.silo_envs.aes_secret_key "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr") }}{{ $publicDefaults = append $publicDefaults "AES_SECRET_KEY" }}{{ end }}
-{{- if or (empty .Values.env.pi_envs.internal_secret) (eq .Values.env.pi_envs.internal_secret "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") }}{{ $publicDefaults = append $publicDefaults "PI_INTERNAL_SECRET" }}{{ end }}
-{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.hmac_secret_key) (eq .Values.env.silo_envs.hmac_secret_key "gzb7MRLr0FoN129NyWARZEs84P9LzQ")) }}{{ $publicDefaults = append $publicDefaults "SILO_HMAC_SECRET_KEY" }}{{ end }}
-{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.cursor_webhook_secret) (eq .Values.env.silo_envs.cursor_webhook_secret "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG")) }}{{ $publicDefaults = append $publicDefaults "CURSOR_WEBHOOK_SECRET" }}{{ end }}
+{{- if or (empty .Values.env.secret_key) (has .Values.env.secret_key $publicLiterals) }}{{ $publicDefaults = append $publicDefaults "SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.live_server_secret_key) (has .Values.env.live_server_secret_key $publicLiterals) }}{{ $publicDefaults = append $publicDefaults "LIVE_SERVER_SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.silo_envs.aes_secret_key) (has .Values.env.silo_envs.aes_secret_key $publicLiterals) }}{{ $publicDefaults = append $publicDefaults "AES_SECRET_KEY" }}{{ end }}
+{{- if or (empty .Values.env.pi_envs.internal_secret) (has .Values.env.pi_envs.internal_secret $publicLiterals) }}{{ $publicDefaults = append $publicDefaults "PI_INTERNAL_SECRET" }}{{ end }}
+{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.hmac_secret_key) (has .Values.env.silo_envs.hmac_secret_key $publicLiterals)) }}{{ $publicDefaults = append $publicDefaults "SILO_HMAC_SECRET_KEY" }}{{ end }}
+{{- if and .Values.services.silo.enabled (or (empty .Values.env.silo_envs.cursor_webhook_secret) (has .Values.env.silo_envs.cursor_webhook_secret $publicLiterals)) }}{{ $publicDefaults = append $publicDefaults "CURSOR_WEBHOOK_SECRET" }}{{ end }}
 {{- if $publicDefaults }}
-{{- $warnings = append $warnings (printf "Using the chart's PUBLIC example values for: %s.\n    These are published in the chart and are not secret. Supply your own through\n    external_secrets.app_keys_existingSecret, and set env.requireExplicitSecrets=true\n    to make a missing value fail the render instead of falling back." (join ", " $publicDefaults)) }}
+{{- $warnings = append $warnings (printf "Using the chart's PUBLIC example values for: %s.\n    These are published in the chart and are not secret. Supply your own through\n    external_secrets.app_keys_existingSecret or env.generateSecrets=true, and set\n    env.requireExplicitSecrets=true to make a missing value fail the render instead\n    of falling back." (join ", " $publicDefaults)) }}
 {{- end }}
+{{- end }}
+
+{{- /* Generated keys: adopted legacy values and the kept Secret. */}}
+{{- if $generated }}
+{{- include "plane.appKeysResolve" . }}
+{{- $adopted := list }}
+{{- range $k, $v := .Values._planeAppKeys }}{{ if has $v $publicLiterals }}{{ $adopted = append $adopted $k }}{{ end }}{{ end }}
+{{- if $adopted }}
+{{- $warnings = append $warnings (printf "env.generateSecrets adopted the values this release already used for: %s.\n    These are still the PUBLIC values shipped by earlier chart versions. Moving to\n    private values means re-encrypting stored data, and no tool for that exists yet,\n    so SECRET_KEY and AES_SECRET_KEY cannot be changed in place on this release." (join ", " $adopted)) }}
+{{- end }}
+{{- $warnings = append $warnings (printf "The shared keys live in the Secret %s, which carries\n    helm.sh/resource-policy: keep and so survives helm uninstall. A reinstall under\n    the same release name reuses it. Delete it only when the data it protects is\n    gone too:\n      kubectl delete secret %s -n %s\n    Creating a new key on first install needs get permission on namespaces; installers\n    without it should supply values or use external_secrets.app_keys_existingSecret." $keysSecret $keysSecret .Release.Namespace) }}
 {{- end }}
 
 {{- /* Externalized credentials with no way to pick up a rotation. */}}
@@ -82,9 +97,9 @@ unparsable value warns rather than failing the render — semverCompare would er
 Duplicate shared keys across two Secrets. The chart suppresses its own copies when
 app_keys_existingSecret is set, but it cannot see inside an operator-supplied Secret.
 app-keys is mounted last, so it wins and the duplicate is ignored; but the duplicate
-silently becomes the live value again if app_keys_existingSecret is ever unset.
+silently becomes the live value again if that Secret is ever unmounted.
 */}}
-{{- if .Values.external_secrets.app_keys_existingSecret }}
+{{- if $keysSecret }}
 {{- $legacyGroups := list }}
 {{- with .Values.external_secrets.app_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "app_env (%s)" .) }}{{ end }}
 {{- with .Values.external_secrets.silo_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "silo_env (%s)" .) }}{{ end }}
@@ -92,7 +107,7 @@ silently becomes the live value again if app_keys_existingSecret is ever unset.
 {{- with .Values.external_secrets.pi_api_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "pi_api_env (%s)" .) }}{{ end }}
 {{- with .Values.external_secrets.runner_env_existingSecret }}{{ $legacyGroups = append $legacyGroups (printf "runner_env (%s)" .) }}{{ end }}
 {{- if $legacyGroups }}
-{{- $warnings = append $warnings (printf "app_keys_existingSecret is set alongside: %s.\n    Those Secrets must NOT contain SECRET_KEY, AES_SECRET_KEY, AES_SALT,\n    LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,\n    CURSOR_WEBHOOK_SECRET or RUNNER_HMAC_SECRET_KEY. app_keys wins today, so a duplicate\n    is ignored; but unsetting app_keys_existingSecret later would make that stale copy\n    live, which surfaces as auth failures or undecryptable data. Remove the duplicates." (join ", " $legacyGroups)) }}
+{{- $warnings = append $warnings (printf "%s carries the shared keys and is set alongside: %s.\n    Those Secrets must NOT contain SECRET_KEY, AES_SECRET_KEY, AES_SALT,\n    LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET, SILO_HMAC_SECRET_KEY,\n    CURSOR_WEBHOOK_SECRET or RUNNER_HMAC_SECRET_KEY. %s wins today, so a duplicate\n    is ignored; but if it stops being mounted that stale copy becomes live, which\n    surfaces as auth failures or undecryptable data. Remove the duplicates." $keysSecret (join ", " $legacyGroups) $keysSecret) }}
 {{- end }}
 {{- end }}
 
@@ -102,7 +117,7 @@ so a Secret supplied as silo_env decides their DATABASE_URL/REDIS_URL/AMQP_URL t
 Warn rather than reorder: reordering would change which value existing installs use.
 */}}
 {{- if and .Values.services.silo.enabled .Values.external_secrets.silo_env_existingSecret }}
-{{- $warnings = append $warnings (printf "external_secrets.silo_env_existingSecret (%s) is mounted on the API workloads\n    after their own Secret, so its DATABASE_URL, REDIS_URL and AMQP_URL are the values\n    the API uses, and so is its AES_SECRET_KEY unless app_keys_existingSecret carries\n    that key (it is mounted last). Keep them identical to the API's, or leave the URLs\n    empty when you use external_secrets.database/redis/rabbitmq." .Values.external_secrets.silo_env_existingSecret) }}
+{{- $warnings = append $warnings (printf "external_secrets.silo_env_existingSecret (%s) is mounted on the API workloads\n    after their own Secret, so its DATABASE_URL, REDIS_URL and AMQP_URL are the values\n    the API uses, and so is its AES_SECRET_KEY unless the shared keys Secret carries\n    that key (it is mounted last). Keep them identical to the API's, or leave the URLs\n    empty when you use external_secrets.database/redis/rabbitmq." .Values.external_secrets.silo_env_existingSecret) }}
 {{- end }}
 
 {{- /* pgdb/rabbitmq_existingSecret only reach the bundled servers; the apps' URLs are

@@ -43,7 +43,7 @@ stringData:
          the HMACs. Generate one per deployment with `openssl rand -hex 32`. */}}
   ARGUS_FINGERPRINT_SECRET: {{ .Values.env.argus_envs.fingerprint_secret | quote }}
 
-  ARGUS_INTERNAL_SECRET: {{ .Values.env.argus_envs.internal_secret | default "" | quote }}
+  ARGUS_INTERNAL_SECRET: {{ include "plane.argusInternalSecret" . | quote }}
 {{- end }}
 ---
 apiVersion: v1

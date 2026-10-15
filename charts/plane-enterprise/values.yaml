@@ -1152,12 +1152,15 @@ global:
 env:
   storageClass: ''
 
-  # Fail the render instead of falling back to this chart's public example values
-  # for SECRET_KEY, AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
-  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. Recommended for production;
-  # defaults to false so existing installs keep rendering. Will default to true in
-  # the next major version.
+  # Fail the render when a key below has no value or still holds a value published
+  # in earlier chart versions. Recommended for production; defaults to false so
+  # existing installs keep rendering. Will default to true in the next major version.
   requireExplicitSecrets: false
+
+  # Create the shared keys as the Secret <release>-app-keys on first install; an
+  # existing key is never changed. Fails where the cluster cannot be queried
+  # (helm template, GitOps renderers). Read the chart README before enabling.
+  generateSecrets: false
 
   # SKIP_ENV_VAR=1 (the default) makes the API read SMTP, OAuth-provider, LLM and
   # LDAP secrets from the instance-configuration table in the database, seeded from
@@ -1255,13 +1258,9 @@ env:
   opensearch_embedding_dimension: 1536
 
   #API KEYS
-  # DEPRECATED as a place to keep the real value — this is a PUBLIC example key.
-  # Supply it through external_secrets.app_keys_existingSecret instead.
-  #
-  # NEVER ROTATE once an instance is running: SECRET_KEY derives the Fernet key that
-  # encrypts the instance-configuration rows (SMTP password, OAuth client secrets,
-  # LLM keys). Changing it makes every one of those rows undecryptable.
-  secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  # Empty keeps the legacy value; see env.generateSecrets. NEVER CHANGE on a running
+  # instance: it encrypts stored instance configuration, which becomes unreadable.
+  secret_key: ""
   api_key_rate_limit: "60/minute"
 
   # Gunicorn settings.
@@ -1293,9 +1292,9 @@ env:
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
-  # DEPRECATED as a place to keep the real value — PUBLIC example key.
-  # Supply through external_secrets.app_keys_existingSecret.
-  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  # Leave empty to keep the chart's legacy value, or set env.generateSecrets.
+  # Must be identical on every service that uses it.
+  live_server_secret_key: ""
 
   # Background PDF/DOCX export worker queue.
   export_queue_name: "plane-exports"
@@ -1311,11 +1310,10 @@ env:
     mq_prefetch_count: 1
     request_interval: 400
     importers_queue_name: 'celery'
-    # DEPRECATED as a place to keep the real values — these are PUBLIC example keys.
-    # Supply them through external_secrets.app_keys_existingSecret.
-    # aes_secret_key encrypts stored connector tokens: NEVER ROTATE on a live instance.
-    hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
-    aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
+    # Leave empty to keep the chart's legacy values, or set env.generateSecrets.
+    # aes_secret_key encrypts stored connector tokens: NEVER CHANGE on a live instance.
+    hmac_secret_key: ''
+    aes_secret_key: ''
     # Salt paired with aes_secret_key. Shared by api, silo and pi, which all default
     # to "aes-salt" internally — leave empty to keep that default. Setting it on an
     # instance that already has encrypted data makes that data undecryptable, exactly
@@ -1324,7 +1322,7 @@ env:
     cors_allowed_origins: ''
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
-    cursor_webhook_secret: 'TTqazTcoBajYKzIAeIKFZeTX9czAoUsG'
+    cursor_webhook_secret: ''
 
   argus_envs:
     # REQUIRED when services.argus.enabled. HKDF master key for finding
@@ -1335,7 +1333,7 @@ env:
     # dedup, staling, group_by=fingerprint and existing triage decisions.
     fingerprint_secret: ''
     # Reserved for service-to-service routes (unused in v1).
-    internal_secret: 'LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i'
+    internal_secret: ''
     # Leave empty to derive the Plane database DSN from services.postgres /
     # env.pgdb_*. Argus owns its own schema inside that database.
     database_url: ''
@@ -1415,9 +1413,8 @@ env:
     plane_api_host: ''
     follower_postgres_uri: ''
     cors_allowed_origins: ''
-    # DEPRECATED as a place to keep the real value — PUBLIC example key.
-    # Supply through external_secrets.app_keys_existingSecret.
-    internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
+    # Leave empty to keep the chart's legacy value, or set env.generateSecrets.
+    internal_secret: ''
     log_level: 'DEBUG'
 
     ai_usage_agent_max_tokens_budget: ''

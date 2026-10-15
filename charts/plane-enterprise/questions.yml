@@ -279,7 +279,7 @@ questions:
   - variable: env.live_server_secret_key
     label: "Live Server Secret Key"
     type: string
-    default: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+    default: ""
   - variable: env.export_queue_name
     label: "Export Queue Name"
     description: "RabbitMQ queue name for background PDF/DOCX export jobs consumed by the live-exporter service."
@@ -393,7 +393,7 @@ questions:
   - variable: env.silo_envs.aes_secret_key
     label: "Silo AES Secret Key"
     type: string
-    default: "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr"
+    default: ""
   - variable: env.silo_envs.cors_allowed_origins
     label: "Silo CORS Allowed Origins"
     type: string
@@ -409,7 +409,7 @@ questions:
   - variable: env.silo_envs.cursor_webhook_secret
     label: "Cursor Webhook Secret"
     type: string
-    default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
+    default: ""
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
   type: boolean
@@ -626,8 +626,8 @@ questions:
   - variable: env.secret_key
     label: "Random Secret Key"
     type: string
-    required: true
-    default: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+    required: false
+    default: ""
   - variable: env.api_key_rate_limit
     label: "API Key Rate Limit"
     type: string
@@ -1244,7 +1244,7 @@ questions:
   - variable: env.argus_envs.internal_secret
     label: "Argus Internal Secret"
     type: password
-    default: "LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i"
+    default: ""
   - variable: env.argus_envs.cors_allowed_origins
     label: "Argus CORS Allowed Origins"
     description: "Empty is correct for path-routed (same-origin) deployments. '*' is rejected at startup."
@@ -1385,7 +1385,7 @@ questions:
   - variable: env.pi_envs.internal_secret
     label: "Plane AI (PI) Internal Secret"
     type: string
-    default: "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
+    default: ""
   - variable: env.pi_envs.log_level
     label: "Log Level"
     type: string
@@ -2190,7 +2190,13 @@ questions:
   group: "Service Account"
 - variable: env.requireExplicitSecrets
   label: "Refuse to Render Default Signing Keys"
-  description: "Fails the install instead of falling back to the published defaults for SECRET_KEY and friends. Worth turning on once the keys come from a Secret."
+  description: "Fails the install when a key such as SECRET_KEY has no value or still holds a value shipped by earlier chart versions. Worth turning on once the keys come from a Secret."
+  type: boolean
+  default: false
+  group: "Service Account"
+- variable: env.generateSecrets
+  label: "Generate Signing Keys on First Install"
+  description: "Creates the shared keys as the Secret <release>-app-keys on first install and keeps them afterwards. Leave off when installing through a tool that cannot query the cluster. SECRET_KEY and AES_SECRET_KEY must never be changed on a running instance."
   type: boolean
   default: false
   group: "Service Account"

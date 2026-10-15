@@ -554,7 +554,7 @@ every workload for a change no running container can observe.
 {{- define "plane.configChecksum" -}}
 {{- $ctx := . -}}
 {{- $acc := "" -}}
-{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
+{{- range $f := list "app-env" "app-keys" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
 {{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
 {{- end -}}
 {{- $acc | sha256sum -}}
@@ -593,47 +593,130 @@ strategy:
     maxSurge: 1
 {{- end -}}
 
-{{/*
-Resolve a secret value with an optional insecure fallback.
+{{/* Previously shipped key values: the fallback for installs that never set their
+     own, and the list rejected by requireExplicitSecrets. Nowhere else. */}}
+{{- define "plane.legacyKeyDefaults" -}}
+{{- dict
+  "SECRET_KEY" "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
+  "LIVE_SERVER_SECRET_KEY" "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  "AES_SECRET_KEY" "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr"
+  "PI_INTERNAL_SECRET" "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk"
+  "SILO_HMAC_SECRET_KEY" "gzb7MRLr0FoN129NyWARZEs84P9LzQ"
+  "CURSOR_WEBHOOK_SECRET" "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
+  "ARGUS_INTERNAL_SECRET" "LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i"
+  | toJson -}}
+{{- end -}}
 
-Returns .value when set. Otherwise fails the render when env.requireExplicitSecrets
-is true, and falls back to .fallback when it is false (the pre-3.1 behaviour, kept
-so existing installs keep working). The fallback values shipped by this chart are
-PUBLIC CONSTANTS — any production install must supply its own.
-
-Call with a dict: (dict "context" $ "name" "SECRET_KEY" "value" .Values.env.secret_key "fallback" "...")
-*/}}
+{{/* Key value: .value, else the legacy value for .key. requireExplicitSecrets fails
+     on a missing or previously shipped value.
+     Call with (dict "context" $ "name" "env.secret_key" "key" "SECRET_KEY" "value" ...) */}}
 {{- define "plane.secretValue" -}}
+{{- $legacy := fromJson (include "plane.legacyKeyDefaults" .context) -}}
+{{- $strict := .context.Values.env.requireExplicitSecrets -}}
 {{- if .value -}}
+{{- if and $strict (has (toString .value) (values $legacy)) -}}
+{{- fail (printf "%s is set to a value that earlier versions of this chart shipped by default. Set your own value, or supply the keys through external_secrets.app_keys_existingSecret, or set env.generateSecrets=true." .name) -}}
+{{- end -}}
 {{- .value -}}
-{{- else if .context.Values.env.requireExplicitSecrets -}}
-{{- required (printf "%s has no value. Set it in values.yaml, or supply it through external_secrets.app_keys_existingSecret, or set env.requireExplicitSecrets=false to fall back to the chart's insecure default." .name) nil -}}
+{{- else if $strict -}}
+{{- required (printf "%s has no value. Set it in values.yaml, or supply it through external_secrets.app_keys_existingSecret, or set env.generateSecrets=true, or set env.requireExplicitSecrets=false to fall back to the chart's legacy default." .name) nil -}}
 {{- else -}}
-{{- .fallback -}}
+{{- get $legacy .key -}}
 {{- end -}}
 {{- end -}}
 
-{{/*
-envFrom entry for the Secret carrying the shared signing/encryption keys
-(SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
-SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET). Renders nothing unless
-external_secrets.app_keys_existingSecret is set.
+{{/* Argus value: explicit, else empty under requireExplicitSecrets or
+     generateSecrets, else the legacy value. */}}
+{{- define "plane.argusInternalSecret" -}}
+{{- if .Values.env.argus_envs.internal_secret -}}
+{{- include "plane.secretValue" (dict "context" . "name" "env.argus_envs.internal_secret" "key" "ARGUS_INTERNAL_SECRET" "value" .Values.env.argus_envs.internal_secret) -}}
+{{- else if not (or .Values.env.requireExplicitSecrets .Values.env.generateSecrets) -}}
+{{- get (fromJson (include "plane.legacyKeyDefaults" .)) "ARGUS_INTERNAL_SECRET" -}}
+{{- end -}}
+{{- end -}}
 
-These keys are duplicated across the api, live, silo and pi Secrets, and several of
-them must agree for those services to talk to each other. Pointing all of them at
-one Secret makes that agreement structural instead of something an operator has to
-remember to update in four places. When it is in use the chart stops emitting those
-keys in its own Secrets, so this is their only source.
+{{/* Secret carrying the shared keys: the operator's own, else <release>-app-keys
+     when env.generateSecrets is on, else empty. */}}
+{{- define "plane.appKeysSecretName" -}}
+{{- if .Values.external_secrets.app_keys_existingSecret -}}
+{{- .Values.external_secrets.app_keys_existingSecret -}}
+{{- else if .Values.env.generateSecrets -}}
+{{- printf "%s-app-keys" .Release.Name -}}
+{{- end -}}
+{{- end -}}
 
-Callers place it LAST in envFrom (later source wins), so it beats a stale copy of a
-key in app_env/silo_env/live_env/pi_api_env/runner_env on every workload that mounts
-it. Every workload that mounts one of those groups must also mount this.
+{{/* Resolves the generated keys once per render into .Values._planeAppKeys. Per key:
+     explicit, existing app-keys, existing chart Secret, new random value (install
+     with a reachable cluster only), else fail. */}}
+{{- define "plane.appKeysResolve" -}}
+{{- if not (hasKey .Values "_planeAppKeys") -}}
+{{- $rel := .Release.Name -}}
+{{- $ns := .Release.Namespace -}}
+{{- $legacy := fromJson (include "plane.legacyKeyDefaults" .) -}}
+{{- $strict := .Values.env.requireExplicitSecrets -}}
+{{- $isInstall := .Release.IsInstall -}}
+{{- $own := (lookup "v1" "Secret" $ns (printf "%s-app-keys" $rel)).data | default dict -}}
+{{- $old := dict -}}
+{{- range $n := list "app-secrets" "silo-secrets" "live-secrets" "pi-api-secrets" "runner-secrets" -}}
+{{- $_ := set $old $n ((lookup "v1" "Secret" $ns (printf "%s-%s" $rel $n)).data | default dict) -}}
+{{- end -}}
+{{- $specs := list
+  (dict "key" "SECRET_KEY" "path" "env.secret_key" "value" .Values.env.secret_key "len" 48 "from" (list "app-secrets"))
+  (dict "key" "AES_SECRET_KEY" "path" "env.silo_envs.aes_secret_key" "value" .Values.env.silo_envs.aes_secret_key "len" 32 "from" (list "app-secrets" "silo-secrets" "pi-api-secrets"))
+  (dict "key" "LIVE_SERVER_SECRET_KEY" "path" "env.live_server_secret_key" "value" .Values.env.live_server_secret_key "len" 32 "from" (list "app-secrets" "live-secrets" "pi-api-secrets"))
+  (dict "key" "PI_INTERNAL_SECRET" "path" "env.pi_envs.internal_secret" "value" .Values.env.pi_envs.internal_secret "len" 32 "from" (list "app-secrets" "pi-api-secrets"))
+  (dict "key" "AES_SALT" "path" "env.silo_envs.aes_salt" "value" .Values.env.silo_envs.aes_salt "len" 0 "from" (list "app-secrets" "silo-secrets" "pi-api-secrets")) -}}
+{{- if .Values.services.silo.enabled -}}
+{{- $specs = concat $specs (list
+  (dict "key" "SILO_HMAC_SECRET_KEY" "path" "env.silo_envs.hmac_secret_key" "value" .Values.env.silo_envs.hmac_secret_key "len" 32 "from" (list "silo-secrets"))
+  (dict "key" "CURSOR_WEBHOOK_SECRET" "path" "env.silo_envs.cursor_webhook_secret" "value" .Values.env.silo_envs.cursor_webhook_secret "len" 32 "from" (list "silo-secrets"))) -}}
+{{- end -}}
+{{- if .Values.services.runner.enabled -}}
+{{- $specs = append $specs (dict "key" "RUNNER_HMAC_SECRET_KEY" "path" "env.runner_envs.hmac_secret_key" "value" .Values.env.runner_envs.hmac_secret_key "len" 32 "from" (list "runner-secrets")) -}}
+{{- end -}}
+{{- $out := dict -}}
+{{- range $s := $specs -}}
+{{- $val := "" -}}
+{{- if $s.value -}}
+{{- if and $strict (has (toString $s.value) (values $legacy)) -}}
+{{- fail (printf "%s is set to a value that earlier versions of this chart shipped by default. Set your own value, or leave it empty so env.generateSecrets can keep or create one." $s.path) -}}
+{{- end -}}
+{{- $val = toString $s.value -}}
+{{- else -}}
+{{- $val = get $own $s.key | default "" | b64dec -}}
+{{- range $n := $s.from -}}
+{{- if not $val -}}
+{{- $val = get (get $old $n) $s.key | default "" | b64dec -}}
+{{- end -}}
+{{- end -}}
+{{- if and $strict $val (has $val (values $legacy)) -}}
+{{- fail (printf "%s resolves to a value that earlier versions of this chart shipped by default, so this install is still running on a published key. Changing SECRET_KEY or AES_SECRET_KEY on a running instance makes its encrypted data unreadable, so the chart will not do it for you. To keep the existing key, set env.requireExplicitSecrets=false or point external_secrets.app_keys_existingSecret at a Secret holding it. To move to private keys, plan a data migration first." $s.key) -}}
+{{- end -}}
+{{- if and (not $val) (gt (int $s.len) 0) -}}
+{{- $reason := "" -}}
+{{- if not $isInstall -}}
+{{- $reason = "this is an upgrade, and an upgrade never creates a key" -}}
+{{- else if empty (lookup "v1" "Namespace" "" "kube-system") -}}
+{{- $reason = "the cluster could not be queried, which is the case for helm template, --dry-run, GitOps renderers and users without read access. Generating a key also needs get permission on namespaces (kube-system is read as a reachability check)" -}}
+{{- end -}}
+{{- if $reason -}}
+{{- fail (printf "env.generateSecrets: no existing value for %s was found and a new one cannot be generated safely here (%s). Set %s, or point external_secrets.app_keys_existingSecret at a Secret that holds it. A key that encrypts stored data must never be generated over an existing install." $s.key $reason $s.path) -}}
+{{- end -}}
+{{- $val = randAlphaNum (int $s.len) -}}
+{{- end -}}
+{{- end -}}
+{{- if $val -}}
+{{- $_ := set $out $s.key $val -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set .Values "_planeAppKeys" $out -}}
+{{- end -}}
+{{- end -}}
 
-Indentation is baked in for the container envFrom position, so call it bare:
-{{- include "plane.appKeysSecretRef" . }}
-*/}}
+{{/* envFrom entry for the shared keys Secret. Last in envFrom, so it wins over the
+     *_existingSecret groups. Call it bare. */}}
 {{- define "plane.appKeysSecretRef" -}}
-{{- with .Values.external_secrets.app_keys_existingSecret }}
+{{- with (include "plane.appKeysSecretName" .) }}
           - secretRef:
               name: {{ . }}
               optional: false
