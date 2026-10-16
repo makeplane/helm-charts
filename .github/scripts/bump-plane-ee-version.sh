@@ -23,6 +23,13 @@ if [ "$OLD" = "$NEW" ]; then
   exit 0
 fi
 
+# Maintenance releases on an older line (e.g. v2.6.x after v3.3.x) must not downgrade the chart.
+if [ "$(printf '%s\n%s\n' "${OLD#v}" "${NEW#v}" | sort -V | tail -1)" != "${NEW#v}" ]; then
+  echo "::notice::$NEW is older than the chart's $OLD, skipping"
+  output changed false
+  exit 0
+fi
+
 # awk with literal (non-regex) replacement, since versions contain dots.
 rewrite() {
   local file="$1" prog="$2"
