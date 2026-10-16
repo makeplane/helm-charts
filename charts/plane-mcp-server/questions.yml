@@ -9,7 +9,7 @@ questions:
   - variable: services.api.tag
     label: "Image Tag"
     type: string
-    default: "v0.3.0"
+    default: "v0.3.4"
 
 - variable: services.api.replicas
   label: "MCP Server Replicas"
@@ -69,6 +69,10 @@ questions:
     default: ""
   - variable: services.api.plane_oauth.provider_base_url
     label: "Plane OAuth Provider Base URL"
+    type: string
+    default: ""
+  - variable: services.api.plane_oauth.allowed_redirect_uris
+    label: "Plane OAuth Allowed Redirect URIs (comma-separated)"
     type: string
     default: ""
 
