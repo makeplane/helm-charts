@@ -1,0 +1,199 @@
+name: Plane-EE Release
+
+# Dispatched by makeplane/plane-ee's build-branch-ee.yml after a stable release
+# is published. `bump` opens the version bump PR; merging it triggers `release`,
+# which runs chart-releaser.yml for plane-enterprise.
+on:
+  workflow_dispatch:
+    inputs:
+      plane_version:
+        description: "Plane-EE release version (e.g. v3.3.4)"
+        required: true
+        type: string
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+env:
+  CHART_DIR: charts/plane-enterprise
+
+jobs:
+  bump:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    name: Open Plane-EE version bump PR
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: plane-ee-release-${{ inputs.plane_version }}
+    env:
+      NEW_VERSION: ${{ inputs.plane_version }}
+      BRANCH: release/plane-ee-${{ inputs.plane_version }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Check for an existing bump PR
+        id: existing
+        run: |
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url // ""')
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          if [ -n "$PR_URL" ]; then
+            echo "Bump PR already open: $PR_URL"
+          fi
+
+      - name: Bump plane-enterprise
+        id: bump
+        if: ${{ steps.existing.outputs.pr_url == '' }}
+        run: .github/scripts/bump-plane-ee-version.sh "$NEW_VERSION"
+
+      - name: Install Helm
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        uses: azure/setup-helm@v4
+
+      - name: Verify chart
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        run: |
+          helm lint "$CHART_DIR" --set license.licenseDomain=plane.example.com
+
+          IMAGES=$(helm template plane "$CHART_DIR" --set license.licenseDomain=plane.example.com \
+            | grep -oE 'makeplane/[a-z0-9-]+-commercial:[^" ]+' | sort -u)
+          echo "$IMAGES"
+          [ -n "$IMAGES" ] || { echo "::error::no makeplane/*-commercial images rendered"; exit 1; }
+          if echo "$IMAGES" | grep -vq ":${NEW_VERSION}$"; then
+            echo "::error::rendered images not on ${NEW_VERSION}:"
+            echo "$IMAGES" | grep -v ":${NEW_VERSION}$"
+            exit 1
+          fi
+
+      - name: Open PR
+        id: pr
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        env:
+          OLD_VERSION: ${{ steps.bump.outputs.old_version }}
+          CHART_VERSION: ${{ steps.bump.outputs.chart_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "$CHART_DIR"
+          git commit -m "release: Plane-EE: ${NEW_VERSION}"
+          git push --force origin "$BRANCH"
+
+          cat > "$RUNNER_TEMP/pr-body.md" <<BODY
+          ## What
+
+          Updates the \`plane-enterprise\` (Plane Commercial) chart to Plane-EE **${NEW_VERSION}**:
+
+          - \`values.yaml\`: \`planeVersion: ${OLD_VERSION}\` → \`${NEW_VERSION}\`
+          - \`questions.yml\`: \`planeVersion\` default → \`${NEW_VERSION}\` (Rancher catalog form)
+          - \`Chart.yaml\`: \`appVersion\` → \`${NEW_VERSION#v}\`, chart \`version\` → \`${CHART_VERSION}\`
+          - \`README.md\`: the three \`planeVersion\` / \`PLANE_VERSION\` references
+
+          ## Why
+
+          Ship the Plane-EE ${NEW_VERSION} release through the chart so new installs and upgrades on default values pick it up.
+
+          ## Scope / behavior
+
+          - Changes the default image tag for every Plane service to \`${NEW_VERSION}\`. Installs that pin \`planeVersion\` explicitly are unaffected.
+          - No template or values-schema changes. \`plane-ce\` is not touched.
+
+          ## Testing
+
+          - \`helm lint\` and \`helm template\` passed in [the workflow run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}); all \`makeplane/*-commercial\` images render as \`${NEW_VERSION}\`.
+
+          Merging this PR runs \`chart-releaser.yml\` for \`plane-enterprise\` automatically.
+
+          🧙 Built with [WOZCODE](https://wozcode.com)
+          BODY
+
+          PR_URL=$(gh pr create --base "$BASE_BRANCH" --head "$BRANCH" \
+            --title "release: Plane-EE:\`${NEW_VERSION}\`" \
+            --body-file "$RUNNER_TEMP/pr-body.md")
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "Opened [$PR_URL]($PR_URL)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Close superseded bump PRs
+        if: ${{ steps.pr.outputs.pr_url != '' }}
+        env:
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: |
+          gh pr list --state open --limit 100 --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("release/plane-ee-")) | "\(.number) \(.headRefName)"' |
+          while read -r NUM HEAD; do
+            OLD_PR_VERSION="${HEAD#release/plane-ee-}"
+            [ "$OLD_PR_VERSION" = "$NEW_VERSION" ] && continue
+            # Only close PRs for lower versions; a newer pending bump stays open.
+            [ "$(printf '%s\n%s\n' "${OLD_PR_VERSION#v}" "${NEW_VERSION#v}" | sort -V | tail -1)" = "${NEW_VERSION#v}" ] || continue
+            gh pr close "$NUM" --delete-branch --comment "Superseded by $PR_URL (Plane-EE ${NEW_VERSION})."
+            echo "Closed #$NUM ($OLD_PR_VERSION), superseded by $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Send Slack notification
+        if: ${{ steps.pr.outputs.pr_url != '' }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN || '' }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL || '' }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ] || [ -z "$SLACK_CHANNEL" ]; then
+            echo "SLACK_BOT_TOKEN or SLACK_CHANNEL not set, skipping notification"
+            exit 0
+          fi
+
+          HEADER_TEXT="Helm chart bump ready: Plane-EE ${NEW_VERSION}"
+          BODY="The \`plane-enterprise\` chart bump PR for *${NEW_VERSION}* is open. Please review and merge it to release the chart. @devops-team"
+          WORKFLOW_LINK="<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|View workflow run>"
+
+          PAYLOAD=$(jq -n \
+            --arg channel "$SLACK_CHANNEL" \
+            --arg header "$HEADER_TEXT" \
+            --arg body "$BODY" \
+            --arg links "<${PR_URL}|Review PR> | ${WORKFLOW_LINK}" \
+            '{
+              channel: $channel,
+              text: ($header + " @devops-team"),
+              link_names: true,
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: $header, emoji: true } },
+                { type: "section", text: { type: "mrkdwn", text: $body } },
+                { type: "context", elements: [{ type: "mrkdwn", text: $links }] }
+              ]
+            }')
+
+          HTTP_CODE=$(curl -s -o /tmp/slack_response.json -w "%{http_code}" -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ] || grep -q '"ok":\s*false' /tmp/slack_response.json; then
+            echo "Slack API error (HTTP $HTTP_CODE):"
+            cat /tmp/slack_response.json
+            exit 1
+          fi
+
+  release:
+    if: >-
+      ${{ github.event_name == 'pull_request'
+          && github.event.pull_request.merged == true
+          && github.event.pull_request.base.ref == github.event.repository.default_branch
+          && startsWith(github.event.pull_request.head.ref, 'release/plane-ee-') }}
+    name: Release plane-enterprise chart
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch chart-releaser
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run chart-releaser.yml --repo "$GITHUB_REPOSITORY" -f plane-ee=true
+          echo "Dispatched chart-releaser.yml (plane-ee=true) for ${{ github.event.pull_request.html_url }}" >> "$GITHUB_STEP_SUMMARY"
