@@ -12,7 +12,6 @@ on:
         type: string
   pull_request:
     types: [closed]
-    branches: [master]
 
 permissions:
   contents: read
@@ -33,12 +32,13 @@ jobs:
     env:
       NEW_VERSION: ${{ inputs.plane_version }}
       BRANCH: release/plane-ee-${{ inputs.plane_version }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Check for an existing bump PR
         id: existing
@@ -115,7 +115,7 @@ jobs:
           🧙 Built with [WOZCODE](https://wozcode.com)
           BODY
 
-          PR_URL=$(gh pr create --base master --head "$BRANCH" \
+          PR_URL=$(gh pr create --base "$BASE_BRANCH" --head "$BRANCH" \
             --title "release: Plane-EE:\`${NEW_VERSION}\`" \
             --body-file "$RUNNER_TEMP/pr-body.md")
           echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
@@ -167,6 +167,7 @@ jobs:
     if: >-
       ${{ github.event_name == 'pull_request'
           && github.event.pull_request.merged == true
+          && github.event.pull_request.base.ref == github.event.repository.default_branch
           && startsWith(github.event.pull_request.head.ref, 'release/plane-ee-') }}
     name: Release plane-enterprise chart
     runs-on: ubuntu-22.04
@@ -177,5 +178,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run chart-releaser.yml --repo "$GITHUB_REPOSITORY" --ref master -f plane-ee=true
+          gh workflow run chart-releaser.yml --repo "$GITHUB_REPOSITORY" -f plane-ee=true
           echo "Dispatched chart-releaser.yml (plane-ee=true) for ${{ github.event.pull_request.html_url }}" >> "$GITHUB_STEP_SUMMARY"
