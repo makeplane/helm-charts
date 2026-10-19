@@ -121,6 +121,22 @@ jobs:
           echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "Opened [$PR_URL]($PR_URL)" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Close superseded bump PRs
+        if: ${{ steps.pr.outputs.pr_url != '' }}
+        env:
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: |
+          gh pr list --state open --limit 100 --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("release/plane-ee-")) | "\(.number) \(.headRefName)"' |
+          while read -r NUM HEAD; do
+            OLD_PR_VERSION="${HEAD#release/plane-ee-}"
+            [ "$OLD_PR_VERSION" = "$NEW_VERSION" ] && continue
+            # Only close PRs for lower versions; a newer pending bump stays open.
+            [ "$(printf '%s\n%s\n' "${OLD_PR_VERSION#v}" "${NEW_VERSION#v}" | sort -V | tail -1)" = "${NEW_VERSION#v}" ] || continue
+            gh pr close "$NUM" --delete-branch --comment "Superseded by $PR_URL (Plane-EE ${NEW_VERSION})."
+            echo "Closed #$NUM ($OLD_PR_VERSION), superseded by $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          done
+
       - name: Send Slack notification
         if: ${{ steps.pr.outputs.pr_url != '' }}
         env:
@@ -135,20 +151,23 @@ jobs:
 
           HEADER_TEXT="Helm chart bump ready: Plane-EE ${NEW_VERSION}"
           BODY="The \`plane-enterprise\` chart bump PR for *${NEW_VERSION}* is open. Merging it releases the chart."
-          WORKFLOW_LINK="<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|View workflow run>"
 
           PAYLOAD=$(jq -n \
             --arg channel "$SLACK_CHANNEL" \
             --arg header "$HEADER_TEXT" \
             --arg body "$BODY" \
-            --arg links "<${PR_URL}|Review PR> | ${WORKFLOW_LINK}" \
+            --arg pr_files "${PR_URL}/files" \
+            --arg run_url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             '{
               channel: $channel,
               text: $header,
               blocks: [
                 { type: "header", text: { type: "plain_text", text: $header, emoji: true } },
                 { type: "section", text: { type: "mrkdwn", text: $body } },
-                { type: "context", elements: [{ type: "mrkdwn", text: $links }] }
+                { type: "actions", elements: [
+                  { type: "button", style: "primary", text: { type: "plain_text", text: "Review & approve" }, url: $pr_files },
+                  { type: "button", text: { type: "plain_text", text: "View workflow run" }, url: $run_url }
+                ] }
               ]
             }')
 
