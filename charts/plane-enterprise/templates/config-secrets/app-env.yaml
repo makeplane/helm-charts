@@ -191,6 +191,24 @@ data:
 
   {{- if .Values.services.argus.enabled }}
   ARGUS_BASE_URL: "http://{{ .Release.Name }}-argus.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8100{{ trimSuffix "/" .Values.env.argus_envs.base_path }}"
+  {{/* An address alone is not enough to read Argus's /admin-health: Argus mounts
+       that route only when it has a secret, because its router is browser-facing
+       and otherwise unauthenticated below /healthz. Without the matching value
+       here the api skips the row. It is also what lets Argus report its own 5xx
+       responses back to the api. */}}
+  ARGUS_INTERNAL_SECRET: {{ .Values.env.argus_envs.internal_secret | default "" | quote }}
+  {{- end }}
+
+  {{- if .Values.services.email_service.enabled }}
+  {{/* The api never calls the email service -- traffic goes the other way, via
+       EMAIL_SAVE_ENDPOINT in email-env.yaml -- so this address exists purely so
+       god-mode > System checks can probe the SMTP listener and tell a
+       deployed-and-broken intake service from one that was never deployed.
+       Templated rather than asked for: the chart already knows both names, and
+       an address nobody types is an address nobody gets wrong. Left unset when
+       the service is off, which the check reports as a skip. */}}
+  INTAKE_EMAIL_SMTP_HOST: "{{ .Release.Name }}-email-service.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"
+  INTAKE_EMAIL_SMTP_PORT: "25"
   {{- end }}
 
   {{- if .Values.airgapped.enabled }}
