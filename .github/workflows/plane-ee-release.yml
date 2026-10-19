@@ -151,23 +151,20 @@ jobs:
 
           HEADER_TEXT="Helm chart bump ready: Plane-EE ${NEW_VERSION}"
           BODY="The \`plane-enterprise\` chart bump PR for *${NEW_VERSION}* is open. Merging it releases the chart."
+          WORKFLOW_LINK="<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|View workflow run>"
 
           PAYLOAD=$(jq -n \
             --arg channel "$SLACK_CHANNEL" \
             --arg header "$HEADER_TEXT" \
             --arg body "$BODY" \
-            --arg pr_files "${PR_URL}/files" \
-            --arg run_url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --arg links "<${PR_URL}|Review PR> | ${WORKFLOW_LINK}" \
             '{
               channel: $channel,
               text: $header,
               blocks: [
                 { type: "header", text: { type: "plain_text", text: $header, emoji: true } },
                 { type: "section", text: { type: "mrkdwn", text: $body } },
-                { type: "actions", elements: [
-                  { type: "button", style: "primary", text: { type: "plain_text", text: "Review & approve" }, url: $pr_files },
-                  { type: "button", text: { type: "plain_text", text: "View workflow run" }, url: $run_url }
-                ] }
+                { type: "context", elements: [{ type: "mrkdwn", text: $links }] }
               ]
             }')
 
