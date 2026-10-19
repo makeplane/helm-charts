@@ -150,7 +150,7 @@ jobs:
           fi
 
           HEADER_TEXT="Helm chart bump ready: Plane-EE ${NEW_VERSION}"
-          BODY="The \`plane-enterprise\` chart bump PR for *${NEW_VERSION}* is open. Merging it releases the chart."
+          BODY="The \`plane-enterprise\` chart bump PR for *${NEW_VERSION}* is open. Please review and merge it to release the chart. @devops-team"
           WORKFLOW_LINK="<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|View workflow run>"
 
           PAYLOAD=$(jq -n \
@@ -160,7 +160,8 @@ jobs:
             --arg links "<${PR_URL}|Review PR> | ${WORKFLOW_LINK}" \
             '{
               channel: $channel,
-              text: $header,
+              text: ($header + " @devops-team"),
+              link_names: true,
               blocks: [
                 { type: "header", text: { type: "plain_text", text: $header, emoji: true } },
                 { type: "section", text: { type: "mrkdwn", text: $body } },
