@@ -88,7 +88,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-minio-bucket-{{ .Release.Revision }}
+  name: {{ .Release.Name }}-minio-bucket-{{ printf "%s %s %s" .Values.minio.image_mc (.Values.minio.init_image | default "busybox") .Values.minio.image | sha256sum | trunc 8 }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.minio) }}
 spec:
   backoffLimit: 6
