@@ -3,7 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-api-migrate-{{ .Release.Revision }}
+  name: {{ .Release.Name }}-api-migrate-{{ printf "%s:%s %s" (.Values.api.image | default "artifacts.plane.so/makeplane/plane-backend") .Values.planeVersion (.Values.api.pullPolicy | default "Always") | sha256sum | trunc 8 }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.api) }}
 spec:
   backoffLimit: 3
@@ -13,8 +13,6 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
-      annotations:
-        timestamp: {{ now | quote }}
     spec:
       containers:
       - name: {{ .Release.Name }}-api-migrate
