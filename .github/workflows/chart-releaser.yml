@@ -230,6 +230,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BODY=$(gh release view "${{ matrix.tag }}" --repo "${{ github.repository }}" --json body -q .body 2>/dev/null || true)
+          # chart-releaser puts the Chart.yaml description above the generated notes; keep only the notes.
+          if printf '%s\n' "$BODY" | grep -q "^## What's Changed"; then
+            BODY=$(printf '%s\n' "$BODY" | sed -n "/^## What's Changed/,\$p")
+          fi
           # Strip HTML comments (e.g. "<!-- Release notes generated using ... -->") so they don't show in Slack
           BODY=$(printf '%s\n' "$BODY" | sed 's/<!--[^>]*-->//g' | sed '/^[[:space:]]*$/d' | sed -z 's/\n$//')
           if [ -z "$BODY" ] || [ -z "$(echo "$BODY" | tr -d '[:space:]')" ]; then
