@@ -12,30 +12,44 @@ license:
   licenseServer: https://prime.plane.so
   licenseDomain: 'plane.example.com'
 
+# Custom CA certificates to trust, e.g. an internal root CA that signs your
+# object storage, Git server, LDAP or any other endpoint Plane calls. Works on
+# any install; it does not need (or turn on) airgapped mode.
+#
+# The certificates are installed into the system trust store of api,
+# external-api, worker, worker-importers and the pi-* workloads, and
+# concatenated into NODE_EXTRA_CA_CERTS for live and silo. Both the standard
+# (Alpine/Debian) and FIPS (UBI) images are supported; the trust tool is
+# detected at runtime. They add to the public CAs the images already trust.
+#
+# Each certificate is also mounted verbatim at /s3-custom-ca/<key>, which is what
+# a component reading its own CA file wants. LDAP, for example, is configured
+# separately because OpenLDAP does not read the system store:
+#
+#   extraEnv:
+#     - name: LDAP_TLS_REQUIRE_CERT
+#       value: "demand"
+#     - name: LDAP_TLS_CA_CERTFILE
+#       value: "/s3-custom-ca/corp-ca.crt"
+#
+# Each entry is a Secret name and the key (PEM file) inside it:
+#   kubectl -n plane create secret generic corp-root-ca --from-file=corp-ca.crt=/path/to/ca.pem
+# secrets:
+#   - name: corp-root-ca
+#     key: corp-ca.crt
+#
+# When set, this replaces airgapped.s3Secrets / s3SecretName / s3SecretKey, so
+# list every CA here (keys must be unique across entries).
+customCA:
+  secrets: []
+
 airgapped:
   enabled: false
-  # The boto module used by API does not use the CA bundles in the container, so we need to
-  # mount the CA bundle into the API pod by passing it in as an environment
-  # variable.
+  # Legacy custom CA settings, honoured only when airgapped.enabled is true and
+  # customCA.secrets is empty. Prefer customCA.secrets, which works with or
+  # without airgapped mode and supports the same certificates.
   #
-  # Despite the name, these certificates are not limited to S3. They are installed
-  # into the system trust store of api, external-api, worker, worker-importers and
-  # the pi-* workloads, and concatenated into NODE_EXTRA_CA_CERTS for live and silo,
-  # so they cover any outbound TLS those services do against a private CA. Both the
-  # standard (Alpine/Debian) and FIPS (UBI) images are supported; the trust tool is
-  # detected at runtime.
-  #
-  # Each certificate is also mounted verbatim at /s3-custom-ca/<key>, which is what
-  # a component reading its own CA file wants. LDAP, for example, is configured
-  # separately because OpenLDAP does not read the system store:
-  #
-  #   extraEnv:
-  #     - name: LDAP_TLS_REQUIRE_CERT
-  #       value: "demand"
-  #     - name: LDAP_TLS_CA_CERTFILE
-  #       value: "/s3-custom-ca/corp-ca.crt"
-  #
-  # Preferred: list of Kubernetes Secrets containing CA certificates (supports multiple certs).
+  # List of Kubernetes Secrets containing CA certificates.
   # Example:
   # s3Secrets:
   #   - name: plane-s3-ca
@@ -45,7 +59,7 @@ airgapped:
   s3Secrets: []
 
   # Deprecated (backward compatibility): use a single secret for custom S3 CA.
-  # If set, used when s3Secrets is empty. Prefer migrating to s3Secrets.
+  # If set, used when s3Secrets is empty. Prefer migrating to customCA.secrets.
   # Example:
   # s3SecretName: plane-s3-ca
   # s3SecretKey: s3-custom-ca.crt

@@ -234,19 +234,58 @@ ingress.controller to opt into the standard Ingress for any class name.
 {{- end -}}
 
 {{/*
-Normalize the deprecated s3SecretName/s3SecretKey into the s3Secrets list format.
-Returns "true" when airgapped is enabled and at least one CA secret is configured.
+The custom CA Secrets to trust, as a JSON list of {name, key}.
+
+customCA.secrets wins when set, and works on any install. Otherwise the legacy
+airgapped.s3Secrets list, then the deprecated airgapped.s3SecretName/s3SecretKey
+pair, are used -- but only with airgapped.enabled, as before, so an upgrade
+never starts trusting certificates that a connected install was ignoring.
+*/}}
+{{- define "plane.customCASecrets" -}}
+  {{- $secrets := list -}}
+  {{- $custom := (.Values.customCA | default dict).secrets | default list -}}
+  {{- if gt (len $custom) 0 -}}
+    {{- range $custom -}}
+      {{- $_ := required "customCA.secrets: every entry needs a name (the Secret)" .name -}}
+      {{- $_ := required "customCA.secrets: every entry needs a key (the certificate file in the Secret)" .key -}}
+    {{- end -}}
+    {{- $secrets = $custom -}}
+  {{- else if .Values.airgapped.enabled -}}
+    {{- if gt (len .Values.airgapped.s3Secrets) 0 -}}
+      {{- $secrets = .Values.airgapped.s3Secrets -}}
+    {{- else if and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey -}}
+      {{- $secrets = list (dict "name" .Values.airgapped.s3SecretName "key" .Values.airgapped.s3SecretKey) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- toJson $secrets -}}
+{{- end -}}
+
+{{/*
+Returns "true" when at least one custom CA Secret is configured (see plane.customCASecrets).
 */}}
 {{- define "plane.s3CAEnabled" -}}
-  {{- if and .Values.airgapped.enabled (or (gt (len .Values.airgapped.s3Secrets) 0) (and .Values.airgapped.s3SecretName .Values.airgapped.s3SecretKey)) -}}
+  {{- if gt (len (include "plane.customCASecrets" . | fromJsonArray)) 0 -}}
     true
   {{- end -}}
 {{- end -}}
 
 {{/*
-Render the volumes block for custom S3 CA certificates.
-Always uses a projected volume so both single-secret (legacy) and multi-secret configs
-produce the same volume structure.
+The projected-volume sources for the custom CA Secrets.
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.s3CAProjectedSources" -}}
+{{- range (include "plane.customCASecrets" . | fromJsonArray) }}
+- secret:
+    name: {{ .name }}
+    items:
+      - key: {{ .key }}
+        path: {{ .key }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Render the volumes block for custom CA certificates.
+Always a projected volume, so one Secret or several produce the same structure.
 Caller must nindent to the correct depth.
 */}}
 {{- define "plane.s3CAVolumes" -}}
@@ -255,21 +294,7 @@ volumes:
   - name: s3-custom-ca
     projected:
       sources:
-      {{- if gt (len .Values.airgapped.s3Secrets) 0 }}
-      {{- range .Values.airgapped.s3Secrets }}
-      - secret:
-          name: {{ .name }}
-          items:
-            - key: {{ .key }}
-              path: {{ .key }}
-      {{- end }}
-      {{- else }}
-      - secret:
-          name: {{ .Values.airgapped.s3SecretName }}
-          items:
-            - key: {{ .Values.airgapped.s3SecretKey }}
-              path: {{ .Values.airgapped.s3SecretKey }}
-      {{- end }}
+      {{- include "plane.s3CAProjectedSources" . | trim | nindent 6 }}
 {{- end }}
 {{- end -}}
 
@@ -407,21 +432,7 @@ volumes:
   - name: s3-custom-ca
     projected:
       sources:
-      {{- if gt (len .Values.airgapped.s3Secrets) 0 }}
-      {{- range .Values.airgapped.s3Secrets }}
-      - secret:
-          name: {{ .name }}
-          items:
-            - key: {{ .key }}
-              path: {{ .key }}
-      {{- end }}
-      {{- else }}
-      - secret:
-          name: {{ .Values.airgapped.s3SecretName }}
-          items:
-            - key: {{ .Values.airgapped.s3SecretKey }}
-              path: {{ .Values.airgapped.s3SecretKey }}
-      {{- end }}
+      {{- include "plane.s3CAProjectedSources" . | trim | nindent 6 }}
   - name: ca-bundle
     emptyDir: {}
 {{- end }}

@@ -567,31 +567,52 @@ ingress:
 | planeVersion          |      v3.3.3       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
+### Custom CA Certificates
+
+Use this when Plane has to call an endpoint whose certificate is signed by a private or internal CA, such as object storage, a self-hosted Git server used by integrations, or LDAP. It works on any install and does not need or turn on air-gapped mode.
+
+| Setting          | Default | Required | Description                                                                                                                                                                                                                                                                  |
+| ---------------- | :-----: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| customCA.secrets |   []    |    No    | List of Kubernetes Secrets holding PEM CA certificates to trust. Each item needs `name` (the Secret) and `key` (the certificate file in it); keys must be unique across items. When set, it replaces the legacy `airgapped.s3Secrets` / `s3SecretName` / `s3SecretKey`. |
+
+The certificates are added to (not substituted for) the public CAs the images already trust: they go into the system trust store of `api`, `external-api`, `worker`, `worker-importers` and the `pi-*` workloads, and into `NODE_EXTRA_CA_CERTS` for `live` and `silo`. Each certificate is also mounted at `/s3-custom-ca/<key>` for components that read a CA file directly (see the LDAP example in `values.yaml`).
+
+```bash
+kubectl -n plane create secret generic corp-root-ca --from-file=corp-ca.crt=/path/to/root-ca.pem
+```
+
+```yaml
+customCA:
+  secrets:
+    - name: corp-root-ca
+      key: corp-ca.crt
+```
+
+Pods pick the certificates up when they start, so restart the workloads after you rotate the Secret.
+
 ### Air-gapped Settings
 
 | Setting                 | Default | Required | Description                                                                                                                                                                                                                                                                                                          |
 | ----------------------- | :-----: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | airgapped.enabled       |  false  |    No    | Specifies the airgapped mode the Plane API runs in.                                                                                                                                                                                                                                                                  |
-| airgapped.s3Secrets     |   []    |    No    | List of Kubernetes Secrets containing CA certificates to install. Each item must have `name` (Secret name) and `key` (file key in the Secret). Example: `kubectl -n plane create secret generic plane-s3-ca --from-file=s3-custom-ca.crt=/path/to/ca.crt`. Supports multiple certs (e.g. S3 + internal CA).          |
-| airgapped.s3SecretName  |   ""    |    No    | **(Deprecated, backward compatibility)** Name of a single Kubernetes Secret containing the S3 CA cert. Used only when `s3Secrets` is empty. Prefer migrating to `s3Secrets`.                                                                                                                                       |
-| airgapped.s3SecretKey   |   ""    |    No    | **(Deprecated, backward compatibility)** Key (filename) of the cert file inside the Secret. Used only when `s3Secrets` is empty. Set together with `airgapped.s3SecretName`.                                                                                                                                          |
+| airgapped.s3Secrets     |   []    |    No    | **(Legacy)** List of Kubernetes Secrets containing CA certificates, each with `name` and `key`. Honoured only when `airgapped.enabled` is `true` and `customCA.secrets` is empty. Prefer [`customCA.secrets`](#custom-ca-certificates), which works with or without air-gapped mode. |
+| airgapped.s3SecretName  |   ""    |    No    | **(Deprecated, backward compatibility)** Name of a single Kubernetes Secret containing the S3 CA cert. Used only when `airgapped.enabled` is `true` and both `customCA.secrets` and `s3Secrets` are empty. Prefer migrating to `customCA.secrets`. |
+| airgapped.s3SecretKey   |   ""    |    No    | **(Deprecated, backward compatibility)** Key (filename) of the cert file inside the Secret. Set together with `airgapped.s3SecretName`.                                                                                                                                |
 
 #### Backward compatibility: custom S3 CA (upgrading from older charts)
 
-If you previously used the single-secret custom CA configuration (`airgapped.s3SecretName` and `airgapped.s3SecretKey`), it continues to work. No change is required when upgrading.
+Existing `airgapped.s3Secrets`, `airgapped.s3SecretName` and `airgapped.s3SecretKey` settings keep working unchanged, and still apply only with `airgapped.enabled: true`. No change is required when upgrading.
 
-- **Old configuration (still supported):** Set `airgapped.s3SecretName` to your Secret name and `airgapped.s3SecretKey` to the key (e.g. `s3-custom-ca.crt`). The chart mounts that single cert, runs `update-ca-certificates`, and sets `AWS_CA_BUNDLE` to the system bundle path.
-- **New configuration (recommended):** Use `airgapped.s3Secrets` with a list of `{ name, key }` entries. This allows multiple CA certificates (e.g. S3 endpoint CA and internal PKI) and matches the same runtime behavior.
-
-**Migration (optional):** To move from the deprecated keys to `s3Secrets`, set for example:
+**Migration (optional):** move the same Secrets to `customCA.secrets`. Keep `airgapped.enabled` as it is; it controls air-gapped licensing, not certificate trust.
 
 ```yaml
+customCA:
+  secrets:
+    - name: plane-s3-ca      # same as your previous s3SecretName / s3Secrets name
+      key: s3-custom-ca.crt  # same as your previous s3SecretKey / s3Secrets key
 airgapped:
-  enabled: true
-  s3Secrets:
-    - name: plane-s3-ca      # same as your previous s3SecretName
-      key: s3-custom-ca.crt  # same as your previous s3SecretKey
-  # s3SecretName and s3SecretKey can be removed after migration
+  enabled: true              # unchanged
+  # s3Secrets, s3SecretName and s3SecretKey can be removed after migration
 ```
 
 ### Pod Security (PSA `restricted`)
@@ -910,7 +931,7 @@ the bundled datastores off. Three things to know before you use it:
 | services.live.memoryRequest        |                    512Mi                     |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                           |
 | services.live.cpuRequest           |                     100m                     |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                 |
 | services.live.image                | makeplane/live-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                          |
-| services.live.init_image           |                   busybox                    |          | Using this key, user can provide the docker image used by the `live` init container, which assembles the custom S3 CA bundle. Only rendered when a custom S3 CA is configured (`airgapped.enabled` with an S3 CA secret). An override must be BusyBox-compatible: the init script needs `/bin/sh`, `ls`, `cat`, and `touch`. If any is missing the init container fails and `live` never starts |
+| services.live.init_image           |                   busybox                    |          | Using this key, user can provide the docker image used by the `live` init container, which assembles the custom S3 CA bundle. Only rendered when a custom CA is configured (`customCA.secrets`, or `airgapped.enabled` with an S3 CA secret). An override must be BusyBox-compatible: the init script needs `/bin/sh`, `ls`, `cat`, and `touch`. If any is missing the init container fails and `live` never starts |
 | services.live.pullPolicy           |                    Always                    |          | Using this key, user can set the pull policy for the deployment of `live`.                                                                                                                                      |
 | env.live_sentry_dsn                |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.                                 |
 | env.live_sentry_environment        |                                              |          | (optional) Live service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.   |
