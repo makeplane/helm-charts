@@ -313,10 +313,15 @@ external_secrets:
   live_env_existingSecret: ''
 
 env:
-  # Fail the render instead of falling back to this chart's PUBLIC example values for
-  # SECRET_KEY and LIVE_SERVER_SECRET_KEY. Recommended for anything real; defaults to
-  # false so existing installs keep rendering.
+  # Fail the render when SECRET_KEY or LIVE_SERVER_SECRET_KEY has no value or still
+  # holds a value published in earlier chart versions. Recommended for anything real;
+  # defaults to false so existing installs keep rendering.
   requireExplicitSecrets: false
+
+  # Create the shared keys as the Secret <release>-app-keys on first install; an
+  # existing key is never changed. Fails where the cluster cannot be queried
+  # (helm template, GitOps renderers). Read the chart README before enabling.
+  generateSecrets: false
 
   # NEXT_PUBLIC_DEPLOY_URL:  ""
   # REDIS
@@ -338,8 +343,10 @@ env:
   aws_region: ""
   aws_s3_endpoint_url: ""
 
-  secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
-  live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
+  # Empty keeps the legacy value; see env.generateSecrets. NEVER CHANGE secret_key on
+  # a running instance: it encrypts stored instance configuration (SMTP, OAuth).
+  secret_key: ""
+  live_server_secret_key: ""
 
   sentry_dsn: ""
   sentry_environment: ""

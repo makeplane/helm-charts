@@ -1,0 +1,17 @@
+{{- if and (empty .Values.external_secrets.app_keys_existingSecret) .Values.env.generateSecrets }}
+{{- include "plane.appKeysResolve" . }}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-app-keys
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+stringData:
+  {{- range $k, $v := .Values._planeAppKeys }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
+{{- end -}}
