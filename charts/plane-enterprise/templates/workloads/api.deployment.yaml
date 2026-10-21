@@ -50,6 +50,8 @@ spec:
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
       {{- end }}
+      initContainers:
+      {{- include "plane.waitForDatastores" . | nindent 6 }}
       containers:
       - name: {{ .Release.Name }}-api
         {{- include "plane.containerSecurityContext" . }}

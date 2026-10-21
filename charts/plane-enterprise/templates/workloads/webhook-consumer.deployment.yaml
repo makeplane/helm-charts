@@ -24,6 +24,8 @@ spec:
       {{- include "plane.podScheduling" .Values.services.webhook_consumer }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.webhook_consumer "app" "webhook-consumer" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
+      initContainers:
+      {{- include "plane.waitForDatastores" . | nindent 6 }}
       containers:
       - name: {{ .Release.Name }}-webhook-consumer
         {{- include "plane.containerSecurityContext" . }}
