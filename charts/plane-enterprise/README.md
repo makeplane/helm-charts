@@ -630,7 +630,7 @@ by default) so existing installs are unchanged.
 
 When enabled, the context is applied to all first-party Plane workloads (api, web,
 space, admin, live, worker, beat-worker, automation-consumer, outbox-poller, silo,
-monitor, iframely, runner, argus, pi-api/beat/worker, and the migration Jobs — including
+iframely, runner, argus, pi-api/beat/worker, and the migration Jobs — including
 their busybox init containers).
 
 It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
@@ -965,24 +965,6 @@ the bundled datastores off. Three things to know before you use it:
 | services.live_exporter.tolerations        |             []             |          | Tolerations for the exporter pod.                                                                                                                                                      |
 | services.live_exporter.affinity           |             {}             |          | Affinity rules for the exporter pod.                                                                                                                                                   |
 
-### Monitor Deployment
-
-| Setting                            |                     Default                     | Required | Description                                                                                                                                                                                                                                 |
-| ---------------------------------- | :---------------------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| services.monitor.memoryLimit       |                     1000Mi                      |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                                                         |
-| services.monitor.cpuLimit          |                      500m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                                               |
-| services.monitor.memoryRequest     |                      128Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                                                       |
-| services.monitor.cpuRequest        |                      100m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                                             |
-| services.monitor.image             | makeplane/monitor-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                                                      |
-| services.monitor.pullPolicy        |                     Always                      |          | Using this key, user can set the pull policy for the deployment of `monitor`.                                                                                                                                                               |
-| services.monitor.volumeSize        |                      100Mi                      |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| services.monitor.assign_cluster_ip |                      false                      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                           |
-| services.monitor.nodeSelector      |                       {}                        |          | This key allows you to set the node selector for the stateful deployment of `monitor`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                     |
-| services.monitor.tolerations       |                       []                        |          | This key allows you to set the tolerations for the stateful deployment of `monitor`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                           |
-| services.monitor.affinity          |                       {}                        |          | This key allows you to set the affinity rules for the stateful deployment of `monitor`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                 |
-| services.monitor.labels            |                       {}                        |          | Custom labels to add to the monitor deployment                                                                                                                                                                                              |
-| services.monitor.annotations       |                       {}                        |          | Custom annotations to add to the monitor deployment                                                                                                                                                                                         |
-
 ### API Deployment
 
 | Setting                        |                     Default                     | Required | Description                                                                                                                                                                                                     |
@@ -1169,6 +1151,7 @@ Operational notes:
 | env.pi_envs.plane_api_host             |                           ""                         |          | Override for the Plane API host URL used by Plane AI (PI). Defaults to the license domain.                                                                                                                                 |
 | env.pi_envs.cors_allowed_origins       |                           ""                         |          | CORS allowed origins for Plane AI (PI) API. Defaults to the license domain.                                                                                                                                                 |
 | env.pi_envs.log_level                  |                        DEBUG                         |          | Log level for Plane AI (PI) API (e.g. DEBUG, INFO, WARNING, ERROR).                                                                                                                                                        |
+| env.pi_envs.ai_usage_credits_per_usd   |                         100                          |          | Number of Plane AI usage credits granted per US dollar.                                                                                                                                                                    |
 | services.pi.ai_providers.openai.enabled |                        false                         |          | Enable OpenAI as a Plane AI provider.                                                                                                                                                                                      |
 | services.pi.ai_providers.openai.base_url |                           ""                         |          | OpenAI API base URL (optional override).                                                                                                                                                                                   |
 | services.pi.ai_providers.openai.api_key |                           ""                         | required if `services.pi.ai_providers.openai.enabled` is `true` | OpenAI API key.                                                                                                                                                                                                     |
@@ -1936,7 +1919,7 @@ services:
 | `unhealthyPodEvictionPolicy` | unset   | `AlwaysAllow` lets a drain evict not-Ready pods while the budget is at limit |
 
 Budgets are rendered only for the stateless, horizontally-scalable workloads. Single-replica workloads
-(`beatworker`, `pi_beat_worker`, `monitor`, `argus`, the migration Jobs) and the in-chart stateful services
+(`beatworker`, `pi_beat_worker`, `argus`, the migration Jobs) and the in-chart stateful services
 are excluded by design: with no second copy a budget cannot protect anything, it can only block the drain.
 Requesting one for them **fails the render with an explanation**. An eligible workload still at `replicas: 1`
 is skipped silently, so the chart-wide switch stays a safe one-line change.

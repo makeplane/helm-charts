@@ -19,7 +19,7 @@ drains -- so the three ways to ask for one that will not work are refused rather
 {{- fail (printf `
 services.%s.podDisruptionBudget.enabled is set, but %s cannot have a budget.
 
-It is either a single-replica workload by design (beatworker, pi_beat_worker, monitor, argus,
+It is either a single-replica workload by design (beatworker, pi_beat_worker, argus,
 the migration Jobs) or an in-chart stateful service on a ReadWriteOnce volume (postgres, redis,
 rabbitmq, opensearch, minio).
 
