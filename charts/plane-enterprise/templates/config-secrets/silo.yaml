@@ -130,8 +130,9 @@ data:
   SILO_API_BASE_URL: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
-  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
+  FEATURE_FLAG_SERVER_PATH: "/services/feature-flags/"
+  PAYMENT_SERVER_BASE_URL: {{ .Values.license.licenseServer | quote }}
 
   AI_SERVICE_BASE_URL: "http://{{ .Release.Name }}-pi-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000/"
 
