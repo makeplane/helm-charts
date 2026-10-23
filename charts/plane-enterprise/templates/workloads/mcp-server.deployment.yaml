@@ -77,6 +77,22 @@ spec:
           {{- with (include "plane.redisCredsEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
+          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl }}
+          {{- /* TLS goes through a rediss:// URL, not REDIS_SSL: on the host/port path the
+                 server applies REDIS_SSL to its startup PING only, and the token store itself
+                 connects in plaintext, sending REDIS_PASSWORD in the clear. Composed from the
+                 entries above so a hostKey/portKey from the Secret still applies; it carries
+                 no password, so REDIS_PASSWORD fills it in and rotation keeps working.
+                 Images before v0.3.2 ignore REDIS_URL and would keep the plaintext store, so
+                 refuse a known older version; an image without a semver tag passes through. */}}
+          {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
+          {{- $mcpVersion := regexFind ":v?[0-9]+\\.[0-9]+\\.[0-9]+$" $mcpImage | trimPrefix ":" | trimPrefix "v" }}
+          {{- if and $mcpVersion (semverCompare "<0.3.2" $mcpVersion) }}
+          {{- fail (printf "env.redis_ssl with external_secrets.redis needs services.mcp_server.image v0.3.2 or later (got %s): older images do not encrypt the token-store connection to Redis." $mcpImage) }}
+          {{- end }}
+          - name: REDIS_URL
+            value: "rediss://$(REDIS_HOST):$(REDIS_PORT)/"
+          {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
