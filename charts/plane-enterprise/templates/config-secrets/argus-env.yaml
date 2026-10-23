@@ -87,7 +87,9 @@ data:
   ARGUS_DEFAULT_RATE_RPS: {{ .Values.env.argus_envs.default_rate_rps | default 500 | quote }}
   ARGUS_MAX_RATE_RPS: {{ .Values.env.argus_envs.max_rate_rps | default 10000 | quote }}
 
-  {{- /* Product gate (PII_SCANNER flag) is answered by the in-cluster monitor. */}}
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080"
+  {{- /* Product gate (PII_SCANNER flag) is answered by the in-cluster api. */}}
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
+  FEATURE_FLAG_SERVER_PATH: "/services/feature-flags/"
+  PAYMENT_SERVER_BASE_URL: "https://prime.plane.so"
 ---
 {{- end }}

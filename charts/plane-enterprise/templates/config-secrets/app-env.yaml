@@ -118,8 +118,9 @@ data:
   MACHINE_SIGNATURE: {{ include "hashString" . | quote }}
   APP_DOMAIN: {{ .Values.license.licenseDomain | quote }}
   APP_VERSION: {{ .Values.planeVersion | quote }}
-  PAYMENT_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080/"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
+  FEATURE_FLAG_SERVER_PATH: "/services/feature-flags/"
+  PAYMENT_SERVER_BASE_URL: "https://prime.plane.so"
 
   DEFAULT_API_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "120/minute" | quote }}
   {{- /* '0' makes the API re-read SMTP/OAuth/LLM/LDAP secrets from the environment on
