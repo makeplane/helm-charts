@@ -1101,3 +1101,71 @@ Caller must nindent to the correct depth.
     {{- end -}}
   {{- end -}}
 {{- end -}}
+
+{{/*
+Init container that waits for the datastores this chart deploys itself.
+
+A pod that starts before its broker is reachable does not wait politely: the
+api exits on an unresolvable AMQP host, Kubernetes restarts it, and the pod
+sits in CrashLoopBackOff with a stack trace that names a DNS failure rather
+than a startup race. Observed on a live upgrade, where the api came up before
+the RabbitMQ StatefulSet had ready endpoints and the headless service
+therefore resolved to nothing.
+
+Only the in-cluster datastores are waited on. An external Postgres, Redis or
+broker is managed outside this chart and is normally up before anything here
+starts, and parsing a DSN in shell to find its host is the kind of thing that
+breaks on a password containing an @.
+
+Bounded, not infinite. A dependency that never arrives should surface as a
+failed init container with a message naming it, not as a pod that sits in Init
+forever looking like a scheduling problem.
+*/}}
+{{- define "plane.waitForDatastores" -}}
+{{- $wait := .Values.env.waitForDatastores | default dict }}
+{{- if $wait.enabled }}
+{{- $domain := .Values.env.default_cluster_domain | default "cluster.local" }}
+{{- $targets := list }}
+{{- if .Values.services.postgres.local_setup }}
+{{- $targets = append $targets (printf "%s-pgdb.%s.svc.%s:%v" .Release.Name .Release.Namespace $domain .Values.services.postgres.servicePort) }}
+{{- end }}
+{{- if .Values.services.redis.local_setup }}
+{{- $targets = append $targets (printf "%s-redis.%s.svc.%s:%v" .Release.Name .Release.Namespace $domain .Values.services.redis.servicePort) }}
+{{- end }}
+{{- if .Values.services.rabbitmq.local_setup }}
+{{- $targets = append $targets (printf "%s-rabbitmq.%s.svc.%s:%v" .Release.Name .Release.Namespace $domain .Values.services.rabbitmq.servicePort) }}
+{{- end }}
+{{- if $targets }}
+- name: wait-for-datastores
+  image: {{ $wait.image | default "busybox:1.37" }}
+  imagePullPolicy: IfNotPresent
+  {{- include "plane.containerSecurityContext" . }}
+  command:
+    - /bin/sh
+    - -c
+    - |
+      set -eu
+      deadline=$(( $(date +%s) + {{ $wait.timeoutSeconds | default 180 }} ))
+      for target in {{ join " " $targets }}; do
+        host=${target%:*}
+        port=${target##*:}
+        until nc -z "$host" "$port" 2>/dev/null; do
+          if [ "$(date +%s)" -ge "$deadline" ]; then
+            echo "timed out waiting for $target" >&2
+            exit 1
+          fi
+          echo "waiting for $target"
+          sleep 2
+        done
+        echo "$target is up"
+      done
+  resources:
+    requests:
+      memory: "16Mi"
+      cpu: "10m"
+    limits:
+      memory: "64Mi"
+      cpu: "100m"
+{{- end }}
+{{- end }}
+{{- end }}

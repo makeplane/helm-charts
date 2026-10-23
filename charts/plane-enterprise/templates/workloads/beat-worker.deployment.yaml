@@ -21,6 +21,8 @@ spec:
     spec:
       {{- include "plane.podScheduling" .Values.services.beatworker }}
       {{- include "plane.podSecurityContext" . }}
+      initContainers:
+      {{- include "plane.waitForDatastores" . | nindent 6 }}
       containers:
       - name: {{ .Release.Name }}-beat-worker
         {{- include "plane.containerSecurityContext" . }}

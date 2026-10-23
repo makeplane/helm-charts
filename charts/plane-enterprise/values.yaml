@@ -1126,6 +1126,22 @@ global:
   forceRedeploy: false
 
 env:
+  # Wait for the datastores this chart deploys before starting the workloads
+  # that connect to them at boot. Off by default: it adds an init container to
+  # several pods, and an install whose datastores are external gains nothing
+  # from it.
+  #
+  # Worth turning on where the chart runs its own Postgres, Redis or RabbitMQ.
+  # A pod that starts before the broker has ready endpoints exits on an
+  # unresolvable host and lands in CrashLoopBackOff, which reads as a DNS fault
+  # rather than the startup race it is.
+  waitForDatastores:
+    enabled: false
+    image: busybox:1.37
+    # Bounded, so a dependency that never arrives fails the init container with
+    # a message naming it instead of sitting in Init forever.
+    timeoutSeconds: 180
+
   storageClass: ''
 
   # Fail the render instead of falling back to this chart's public example values

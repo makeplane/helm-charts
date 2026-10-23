@@ -23,6 +23,8 @@ spec:
       {{- include "plane.podScheduling" .Values.services.outbox_poller }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.outbox_poller "app" "outbox-poller" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
+      initContainers:
+      {{- include "plane.waitForDatastores" . | nindent 6 }}
       containers:
       - name: {{ .Release.Name }}-outbox-poller
         {{- include "plane.containerSecurityContext" . }}
