@@ -77,6 +77,15 @@ spec:
           {{- with (include "plane.redisCredsEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
+          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl }}
+          {{- /* TLS goes through a rediss:// URL, not REDIS_SSL: on the host/port path the
+                 server applies REDIS_SSL to its startup PING only, and the token store itself
+                 connects in plaintext, sending REDIS_PASSWORD in the clear. Composed from the
+                 entries above so a hostKey/portKey from the Secret still applies; it carries
+                 no password, so REDIS_PASSWORD fills it in and rotation keeps working. */}}
+          - name: REDIS_URL
+            value: "rediss://$(REDIS_HOST):$(REDIS_PORT)/"
+          {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}

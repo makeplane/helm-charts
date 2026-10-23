@@ -41,8 +41,9 @@ stringData:
   {{- if include "plane.externalRedis" . }}
   {{/* Credentials come from external_secrets.redis as discrete REDIS_* env entries on
        the deployment (plane.redisCredsEnv), the same way live and Plane AI consume
-       them. REDIS_URL must stay unset on that path: the MCP server (v0.3.2+) lets a URL
-       win over host/port, so a stale URL here would shadow the rotated credential. */}}
+       them. REDIS_URL must stay unset here: the MCP server (v0.3.2+) lets a URL win
+       over host/port, so a stale URL here would shadow the rotated credential. With
+       env.redis_ssl the deployment sets a password-free rediss:// REDIS_URL itself. */}}
   {{- else if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ include "plane.redisHost" . }}:{{ .Values.services.redis.servicePort | default 6379 }}/"
   {{- else }}

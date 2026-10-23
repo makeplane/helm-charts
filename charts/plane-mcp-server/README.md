@@ -43,7 +43,7 @@
 | Setting                      |        Default                | Required | Description                                                                 |
 | ---------------------------- | :---------------------------: | :------: | --------------------------------------------------------------------------- |
 | services.api.image           | makeplane/plane-mcp-server    |          | MCP Server Docker image name (without tag)                                  |
-| services.api.tag             |       v0.3.0                 |          | Docker image tag for the MCP server                                         |
+| services.api.tag             |       v0.3.5                 |          | Docker image tag for the MCP server                                         |
 | services.api.replicas        |           1                   |          | Number of MCP Server replicas                                               |
 | services.api.memoryLimit     |        1000Mi                 |          | Memory limit for MCP Server pods                                            |
 | services.api.cpuLimit        |         500m                  |          | CPU limit for MCP Server pods                                               |
@@ -72,7 +72,7 @@ Plane MCP Server uses [Valkey](https://valkey.io) (via the upstream [valkey-helm
 | services.valkey.remote_host                    |                        |          | Hostname of the external Valkey/Redis instance (used when `services.valkey.local_setup=false`)           |
 | services.valkey.remote_port                    |         6379           |          | Port of the external Valkey/Redis instance                                                               |
 | services.valkey.remote_password                |                        |          | Password for the external Valkey/Redis instance                                                          |
-| services.valkey.remote_ssl                     |         false          |          | Enable TLS for the external Valkey/Redis connection                                                      |
+| services.valkey.remote_ssl                     |         false          |          | Enable TLS for the external Valkey/Redis connection. Rendered as a `rediss://` `REDIS_URL`; requires image `v0.3.2`+ |
 | valkey.nameOverride                   |                        |          | Override the Valkey service name. Defaults to `<release>-valkey`                                     |
 | valkey.image.repository               |     valkey/valkey      |          | Valkey Docker image repository                                                                        |
 | valkey.image.tag                      |         9.1.1          |          | Valkey Docker image tag                                                                               |
