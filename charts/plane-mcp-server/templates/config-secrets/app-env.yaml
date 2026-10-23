@@ -25,7 +25,9 @@ stringData:
          password, so REDIS_PASSWORD fills it in unencoded. Needs image v0.3.2+, which
          is when REDIS_URL arrived; an older image ignores it and falls back to an
          in-memory store, so refuse to render that rather than lose tokens silently. */}}
-  {{- $tag := toString .Values.services.api.tag }}
+  {{- /* Same fallback as the deployment's image line, so an empty tag is judged as
+         the image that actually runs. */}}
+  {{- $tag := toString (.Values.services.api.tag | default "v0.3.5") }}
   {{- if and (regexMatch "^v?[0-9]+\\.[0-9]+\\.[0-9]+$" $tag) (semverCompare "<0.3.2" (trimPrefix "v" $tag)) }}
   {{- fail (printf "services.valkey.remote_ssl needs services.api.tag v0.3.2 or later (got %s): older images do not encrypt the token-store connection to Redis." $tag) }}
   {{- end }}
