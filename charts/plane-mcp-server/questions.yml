@@ -164,12 +164,6 @@ questions:
     type: string
     default: "traefik"
     show_if: "ingress.ingressController=traefik"
-  - variable: ingress.traefik.maxRequestBodyBytes
-    label: "Max Request Body Size (bytes)"
-    description: "Traefik only: maximum request body size in bytes enforced via the buffering Middleware. Default: 10485760 (10 MiB)."
-    type: int
-    default: 10485760
-    show_if: "ingress.ingressController=traefik"
   - variable: ingress.nginx.ingressClassName
     label: "Nginx Ingress Class Name"
     type: string

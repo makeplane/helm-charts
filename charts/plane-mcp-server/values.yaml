@@ -4,7 +4,6 @@ ingress:
   ingressController: 'traefik' # Allowed: nginx, traefik
   traefik:
     ingressClassName: 'traefik'
-    maxRequestBodyBytes: 10485760
     annotations: {}
   nginx:
     ingressClassName: 'nginx'
