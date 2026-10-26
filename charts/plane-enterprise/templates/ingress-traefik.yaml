@@ -135,10 +135,12 @@ spec:
 
   {{- if .Values.services.mcp_server.enabled }}
   {{- $mcpPrefix := .Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/" }}
+  {{- /* No body-limit middleware: it is Traefik `buffering`, which holds the whole response until
+         the upstream closes. The MCP server answers over SSE -- <prefix>/sse is a stream that
+         stays open for the session, and <prefix>/http/mcp replies as text/event-stream -- so a
+         buffered route never delivers the SSE endpoint event and delays every streamed reply. */}}
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`{{ $mcpPrefix }}/`)
     kind: Rule
-    middlewares:
-      - name: {{ .Release.Name }}-body-limit
     services:
       - name: {{ .Release.Name }}-mcp-server
         port: 8211
