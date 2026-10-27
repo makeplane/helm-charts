@@ -481,7 +481,7 @@ ingress:
    Copy the format of constants below, paste it on Terminal to start setting environment variables, set values for each variable, and hit ENTER or RETURN.
 
    ```bash
-   PLANE_VERSION=v3.3.3 # or the last released version
+   PLANE_VERSION=v4.0.0 # or the last released version
    DOMAIN_NAME=<subdomain.domain.tld or domain.tld>
    ```
 
@@ -537,7 +537,7 @@ ingress:
 
      Make sure you set the minimum required values as below.
 
-     - `planeVersion: v3.3.3 <or the last released version>`
+     - `planeVersion: v4.0.0 <or the last released version>`
      - `license.licenseDomain: <The domain you have specified to host Plane>`
      - `ingress.enabled: <true | false>`
      - `ingress.controller: <traefik | openshift | nginx — required unless ingressClass is exactly nginx/openshift/traefik*>`
@@ -564,7 +564,7 @@ ingress:
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v3.3.3       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v4.0.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 
 ### Air-gapped Settings
@@ -630,7 +630,7 @@ by default) so existing installs are unchanged.
 
 When enabled, the context is applied to all first-party Plane workloads (api, web,
 space, admin, live, worker, beat-worker, automation-consumer, outbox-poller, silo,
-monitor, iframely, runner, argus, pi-api/beat/worker, and the migration Jobs — including
+iframely, runner, argus, pi-api/beat/worker, and the migration Jobs — including
 their busybox init containers).
 
 It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
@@ -965,24 +965,6 @@ the bundled datastores off. Three things to know before you use it:
 | services.live_exporter.tolerations        |             []             |          | Tolerations for the exporter pod.                                                                                                                                                      |
 | services.live_exporter.affinity           |             {}             |          | Affinity rules for the exporter pod.                                                                                                                                                   |
 
-### Monitor Deployment
-
-| Setting                            |                     Default                     | Required | Description                                                                                                                                                                                                                                 |
-| ---------------------------------- | :---------------------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| services.monitor.memoryLimit       |                     1000Mi                      |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                                                         |
-| services.monitor.cpuLimit          |                      500m                       |          | Every deployment in kubernetes can be set to use maximum cpu they are allowed to use. This key sets the cpu limit for this deployment to use.                                                                                               |
-| services.monitor.memoryRequest     |                      128Mi                      |          | Every deployment in kubernetes can be set to use minimum memory they are allowed to use. This key sets the memory request for this deployment to use.                                                                                       |
-| services.monitor.cpuRequest        |                      100m                       |          | Every deployment in kubernetes can be set to use minimum cpu they are allowed to use. This key sets the cpu request for this deployment to use.                                                                                             |
-| services.monitor.image             | makeplane/monitor-commercial |          | This deployment needs a preconfigured docker image to function. Docker image name is provided by the owner and must not be changed for this deployment                                                                                      |
-| services.monitor.pullPolicy        |                     Always                      |          | Using this key, user can set the pull policy for the deployment of `monitor`.                                                                                                                                                               |
-| services.monitor.volumeSize        |                      100Mi                      |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte) |
-| services.monitor.assign_cluster_ip |                      false                      |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                                                           |
-| services.monitor.nodeSelector      |                       {}                        |          | This key allows you to set the node selector for the stateful deployment of `monitor`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                                     |
-| services.monitor.tolerations       |                       []                        |          | This key allows you to set the tolerations for the stateful deployment of `monitor`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                                           |
-| services.monitor.affinity          |                       {}                        |          | This key allows you to set the affinity rules for the stateful deployment of `monitor`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                 |
-| services.monitor.labels            |                       {}                        |          | Custom labels to add to the monitor deployment                                                                                                                                                                                              |
-| services.monitor.annotations       |                       {}                        |          | Custom annotations to add to the monitor deployment                                                                                                                                                                                         |
-
 ### API Deployment
 
 | Setting                        |                     Default                     | Required | Description                                                                                                                                                                                                     |
@@ -1169,6 +1151,8 @@ Operational notes:
 | env.pi_envs.plane_api_host             |                           ""                         |          | Override for the Plane API host URL used by Plane AI (PI). Defaults to the license domain.                                                                                                                                 |
 | env.pi_envs.cors_allowed_origins       |                           ""                         |          | CORS allowed origins for Plane AI (PI) API. Defaults to the license domain.                                                                                                                                                 |
 | env.pi_envs.log_level                  |                        DEBUG                         |          | Log level for Plane AI (PI) API (e.g. DEBUG, INFO, WARNING, ERROR).                                                                                                                                                        |
+| env.pi_envs.ai_usage_agent_max_tokens_budget |                         10000000                         |          | Max token budget for a single Plane AI agent run.                                                                                                                                                                                             |
+| env.pi_envs.ai_usage_credits_per_usd   |                         100                          |          | Number of Plane AI usage credits granted per US dollar.                                                                                                                                                                    |
 | services.pi.ai_providers.openai.enabled |                        false                         |          | Enable OpenAI as a Plane AI provider.                                                                                                                                                                                      |
 | services.pi.ai_providers.openai.base_url |                           ""                         |          | OpenAI API base URL (optional override).                                                                                                                                                                                   |
 | services.pi.ai_providers.openai.api_key |                           ""                         | required if `services.pi.ai_providers.openai.enabled` is `true` | OpenAI API key.                                                                                                                                                                                                     |
@@ -1468,7 +1452,7 @@ Runs the [Plane MCP server](https://github.com/makeplane/plane-mcp-server) insid
 | ingress.ingressClass        |                          traefik                          |   Yes    | Free-form class name written to the standard `Ingress` `spec.ingressClassName` (eg. nginx, traefik, nginx-new, etc). While `controller` is empty it also selects the template, and only `nginx`, `openshift` and `traefik*` are recognised. Unused by the Traefik `IngressRoute` and by OpenShift `Route`s. |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
 | ingress.traefik.entryPoints |                           `[]`                            |          | Traefik entrypoints the `IngressRoute` binds to. Leave empty to derive them from your `ssl.*` settings (`websecure` when TLS is configured, otherwise `web`). Set explicitly only if your Traefik renamed the default entrypoints, e.g. `['websecure','web']`. Ignored unless the controller resolves to `traefik` |
-| ingress.traefik.maxRequestBodyBytes |                    20971520                     |          | Max request body size in bytes for Traefik's buffering middleware (upload size limit). Ignored unless the controller resolves to `traefik` |
+| ingress.traefik.maxRequestBodyBytes |                    20971520                     |          | Max request body size in bytes for Traefik's buffering middleware (upload size limit). Ignored unless the controller resolves to `traefik`. Not applied to the streaming routes -- `/pi/` (except `/pi/api/v1/attachments/`), the agent-run activity stream and the MCP server prefix -- because `buffering` holds the whole response and breaks SSE |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -1936,7 +1920,7 @@ services:
 | `unhealthyPodEvictionPolicy` | unset   | `AlwaysAllow` lets a drain evict not-Ready pods while the budget is at limit |
 
 Budgets are rendered only for the stateless, horizontally-scalable workloads. Single-replica workloads
-(`beatworker`, `pi_beat_worker`, `monitor`, `argus`, the migration Jobs) and the in-chart stateful services
+(`beatworker`, `pi_beat_worker`, `argus`, the migration Jobs) and the in-chart stateful services
 are excluded by design: with no second copy a budget cannot protect anything, it can only block the drain.
 Requesting one for them **fails the render with an explanation**. An eligible workload still at `replicas: 1`
 is skipped silently, so the chart-wide switch stays a safe one-line change.
