@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v3.3.3
+  default: v4.0.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -55,11 +55,6 @@ questions:
     label: Live Init Docker Image
     type: string
     default: "busybox"
-  - variable: services.monitor.image
-    label: Monitor Docker Image
-    type: string
-    required: true
-    default: "makeplane/monitor-commercial"
   - variable: services.silo.image
     label: Silo Docker Image
     type: string
@@ -541,41 +536,6 @@ questions:
     label: "HubSpot Client Secret"
     type: string
     default: ""
-
-- variable: services.monitor.pullPolicy
-  label: "Monitor Pull Policy"
-  type: enum
-  options:
-  - "Always"
-  - "IfNotPresent"
-  - "Never"
-  default: "Always"
-  group: "Monitor Setup"
-  subquestions:
-  - variable: services.monitor.memoryLimit
-    label: "Memory Limit"
-    type: string
-    default: 1000Mi
-  - variable: services.monitor.cpuLimit
-    label: "CPU Limit"
-    type: string
-    default: 500m
-  - variable: services.monitor.memoryRequest
-    label: "Memory Request"
-    type: string
-    default: 128Mi
-  - variable: services.monitor.cpuRequest
-    label: "CPU Request"
-    type: string
-    default: 100m
-  - variable: services.monitor.volumeSize
-    label: "Volume Size"
-    type: string
-    default: "100Mi"
-  - variable: services.monitor.assign_cluster_ip
-    label: "Assign Cluster IP"
-    type: boolean
-    default: false
 
 - variable: services.api.pullPolicy
   label: "API Pull Policy"
@@ -1349,11 +1309,15 @@ questions:
   - variable: env.pi_envs.ai_usage_agent_max_tokens_budget
     label: "AI Usage Agent Max Tokens Budget"
     type: string
-    default: ""
+    default: "10000000"
   - variable: env.pi_envs.ai_usage_enforcement_enabled
     label: "AI Usage Enforcement Enabled"
     type: boolean
     default: true
+  - variable: env.pi_envs.ai_usage_credits_per_usd
+    label: "AI Usage Credits Per USD"
+    type: int
+    default: 100
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean

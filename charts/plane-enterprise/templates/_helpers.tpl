@@ -16,7 +16,7 @@ Consumed by templates/pdb.yaml (which workloads may have a PodDisruptionBudget) 
 validations.yaml (which workloads may not). Keep it in sync when a workload is added or renamed.
 
 Deliberately EXCLUDED, and not by oversight:
-  beatworker, pi_beat_worker, monitor, argus  Tier-2 singletons -- one replica by design, so a
+  beatworker, pi_beat_worker, argus           Tier-2 singletons -- one replica by design, so a
                                               budget has no second copy to protect and a spread
                                               constraint has nothing to spread
   postgres, redis, rabbitmq, opensearch,      Tier-3 in-chart stateful -- single replica on RWO
@@ -550,7 +550,7 @@ every workload for a change no running container can observe.
 {{- define "plane.configChecksum" -}}
 {{- $ctx := . -}}
 {{- $acc := "" -}}
-{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "monitor" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
+{{- range $f := list "app-env" "pgdb" "rabbitmqdb" "doc-store" "opensearchdb" "live-env" "silo" "pi-api-env" "runner-env" "email-env" "outbox-poller" "webhook-consumer" "automations-consumer" "agent-consumer" "otel" -}}
 {{- $acc = print $acc (include (print $ctx.Template.BasePath "/config-secrets/" $f ".yaml") $ctx) -}}
 {{- end -}}
 {{- $acc | sha256sum -}}

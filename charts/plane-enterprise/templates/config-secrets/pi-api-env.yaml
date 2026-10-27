@@ -153,7 +153,9 @@ data:
   PLANE_API_HOST: "http://{{ .Values.license.licenseDomain }}"
   {{- end }}
 
-  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-monitor.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8080"
+  FEATURE_FLAG_SERVER_BASE_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
+  FEATURE_FLAG_SERVER_PATH: "/services/feature-flags/"
+  PAYMENT_SERVER_BASE_URL: {{ .Values.license.licenseServer | quote }}
   PI_BASE_PATH: "/pi"
   PLANE_INTERNAL_API_HOST: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"
 
@@ -220,8 +222,9 @@ data:
   BR_AWS_REGION: {{ .Values.services.pi.ai_providers.embedding_model.aws_region | default "us-east-1" | quote }}
   {{- end }}
 
-  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
+  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "10000000" | quote }}
   AI_USAGE_ENFORCEMENT_ENABLED: {{ .Values.env.pi_envs.ai_usage_enforcement_enabled | ternary "1" "0" | quote }}
+  AI_USAGE_CREDITS_PER_USD: {{ .Values.env.pi_envs.ai_usage_credits_per_usd | default 100 | quote }}
 
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
   CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}
