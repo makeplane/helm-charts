@@ -228,4 +228,4 @@ data:
   {{- /* Bare hostname: the API matches entries as hostnames, and before plane-ee
          #10345 a scheme kept an entry from ever matching. */}}
   WEBHOOK_ALLOWED_HOSTS: {{ .Values.env.webhook_allowed_hosts | default .Values.license.licenseDomain | quote }}
-  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
+  AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "10000000" | quote }}
