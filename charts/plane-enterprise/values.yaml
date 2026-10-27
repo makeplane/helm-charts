@@ -1385,7 +1385,7 @@ env:
 
     ai_usage_agent_max_tokens_budget: ''
     ai_usage_enforcement_enabled: true
-    ai_usage_credits_per_usd: 100
+    ai_usage_credits_per_usd: 10000000
 
     celery:
       vector_sync_enabled: false

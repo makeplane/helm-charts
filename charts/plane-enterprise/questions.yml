@@ -1317,7 +1317,7 @@ questions:
   - variable: env.pi_envs.ai_usage_credits_per_usd
     label: "AI Usage Credits Per USD"
     type: int
-    default: 100
+    default: 10000000
   - variable: env.pi_envs.celery.vector_sync_enabled
     label: "Vector Sync Enabled"
     type: boolean

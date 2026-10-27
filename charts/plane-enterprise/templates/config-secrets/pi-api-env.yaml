@@ -224,7 +224,7 @@ data:
 
   AI_USAGE_AGENT_MAX_TOKENS_BUDGET: {{ .Values.env.pi_envs.ai_usage_agent_max_tokens_budget | default "" | quote }}
   AI_USAGE_ENFORCEMENT_ENABLED: {{ .Values.env.pi_envs.ai_usage_enforcement_enabled | ternary "1" "0" | quote }}
-  AI_USAGE_CREDITS_PER_USD: {{ .Values.env.pi_envs.ai_usage_credits_per_usd | default 100 | quote }}
+  AI_USAGE_CREDITS_PER_USD: {{ .Values.env.pi_envs.ai_usage_credits_per_usd | default 10000000 | quote }}
 
   CELERY_VECTOR_SYNC_ENABLED: {{ .Values.env.pi_envs.celery.vector_sync_enabled | ternary "1" "0" | quote }}
   CELERY_VECTOR_SYNC_INTERVAL: {{ .Values.env.pi_envs.celery.vector_sync_interval | default 3 | quote }}
