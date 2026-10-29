@@ -836,6 +836,25 @@ the bundled datastores off. Three things to know before you use it:
 | env.opensearch_index_prefix              |              plane_               |          | Prefix to be used for OpenSearch indices. This helps organize indices in a multi-tenant or multi-environment setup.                                                                                                                                                                                                                        |
 | env.opensearch_embedding_dimension       |               1536                |          | Embedding vector dimension used for OpenSearch semantic/vector indexing.                                                                                                                                                                                                                               |
 
+#### Search indexes
+
+Plane does not create its OpenSearch indexes itself, and workspace search returns HTTP 500 while one is missing. With OpenSearch on (`services.opensearch.local_setup`, `env.opensearch_remote_url` or `external_secrets.opensearch_existingSecret`), the chart runs a `post-install,post-upgrade` hook Job, `<release>-api-search-index`, that:
+
+1. waits for the database and for migrations (`wait_for_db`, `wait_for_migrations`),
+2. waits, bounded to about 10 minutes, for OpenSearch to answer (the bundled cluster may still be starting),
+3. creates every registered index that does not exist yet (names include `env.opensearch_index_prefix`), then the `docs_semantic` index if missing.
+
+Existing indexes are never changed, so the Job is safe on every upgrade. Any other OpenSearch error (403, 400, TLS) fails the Job, and with it the Helm release. The Job uses the Plane service account, so SigV4 (IRSA / Pod Identity) applies to Amazon OpenSearch as it does for the api.
+
+Helm waits for hook Jobs, and this one waits for migrations, so on a fresh install raise `helm install --timeout` (Terraform `helm_release.timeout`) to cover migrations plus index creation.
+
+Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `python manage.py manage_search_index index update --indices <name> --force` or `... index rebuild --indices <name> --force`, then `python manage.py manage_search_index document index --force` to reindex.
+
+| Setting                                         | Default | Required | Description |
+| ----------------------------------------------- | :-----: | :------: | ----------- |
+| services.api.searchIndexJob.enabled             |  true   |          | Run the search-index hook Job described above. Set `false` to manage indexes yourself |
+| services.api.searchIndexJob.activeDeadlineSeconds |  3600   |          | Upper bound for the Job, retries and the wait for migrations included |
+
 ### Doc Store (Minio/S3/GCS) Setup
 
 | Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |

@@ -479,6 +479,21 @@ services:
     podDisruptionBudget: {}
     labels: {}
     annotations: {}
+    # Post-install/post-upgrade hook Job <release>-api-search-index that creates the
+    # OpenSearch indexes Plane needs but never creates itself (a missing index makes
+    # workspace search return HTTP 500). It creates only indexes that do not exist
+    # yet, so it is safe on every upgrade; mapping updates and rebuilds of existing
+    # indexes stay manual (`python manage.py manage_search_index index update|rebuild
+    # --indices <name> --force` in an api pod). Rendered only when OpenSearch is on
+    # (services.opensearch.local_setup, env.opensearch_remote_url, or
+    # external_secrets.opensearch_existingSecret).
+    # The Job first waits for migrations, and Helm waits for the Job: give
+    # `helm install/upgrade --timeout` (Terraform helm_release `timeout`) enough for
+    # migrations plus index creation on a fresh install. A failure fails the release.
+    searchIndexJob:
+      enabled: true
+      # Upper bound for the whole Job, retries included.
+      activeDeadlineSeconds: 3600
 
   external_api:
     enabled: false
