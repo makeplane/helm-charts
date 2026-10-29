@@ -44,6 +44,7 @@ pi_worker: pi-worker
 runner: runner
 iframely: iframely
 drawio: drawio
+docs: docs
 {{- end }}
 
 {{/*
