@@ -67,3 +67,11 @@ This message only appears when the budget was asked for on this specific service
 {{- fail (printf "services.%s.podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one." $key $opts.minAvailable $opts.maxUnavailable) }}
 {{- end }}
 {{- end }}
+
+{{- /*
+The offline docs are built to be served at "/", so they need a host of their own; without one
+the pod runs but nothing routes to it.
+*/ -}}
+{{- if and .Values.services.docs.enabled .Values.ingress.enabled (not .Values.ingress.docsHost) }}
+{{- fail "services.docs.enabled is set, but ingress.docsHost is empty. The offline docs are served at \"/\" on a host of their own: set ingress.docsHost (e.g. docs.plane.example.com), or set ingress.enabled=false and route to the <release>-docs service yourself." }}
+{{- end }}

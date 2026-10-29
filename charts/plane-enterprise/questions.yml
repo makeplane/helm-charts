@@ -1167,6 +1167,51 @@ questions:
   show_if: "services.drawio.local_setup=false"
   group: "Draw.io Setup"
 
+- variable: services.docs.enabled
+  label: "Install Offline Docs"
+  description: "Serve a copy of docs.plane.so and developers.plane.so inside the cluster, for installs without internet access. Needs its own host (Ingress > Docs Host)."
+  type: boolean
+  default: false
+  group: "Offline Docs Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: services.docs.image
+    label: "Docker Image"
+    type: string
+    default: "makeplane/plane-docs-commercial:v2.1.0"
+  - variable: services.docs.pullPolicy
+    label: "Docs Pull Policy"
+    type: enum
+    options:
+    - "Always"
+    - "IfNotPresent"
+    - "Never"
+    default: "IfNotPresent"
+  - variable: services.docs.replicas
+    label: "Default Replica Count"
+    type: int
+    default: 1
+  - variable: services.docs.memoryLimit
+    label: "Memory Limit"
+    type: string
+    default: 256Mi
+  - variable: services.docs.cpuLimit
+    label: "CPU Limit"
+    type: string
+    default: 250m
+  - variable: services.docs.memoryRequest
+    label: "Memory Request"
+    type: string
+    default: 32Mi
+  - variable: services.docs.cpuRequest
+    label: "CPU Request"
+    type: string
+    default: 10m
+  - variable: services.docs.assign_cluster_ip
+    label: "Assign Cluster IP"
+    type: boolean
+    default: false
+
 - variable: services.argus.enabled
   label: "Install Argus (Sensitive Data & PII Scanner)"
   description: "Single-replica by design. Requires a unique Fingerprint Secret (openssl rand -hex 32)."
@@ -1906,6 +1951,11 @@ questions:
     type: string
     default: ""
     show_if: "services.rabbitmq.local_setup=true"
+  - variable: ingress.docsHost
+    label: "Docs Host"
+    type: string
+    default: ""
+    show_if: "services.docs.enabled=true"
   - variable: ingress.controller
     label: "Ingress Controller Type"
     description: "Which kind of ingress resource to render. Supported: 'traefik' a Traefik IngressRoute, 'openshift' one OpenShift Route per path, 'nginx' a standard networking.k8s.io/v1 Ingress using the Ingress Classname below verbatim. REQUIRED when your class name is not exactly 'nginx', 'openshift' or 'traefik*' - left empty, any other class renders no ingress at all."
