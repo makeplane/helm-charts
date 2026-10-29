@@ -92,6 +92,9 @@ Differences from the Traefik IngressRoute this mirrors:
 {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
 {{- $routes = append $routes (dict "slug" "rabbitmq-console" "host" .Values.ingress.rabbitmqHost "path" "/" "svc" (printf "%s-rabbitmq" $name) "port" 15672) }}
 {{- end }}
+{{- if and .Values.services.docs.enabled .Values.ingress.docsHost }}
+{{- $routes = append $routes (dict "slug" "docs" "host" .Values.ingress.docsHost "path" "/" "svc" (printf "%s-docs" $name) "port" 8080) }}
+{{- end }}
 
 {{- range $r := $routes }}
 ---

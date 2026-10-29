@@ -182,6 +182,18 @@ spec:
             path: /
             pathType: Prefix
     {{- end }}
+    {{- if and .Values.services.docs.enabled .Values.ingress.docsHost }}
+    - host: {{ .Values.ingress.docsHost }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-docs
+            path: /
+            pathType: Prefix
+    {{- end }}
 
   {{- if .Values.ssl.tls_secret_name}}
   tls:
@@ -193,6 +205,9 @@ spec:
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
       - {{ .Values.ingress.rabbitmqHost | quote }}
       {{ end }}
+      {{- if and .Values.services.docs.enabled .Values.ingress.docsHost }}
+      - {{ .Values.ingress.docsHost | quote }}
+      {{ end }}
       secretName: {{ .Values.ssl.tls_secret_name }}
   {{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
   tls:
@@ -203,6 +218,9 @@ spec:
       {{ end }}
       {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
       - {{ .Values.ingress.rabbitmqHost | quote }}
+      {{ end }}
+      {{- if and .Values.services.docs.enabled .Values.ingress.docsHost }}
+      - {{ .Values.ingress.docsHost | quote }}
       {{ end }}
       secretName: {{ .Release.Name }}-ssl-cert
   {{- end }}

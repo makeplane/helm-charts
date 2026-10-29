@@ -179,6 +179,14 @@ spec:
         port: 8080
   {{- end }}
 
+  {{- if and .Values.services.docs.enabled .Values.ingress.docsHost }}
+  - match: Host(`{{ .Values.ingress.docsHost }}`)
+    kind: Rule
+    services:
+      - name: {{ .Release.Name }}-docs
+        port: 8080
+  {{- end }}
+
   # LAST: catch all
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/`)
     kind: Rule

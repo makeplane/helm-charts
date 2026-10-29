@@ -32,6 +32,8 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
+  # Host for the offline docs (services.docs). Required when services.docs.enabled.
+  docsHost: ''
   # controller selects WHICH KIND of ingress resource is rendered, decoupled from
   # the class name below. Supported: nginx, traefik and openshift. When set:
   #   'traefik'   -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
@@ -363,6 +365,27 @@ services:
     memoryRequest: 256Mi
     cpuRequest: 100m
     image: makeplane/drawio:v2.5.0
+    pullPolicy: IfNotPresent
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
+    labels: {}
+    annotations: {}
+
+  # Offline copy of docs.plane.so and developers.plane.so for installs without internet
+  # access, served on its own host (ingress.docsHost). The image is versioned independently
+  # of planeVersion.
+  docs:
+    enabled: false
+    replicas: 1
+    memoryLimit: 256Mi
+    cpuLimit: 250m
+    memoryRequest: 32Mi
+    cpuRequest: 10m
+    image: makeplane/plane-docs-commercial:v2.1.0
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
     nodeSelector: {}
@@ -1207,6 +1230,9 @@ env:
   # rendered as DRAWIO_EMBED_URL. Ignored when services.drawio.local_setup is
   # true. Leave empty (with local_setup false) to use the diagrams.net cloud.
   drawio_remote_url: ''
+  # Docs hosted outside this chart, for in-app documentation links (DOCS_BASE_URL).
+  # Ignored when services.docs.enabled; leave empty to link to docs.plane.so.
+  docs_remote_url: ''
 
   #OPENSEARCH ENVS
   opensearch_remote_url: ''

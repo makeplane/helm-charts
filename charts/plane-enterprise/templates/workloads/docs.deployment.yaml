@@ -1,0 +1,85 @@
+{{- /*
+Offline copy of docs.plane.so (at "/") and developers.plane.so (at "/developers/") for
+installs that cannot reach the internet. Gated by services.docs.enabled (off by default).
+
+The site is built to be served at "/", so it gets its own host (ingress.docsHost) rather
+than a path prefix on the license domain.
+
+makeplane/plane-docs-commercial is versioned independently of planeVersion (it follows the
+docs repo's tags), so the image is pinned here rather than built from it. It runs as uid 1000,
+gid 0 and works under an arbitrary UID, so the securityContext helpers apply.
+*/ -}}
+{{- if .Values.services.docs.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-docs
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-docs
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+spec:
+  {{- if not .Values.services.docs.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: docs-8080
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-docs
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-docs-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.docs) }}
+spec:
+  replicas: {{ .Values.services.docs.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-docs
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-docs
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+      annotations:
+        {{- include "plane.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.docs }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.docs "app" "docs" "root" .) }}
+      {{- include "plane.podSecurityContext" . }}
+      containers:
+      - name: {{ .Release.Name }}-docs
+        {{- include "plane.containerSecurityContext" . }}
+        imagePullPolicy: {{ .Values.services.docs.pullPolicy | default "IfNotPresent" }}
+        image: {{ .Values.services.docs.image | default "makeplane/plane-docs-commercial:v2.1.0" }}
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: {{ .Values.services.docs.memoryRequest | default "32Mi" | quote }}
+            cpu: {{ .Values.services.docs.cpuRequest | default "10m" | quote }}
+          limits:
+            memory: {{ .Values.services.docs.memoryLimit | default "256Mi" | quote }}
+            cpu: {{ .Values.services.docs.cpuLimit | default "250m" | quote }}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
+{{- end }}
