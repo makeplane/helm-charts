@@ -1101,3 +1101,61 @@ Caller must nindent to the correct depth.
     {{- end -}}
   {{- end -}}
 {{- end -}}
+
+{{/*
+Email service TLS.
+
+The email app (plane-ee apps/email, pkg/utils/certs.go GenerateCerts, called from
+main.go) writes a self-signed keys/cert.pem + keys/key.pem under /opt/email at
+startup unless both files already exist. So the keys volume only needs a Secret
+when a real certificate is wanted; otherwise an emptyDir lets the app self-sign.
+
+"plane.emailCertEnabled" -> "true" when the chart renders the cert-manager
+Certificate for env.email_service_envs.smtp_domain: as before, unless
+services.email_service.tls_secret_name names an existing Secret or
+services.email_service.generateCert is false. Missing keys (an upgrade with
+--reuse-values from an older chart) keep today's behaviour.
+*/}}
+{{- define "plane.emailCertEnabled" -}}
+  {{- $es := .Values.services.email_service -}}
+  {{- $generate := true -}}
+  {{- if hasKey $es "generateCert" -}}
+    {{- $generate = $es.generateCert -}}
+  {{- end -}}
+  {{- if and $es.enabled .Values.env.email_service_envs.smtp_domain (empty $es.tls_secret_name) $generate -}}
+    true
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Name of the Secret mounted at /opt/email/keys, or "" for an emptyDir (the app
+self-signs). An existing Secret named by services.email_service.tls_secret_name
+wins; otherwise the Secret the chart's Certificate writes, when it renders one.
+*/}}
+{{- define "plane.emailTlsSecretName" -}}
+  {{- if .Values.services.email_service.tls_secret_name -}}
+    {{- .Values.services.email_service.tls_secret_name -}}
+  {{- else if eq (include "plane.emailCertEnabled" .) "true" -}}
+    {{- printf "%s-mail-tls-secret" .Release.Name -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+"true" when the email service needs the chart's namespaced <release>-cert-issuer.
+Kept true for every email-enabled install that sets none of the new email TLS
+values, so templates/certs/cert-issuers.yaml renders exactly as before; it turns
+false only when the email Certificate points at another issuer
+(services.email_service.certIssuerRef.name), uses an existing Secret
+(tls_secret_name), or is switched off (generateCert: false).
+*/}}
+{{- define "plane.emailNeedsChartIssuer" -}}
+  {{- $es := .Values.services.email_service -}}
+  {{- $ref := $es.certIssuerRef | default dict -}}
+  {{- $generate := true -}}
+  {{- if hasKey $es "generateCert" -}}
+    {{- $generate = $es.generateCert -}}
+  {{- end -}}
+  {{- if and $es.enabled (empty $ref.name) (empty $es.tls_secret_name) $generate -}}
+    true
+  {{- end -}}
+{{- end -}}

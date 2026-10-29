@@ -615,10 +615,52 @@ services:
     topologySpreadConstraints: []
     podDisruptionBudget: {}
     labels: {}
-    # This service mounts a cert-manager TLS Secret, so it needs a restart when the
-    # certificate is renewed. Add reloader.stakater.com/auto: "true" here (and install
-    # Stakater Reloader) if you want that to happen automatically.
+    # Annotations on the email Deployment (not the Service -- see service.annotations).
+    # When this service mounts a TLS Secret (see TLS below) it needs a restart when
+    # the certificate is renewed. Add reloader.stakater.com/auto: "true" here (and
+    # install Stakater Reloader) if you want that to happen automatically.
     annotations: {}
+    # The Kubernetes Service in front of the SMTP ports (25, 465, 587).
+    service:
+      # ClusterIP, NodePort or LoadBalancer. LoadBalancer is the historical default.
+      # Use ClusterIP to run the email service without a load balancer (e.g. when
+      # SMTP reaches the cluster some other way, or only in-cluster).
+      type: LoadBalancer
+      # Annotations on the Service, e.g. for the AWS Load Balancer Controller:
+      #   service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      #   service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      annotations: {}
+      # spec.loadBalancerClass, e.g. service.k8s.aws/nlb. LoadBalancer only; unset
+      # leaves the choice to the cluster's default load balancer implementation.
+      loadBalancerClass: ''
+      # spec.loadBalancerSourceRanges (CIDRs allowed to connect). LoadBalancer only.
+      loadBalancerSourceRanges: []
+      # Local keeps the client source IP, which the mail server needs for spam
+      # checks. Rendered for LoadBalancer and NodePort only.
+      externalTrafficPolicy: Local
+      # Fixed node ports per port name; any left unset are allocated by Kubernetes.
+      # NodePort and LoadBalancer only.
+      nodePorts: {}
+      #  smtp: 30025
+      #  smtps: 30465
+      #  submission: 30587
+    # TLS for SMTP. The email app generates a self-signed certificate at startup when
+    # none is mounted, so a Secret is only needed for a real certificate:
+    #   - tls_secret_name set: mount this existing kubernetes.io/tls Secret
+    #     (tls.crt/tls.key); the chart renders no Certificate.
+    #   - otherwise, with env.email_service_envs.smtp_domain set and generateCert
+    #     true: the chart renders a cert-manager Certificate for smtp_domain into
+    #     <release>-mail-tls-secret and mounts it.
+    #   - otherwise: an emptyDir, and the app self-signs.
+    tls_secret_name: ''
+    generateCert: true
+    # Issuer for that Certificate. Empty name keeps the chart's namespaced
+    # <release>-cert-issuer, which the chart creates while ssl.tls_secret_name is
+    # empty. Set name (and kind: ClusterIssuer) to use an issuer you already run;
+    # the chart then no longer creates <release>-cert-issuer for the email service.
+    certIssuerRef:
+      name: ''
+      kind: ''
 
   outbox_poller:
     enabled: false

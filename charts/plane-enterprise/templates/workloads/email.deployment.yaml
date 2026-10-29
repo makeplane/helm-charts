@@ -1,4 +1,14 @@
 {{- if .Values.services.email_service.enabled }}
+{{- /* services.email_service.service shapes the Service. Every key falls back to the
+       pre-3.11.3 behaviour (a LoadBalancer with externalTrafficPolicy Local), also
+       when the block is missing entirely, as after `helm upgrade --reuse-values`. */}}
+{{- $svc := .Values.services.email_service.service | default dict }}
+{{- $svcType := $svc.type | default "LoadBalancer" }}
+{{- if not (has $svcType (list "ClusterIP" "NodePort" "LoadBalancer")) }}
+{{- fail (printf "services.email_service.service.type must be ClusterIP, NodePort or LoadBalancer, got %q" $svcType) }}
+{{- end }}
+{{- $exposed := has $svcType (list "NodePort" "LoadBalancer") }}
+{{- $nodePorts := $svc.nodePorts | default dict }}
 
 apiVersion: v1
 kind: Service
@@ -7,23 +17,47 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with $svc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  type: LoadBalancer
-  externalTrafficPolicy: Local  # Important for email servers
+  type: {{ $svcType }}
+  {{- if $exposed }}
+  externalTrafficPolicy: {{ $svc.externalTrafficPolicy | default "Local" }}  # Important for email servers
+  {{- end }}
+  {{- if eq $svcType "LoadBalancer" }}
+  {{- with $svc.loadBalancerClass }}
+  loadBalancerClass: {{ . }}
+  {{- end }}
+  {{- with $svc.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
   selector:
     app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-email-app
   ports:
   - name: smtp
     port: 25
     targetPort: 10025
+    {{- if and $exposed $nodePorts.smtp }}
+    nodePort: {{ $nodePorts.smtp }}
+    {{- end }}
     protocol: TCP
   - name: smtps
     port: 465
     targetPort: 10465
+    {{- if and $exposed $nodePorts.smtps }}
+    nodePort: {{ $nodePorts.smtps }}
+    {{- end }}
     protocol: TCP
   - name: submission
     port: 587
     targetPort: 10587
+    {{- if and $exposed $nodePorts.submission }}
+    nodePort: {{ $nodePorts.submission }}
+    {{- end }}
     protocol: TCP
 ---
 
@@ -117,15 +151,23 @@ spec:
         - name: spam-blacklist
           configMap:
             name: {{ .Release.Name }}-email-vars
+        {{- /* With no Secret to mount, an emptyDir: the app writes a self-signed
+               keys/cert.pem + key.pem at startup when they are missing
+               (plane-ee apps/email/pkg/utils/certs.go). */}}
+        {{- $tlsSecret := include "plane.emailTlsSecretName" . }}
         - name: tls-cert
+          {{- if $tlsSecret }}
           secret:
-            secretName: {{ .Release.Name }}-mail-tls-secret
+            secretName: {{ $tlsSecret }}
             items:
             - key: tls.crt
               path: cert.pem
             - key: tls.key
               path: key.pem
             optional: false
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
 ---

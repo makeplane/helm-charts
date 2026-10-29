@@ -1275,11 +1275,55 @@ Operational notes:
 | services.email_service.tolerations   |                      []                       |          | This key allows you to set the tolerations for the deployment of `email_service`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.email_service.affinity      |                      {}                       |          | This key allows you to set the affinity rules for the deployment of `email_service`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.       |
 | services.email_service.labels        |                      {}                       |          | Custom labels to add to the email service deployment                                                                                                                                           |
-| services.email_service.annotations   |                      {}                       |          | Custom annotations to add to the email service deployment                                                                                                                                      |
+| services.email_service.annotations   |                      {}                       |          | Custom annotations to add to the email service deployment (the Deployment, not the Service; see `services.email_service.service.annotations`)                                                  |
+| services.email_service.service.type  |                 LoadBalancer                  |          | Type of the `<release>-email-service` Service: `ClusterIP`, `NodePort` or `LoadBalancer`. `ClusterIP` runs the email service without a load balancer                                          |
+| services.email_service.service.annotations |                  {}                     |          | Annotations on the email Service, e.g. `service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip` and `service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing` for the AWS Load Balancer Controller |
+| services.email_service.service.loadBalancerClass |            ''                     |          | `spec.loadBalancerClass`, e.g. `service.k8s.aws/nlb`. Rendered only for `type: LoadBalancer`; empty leaves it to the cluster default                                                            |
+| services.email_service.service.loadBalancerSourceRanges |      []                     |          | CIDRs allowed to reach the load balancer. Rendered only for `type: LoadBalancer`                                                                                                              |
+| services.email_service.service.externalTrafficPolicy |         Local                     |          | `Local` keeps the client source IP, which the mail server uses for spam checks. Rendered only for `NodePort` and `LoadBalancer`                                                                 |
+| services.email_service.service.nodePorts |                   {}                       |          | Optional fixed node ports by port name (`smtp`, `smtps`, `submission`), e.g. `{smtp: 30025}`. Unset ports are allocated by Kubernetes. Rendered only for `NodePort` and `LoadBalancer`         |
+| services.email_service.tls_secret_name |                     ''                      |          | Existing `kubernetes.io/tls` Secret (`tls.crt`/`tls.key`) to mount as the SMTP certificate. When set, the chart renders no email Certificate                                                    |
+| services.email_service.generateCert  |                     true                      |          | With `env.email_service_envs.smtp_domain` set (and no `tls_secret_name`), render a cert-manager Certificate for that domain into `<release>-mail-tls-secret` and mount it. Set `false` to skip it; the email app then generates a self-signed certificate at startup |
+| services.email_service.certIssuerRef.name |                  ''                        |          | Issuer for the email Certificate. Empty uses the chart's namespaced `<release>-cert-issuer` (created only while `ssl.tls_secret_name` is empty). Set it to use an existing issuer; the chart then stops creating `<release>-cert-issuer` for the email service |
+| services.email_service.certIssuerRef.kind |                  ''                        |          | `Issuer` or `ClusterIssuer`; empty means cert-manager's default, `Issuer`                                                                                                                     |
 | env.email_service_envs.smtp_domain   |                                               |   Yes    | The SMTP Domain to be used with email service                                                                                                                                                  |
 | env.email_service_envs.max_attachment_size | 10485760 (10MB)                         |          | Maximum email attachment size in bytes                                                                                                                                                          |
 
-Note: When the email service is enabled, the cert-issuer will be automatically created to handle TLS certificates for the email service.
+Note: The SMTP certificate comes from, in order: `services.email_service.tls_secret_name`; else the cert-manager Certificate the chart renders when `env.email_service_envs.smtp_domain` is set and `generateCert` is true (issued by `<release>-cert-issuer`, which the chart creates while `ssl.tls_secret_name` is empty, or by `certIssuerRef`); else a self-signed certificate that the email app generates at startup in an `emptyDir`.
+
+Example: no load balancer, self-signed SMTP certificate
+
+```yaml
+services:
+  email_service:
+    enabled: true
+    service:
+      type: ClusterIP
+    generateCert: false
+env:
+  email_service_envs:
+    smtp_domain: mail.plane.example.com
+```
+
+Example: AWS NLB through the AWS Load Balancer Controller, certificate from an existing ClusterIssuer
+
+```yaml
+services:
+  email_service:
+    enabled: true
+    service:
+      type: LoadBalancer
+      loadBalancerClass: service.k8s.aws/nlb
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    certIssuerRef:
+      name: letsencrypt-prod
+      kind: ClusterIssuer
+env:
+  email_service_envs:
+    smtp_domain: mail.plane.example.com
+```
 
 ### Outbox Poller Service Deployment
 
@@ -1392,7 +1436,7 @@ Note: When the email service is enabled, the cert-issuer will be automatically c
 
 ### Draw.io Deployment
 
-Self-hosted [draw.io](https://www.drawio.com/) for the Wiki editor's diagram extension. Like the other bundled services it is gated by `services.drawio.local_setup` (default `false`). With `local_setup: true` the nginx, Traefik and OpenShift ingress templates serve it on the `/drawio/` path prefix of the license domain and `DRAWIO_EMBED_URL` is set to `<scheme>://<licenseDomain>/drawio`. With `local_setup: false`, `DRAWIO_EMBED_URL` comes from `env.drawio_remote_url`, and when that is empty too the editor uses the diagrams.net cloud. The image serves its webapp at `/`, so the ingress strips the `/drawio` prefix before forwarding. On nginx this uses a separate `<release>-drawio` Ingress with `rewrite-target`, which switches ingress-nginx to regex path matching for the whole host. `makeplane/drawio` is versioned independently of `planeVersion`.
+Self-hosted [draw.io](https://www.drawio.com/) for the Wiki editor's diagram extension. Like the other bundled services it is gated by `services.drawio.local_setup` (default `false`). With `local_setup: true` the nginx, Traefik and OpenShift ingress templates serve it on the `/drawio/` path prefix of the license domain and `DRAWIO_EMBED_URL` is set to `<scheme>://<licenseDomain>/drawio`. With `local_setup: false`, `DRAWIO_EMBED_URL` comes from `env.drawio_remote_url`, and when that is empty too the editor uses the diagrams.net cloud. The image serves its webapp at `/`, so the ingress strips the `/drawio` prefix before forwarding, and a request for exactly `/drawio` is redirected to `/drawio/` (Traefik `<release>-drawio-redirect` Middleware; nginx `<release>-drawio-redirect` Ingress). On nginx this uses a separate `<release>-drawio` Ingress with `rewrite-target`, which switches ingress-nginx to regex path matching for the whole host. `makeplane/drawio` is versioned independently of `planeVersion`.
 
 | Setting                                  |         Default          | Required | Description                                                                                                                                                                             |
 | ---------------------------------------- | :----------------------: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1452,7 +1496,7 @@ Runs the [Plane MCP server](https://github.com/makeplane/plane-mcp-server) insid
 | ingress.ingressClass        |                          traefik                          |   Yes    | Free-form class name written to the standard `Ingress` `spec.ingressClassName` (eg. nginx, traefik, nginx-new, etc). While `controller` is empty it also selects the template, and only `nginx`, `openshift` and `traefik*` are recognised. Unused by the Traefik `IngressRoute` and by OpenShift `Route`s. |
 | ingress.ingress_annotations | `{ "nginx.ingress.kubernetes.io/proxy-body-size": "5m" }` |          | Ingress controllers comes with various configuration options which can be passed as annotations. Setting this value lets you change the default value to user required.                                                                                                                                                                                                                                                   |
 | ingress.traefik.entryPoints |                           `[]`                            |          | Traefik entrypoints the `IngressRoute` binds to. Leave empty to derive them from your `ssl.*` settings (`websecure` when TLS is configured, otherwise `web`). Set explicitly only if your Traefik renamed the default entrypoints, e.g. `['websecure','web']`. Ignored unless the controller resolves to `traefik` |
-| ingress.traefik.maxRequestBodyBytes |                    20971520                     |          | Max request body size in bytes for Traefik's buffering middleware (upload size limit). Ignored unless the controller resolves to `traefik`. Not applied to the streaming routes -- `/pi/` (except `/pi/api/v1/attachments/`), the agent-run activity stream and the MCP server prefix -- because `buffering` holds the whole response and breaks SSE |
+| ingress.traefik.maxRequestBodyBytes |                    20971520                     |          | Max request body size in bytes for Traefik's buffering middleware (upload size limit). Ignored unless the controller resolves to `traefik`. Not applied to the streaming routes -- `/pi/` (except `/pi/api/v1/attachments/`), the agent-run activity stream, live's `/live/api/ai/write` and `/live/export/<jobId>/sse`, and the MCP server prefix -- because `buffering` holds the whole response and breaks SSE |
 | ssl.createIssuer            |                           false                           |          | Kubernets cluster setup supports creating `issuer` type resource. After deployment, this is step towards creating secure access to the ingress url. Issuer is required for you generate SSL certifiate. Kubernetes can be configured to use any of the certificate authority to generate SSL (depending on CertManager configuration). Set it to `true` to create the issuer. Applicable only when `ingress.enabled=true` |
 | ssl.issuer                  |                           http                            |          | CertManager configuration allows user to create issuers using `http` or any of the other DNS Providers like `cloudflare`, `digitalocean`, etc. As of now Plane supports `http`, `cloudflare`, `digitalocean`                                                                                                                                                                                                              |
 | ssl.token                   |                                                           |          | To create issuers using DNS challenge, set the issuer api token of dns provider like cloudflare`or`digitalocean`(not required for http)                                                                                                                                                                                                                                                                                   |
@@ -1871,7 +1915,7 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com       |   /live/\*   | <http://plane-app-live.plane:3000>      | Yes                                                                         |
 | plane.example.com       |   /silo/\*   | <http://plane-app-silo.plane:3000>      | Yes (if `services.silo.enabled=true` )                                                                       |
 | plane.example.com       |   /pi/\*     | <http://plane-app-pi-api.plane:8000>    | Yes (if `services.pi.enabled=true`)                                         |
-| plane.example.com       |  /drawio/\*  | <http://plane-app-drawio.plane:8080>    | Yes (if `services.drawio.local_setup=true`; `/drawio` prefix stripped)      |
+| plane.example.com       |  /drawio/\*  | <http://plane-app-drawio.plane:8080>    | Yes (if `services.drawio.local_setup=true`; `/drawio` prefix stripped; exactly `/drawio` redirects to `/drawio/` on Traefik and nginx)      |
 | plane.example.com       |  /argus/\*   | <http://plane-app-argus.plane:8100>     | Yes (if `services.argus.enabled=true`)                                      |
 | plane.example.com       |   /mcp/\*    | <http://plane-app-mcp-server.plane:8211> | Yes (if `services.mcp_server.enabled=true`; `/mcp` is the default `services.mcp_server.path_prefix`, use your configured prefix) |
 | plane.example.com       | /.well-known/oauth-protected-resource/mcp\* | <http://plane-app-mcp-server.plane:8211> | Yes (if `services.mcp_server.enabled=true`; OAuth discovery, path-inserted at the host root by MCP clients; `/mcp` follows `services.mcp_server.path_prefix`) |
@@ -1880,6 +1924,7 @@ If you are planning to use 3rd party ingress providers, here is the available ro
 | plane.example.com       |   /auth/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
 | plane.example.com       |   /graphql/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
 | plane.example.com       |   /marketplace/\*   | <http://plane-app-api.plane:8000>       | Yes                                                                         |
+| plane.example.com       |   /dav/\*   | <http://plane-app-api.plane:8000>       | Yes (WebDAV for editing Microsoft Office attachments)                       |
 | plane.example.com       | /uploads/\*  | <http://plane-app-minio.plane:9000>     | Yes (Only if using local setup)                                             |
 | plane-minio.example.com |      /       | <http://plane-app-minio.plane:9090>     | (Optional) if using local setup, this will enable minio console access      |
 | plane-mq.example.com    |      /       | <http://plane-app-rabbitmq.plane:15672> | (Optional) if using local setup, this will enable management console access |

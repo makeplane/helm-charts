@@ -163,6 +163,14 @@ data:
 
   LIVE_BASE_URL: "http://{{ .Release.Name }}-live.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:3000/"
   LIVE_BASE_PATH: "/live"
+  {{- /* Set even with services.pi.enabled false, deliberately. The api has no
+         "Plane AI off" value for it: PI_URL = urljoin(PI_BASE_URL, "/pi") is "/pi"
+         when it is empty, so every `if not PI_URL` guard still passes. And the
+         Plane AI OAuth application is registered once, when the first instance
+         admin is created, with redirect_uris built from PI_URL
+         (plane/silo/utils/constants.py) and never refreshed afterwards -- an empty
+         value would leave a relative redirect URI that breaks Plane AI sign-in if
+         pi is enabled later. */}}
   {{- if eq (include "plane.tlsEnabled" .) "true" }}
   PI_BASE_URL: "https://{{ .Values.license.licenseDomain }}"
   {{- else }}

@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (or .Values.services.email_service.enabled .Values.ssl.createIssuer) (empty .Values.ssl.tls_secret_name) }}
+{{- if and .Values.ingress.enabled (or (eq (include "plane.emailNeedsChartIssuer" .) "true") .Values.ssl.createIssuer) (empty .Values.ssl.tls_secret_name) }}
 {{- $issuerTokenSecret := .Values.external_secrets.ssl_token_existingSecret | default (printf "%s-issuer-api-token-secret" .Release.Name) }}
 {{- if empty .Values.external_secrets.ssl_token_existingSecret }}
 

@@ -23,6 +23,23 @@ spec:
   stripPrefix:
     prefixes:
       - /drawio
+---
+{{- /* Exactly /drawio (optionally with a query string) -> /drawio/. The Location is
+       relative, so the browser keeps its scheme even when TLS ends in front of
+       Traefik. The service on the route is never reached: the middleware answers
+       every request the route matches. */}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-drawio-redirect
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  redirectRegex:
+    regex: '^[a-z]+://[^/]+/drawio(\?.*)?$'
+    replacement: '/drawio/${1}'
+    permanent: true
 {{- end }}
 
 {{- end }}
