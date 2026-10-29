@@ -4,6 +4,23 @@ entries:
   - annotations:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
+    appVersion: 1.4.3
+    created: "2026-10-29T07:26:58.192040972Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: c70244eefa7dfa94e8636048fe4032640999c7d4e265b1fec68d13060cf70e4f
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.8.6/plane-ce-1.8.6.tgz
+    version: 1.8.6
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
     appVersion: 1.4.2
     created: "2026-10-13T10:13:51.144840972Z"
     description: Meet Plane. An open-source software development tool to manage issues,
@@ -699,6 +716,21 @@ entries:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.13/plane-ce-1.0.13.tgz
     version: 1.0.13
   plane-enterprise:
+  - apiVersion: v2
+    appVersion: 4.0.1
+    created: "2026-10-29T07:26:58.382974288Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 2391d5c8795cf4fa003c214705a08b4b2f07f9c9570c5a4ee0852837cd92242d
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-3.11.2/plane-enterprise-3.11.2.tgz
+    version: 3.11.2
   - apiVersion: v2
     appVersion: 4.0.0
     created: "2026-10-27T13:37:47.906007203Z"
@@ -2543,4 +2575,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-mcp-server-1.0.0/plane-mcp-server-1.0.0.tgz
     version: 1.0.0
-generated: "2026-10-27T13:37:47.906230736Z"
+generated: "2026-10-29T07:26:58.38390809Z"
