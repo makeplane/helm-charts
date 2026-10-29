@@ -33,8 +33,37 @@ env:
   PAGES_INDEX_PATH: ""
 
 jobs:
+  # plane-enterprise pins the offline docs image (services.docs.image), which the docs repo
+  # publishes on its own version tags. Refuse to release a chart that points at a tag that
+  # was never pushed, and say so when the docs have moved on since the pinned one.
+  docs-image:
+    if: ${{ github.event.inputs.plane-ee == 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the pinned docs image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          image=$(yq '.services.docs.image' charts/plane-enterprise/values.yaml)
+          tag=${image##*:}
+          echo "Pinned docs image: $image"
+          if ! docker manifest inspect "$image" > /dev/null; then
+            echo "::error::$image is not on Docker Hub. Push the docs tag $tag in makeplane/docs (or run its Offline docs image workflow) before releasing the chart."
+            exit 1
+          fi
+          if ! ahead=$(gh api "repos/makeplane/docs/compare/$tag...master" --jq .ahead_by 2>/dev/null); then
+            echo "::warning::Could not compare makeplane/docs master with $tag; check by hand that the pinned docs are current."
+          elif [ "$ahead" != "0" ]; then
+            echo "::warning::makeplane/docs master is $ahead commit(s) ahead of $tag. Cut a new docs tag and bump services.docs.image if this release should ship newer docs."
+          fi
+
   setup:
-    if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' || github.event.inputs.plane-mcp-server == 'true' }}
+    needs: docs-image
+    if: ${{ !failure() && !cancelled() && (github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' || github.event.inputs.plane-mcp-server == 'true') }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write
