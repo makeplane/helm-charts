@@ -486,9 +486,11 @@ services:
     # `manage_search_index list` to check every index exists); existing indexes are
     # left alone, so it is safe on every upgrade. Mapping updates and rebuilds of existing
     # indexes stay manual (`python manage.py manage_search_index index update|rebuild
-    # --indices <name> --force` in an api pod). Rendered only when OpenSearch is on
-    # (services.opensearch.local_setup, env.opensearch_remote_url, or
-    # external_secrets.opensearch_existingSecret).
+    # --indices <name> --force` in an api pod). Rendered only when OpenSearch can be
+    # on: services.opensearch.local_setup, env.opensearch_remote_url,
+    # external_secrets.opensearch_existingSecret, or an extraEnv entry
+    # OPENSEARCH_ENABLED with value "1"/"true" or a valueFrom. At runtime the Job
+    # does nothing unless the pod's OPENSEARCH_ENABLED is exactly "1".
     # The Job first waits for migrations, and Helm waits for the Job: give
     # `helm install/upgrade --timeout` (Terraform helm_release `timeout`) enough for
     # migrations plus index creation on a fresh install. A failure fails the release.
@@ -649,6 +651,10 @@ services:
       annotations: {}
       # spec.loadBalancerClass, e.g. service.k8s.aws/nlb. LoadBalancer only; unset
       # leaves the choice to the cluster's default load balancer implementation.
+      # Kubernetes treats it as immutable on an existing LoadBalancer Service, so
+      # changing it fails `helm upgrade`. Set it on first install. To change it
+      # later: upgrade with type: ClusterIP, then upgrade back to LoadBalancer with
+      # the new class (or delete the Service, then upgrade).
       loadBalancerClass: ''
       # spec.loadBalancerSourceRanges (CIDRs allowed to connect). LoadBalancer only.
       loadBalancerSourceRanges: []

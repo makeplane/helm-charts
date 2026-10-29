@@ -838,12 +838,15 @@ the bundled datastores off. Three things to know before you use it:
 
 #### Search indexes
 
-Plane does not create its OpenSearch indexes itself, and workspace search returns HTTP 500 while one is missing. With OpenSearch on (`services.opensearch.local_setup`, `env.opensearch_remote_url` or `external_secrets.opensearch_existingSecret`), the chart runs a `post-install,post-upgrade` hook Job, `<release>-api-search-index`, that:
+Plane does not create its OpenSearch indexes itself, and workspace search returns HTTP 500 while one is missing. When OpenSearch can be on, the chart runs a `post-install,post-upgrade` hook Job, `<release>-api-search-index`, that:
 
-1. waits for the database and for migrations (`wait_for_db`, `wait_for_migrations`),
-2. waits, bounded to about 10 minutes, for `python manage.py manage_search_index list` to succeed (the bundled cluster may still be starting),
-3. runs `python manage.py manage_search_index index create --force --ignore-error`, which creates the missing registered indexes (names include `env.opensearch_index_prefix`), skips the ones that exist, and then creates `docs_semantic` if missing,
-4. runs `manage_search_index list` again and fails unless every registered index is listed as `[X]`. `--ignore-error` also hides real errors such as a 403, and this check catches them.
+1. exits without doing anything unless the pod's `OPENSEARCH_ENABLED` is exactly `1`,
+2. waits for the database and for migrations (`wait_for_db`, `wait_for_migrations`),
+3. waits, bounded to about 10 minutes, for `python manage.py manage_search_index list` to succeed (the bundled cluster may still be starting),
+4. runs `python manage.py manage_search_index index create --force --ignore-error`, which creates the missing registered indexes (names include `env.opensearch_index_prefix`), skips the ones that exist, and then creates `docs_semantic` if missing,
+5. runs `manage_search_index list` again and fails unless every registered index is listed as `[X]`. `--ignore-error` also hides real errors such as a 403, and this check catches them.
+
+"OpenSearch can be on" means any of `services.opensearch.local_setup`, `env.opensearch_remote_url`, `external_secrets.opensearch_existingSecret`, or a global `extraEnv` entry `OPENSEARCH_ENABLED` whose value is `1`/`true` (any case) or that uses `valueFrom` (the chart cannot read it, so it renders the Job and lets the runtime check decide).
 
 Existing indexes are never changed, so the Job is safe on every upgrade. If an index is still missing or OpenSearch returns an error, the Job fails, and with it the Helm release. The Job uses the Plane service account, so SigV4 (IRSA / Pod Identity) applies to Amazon OpenSearch as it does for the api.
 
@@ -1298,7 +1301,7 @@ Operational notes:
 | services.email_service.annotations   |                      {}                       |          | Custom annotations to add to the email service deployment (the Deployment, not the Service; see `services.email_service.service.annotations`)                                                  |
 | services.email_service.service.type  |                 LoadBalancer                  |          | Type of the `<release>-email-service` Service: `ClusterIP`, `NodePort` or `LoadBalancer`. `ClusterIP` runs the email service without a load balancer                                          |
 | services.email_service.service.annotations |                  {}                     |          | Annotations on the email Service, e.g. `service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip` and `service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing` for the AWS Load Balancer Controller |
-| services.email_service.service.loadBalancerClass |            ''                     |          | `spec.loadBalancerClass`, e.g. `service.k8s.aws/nlb`. Rendered only for `type: LoadBalancer`; empty leaves it to the cluster default                                                            |
+| services.email_service.service.loadBalancerClass |            ''                     |          | `spec.loadBalancerClass`, e.g. `service.k8s.aws/nlb`. Rendered only for `type: LoadBalancer`; empty leaves it to the cluster default. Immutable on an existing LoadBalancer Service, so changing it fails `helm upgrade`: set it on first install, or to change it later upgrade with `type: ClusterIP`, then back to `LoadBalancer` with the new class (or delete the Service, then upgrade) |
 | services.email_service.service.loadBalancerSourceRanges |      []                     |          | CIDRs allowed to reach the load balancer. Rendered only for `type: LoadBalancer`                                                                                                              |
 | services.email_service.service.externalTrafficPolicy |         Local                     |          | `Local` keeps the client source IP, which the mail server uses for spam checks. Rendered only for `NodePort` and `LoadBalancer`                                                                 |
 | services.email_service.service.nodePorts |                   {}                       |          | Optional fixed node ports by port name (`smtp`, `smtps`, `submission`), e.g. `{smtp: 30025}`. Unset ports are allocated by Kubernetes. Rendered only for `NodePort` and `LoadBalancer`         |

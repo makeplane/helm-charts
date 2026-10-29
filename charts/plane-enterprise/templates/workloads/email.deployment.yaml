@@ -27,6 +27,8 @@ spec:
   externalTrafficPolicy: {{ $svc.externalTrafficPolicy | default "Local" }}  # Important for email servers
   {{- end }}
   {{- if eq $svcType "LoadBalancer" }}
+  {{- /* spec.loadBalancerClass is immutable once the LoadBalancer Service exists, so
+         changing it fails the upgrade; values.yaml documents the ClusterIP round-trip. */}}
   {{- with $svc.loadBalancerClass }}
   loadBalancerClass: {{ . }}
   {{- end }}

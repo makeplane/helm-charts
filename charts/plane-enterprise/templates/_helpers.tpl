@@ -1159,3 +1159,26 @@ false only when the email Certificate points at another issuer
     true
   {{- end -}}
 {{- end -}}
+
+{{/*
+"true" when the global extraEnv may switch OpenSearch on: an entry named
+OPENSEARCH_ENABLED whose value is "1" or "true" (any case), or one that takes its
+value from valueFrom, which the chart cannot read at render time. extraEnv is
+rendered in every api-family container's `env`, which wins over the
+opensearch Secret in `envFrom`. Used only to decide whether the search-index
+Job renders; a false positive is harmless, because the Job exits 0 at runtime
+unless OPENSEARCH_ENABLED is exactly "1" (the only value the api treats as on).
+*/}}
+{{- define "plane.extraEnvOpensearchEnabled" -}}
+  {{- $on := false -}}
+  {{- range (.Values.extraEnv | default list) -}}
+    {{- if and (kindIs "map" .) (eq (toString .name) "OPENSEARCH_ENABLED") -}}
+      {{- if .valueFrom -}}
+        {{- $on = true -}}
+      {{- else if has (lower (toString (.value | default ""))) (list "1" "true") -}}
+        {{- $on = true -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $on -}}true{{- end -}}
+{{- end -}}

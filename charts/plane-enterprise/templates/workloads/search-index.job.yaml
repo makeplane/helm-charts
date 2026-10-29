@@ -24,16 +24,18 @@ variables, not files, so a read-only root filesystem does not matter.
 
 Rendered when services.api.searchIndexJob.enabled (a missing key counts as
 enabled, an explicit false does not) and OpenSearch can be on: the bundled
-cluster, env.opensearch_remote_url, or a user-supplied
-external_secrets.opensearch_existingSecret. In that last case the Secret decides,
-and the Job exits 0 without touching anything when OPENSEARCH_ENABLED is not 1.
+cluster, env.opensearch_remote_url, a user-supplied
+external_secrets.opensearch_existingSecret, or extraEnv setting
+OPENSEARCH_ENABLED (see plane.extraEnvOpensearchEnabled). In the last two cases
+the pod's environment decides: the Job exits 0 without touching anything when
+OPENSEARCH_ENABLED is not 1.
 */}}
 {{- $sij := .Values.services.api.searchIndexJob | default dict }}
 {{- $enabled := true }}
 {{- if hasKey $sij "enabled" }}
 {{- $enabled = $sij.enabled }}
 {{- end }}
-{{- $opensearchOn := or .Values.services.opensearch.local_setup .Values.env.opensearch_remote_url .Values.external_secrets.opensearch_existingSecret }}
+{{- $opensearchOn := or .Values.services.opensearch.local_setup .Values.env.opensearch_remote_url .Values.external_secrets.opensearch_existingSecret (include "plane.extraEnvOpensearchEnabled" .) }}
 {{- if and $enabled $opensearchOn }}
 apiVersion: batch/v1
 kind: Job
