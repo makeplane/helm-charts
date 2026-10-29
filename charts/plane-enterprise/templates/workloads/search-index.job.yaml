@@ -1,24 +1,26 @@
 {{/*
-Creates Plane's OpenSearch indexes that do not exist yet.
+Creates Plane's OpenSearch indexes that do not exist yet, with Plane's own
+management commands.
 
 Plane never creates them itself (not at startup, not in a migration), and a missing
 index makes workspace search answer HTTP 500. `manage_search_index index create`
-is not usable here: django-opensearch-dsl 0.7.0 calls index.create() for every
-registered index and exits 1 on the first resource_already_exists, so it fails on
-every upgrade after the first. This Job creates only the missing ones, then the
-docs_semantic index through plane.ee.documents.entities.plane_docs.sync_index
-("create"), which already skips an existing index. Index names come from the
-app's settings, so OPENSEARCH_INDEX_PREFIX applies as it does for the api.
+on its own would fail every upgrade after the first: django-opensearch-dsl 0.7.0
+exits 1 on the first index that already exists. With --ignore-error it prints that
+error and moves on, and manage_search_index then creates the docs_semantic index
+(plane_docs.sync_index("create"), which skips an existing one). Because
+--ignore-error hides real errors too (403, ...), `manage_search_index list` runs
+afterwards: it raises on any error and must show every registered index as [X].
+Index names come from the app's settings, so OPENSEARCH_INDEX_PREFIX applies.
 
 Mapping changes of existing indexes (update / rebuild) stay manual -- see
 `manage_search_index index update|rebuild` in the README.
 
 A post-install/post-upgrade hook, because the migrator is a plain Job: the pod
 waits for the database and for migrations itself (wait_for_db,
-wait_for_migrations -- the same pair the worker entrypoints run), then waits a
-bounded time for OpenSearch to answer, since the bundled cluster
-(services.opensearch.local_setup) may still be starting. Any other OpenSearch
-error (403, bad request, TLS) fails the Job, and with it the release.
+wait_for_migrations -- the same pair the worker entrypoints run), then up to ten
+minutes for OpenSearch to answer, since the bundled cluster
+(services.opensearch.local_setup) may still be starting. Output is kept in shell
+variables, not files, so a read-only root filesystem does not matter.
 
 Rendered when services.api.searchIndexJob.enabled (a missing key counts as
 enabled, an explicit false does not) and OpenSearch can be on: the bundled
@@ -87,66 +89,42 @@ spec:
 {{ . | indent 12 }}
             {{- end }}
 
+            if [ "${OPENSEARCH_ENABLED:-0}" != "1" ]; then
+              echo "search-index: OPENSEARCH_ENABLED is not 1, nothing to do"
+              exit 0
+            fi
+
             python manage.py wait_for_db
             python manage.py wait_for_migrations
 
-            python manage.py shell -c "$(cat <<'PY'
-            import sys
-            import time
+            # Wait, bounded, until OpenSearch answers -- the bundled cluster may still be
+            # starting. `list` calls exists() on every registered index and raises on
+            # any error, so it doubles as the readiness probe.
+            attempt=0
+            until listing=$(python manage.py manage_search_index list 2>&1); do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 60 ]; then
+                echo "$listing"
+                echo "search-index: OpenSearch did not answer after 60 attempts"
+                exit 1
+              fi
+              echo "search-index: OpenSearch not ready ($(echo "$listing" | tail -n 1)), retry $attempt/60 in 10s"
+              sleep 10
+            done
 
-            from django.conf import settings
+            # --ignore-error skips indexes that already exist (and prints any other
+            # per-index error); the docs_semantic index is created afterwards and
+            # raises on a real error.
+            python manage.py manage_search_index index create --force --ignore-error
 
-            if not getattr(settings, "OPENSEARCH_ENABLED", False):
-                print("search-index: OPENSEARCH_ENABLED is not 1, nothing to do")
-                sys.exit(0)
-
-            from django_opensearch_dsl.registries import registry
-            from opensearchpy.exceptions import ConnectionError as OSConnectionError
-            from opensearchpy.exceptions import RequestError, SSLError, TransportError
-
-            from plane.ee.documents.entities.plane_docs import sync_index
-
-            ATTEMPTS, DELAY = 60, 10
-
-
-            def retry(fn, what):
-                # Retry only while OpenSearch is unreachable or still starting
-                # (connection errors, 502/503/504). Anything else -- 403, 400, a TLS
-                # failure -- is raised at once and fails the Job.
-                for attempt in range(1, ATTEMPTS + 1):
-                    try:
-                        return fn()
-                    except SSLError:
-                        raise
-                    except OSConnectionError as e:
-                        err = e
-                    except TransportError as e:
-                        if e.status_code not in (502, 503, 504):
-                            raise
-                        err = e
-                    print(f"search-index: OpenSearch not ready ({what}: {err}), retry {attempt}/{ATTEMPTS} in {DELAY}s", flush=True)
-                    time.sleep(DELAY)
-                sys.exit(f"search-index: OpenSearch did not answer after {ATTEMPTS} attempts")
-
-
-            created, existing = [], []
-            for index in sorted(registry.get_indices(), key=lambda i: i._name):
-                name = index._name
-                if retry(index.exists, name):
-                    existing.append(name)
-                    continue
-                try:
-                    retry(index.create, name)
-                    created.append(name)
-                except RequestError as e:
-                    if e.error != "resource_already_exists_exception":
-                        raise
-                    existing.append(name)
-
-            print(f"search-index: created {created or 'none'}; already present {existing or 'none'}", flush=True)
-            retry(lambda: sync_index("create"), "docs_semantic")
-            PY
-            )"
+            # --ignore-error also hides real errors, so verify: every registered index
+            # must now be listed as [X].
+            listing=$(python manage.py manage_search_index list)
+            echo "$listing"
+            if echo "$listing" | grep -q '^\[ \]'; then
+              echo "search-index: indexes still missing (listed as [ ] above)"
+              exit 1
+            fi
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars

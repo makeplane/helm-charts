@@ -841,10 +841,11 @@ the bundled datastores off. Three things to know before you use it:
 Plane does not create its OpenSearch indexes itself, and workspace search returns HTTP 500 while one is missing. With OpenSearch on (`services.opensearch.local_setup`, `env.opensearch_remote_url` or `external_secrets.opensearch_existingSecret`), the chart runs a `post-install,post-upgrade` hook Job, `<release>-api-search-index`, that:
 
 1. waits for the database and for migrations (`wait_for_db`, `wait_for_migrations`),
-2. waits, bounded to about 10 minutes, for OpenSearch to answer (the bundled cluster may still be starting),
-3. creates every registered index that does not exist yet (names include `env.opensearch_index_prefix`), then the `docs_semantic` index if missing.
+2. waits, bounded to about 10 minutes, for `python manage.py manage_search_index list` to succeed (the bundled cluster may still be starting),
+3. runs `python manage.py manage_search_index index create --force --ignore-error`, which creates the missing registered indexes (names include `env.opensearch_index_prefix`), skips the ones that exist, and then creates `docs_semantic` if missing,
+4. runs `manage_search_index list` again and fails unless every registered index is listed as `[X]`. `--ignore-error` also hides real errors such as a 403, and this check catches them.
 
-Existing indexes are never changed, so the Job is safe on every upgrade. Any other OpenSearch error (403, 400, TLS) fails the Job, and with it the Helm release. The Job uses the Plane service account, so SigV4 (IRSA / Pod Identity) applies to Amazon OpenSearch as it does for the api.
+Existing indexes are never changed, so the Job is safe on every upgrade. If an index is still missing or OpenSearch returns an error, the Job fails, and with it the Helm release. The Job uses the Plane service account, so SigV4 (IRSA / Pod Identity) applies to Amazon OpenSearch as it does for the api.
 
 Helm waits for hook Jobs, and this one waits for migrations, so on a fresh install raise `helm install --timeout` (Terraform `helm_release.timeout`) to cover migrations plus index creation.
 

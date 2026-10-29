@@ -481,8 +481,10 @@ services:
     annotations: {}
     # Post-install/post-upgrade hook Job <release>-api-search-index that creates the
     # OpenSearch indexes Plane needs but never creates itself (a missing index makes
-    # workspace search return HTTP 500). It creates only indexes that do not exist
-    # yet, so it is safe on every upgrade; mapping updates and rebuilds of existing
+    # workspace search return HTTP 500). It runs Plane's own commands
+    # (`manage_search_index index create --force --ignore-error`, then
+    # `manage_search_index list` to check every index exists); existing indexes are
+    # left alone, so it is safe on every upgrade. Mapping updates and rebuilds of existing
     # indexes stay manual (`python manage.py manage_search_index index update|rebuild
     # --indices <name> --force` in an api pod). Rendered only when OpenSearch is on
     # (services.opensearch.local_setup, env.opensearch_remote_url, or
