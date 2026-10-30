@@ -1148,7 +1148,7 @@ false only when the email Certificate points at another issuer
 (services.email_service.certIssuerRef.name), uses an existing Secret
 (tls_secret_name), or is switched off (generateCert: false).
 */}}
-{{- define "plane.emailCertUsesReleaseIssuer" -}}
+{{- define "plane.emailCertIssuerEnabled" -}}
   {{- $es := .Values.services.email_service -}}
   {{- $ref := $es.certIssuerRef | default dict -}}
   {{- $generate := true -}}
