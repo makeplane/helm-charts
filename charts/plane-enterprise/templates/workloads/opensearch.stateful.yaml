@@ -39,7 +39,7 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.opensearch }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.opensearch "root" $) }}
       {{- /* The OpenSearch image requires uid/gid 1000 to own its data dir. Set
            these to null where the platform assigns them itself (OpenShift's
            restricted-v2 SCC rejects a fixed runAsUser/fsGroup) -- but note the

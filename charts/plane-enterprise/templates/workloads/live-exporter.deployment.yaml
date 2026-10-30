@@ -21,14 +21,14 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.live_exporter }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.live_exporter "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.live_exporter "app" "live-exporter" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-live-exporter
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.live_exporter.pullPolicy | default "Always" }}
-        image: {{ .Values.services.live_exporter.image | default "makeplane/live-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.live_exporter.image "default" "makeplane/live-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

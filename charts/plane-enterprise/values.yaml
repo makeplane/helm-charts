@@ -235,6 +235,22 @@ podDisruptionBudget:
   # minAvailable: 1
   unhealthyPodEvictionPolicy: AlwaysAllow
 
+# Steers every DEFAULT makeplane/*-commercial image, and workload scheduling, onto
+# FIPS. Without this, a FIPS deployment needs a services.<svc>.image override per
+# service plus a nodeSelector/toleration on every workload, and a new workload
+# added later silently runs non-FIPS until someone remembers to override it.
+fips:
+  enabled: false
+  # Appended to every default makeplane/*-commercial repo when enabled. An explicit
+  # services.<svc>.image override is used as-is and never gets this suffix.
+  imageSuffix: "-fips"
+  # Renders PLANE_REQUIRE_FIPS=1 into the shared app env.
+  requireFips: true
+  # Merged into every workload's nodeSelector/tolerations, including migrator and
+  # other one-shot Jobs. A conflicting key on services.<svc>.nodeSelector wins.
+  nodeSelector: {}
+  tolerations: []
+
 services:
   redis:
     local_setup: true
@@ -1314,7 +1330,9 @@ env:
     base_path: '/argus'
     # Where findings-export CSVs are written (an emptyDir is mounted here).
     # /home/nonroot/data for makeplane/argus-commercial; the FIPS image uses /app/data.
-    data_dir: '/home/nonroot/data'
+    # Empty resolves to one of those based on fips.enabled; set explicitly to
+    # override either way.
+    data_dir: ''
     # Empty is correct for path-routed (same-origin) deployments. Argus always
     # sends credentials, so '*' is rejected at startup.
     cors_allowed_origins: ''

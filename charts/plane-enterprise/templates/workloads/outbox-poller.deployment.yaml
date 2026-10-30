@@ -20,14 +20,14 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.outbox_poller }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.outbox_poller "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.outbox_poller "app" "outbox-poller" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-outbox-poller
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.api.image "default" "makeplane/backend-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

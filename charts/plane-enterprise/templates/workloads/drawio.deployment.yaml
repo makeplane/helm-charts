@@ -56,7 +56,7 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.drawio }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.drawio "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.drawio "app" "drawio" "root" .) }}
       containers:
       - name: {{ .Release.Name }}-drawio

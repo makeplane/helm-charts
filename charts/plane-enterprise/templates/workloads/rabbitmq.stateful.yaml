@@ -43,7 +43,7 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.rabbitmq }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.rabbitmq "root" $) }}
       containers:
       - image: {{ .Values.services.rabbitmq.image }}
         imagePullPolicy: {{ .Values.services.rabbitmq.pullPolicy | default "IfNotPresent" }}

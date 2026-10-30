@@ -51,12 +51,12 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.email_service }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.email_service "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.email_service "app" "email-app" "root" .) }}
       containers:
       - name: {{ .Release.Name }}-email-app
         imagePullPolicy: {{ .Values.services.email_service.pullPolicy | default "Always" }}
-        image: {{ .Values.services.email_service.image | default "makeplane/email-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.email_service.image "default" "makeplane/email-commercial" "root" $) }}
         {{- /* The email image's app-user really is uid 100 and owns /opt/email, so
              this service pins its own UID instead of taking runAsUser from the
              shared block. It still takes everything else from that block when

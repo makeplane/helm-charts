@@ -20,7 +20,7 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.pi_beat_worker }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.pi_beat_worker "root" $) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
 {{ . | indent 6 }}
@@ -29,7 +29,7 @@ spec:
       - name: {{ .Release.Name }}-pi-beat
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.pi.image "default" "makeplane/plane-pi-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

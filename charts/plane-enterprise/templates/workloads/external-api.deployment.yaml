@@ -45,7 +45,7 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.external_api }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.external_api "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.external_api "app" "external-api" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
@@ -55,7 +55,7 @@ spec:
       - name: {{ .Release.Name }}-external-api
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
-        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.api.image "default" "makeplane/backend-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:
