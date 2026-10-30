@@ -1141,14 +1141,14 @@ wins; otherwise the Secret the chart's Certificate writes, when it renders one.
 {{- end -}}
 
 {{/*
-"true" when the email service needs the chart's namespaced <release>-cert-issuer.
+"true" when the email Certificate uses the release's namespaced <release>-cert-issuer.
 Kept true for every email-enabled install that sets none of the new email TLS
 values, so templates/certs/cert-issuers.yaml renders exactly as before; it turns
 false only when the email Certificate points at another issuer
 (services.email_service.certIssuerRef.name), uses an existing Secret
 (tls_secret_name), or is switched off (generateCert: false).
 */}}
-{{- define "plane.emailNeedsChartIssuer" -}}
+{{- define "plane.emailCertUsesReleaseIssuer" -}}
   {{- $es := .Values.services.email_service -}}
   {{- $ref := $es.certIssuerRef | default dict -}}
   {{- $generate := true -}}
