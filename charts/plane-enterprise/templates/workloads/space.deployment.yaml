@@ -43,14 +43,14 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.space }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.space "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.space "app" "space" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-space
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.space.pullPolicy | default "Always" }}
-        image: {{ .Values.services.space.image | default "makeplane/space-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.space.image "default" "makeplane/space-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

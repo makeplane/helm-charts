@@ -42,7 +42,7 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.redis }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.redis "root" $) }}
       containers:
       - image: {{ .Values.services.redis.image }}
         imagePullPolicy: {{ .Values.services.redis.pullPolicy | default "IfNotPresent" }}

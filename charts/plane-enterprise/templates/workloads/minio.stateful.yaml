@@ -43,7 +43,7 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.minio }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.minio "root" $) }}
       containers:
       - image: {{ .Values.services.minio.image }}
         imagePullPolicy: {{ .Values.services.minio.pullPolicy | default "IfNotPresent" }}
@@ -104,7 +104,7 @@ spec:
     metadata:
       namespace: {{ .Release.Namespace }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.minio }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.minio "root" $) }}
       restartPolicy: OnFailure
       initContainers:
         - name: init

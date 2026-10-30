@@ -45,7 +45,7 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.mcp_server }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.mcp_server "root" $) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-mcp-server

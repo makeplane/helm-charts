@@ -216,6 +216,10 @@ data:
   IS_AIRGAPPED: "1"
   {{- end }}
 
+  {{- if and .Values.fips.enabled .Values.fips.requireFips }}
+  PLANE_REQUIRE_FIPS: "1"
+  {{- end }}
+
   {{- if eq .Values.env.cors_allowed_origins "*"}}
   CORS_ALLOWED_ORIGINS: "*"
   {{- else if .Values.env.cors_allowed_origins }}

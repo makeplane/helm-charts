@@ -21,7 +21,7 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.pi_worker }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.pi_worker "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.pi_worker "app" "pi-worker" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CAVolumes" .) }}
@@ -31,7 +31,7 @@ spec:
       - name: {{ .Release.Name }}-pi-worker
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.pi.image | default "makeplane/plane-pi-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.pi.image "default" "makeplane/plane-pi-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

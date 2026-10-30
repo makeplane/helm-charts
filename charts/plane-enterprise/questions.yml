@@ -121,6 +121,24 @@ questions:
     type: string
     default: ""
 
+- variable: fips.enabled
+  label: "FIPS Mode Enabled"
+  description: "Appends fips.imageSuffix to every default makeplane/*-commercial image and renders PLANE_REQUIRE_FIPS=1. makeplane/argus-commercial-fips is not published yet, so keep services.argus.enabled false, or set an explicit services.argus.image, while this is on."
+  type: boolean
+  default: false
+  group: "FIPS Setup"
+  show_subquestion_if: true
+  subquestions:
+  - variable: fips.imageSuffix
+    label: "FIPS Image Suffix"
+    type: string
+    default: "-fips"
+  - variable: fips.requireFips
+    label: "Require FIPS"
+    description: "Renders PLANE_REQUIRE_FIPS=1 into the shared app env."
+    type: boolean
+    default: true
+
 - variable: services.web.pullPolicy
   label: "Web Pull Policy"
   type: enum
@@ -1235,9 +1253,9 @@ questions:
     default: 10000
   - variable: env.argus_envs.data_dir
     label: "Argus Data Directory"
-    description: "Where findings-export CSVs are written. /home/nonroot/data for argus-commercial, /app/data for the FIPS image."
+    description: "Where findings-export CSVs are written. Empty resolves to /home/nonroot/data, or /app/data when fips.enabled."
     type: string
-    default: "/home/nonroot/data"
+    default: ""
   - variable: services.argus.termination_grace_period_seconds
     label: "Termination Grace Period (seconds)"
     type: int

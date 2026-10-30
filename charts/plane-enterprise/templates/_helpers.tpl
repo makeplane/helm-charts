@@ -99,14 +99,25 @@ leaving a pod unschedulable.
 {{- end }}
 {{- end }}
 
+{{/*
+nodeSelector/tolerations/affinity for one workload, merged with the global
+fips.nodeSelector/fips.tolerations so a FIPS node pool can be declared once
+instead of on every service. The per-service value wins on a nodeSelector key
+conflict; tolerations from both are concatenated. Call with a dict carrying
+the workload's own svc values and the root context, e.g.:
+
+  {{- include "plane.podScheduling" (dict "svc" .Values.services.api "root" $) }}
+*/}}
 {{- define "plane.podScheduling" -}}
-  {{- with .nodeSelector }} 
+{{- $svc := .svc | default dict -}}
+{{- $fips := .root.Values.fips | default dict -}}
+  {{- with (merge (dict) ($svc.nodeSelector | default dict) ($fips.nodeSelector | default dict)) }}
       nodeSelector: {{ toYaml . | nindent 8 }}
   {{- end }}
-  {{- with .tolerations }}
+  {{- with (concat ($svc.tolerations | default list) ($fips.tolerations | default list)) }}
       tolerations: {{ toYaml . | nindent 8 }}
   {{- end }}
-  {{- with .affinity }}
+  {{- with $svc.affinity }}
       affinity: {{ toYaml . | nindent 8 }}
   {{- end }}
 {{- end }}
@@ -196,6 +207,36 @@ of the local_setup flag's value.
   {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
     true
   {{- end -}}
+{{- end -}}
+
+{{/*
+Resolve a workload container's `repo:tag` for every `makeplane/*-commercial`
+image. When fips.enabled and the repo still equals its chart-shipped default
+(i.e. services.<svc>.image was never pointed at something else), fips.imageSuffix
+is appended to it -- so a FIPS install never silently runs a non-FIPS image on a
+workload nobody remembered to override. An explicit custom image is used exactly
+as given, with no suffix, same as today.
+
+Call with a dict carrying the service's image value, its chart default repo, and
+the root context, e.g.:
+  {{ include "plane.image" (dict "image" .Values.services.api.image "default" "makeplane/backend-commercial" "root" $) }}
+*/}}
+{{- define "plane.image" -}}
+{{- $repo := .image | default .default -}}
+{{- if and .root.Values.fips.enabled (eq $repo .default) -}}
+{{- $repo = printf "%s%s" $repo .root.Values.fips.imageSuffix -}}
+{{- end -}}
+{{- printf "%s:%s" $repo .root.Values.planeVersion -}}
+{{- end -}}
+
+{{/*
+Directory Argus writes findings-export CSVs to (ARGUS_DATA_DIR / the emptyDir
+mountPath). env.argus_envs.data_dir left empty resolves by fips.enabled, since
+the FIPS image runs as a different uid with its own writable path; set it
+explicitly to override either way.
+*/}}
+{{- define "plane.argusDataDir" -}}
+{{- .Values.env.argus_envs.data_dir | default (ternary "/app/data" "/home/nonroot/data" .Values.fips.enabled) -}}
 {{- end -}}
 
 {{/*

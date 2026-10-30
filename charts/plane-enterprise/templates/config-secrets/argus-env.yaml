@@ -62,7 +62,7 @@ data:
          at startup. */}}
   ARGUS_BASE_PATH: {{ trimSuffix "/" .Values.env.argus_envs.base_path | quote }}
   ARGUS_PORT: "8100"
-  ARGUS_DATA_DIR: {{ .Values.env.argus_envs.data_dir | default "/home/nonroot/data" | quote }}
+  ARGUS_DATA_DIR: {{ include "plane.argusDataDir" . | quote }}
 
   {{- /* Django API used for session verification (GET /api/users/session/). */}}
   API_INTERNAL_URL: "http://{{ .Release.Name }}-api.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:8000"

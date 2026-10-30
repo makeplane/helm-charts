@@ -44,7 +44,7 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.live }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.live "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.live "app" "live" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       {{- with (include "plane.s3CANodeVolumes" .) }}
@@ -79,7 +79,7 @@ spec:
       - name: {{ .Release.Name }}-live
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.live.pullPolicy | default "Always" }}
-        image: {{ .Values.services.live.image | default "makeplane/live-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.live.image "default" "makeplane/live-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

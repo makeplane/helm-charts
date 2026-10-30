@@ -45,14 +45,14 @@ spec:
       annotations:
         {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.runner }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.runner "root" $) }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.runner "app" "runner" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-runner
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.runner.pullPolicy | default "Always" }}
-        image: {{ .Values.services.runner.image | default "makeplane/node-runner-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.runner.image "default" "makeplane/node-runner-commercial" "root" $) }}
         stdin: true
         tty: true
         resources:

@@ -39,7 +39,7 @@ spec:
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.postgres }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.postgres "root" $) }}
       containers:
       - image: {{ .Values.services.postgres.image }}
         imagePullPolicy: {{ .Values.services.postgres.pullPolicy | default "IfNotPresent" }}

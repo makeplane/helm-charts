@@ -25,12 +25,12 @@ spec:
       annotations:
         timestamp: {{ now | quote }}
     spec:
-      {{- include "plane.podScheduling" .Values.services.argus }}
+      {{- include "plane.podScheduling" (dict "svc" .Values.services.argus "root" $) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-argus-migrate
         {{- include "plane.containerSecurityContext" . }}
-        image: {{ .Values.services.argus.image | default "makeplane/argus-commercial" }}:{{ .Values.planeVersion }}
+        image: {{ include "plane.image" (dict "image" .Values.services.argus.image "default" "makeplane/argus-commercial" "root" $) }}
         imagePullPolicy: {{ .Values.services.argus.pullPolicy | default "Always" }}
         {{- /* The image ENTRYPOINT is the argus binary itself and CMD is ["start"],
                so only the args are overridden here -- setting `command` would drop
