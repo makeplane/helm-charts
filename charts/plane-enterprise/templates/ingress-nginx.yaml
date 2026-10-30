@@ -92,6 +92,13 @@ spec:
                 name: {{ .Release.Name }}-api
             path: /marketplace/
             pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /dav/
+            pathType: Prefix
           {{- if .Values.services.silo.enabled }}
           - backend:
               service:
@@ -245,6 +252,41 @@ spec:
                 name: {{ .Release.Name }}-drawio
             path: /drawio/(.*)
             pathType: ImplementationSpecific
+  {{- with $drawioTlsSecret }}
+  tls:
+    - hosts:
+      - {{ $.Values.license.licenseDomain | quote }}
+      secretName: {{ . }}
+  {{- end }}
+{{- /*
+A bare /drawio matches neither /drawio/(.*) nor any Plane route but "/", so it would
+reach web. Redirect exactly /drawio to /drawio/. ingress-nginx only accepts an
+absolute http(s) URL here, hence the scheme from plane.tlsEnabled. The backend is
+required by the API but never reached.
+*/}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio-redirect
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: "{{ eq (include "plane.tlsEnabled" .) "true" | ternary "https" "http" }}://{{ .Values.license.licenseDomain }}/drawio/"
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-drawio
+            path: /drawio
+            pathType: Exact
   {{- with $drawioTlsSecret }}
   tls:
     - hosts:

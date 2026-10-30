@@ -80,6 +80,28 @@ spec:
       - name: {{ .Release.Name }}-api
         port: 8000
 
+  # WebDAV for Microsoft Office attachment editing (plane-ee apps/api plane/urls.py `dav/`)
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/dav/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-api
+        port: 8000
+
+  # live's SSE responses: no buffering middleware (it holds the whole response until
+  # the upstream closes), and an explicit priority so they win over /live/ below.
+  # POST /live/api/ai/write streams the AI page-writing answer; GET
+  # /live/export/<jobId>/sse streams export progress (plane-ee apps/live
+  # controllers/ai-write.controller.ts, controllers/export.controller.ts).
+  # Collaboration websockets stay on /live/.
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && (Path(`/live/api/ai/write`) || PathRegexp(`^/live/export/[^/]+/sse$`))
+    kind: Rule
+    priority: 1000
+    services:
+      - name: {{ .Release.Name }}-live
+        port: 3000
+
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/live/`)
     kind: Rule
     middlewares:
@@ -167,8 +189,16 @@ spec:
   {{- end }}
 
   {{- /* makeplane/drawio serves its webapp at "/", so the /drawio prefix is stripped
-         before forwarding. */}}
+         before forwarding. A bare /drawio (no trailing slash) would otherwise fall
+         through to web, so it is redirected to /drawio/ first. */}}
   {{- if .Values.services.drawio.local_setup }}
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && Path(`/drawio`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-drawio-redirect
+    services:
+      - name: {{ .Release.Name }}-drawio
+        port: 8080
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/drawio/`)
     kind: Rule
     middlewares:

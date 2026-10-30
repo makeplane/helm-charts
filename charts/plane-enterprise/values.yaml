@@ -479,6 +479,25 @@ services:
     podDisruptionBudget: {}
     labels: {}
     annotations: {}
+    # Post-install/post-upgrade hook Job <release>-api-search-index that creates the
+    # OpenSearch indexes Plane needs but never creates itself (a missing index makes
+    # workspace search return HTTP 500). It runs Plane's own commands
+    # (`manage_search_index index create --force --ignore-error`, then
+    # `manage_search_index list` to check every index exists); existing indexes are
+    # left alone, so it is safe on every upgrade. Mapping updates and rebuilds of existing
+    # indexes stay manual (`python manage.py manage_search_index index update|rebuild
+    # --indices <name> --force` in an api pod). Rendered only when OpenSearch can be
+    # on: services.opensearch.local_setup, env.opensearch_remote_url,
+    # external_secrets.opensearch_existingSecret, or an extraEnv entry
+    # OPENSEARCH_ENABLED with value "1"/"true" or a valueFrom. At runtime the Job
+    # does nothing unless the pod's OPENSEARCH_ENABLED is exactly "1".
+    # The Job first waits for migrations, and Helm waits for the Job: give
+    # `helm install/upgrade --timeout` (Terraform helm_release `timeout`) enough for
+    # migrations plus index creation on a fresh install. A failure fails the release.
+    searchIndexJob:
+      enabled: true
+      # Upper bound for the whole Job, retries included.
+      activeDeadlineSeconds: 3600
 
   external_api:
     enabled: false
@@ -615,10 +634,56 @@ services:
     topologySpreadConstraints: []
     podDisruptionBudget: {}
     labels: {}
-    # This service mounts a cert-manager TLS Secret, so it needs a restart when the
-    # certificate is renewed. Add reloader.stakater.com/auto: "true" here (and install
-    # Stakater Reloader) if you want that to happen automatically.
+    # Annotations on the email Deployment (not the Service -- see service.annotations).
+    # When this service mounts a TLS Secret (see TLS below) it needs a restart when
+    # the certificate is renewed. Add reloader.stakater.com/auto: "true" here (and
+    # install Stakater Reloader) if you want that to happen automatically.
     annotations: {}
+    # The Kubernetes Service in front of the SMTP ports (25, 465, 587).
+    service:
+      # ClusterIP, NodePort or LoadBalancer. LoadBalancer is the historical default.
+      # Use ClusterIP to run the email service without a load balancer (e.g. when
+      # SMTP reaches the cluster some other way, or only in-cluster).
+      type: LoadBalancer
+      # Annotations on the Service, e.g. for the AWS Load Balancer Controller:
+      #   service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      #   service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      annotations: {}
+      # spec.loadBalancerClass, e.g. service.k8s.aws/nlb. LoadBalancer only; unset
+      # leaves the choice to the cluster's default load balancer implementation.
+      # Kubernetes treats it as immutable on an existing LoadBalancer Service, so
+      # changing it fails `helm upgrade`. Set it on first install. To change it
+      # later: upgrade with type: ClusterIP, then upgrade back to LoadBalancer with
+      # the new class (or delete the Service, then upgrade).
+      loadBalancerClass: ''
+      # spec.loadBalancerSourceRanges (CIDRs allowed to connect). LoadBalancer only.
+      loadBalancerSourceRanges: []
+      # Local keeps the client source IP, which the mail server needs for spam
+      # checks. Rendered for LoadBalancer and NodePort only.
+      externalTrafficPolicy: Local
+      # Fixed node ports per port name; any left unset are allocated by Kubernetes.
+      # NodePort and LoadBalancer only.
+      nodePorts: {}
+      #  smtp: 30025
+      #  smtps: 30465
+      #  submission: 30587
+    # TLS for SMTP. The email app generates a self-signed certificate at startup when
+    # none is mounted, so a Secret is only needed for a real certificate:
+    #   - tls_secret_name set: mount this existing kubernetes.io/tls Secret
+    #     (tls.crt/tls.key); the chart renders no Certificate.
+    #   - otherwise, with env.email_service_envs.smtp_domain set and generateCert
+    #     true: the chart renders a cert-manager Certificate for smtp_domain into
+    #     <release>-mail-tls-secret and mounts it.
+    #   - otherwise: an emptyDir, and the app self-signs.
+    tls_secret_name: ''
+    generateCert: true
+    # Issuer for that Certificate. Empty name keeps the chart's namespaced
+    # <release>-cert-issuer, which the chart creates while ssl.tls_secret_name is
+    # empty. Set name (and kind: ClusterIssuer) to use an issuer you already run;
+    # the chart then no longer creates <release>-cert-issuer for the email service.
+    certIssuerRef:
+      name: ''
+      kind: ''
 
   outbox_poller:
     enabled: false

@@ -1,0 +1,172 @@
+{{/*
+Creates Plane's OpenSearch indexes that do not exist yet, with Plane's own
+management commands.
+
+Plane never creates them itself (not at startup, not in a migration), and a missing
+index makes workspace search answer HTTP 500. `manage_search_index index create`
+on its own would fail every upgrade after the first: django-opensearch-dsl 0.7.0
+exits 1 on the first index that already exists. With --ignore-error it prints that
+error and moves on, and manage_search_index then creates the docs_semantic index
+(plane_docs.sync_index("create"), which skips an existing one). Because
+--ignore-error hides real errors too (403, ...), `manage_search_index list` runs
+afterwards: it raises on any error and must show every registered index as [X].
+Index names come from the app's settings, so OPENSEARCH_INDEX_PREFIX applies.
+
+Mapping changes of existing indexes (update / rebuild) stay manual -- see
+`manage_search_index index update|rebuild` in the README.
+
+A post-install/post-upgrade hook, because the migrator is a plain Job: the pod
+waits for the database and for migrations itself (wait_for_db,
+wait_for_migrations -- the same pair the worker entrypoints run), then up to ten
+minutes for OpenSearch to answer, since the bundled cluster
+(services.opensearch.local_setup) may still be starting. Output is kept in shell
+variables, not files, so a read-only root filesystem does not matter.
+
+Rendered when services.api.searchIndexJob.enabled (a missing key counts as
+enabled, an explicit false does not) and OpenSearch can be on: the bundled
+cluster, env.opensearch_remote_url, a user-supplied
+external_secrets.opensearch_existingSecret, or extraEnv setting
+OPENSEARCH_ENABLED (see plane.extraEnvOpensearchEnabled). In the last two cases
+the pod's environment decides: the Job exits 0 without touching anything when
+OPENSEARCH_ENABLED is not 1.
+*/}}
+{{- $sij := .Values.services.api.searchIndexJob | default dict }}
+{{- $enabled := true }}
+{{- if hasKey $sij "enabled" }}
+{{- $enabled = $sij.enabled }}
+{{- end }}
+{{- $opensearchOn := or .Values.services.opensearch.local_setup .Values.env.opensearch_remote_url .Values.external_secrets.opensearch_existingSecret (include "plane.extraEnvOpensearchEnabled" .) }}
+{{- if and $enabled $opensearchOn }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-api-search-index
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  {{- /* Covers the wait for migrations, which on a fresh install can take well over
+         ten minutes: wait_for_migrations itself polls every 10s with no limit. */}}
+  activeDeadlineSeconds: {{ $sij.activeDeadlineSeconds | default 3600 }}
+  template:
+    metadata:
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api-search-index
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+      annotations:
+        {{- include "plane.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.api }}
+      {{- include "plane.podSecurityContext" . }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
+      containers:
+      - name: {{ .Release.Name }}-api-search-index
+        {{- include "plane.containerSecurityContext" . }}
+        image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
+        imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
+        resources:
+          requests:
+            memory: {{ .Values.services.api.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.api.cpuRequest | default "200m" | quote }}
+          limits:
+            memory: {{ .Values.services.api.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.api.cpuLimit | default "1000m" | quote}}
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            {{- with (include "plane.s3CAInitScript" .) }}
+{{ . | indent 12 }}
+            {{- end }}
+
+            if [ "${OPENSEARCH_ENABLED:-0}" != "1" ]; then
+              echo "search-index: OPENSEARCH_ENABLED is not 1, nothing to do"
+              exit 0
+            fi
+
+            python manage.py wait_for_db
+            python manage.py wait_for_migrations
+
+            # Wait, bounded, until OpenSearch answers -- the bundled cluster may still be
+            # starting. `list` calls exists() on every registered index and raises on
+            # any error, so it doubles as the readiness probe.
+            attempt=0
+            until listing=$(python manage.py manage_search_index list 2>&1); do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 60 ]; then
+                echo "$listing"
+                echo "search-index: OpenSearch did not answer after 60 attempts"
+                exit 1
+              fi
+              echo "search-index: OpenSearch not ready ($(echo "$listing" | tail -n 1)), retry $attempt/60 in 10s"
+              sleep 10
+            done
+
+            # --ignore-error skips indexes that already exist (and prints any other
+            # per-index error); the docs_semantic index is created afterwards and
+            # raises on a real error.
+            python manage.py manage_search_index index create --force --ignore-error
+
+            # --ignore-error also hides real errors, so verify: every registered index
+            # must now be listed as [X].
+            listing=$(python manage.py manage_search_index list)
+            echo "$listing"
+            if echo "$listing" | grep -q '^\[ \]'; then
+              echo "search-index: indexes still missing (listed as [ ] above)"
+              exit 1
+            fi
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-app-vars
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.app_env_existingSecret) }}{{ .Values.external_secrets.app_env_existingSecret }}{{ else }}{{ .Release.Name }}-app-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}
+              optional: false
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.opensearch_existingSecret) }}{{ .Values.external_secrets.opensearch_existingSecret }}{{ else }}{{ .Release.Name }}-opensearch-secrets{{ end }}
+              optional: false
+          {{- if .Values.services.silo.enabled }}
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.silo_env_existingSecret) }}{{ .Values.external_secrets.silo_env_existingSecret }}{{ else }}{{ .Release.Name }}-silo-secrets{{ end }}
+              optional: false
+          {{- end }}
+          {{- if .Values.services.runner.enabled }}
+          - secretRef:
+              name: {{ if not (empty .Values.external_secrets.runner_env_existingSecret) }}{{ .Values.external_secrets.runner_env_existingSecret }}{{ else }}{{ .Release.Name }}-runner-secrets{{ end }}
+              optional: false
+          {{- end }}
+          {{- /* LAST in envFrom, as in the migrator: later sources win. */}}
+          {{- include "plane.appKeysSecretRef" . }}
+          {{- include "plane.siloConnectorsSecretRef" . }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.infraCredsEnv" .) }}
+        env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.infraCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+        {{- end }}
+      restartPolicy: Never
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
+---
+{{- end }}
