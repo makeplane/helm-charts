@@ -1738,7 +1738,7 @@ needed for the upgrade that crosses into 3.6.0.
 
 ### 6. Secrets that live in the database, not the environment
 
-The API reads about twenty instance settings — SMTP password, Google/GitHub/GitLab/OIDC client secrets, `LLM_API_KEY`, `LDAP_BIND_PASSWORD`, SAML certificate, and the login toggles such as `IS_OIDC_ENABLED` — from the instance-configuration table, seeded from the environment only on first startup. **Changing or rotating those through the environment has no effect** after that.
+The API reads the 73 instance settings listed below — sign-in methods, SSO providers, SMTP, the AI key and a few limits — from the instance-configuration table, which the god-mode admin UI edits. Most are copied from the environment once, on first startup; the OIDC, SAML and LDAP settings are never read from it. **Setting or rotating any of them through the environment has no effect** after first startup.
 
 Set `env.sync_config_from_env: true` to copy every one of those settings the environment sets (through `extraEnv` or `external_secrets.app_env_existingSecret`) into the database on each API start, which makes the external secret or your GitOps values the source of truth:
 
@@ -1755,6 +1755,29 @@ extraEnv:
 - The API logs the names (never the values) of the settings it changed: `PLANE_SYNC_CONFIG_FROM_ENV: applied from the environment: IS_OIDC_ENABLED`. Plane versions that predate the flag ignore it, so no such line appears.
 
 Do not use `env.skip_env_var: '0'` for this. The API ignores it and keeps reading the database, while worker, beat and the consumers switch to the environment, so the two can disagree. Leave it at `'1'`.
+
+**Settings that `sync_config_from_env` applies.** Set each as an environment variable of the same name. Toggles take `"1"` or `"0"`. 🔒 marks a secret, which the database stores encrypted; supply those from a Secret (`external_secrets.app_env_existingSecret`) rather than `extraEnv`.
+
+| Area | Environment variables | Notes |
+| --- | --- | --- |
+| Sign-in | `ENABLE_SIGNUP`, `ENABLE_EMAIL_PASSWORD`, `ENABLE_MAGIC_LINK_LOGIN` | Magic links also need SMTP. |
+| Workspaces | `DISABLE_WORKSPACE_CREATION` | |
+| Security | `DISABLE_ACCESS_TOKENS`, `HIDE_EMAIL_CHANGE_DETAILS`, `SESSION_COOKIE_AGE`, `ADMIN_SESSION_COOKIE_AGE`, `WORK_ITEM_EXPORT_EXPIRY_SECONDS` | Ages and expiry are in seconds. |
+| OIDC | `IS_OIDC_ENABLED`, `OIDC_PROVIDER_NAME`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` 🔒, `OIDC_AUTHORIZE_URL`, `OIDC_TOKEN_URL`, `OIDC_USERINFO_URL`, `OIDC_LOGOUT_URL`, `ENABLE_OIDC_IDP_SYNC` | |
+| SAML | `IS_SAML_ENABLED`, `SAML_PROVIDER_NAME`, `SAML_ENTITY_ID`, `SAML_SSO_URL`, `SAML_LOGOUT_URL`, `SAML_CERTIFICATE` 🔒, `SAML_NAME_ID_FORMAT`, `SAML_ATTRIBUTE_MAPPING`, `SAML_DISABLE_REQUESTED_AUTHN_CONTEXT`, `ENABLE_SAML_IDP_SYNC` | `SAML_ATTRIBUTE_MAPPING` is a JSON object, such as `{"display_name": "preferred_username"}`; keys it leaves out keep their defaults. |
+| LDAP | `IS_LDAP_ENABLED`, `LDAP_PROVIDER_NAME`, `LDAP_SERVER_URI`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD` 🔒, `LDAP_USER_SEARCH_BASE`, `LDAP_USER_SEARCH_FILTER`, `LDAP_USER_ATTRIBUTES` | `LDAP_USER_ATTRIBUTES` is comma-separated. |
+| Google | `IS_GOOGLE_ENABLED`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` 🔒, `ENABLE_GOOGLE_SYNC` | |
+| GitHub | `IS_GITHUB_ENABLED`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` 🔒, `GITHUB_ORGANIZATION_ID`, `ENABLE_GITHUB_SYNC` | `GITHUB_ORGANIZATION_ID` limits sign-in to that organization's members. |
+| GitLab | `IS_GITLAB_ENABLED`, `GITLAB_HOST`, `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET` 🔒, `ENABLE_GITLAB_SYNC` | |
+| Gitea | `IS_GITEA_ENABLED`, `GITEA_HOST`, `GITEA_CLIENT_ID`, `GITEA_CLIENT_SECRET` 🔒, `ENABLE_GITEA_SYNC` | |
+| Email (SMTP) | `ENABLE_SMTP`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` 🔒, `EMAIL_FROM`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL` | |
+| AI | `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` 🔒, `GPT_ENGINE` | `GPT_ENGINE` is deprecated; use `LLM_MODEL`. |
+| Images | `UNSPLASH_ACCESS_KEY` 🔒 | |
+| Chat support | `IS_CHAT_SUPPORT_ENABLED`, `CHAT_SUPPORT_APP_ID` | |
+| Projects | `PROJECT_IDENTIFIER_MAX_LENGTH` | 1 to 255. |
+| Log retention | `WEBHOOK_EVENTS_RETENTION_IN_DAYS`, `API_LOGS_RETENTION_IN_DAYS` | In days. |
+
+The `ENABLE_*_SYNC` and `ENABLE_*_IDP_SYNC` toggles refresh a user's profile from that provider at each sign-in.
 
 ### AI providers, including Amazon Bedrock
 

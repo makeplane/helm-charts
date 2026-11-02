@@ -1186,8 +1186,8 @@ env:
   requireExplicitSecrets: false
 
   # Instance settings (SMTP, OAuth/OIDC/SAML/LDAP, LLM key, login toggles) live in
-  # the instance-configuration table in the database, seeded from the environment
-  # only on first startup. Leave this at '1'. The API always reads the database
+  # the instance-configuration table in the database; most are copied from the
+  # environment once, on first startup, and OIDC/SAML/LDAP never are. Leave this at '1'. The API always reads the database
   # whatever this says; '0' only moves worker, beat and the consumers to the
   # environment, so the two can disagree. To make the environment win, use
   # sync_config_from_env below.
@@ -1199,6 +1199,7 @@ env:
   # rotation takes effect on restart. Keys left unset or empty keep their stored
   # value. Trade-off: a god-mode admin UI edit to a key the environment sets lasts
   # only until the next restart. Plane versions that predate it ignore the flag.
+  # The README lists all 73 settings it covers.
   sync_config_from_env: false
 
   # Kubernetes internal cluster domain used to build in-cluster service URLs
