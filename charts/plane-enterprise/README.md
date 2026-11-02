@@ -1754,7 +1754,10 @@ extraEnv:
 - The trade-off: a god-mode edit to a setting the environment sets lasts only until the next restart.
 - The API logs the names (never the values) of the settings it changed: `PLANE_SYNC_CONFIG_FROM_ENV: applied from the environment: IS_OIDC_ENABLED`. Plane versions that predate the flag ignore it, so no such line appears.
 
-Do not use `env.skip_env_var: '0'` for this. The API ignores it and keeps reading the database, while worker, beat and the consumers switch to the environment, so the two can disagree. Leave it at `'1'`.
+**`env.skip_env_var` is deprecated: leave it unset.** It was the old switch for this, but the API never honoured it. `'0'` only moves worker, beat and the consumers to the environment, so they can disagree with the API. If you set it to `'0'` today, either through `env.skip_env_var` or a `SKIP_ENV_VAR` entry in `extraEnv`, move off it in two upgrades so the workers never read a stale value in between:
+
+1. Turn on `env.sync_config_from_env` and upgrade. The API copies your environment values into the database.
+2. Remove the `skip_env_var` setting and upgrade again. The workers now read the same values from the database.
 
 **Settings that `sync_config_from_env` applies.** Set each as an environment variable of the same name. Toggles take `"1"` or `"0"`. 🔒 marks a secret, which the database stores encrypted; supply those from a Secret (`external_secrets.app_env_existingSecret`) rather than `extraEnv`.
 
@@ -1835,8 +1838,8 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
-| `env.skip_env_var` | '1' | Leave at `'1'`. The API ignores `'0'`; only worker, beat and the consumers switch to the environment. Use `env.sync_config_from_env` instead. |
 | `env.sync_config_from_env` | false | On each API start, copy every instance setting the environment sets (SMTP, OAuth/OIDC/SAML/LDAP, LLM key, login toggles) into the database, so the environment wins. |
+| `env.skip_env_var` | (unset) | **Deprecated**; leave unset. Still rendered, defaulting to `'1'`, so existing values keep working. Use `env.sync_config_from_env`. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
 
 ### Provider examples

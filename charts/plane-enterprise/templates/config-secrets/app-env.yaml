@@ -123,8 +123,8 @@ data:
   PAYMENT_SERVER_BASE_URL: {{ .Values.license.licenseServer | quote }}
 
   DEFAULT_API_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "120/minute" | quote }}
-  {{- /* The API always reads instance settings from the database; '0' only affects
-       worker, beat and the consumers. See values.yaml env.skip_env_var. */}}
+  {{- /* env.skip_env_var is deprecated and gone from values.yaml; the same default
+       keeps existing releases unchanged. The API ignores '0'. */}}
   SKIP_ENV_VAR: {{ .Values.env.skip_env_var | default "1" | quote }}
   {{- /* Rendered only when on, so existing releases render byte-identical. */}}
   {{- if .Values.env.sync_config_from_env }}

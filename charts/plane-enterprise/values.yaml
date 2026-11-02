@@ -1185,22 +1185,19 @@ env:
   # the next major version.
   requireExplicitSecrets: false
 
-  # Instance settings (SMTP, OAuth/OIDC/SAML/LDAP, LLM key, login toggles) live in
-  # the instance-configuration table in the database; most are copied from the
-  # environment once, on first startup, and OIDC/SAML/LDAP never are. Leave this at '1'. The API always reads the database
-  # whatever this says; '0' only moves worker, beat and the consumers to the
-  # environment, so the two can disagree. To make the environment win, use
-  # sync_config_from_env below.
-  skip_env_var: '1'
-
-  # Copy every instance setting the environment sets (extraEnv or
-  # external_secrets.app_env_existingSecret) into the database on each API start,
-  # so an external secret store or GitOps values are the source of truth and
-  # rotation takes effect on restart. Keys left unset or empty keep their stored
-  # value. Trade-off: a god-mode admin UI edit to a key the environment sets lasts
-  # only until the next restart. Plane versions that predate it ignore the flag.
-  # The README lists all 73 settings it covers.
+  # Make the environment the source of truth for Plane's instance settings, the
+  # ones the god-mode admin UI edits (sign-in, SSO, SMTP, AI key, limits). They
+  # live in the database: most are copied from the environment once, on first
+  # startup, and OIDC/SAML/LDAP never are. With this on, every such setting set in
+  # extraEnv or external_secrets.app_env_existingSecret is copied into the
+  # database on each API start, so rotation takes effect on restart. Settings left
+  # unset or empty keep their stored value. Trade-off: a god-mode edit to a setting
+  # the environment sets lasts only until the next restart. Plane versions that
+  # predate it ignore the flag. The README lists all 73 settings.
   sync_config_from_env: false
+
+  # skip_env_var is deprecated and no longer listed: the API never honoured it.
+  # Leave it unset and use sync_config_from_env. See the chart README.
 
   # Kubernetes internal cluster domain used to build in-cluster service URLs
   default_cluster_domain: 'cluster.local'
