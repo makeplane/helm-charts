@@ -1738,16 +1738,23 @@ needed for the upgrade that crosses into 3.6.0.
 
 ### 6. Secrets that live in the database, not the environment
 
-By default (`SKIP_ENV_VAR=1`) the API reads about twenty settings — SMTP password, Google/GitHub/GitLab/OIDC client secrets, `LLM_API_KEY`, `LDAP_BIND_PASSWORD`, SAML certificate — from the instance-configuration table, seeded from the environment only on first startup. **Rotating those through a Secret has no effect** while that is the case.
+The API reads about twenty instance settings — SMTP password, Google/GitHub/GitLab/OIDC client secrets, `LLM_API_KEY`, `LDAP_BIND_PASSWORD`, SAML certificate, and the login toggles such as `IS_OIDC_ENABLED` — from the instance-configuration table, seeded from the environment only on first startup. **Changing or rotating those through the environment has no effect** after that.
 
-Set `env.skip_env_var: '0'` to make the API re-read them from the environment on every start, which makes the external secret the source of truth:
+Set `env.sync_config_from_env: true` to copy every one of those settings the environment sets (through `extraEnv` or `external_secrets.app_env_existingSecret`) into the database on each API start, which makes the external secret or your GitOps values the source of truth:
 
 ```yaml
 env:
-  skip_env_var: '0'
+  sync_config_from_env: true
+extraEnv:
+  - name: IS_OIDC_ENABLED
+    value: "1"
 ```
 
-The trade-off: edits made to those settings in the god-mode admin UI are overwritten on the next restart.
+- Settings the environment leaves unset or empty keep their stored value, so anything configured in the god-mode admin UI keeps working.
+- The trade-off: a god-mode edit to a setting the environment sets lasts only until the next restart.
+- The API logs the names (never the values) of the settings it changed: `PLANE_SYNC_CONFIG_FROM_ENV: applied from the environment: IS_OIDC_ENABLED`. Plane versions that predate the flag ignore it, so no such line appears.
+
+Do not use `env.skip_env_var: '0'` for this. The API ignores it and keeps reading the database, while worker, beat and the consumers switch to the environment, so the two can disagree. Leave it at `'1'`.
 
 ### AI providers, including Amazon Bedrock
 
@@ -1805,7 +1812,8 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
-| `env.skip_env_var` | '1' | `'0'` makes the API re-read the database-resident secrets (SMTP, OAuth, LLM, LDAP) from the environment on every start. |
+| `env.skip_env_var` | '1' | Leave at `'1'`. The API ignores `'0'`; only worker, beat and the consumers switch to the environment. Use `env.sync_config_from_env` instead. |
+| `env.sync_config_from_env` | false | On each API start, copy every instance setting the environment sets (SMTP, OAuth/OIDC/SAML/LDAP, LLM key, login toggles) into the database, so the environment wins. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
 
 ### Provider examples
