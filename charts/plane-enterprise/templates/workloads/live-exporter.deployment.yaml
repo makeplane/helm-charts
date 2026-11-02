@@ -24,6 +24,35 @@ spec:
       {{- include "plane.podScheduling" .Values.services.live_exporter }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.live_exporter "app" "live-exporter" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
+      {{- with (include "plane.s3CANodeVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
+      {{- /* Same CA bundle as live: the exporter shares live's Redis and storage clients. */}}
+      {{- if include "plane.s3CAEnabled" . }}
+      initContainers:
+      - name: prepare-ca-bundle
+        image: {{ .Values.services.live.init_image | default "busybox" }}
+        {{- include "plane.containerSecurityContext" . }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            echo "Preparing custom CA bundle for Node.js..."
+            if [ "$(ls -A /s3-custom-ca)" ]; then
+              cat /s3-custom-ca/* > /ca-bundle/custom-ca-bundle.crt
+              echo "CA bundle created at /ca-bundle/custom-ca-bundle.crt"
+            else
+              echo "No custom CA certificates found, creating empty bundle"
+              touch /ca-bundle/custom-ca-bundle.crt
+            fi
+        volumeMounts:
+          - name: s3-custom-ca
+            mountPath: /s3-custom-ca
+            readOnly: true
+          - name: ca-bundle
+            mountPath: /ca-bundle
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-live-exporter
         {{- include "plane.containerSecurityContext" . }}
@@ -38,6 +67,9 @@ spec:
           limits:
             memory: {{ .Values.services.live_exporter.memoryLimit | default "2000Mi" | quote }}
             cpu: {{ .Values.services.live_exporter.cpuLimit | default "1000m" | quote }}
+        {{- with (include "plane.s3CANodeBundleMount" .) }}
+{{ . | indent 8 }}
+        {{- end }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-live-vars
@@ -52,6 +84,9 @@ spec:
         env:
           - name: LIVE_MODE
             value: "exporter"
+          {{- with (include "plane.s3CANodeEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
           {{/* The export worker is the whole reason the broker credential matters here, and it
                had no credential helper at all — it inherited whatever AMQP_URL the live Secret
                carried, which the mirror blanks on purpose. Redis comes too: the exporter shares
