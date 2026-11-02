@@ -1,4 +1,6 @@
-{{- if and .Values.services.rabbitmq.local_setup  (empty .Values.external_secrets.rabbitmq_existingSecret) }}
+{{- /* Not rendered with external_secrets.rabbitmq.secretName: the broker then reads its
+       user from that Secret, and default_user/default_password stay out of the release. */}}
+{{- if and .Values.services.rabbitmq.local_setup  (empty .Values.external_secrets.rabbitmq_existingSecret) (not (include "plane.bundledRabbitmqFromSecret" .)) }}
 apiVersion: v1
 kind: Secret
 type: Opaque

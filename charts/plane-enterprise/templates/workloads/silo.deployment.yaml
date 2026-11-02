@@ -57,23 +57,25 @@ spec:
         {{- include "plane.containerSecurityContext" . }}
         command:
           - /bin/sh
+        {{- /* Decided at render time. It used to grep $AMQP_URL, which lives in the silo
+               Secret this container never mounted (and is "" with external_secrets.rabbitmq),
+               so it always skipped. Probes the endpoint the apps use rather than DNS alone:
+               a headless name resolves once the pod is Ready, a ClusterIP name always. */}}
         args:
           - '-c'
+          {{- if .Values.services.rabbitmq.local_setup }}
+          {{- $mqHost := include "plane.rabbitmqHost" . }}
+          {{- $mqPort := include "plane.bundledRabbitmqPort" . }}
           - >-
-            if echo "$AMQP_URL" | grep -q "rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}"; then 
-              echo "Waiting for local RabbitMQ..."; 
-              until nslookup {{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }} > /dev/null 2>&1; do
-                echo "RabbitMQ not ready..."; 
-                sleep 5; 
-              done; 
-              echo "RabbitMQ is up!"; 
-            else 
-              echo "Skipping wait, using external RabbitMQ"; 
-            fi;
-        envFrom:
-          - configMapRef:
-              name: {{ .Release.Name }}-silo-vars
-              optional: false
+            echo "Waiting for local RabbitMQ at {{ $mqHost }}:{{ $mqPort }}...";
+            until nc -z -w 3 {{ $mqHost }} {{ $mqPort }} > /dev/null 2>&1; do
+              echo "RabbitMQ not ready...";
+              sleep 5;
+            done;
+            echo "RabbitMQ is up!";
+          {{- else }}
+          - echo "Skipping wait, using external RabbitMQ"
+          {{- end }}
       {{- if include "plane.s3CAEnabled" . }}
       - name: prepare-ca-bundle
         image: {{ .Values.services.silo.init_image | default "busybox" }}

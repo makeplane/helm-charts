@@ -688,8 +688,28 @@ true
 {{- end -}}
 {{- end -}}
 
+{{/*
+True for the bundled broker too: unlike Postgres and Redis, the bundled RabbitMQ can
+take its first-boot user from the same Secret (plane.bundledRabbitmqFromSecret), so
+the apps authenticate with a credential the broker actually holds.
+*/}}
 {{- define "plane.externalRabbitmq" -}}
 {{- if .Values.external_secrets.rabbitmq.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns "true" when the bundled RabbitMQ takes RABBITMQ_DEFAULT_USER/PASS from
+external_secrets.rabbitmq.secretName, the Secret the apps read their RABBITMQ_* parts
+from. One Secret on both sides, so no broker password is rendered from values.
+
+The image applies DEFAULT_USER/PASS only when it initialises an empty data dir. On a
+broker that has already booted, the user in the Secret must exist in the broker
+already (same credentials, or added with rabbitmqctl) — see the values.yaml comment.
+*/}}
+{{- define "plane.bundledRabbitmqFromSecret" -}}
+{{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq.secretName -}}
 true
 {{- end -}}
 {{- end -}}
@@ -730,6 +750,15 @@ mirrored cloud secret when it happens to carry them — see hostKey/portKey/dbNa
 {{- else -}}
 {{- .Values.env.rabbitmq_host -}}
 {{- end -}}
+{{- end -}}
+
+{{/*
+Port of the bundled broker as a client in the cluster reaches it: the container port
+while the Service is headless (the name resolves to the pod, so servicePort is never
+in the path), servicePort once the Service has a ClusterIP.
+*/}}
+{{- define "plane.bundledRabbitmqPort" -}}
+{{- ternary (.Values.services.rabbitmq.servicePort | default 5672) 5672 (.Values.services.rabbitmq.assign_cluster_ip | default false) | toString -}}
 {{- end -}}
 
 {{- define "plane.redisHost" -}}
@@ -896,12 +925,24 @@ Caller must indent to the correct depth (env list items).
 
 {{/*
 RabbitMQ credentials from an externally managed Secret.
+
+With the bundled broker the endpoint is the chart's own Service and env.rabbitmq_*
+are ignored, as env.rabbitmq_host already was: plaintext AMQP on the default vhost,
+port from plane.bundledRabbitmqPort.
 */}}
 {{- define "plane.rabbitmqCredsEnv" -}}
 {{- $mq := .Values.external_secrets.rabbitmq -}}
 {{- if $mq.secretName }}
 - name: RABBITMQ_HOST
   value: {{ include "plane.rabbitmqHost" . | quote }}
+{{- if .Values.services.rabbitmq.local_setup }}
+- name: RABBITMQ_PORT
+  value: {{ include "plane.bundledRabbitmqPort" . | quote }}
+- name: RABBITMQ_VHOST
+  value: "/"
+- name: RABBITMQ_SSL
+  value: "0"
+{{- else }}
 - name: RABBITMQ_PORT
   value: {{ .Values.env.rabbitmq_port | default "5672" | quote }}
 - name: RABBITMQ_VHOST
@@ -910,6 +951,7 @@ RabbitMQ credentials from an externally managed Secret.
   {{/* The parts path has no URL scheme to carry TLS, so it needs an explicit flag.
        Amazon MQ for RabbitMQ listens on 5671 and refuses plaintext. */}}
   value: {{ .Values.env.rabbitmq_ssl | default false | ternary "1" "0" | quote }}
+{{- end }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PASSWORD" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
 {{- with $mq.hostKey }}
@@ -921,6 +963,19 @@ RabbitMQ credentials from an externally managed Secret.
 {{- with $mq.vhostKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_VHOST" "secret" $mq.secretName "key" .) }}
 {{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+First-boot credentials for the bundled RabbitMQ, from the Secret the apps read.
+Explicit env entries, so they win over the envFrom of rabbitmq_existingSecret when
+both are set. Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.rabbitmqServerCredsEnv" -}}
+{{- $mq := .Values.external_secrets.rabbitmq -}}
+{{- if include "plane.bundledRabbitmqFromSecret" . }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_PASS" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
 {{- end }}
 {{- end -}}
 

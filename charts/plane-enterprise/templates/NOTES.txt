@@ -118,8 +118,14 @@ Warn rather than reorder: reordering would change which value existing installs 
 {{- if and .Values.services.postgres.local_setup .Values.external_secrets.pgdb_existingSecret (empty .Values.external_secrets.app_env_existingSecret) }}
 {{- $warnings = append $warnings (printf "external_secrets.pgdb_existingSecret (%s) sets the bundled Postgres credentials\n    only. The applications still connect with env.pgdb_username/env.pgdb_password, so\n    the two must match, or supply the URLs through app_env/silo_env/pi_api_env." .Values.external_secrets.pgdb_existingSecret) }}
 {{- end }}
-{{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq_existingSecret (empty .Values.external_secrets.app_env_existingSecret) }}
+{{- /* With external_secrets.rabbitmq.secretName the broker and the apps share one Secret,
+       so the mismatch above cannot happen; what can is rabbitmq_existingSecret's user
+       being silently overridden. */}}
+{{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq_existingSecret (empty .Values.external_secrets.app_env_existingSecret) (empty .Values.external_secrets.rabbitmq.secretName) }}
 {{- $warnings = append $warnings (printf "external_secrets.rabbitmq_existingSecret (%s) sets the bundled RabbitMQ credentials\n    only. The applications still connect with services.rabbitmq.default_user/\n    default_password, so the two must match, or supply the URLs through\n    app_env/silo_env/live_env/pi_api_env." .Values.external_secrets.rabbitmq_existingSecret) }}
+{{- end }}
+{{- if and (include "plane.bundledRabbitmqFromSecret" .) .Values.external_secrets.rabbitmq_existingSecret }}
+{{- $warnings = append $warnings (printf "Both external_secrets.rabbitmq.secretName (%s) and rabbitmq_existingSecret (%s)\n    are set. The bundled RabbitMQ takes RABBITMQ_DEFAULT_USER/PASS from secretName, the\n    Secret the applications use; those two keys in rabbitmq_existingSecret are ignored." .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.rabbitmq_existingSecret) }}
 {{- end }}
 
 {{- /* Secrets that env rotation cannot reach. */}}
