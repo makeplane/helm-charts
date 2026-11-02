@@ -1185,20 +1185,6 @@ env:
   # the next major version.
   requireExplicitSecrets: false
 
-  # Make the environment the source of truth for Plane's instance settings, the
-  # ones the god-mode admin UI edits (sign-in, SSO, SMTP, AI key, limits). They
-  # live in the database: most are copied from the environment once, on first
-  # startup, and OIDC/SAML/LDAP never are. With this on, every such setting set in
-  # extraEnv or external_secrets.app_env_existingSecret is copied into the
-  # database on each API start, so rotation takes effect on restart. Settings left
-  # unset or empty keep their stored value. Trade-off: a god-mode edit to a setting
-  # the environment sets lasts only until the next restart. Plane versions that
-  # predate it ignore the flag. The README lists all 73 settings.
-  sync_config_from_env: false
-
-  # skip_env_var is deprecated and no longer listed: the API never honoured it.
-  # Leave it unset and use sync_config_from_env. See the chart README.
-
   # Kubernetes internal cluster domain used to build in-cluster service URLs
   default_cluster_domain: 'cluster.local'
 

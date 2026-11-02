@@ -2158,12 +2158,6 @@ questions:
   type: boolean
   default: false
   group: "Service Account"
-- variable: env.sync_config_from_env
-  label: "Apply Instance Settings from the Environment"
-  description: "On each API start, copies every instance setting the environment sets (SMTP, OAuth/OIDC/SAML/LDAP, LLM key, login toggles) into the database, so the environment wins. A god-mode edit to such a setting lasts only until the next restart."
-  type: boolean
-  default: false
-  group: "Service Account"
 - variable: external_secrets.otel_env_existingSecret
   label: "OpenTelemetry Envs Secrets File Name"
   description: "Supplies OTEL_EXPORTER_OTLP_HEADERS. Leave blank to let the chart create the Secret from the OTLP Exporter Headers value."

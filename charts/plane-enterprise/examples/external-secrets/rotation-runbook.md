@@ -78,7 +78,7 @@ Both fail **silently**: decryption errors are swallowed and the values come back
 
 **The bundled `local_setup` infrastructure is out of scope.** The chart's own postgres/rabbitmq/minio/opensearch StatefulSets are intended for local and evaluation use; rotating their credentials means changing the password inside the container as well, which the chart does not orchestrate. Everything here assumes managed backends.
 
-**Database-resident secrets do not rotate through the environment by default.** The SMTP password, OAuth client secrets, `LLM_API_KEY` and `LDAP_BIND_PASSWORD` live in the instance-configuration table, not the environment (some are copied from it once, on first boot; `LDAP_BIND_PASSWORD` never is). Set `env.sync_config_from_env: true` to copy the environment's values into the database on every API start, so a rotation takes effect on the next restart — at the cost of god-mode admin UI edits to those settings lasting only until then. The deprecated `env.skip_env_var` does not do this: the API ignores it.
+**Database-resident secrets do not rotate through the environment.** The SMTP password, OAuth client secrets, `LLM_API_KEY` and `LDAP_BIND_PASSWORD` are managed in the god-mode admin UI and stored in the database, by design. Rotate them there; changing the Secret has no effect. (`env.skip_env_var` does not change this and is no longer a chart value.)
 
 **Silo, live and Plane AI rotate like the API from planeVersion v3.2.0** — they read
 discrete parts, so nothing recomposes a DSN and a Reloader restart is all that is needed.

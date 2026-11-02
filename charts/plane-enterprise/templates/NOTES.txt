@@ -123,11 +123,11 @@ Warn rather than reorder: reordering would change which value existing installs 
 {{- end }}
 
 {{- /* Secrets that env rotation cannot reach. */}}
-{{- if and (not .Values.env.sync_config_from_env) (or .Values.external_secrets.app_keys_existingSecret $externalInfra) }}
-{{- $warnings = append $warnings "The SMTP password, OAuth client secrets, LLM_API_KEY and LDAP_BIND_PASSWORD are\n    read from the instance-configuration table in the database, not the environment\n    (some are copied from it once, on first startup). Rotating those through a Secret\n    will have no effect. Set env.sync_config_from_env=true to apply the environment on every restart." }}
+{{- if or .Values.external_secrets.app_keys_existingSecret $externalInfra }}
+{{- $warnings = append $warnings "The SMTP password, OAuth client secrets, LLM_API_KEY and LDAP_BIND_PASSWORD are\n    managed in the god-mode admin UI and stored in the database, not read from the\n    environment. Rotating them through a Secret has no effect; change them in god-mode." }}
 {{- end }}
 {{- if ne (.Values.env.skip_env_var | default "1" | toString) "1" }}
-{{- $warnings = append $warnings "env.skip_env_var is deprecated, and the API ignores this value: it keeps reading\n    instance settings from the database while worker, beat and the consumers read the\n    environment, so the two can disagree. Turn on env.sync_config_from_env first, then\n    remove env.skip_env_var in a later upgrade (see the chart README)." }}
+{{- $warnings = append $warnings "env.skip_env_var is no longer a chart value. Instance settings are managed in\n    god-mode and the API ignores '0', but worker, beat and the consumers read the\n    environment while it is set, so they can disagree with the API. Save those settings\n    in god-mode, then remove env.skip_env_var." }}
 {{- end }}
 
 {{- /* Static object-storage keys where a cloud identity would do. */}}

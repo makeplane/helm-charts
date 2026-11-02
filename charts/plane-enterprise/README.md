@@ -1736,51 +1736,11 @@ From chart 3.6.0 onward that Secret is rendered as base64 `data` rather than `st
 Helm can express the deletion and this stops recurring. The one-time cleanup above is still
 needed for the upgrade that crosses into 3.6.0.
 
-### 6. Secrets that live in the database, not the environment
+### 6. Settings managed in god-mode, not the environment
 
-The API reads the 73 instance settings listed below — sign-in methods, SSO providers, SMTP, the AI key and a few limits — from the instance-configuration table, which the god-mode admin UI edits. Most are copied from the environment once, on first startup; the OIDC, SAML and LDAP settings are never read from it. **Setting or rotating any of them through the environment has no effect** after first startup.
+Instance settings — sign-in methods, Google/GitHub/GitLab/Gitea/OIDC/SAML/LDAP, SMTP (including its password), `LLM_API_KEY` and the other options on the god-mode admin pages — are managed in the god-mode admin UI by design and stored in the database. Environment variables do not configure them, so **rotating them through a Secret has no effect**: change them in god-mode.
 
-Set `env.sync_config_from_env: true` to copy every one of those settings the environment sets (through `extraEnv` or `external_secrets.app_env_existingSecret`) into the database on each API start, which makes the external secret or your GitOps values the source of truth:
-
-```yaml
-env:
-  sync_config_from_env: true
-extraEnv:
-  - name: IS_OIDC_ENABLED
-    value: "1"
-```
-
-- Settings the environment leaves unset or empty keep their stored value, so anything configured in the god-mode admin UI keeps working.
-- The trade-off: a god-mode edit to a setting the environment sets lasts only until the next restart.
-- The API logs the names (never the values) of the settings it changed: `PLANE_SYNC_CONFIG_FROM_ENV: applied from the environment: IS_OIDC_ENABLED`. Plane versions that predate the flag ignore it, so no such line appears.
-
-**`env.skip_env_var` is deprecated: leave it unset.** It was the old switch for this, but the API never honoured it. `'0'` only moves worker, beat and the consumers to the environment, so they can disagree with the API. If you set it to `'0'` today, either through `env.skip_env_var` or a `SKIP_ENV_VAR` entry in `extraEnv`, move off it in two upgrades so the workers never read a stale value in between:
-
-1. Turn on `env.sync_config_from_env` and upgrade. The API copies your environment values into the database.
-2. Remove the `skip_env_var` setting and upgrade again. The workers now read the same values from the database.
-
-**Settings that `sync_config_from_env` applies.** Set each as an environment variable of the same name. Toggles take `"1"` or `"0"`. 🔒 marks a secret, which the database stores encrypted; supply those from a Secret (`external_secrets.app_env_existingSecret`) rather than `extraEnv`.
-
-| Area | Environment variables | Notes |
-| --- | --- | --- |
-| Sign-in | `ENABLE_SIGNUP`, `ENABLE_EMAIL_PASSWORD`, `ENABLE_MAGIC_LINK_LOGIN` | Magic links also need SMTP. |
-| Workspaces | `DISABLE_WORKSPACE_CREATION` | |
-| Security | `DISABLE_ACCESS_TOKENS`, `HIDE_EMAIL_CHANGE_DETAILS`, `SESSION_COOKIE_AGE`, `ADMIN_SESSION_COOKIE_AGE`, `WORK_ITEM_EXPORT_EXPIRY_SECONDS` | Ages and expiry are in seconds. |
-| OIDC | `IS_OIDC_ENABLED`, `OIDC_PROVIDER_NAME`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` 🔒, `OIDC_AUTHORIZE_URL`, `OIDC_TOKEN_URL`, `OIDC_USERINFO_URL`, `OIDC_LOGOUT_URL`, `ENABLE_OIDC_IDP_SYNC` | |
-| SAML | `IS_SAML_ENABLED`, `SAML_PROVIDER_NAME`, `SAML_ENTITY_ID`, `SAML_SSO_URL`, `SAML_LOGOUT_URL`, `SAML_CERTIFICATE` 🔒, `SAML_NAME_ID_FORMAT`, `SAML_ATTRIBUTE_MAPPING`, `SAML_DISABLE_REQUESTED_AUTHN_CONTEXT`, `ENABLE_SAML_IDP_SYNC` | `SAML_ATTRIBUTE_MAPPING` is a JSON object, such as `{"display_name": "preferred_username"}`; keys it leaves out keep their defaults. |
-| LDAP | `IS_LDAP_ENABLED`, `LDAP_PROVIDER_NAME`, `LDAP_SERVER_URI`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD` 🔒, `LDAP_USER_SEARCH_BASE`, `LDAP_USER_SEARCH_FILTER`, `LDAP_USER_ATTRIBUTES` | `LDAP_USER_ATTRIBUTES` is comma-separated. |
-| Google | `IS_GOOGLE_ENABLED`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` 🔒, `ENABLE_GOOGLE_SYNC` | |
-| GitHub | `IS_GITHUB_ENABLED`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` 🔒, `GITHUB_ORGANIZATION_ID`, `ENABLE_GITHUB_SYNC` | `GITHUB_ORGANIZATION_ID` limits sign-in to that organization's members. |
-| GitLab | `IS_GITLAB_ENABLED`, `GITLAB_HOST`, `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET` 🔒, `ENABLE_GITLAB_SYNC` | |
-| Gitea | `IS_GITEA_ENABLED`, `GITEA_HOST`, `GITEA_CLIENT_ID`, `GITEA_CLIENT_SECRET` 🔒, `ENABLE_GITEA_SYNC` | |
-| Email (SMTP) | `ENABLE_SMTP`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` 🔒, `EMAIL_FROM`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL` | |
-| AI | `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` 🔒, `GPT_ENGINE` | `GPT_ENGINE` is deprecated; use `LLM_MODEL`. |
-| Images | `UNSPLASH_ACCESS_KEY` 🔒 | |
-| Chat support | `IS_CHAT_SUPPORT_ENABLED`, `CHAT_SUPPORT_APP_ID` | |
-| Projects | `PROJECT_IDENTIFIER_MAX_LENGTH` | 1 to 255. |
-| Log retention | `WEBHOOK_EVENTS_RETENTION_IN_DAYS`, `API_LOGS_RETENTION_IN_DAYS` | In days. |
-
-The `ENABLE_*_SYNC` and `ENABLE_*_IDP_SYNC` toggles refresh a user's profile from that provider at each sign-in.
+Earlier chart versions documented `env.skip_env_var: '0'` for this. It never changed what the API reads, and it has been removed from `values.yaml`. If you set it, save those settings in god-mode first, then remove it: while it is set, worker, beat and the consumers read the environment instead of the database and can disagree with the API.
 
 ### AI providers, including Amazon Bedrock
 
@@ -1838,8 +1798,6 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
-| `env.sync_config_from_env` | false | On each API start, copy every instance setting the environment sets (SMTP, OAuth/OIDC/SAML/LDAP, LLM key, login toggles) into the database, so the environment wins. |
-| `env.skip_env_var` | (unset) | **Deprecated**; leave unset. Still rendered, defaulting to `'1'`, so existing values keep working. Use `env.sync_config_from_env`. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
 
 ### Provider examples
