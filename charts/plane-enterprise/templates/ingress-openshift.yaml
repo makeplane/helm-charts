@@ -51,6 +51,7 @@ Differences from the Traefik IngressRoute this mirrors:
       (dict "slug" "static"      "path" "/static/"      "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "graphql"     "path" "/graphql/"     "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "marketplace" "path" "/marketplace/" "svc" (printf "%s-api" $name)   "port" 8000)
+      (dict "slug" "dav"         "path" "/dav/"         "svc" (printf "%s-api" $name)   "port" 8000)
       (dict "slug" "live"        "path" "/live/"        "svc" (printf "%s-live" $name)  "port" 3000)
 }}
 {{- if .Values.services.silo.enabled }}
