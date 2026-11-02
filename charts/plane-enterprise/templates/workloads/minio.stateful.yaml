@@ -1,4 +1,4 @@
-{{- if eq (include "plane.minioEnabled" .) "true" }}
+{{- if eq (include "plane.minioEnabled" .) "true" }}{{- $minioBucketJobSpec := include "plane.minioBucketJobSpec" . }}
 
 apiVersion: v1
 kind: Service
@@ -95,8 +95,11 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-minio-bucket-{{ now | date "20060102-150405" }}
+  name: {{ .Release.Name }}-minio-bucket-{{ include "plane.jobRunSuffix" (dict "context" . "spec" $minioBucketJobSpec) }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.minio) }}
+{{ $minioBucketJobSpec }}
+{{- end }}
+{{- define "plane.minioBucketJobSpec" -}}
 spec:
   backoffLimit: 6
   completionMode: NonIndexed

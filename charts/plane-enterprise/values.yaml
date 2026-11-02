@@ -1175,6 +1175,15 @@ global:
   # upgrades roll only what actually changed. Set true to force a full restart.
   forceRedeploy: false
 
+  # Render identical manifests for identical values, for GitOps tools (ArgoCD,
+  # Flux, Fleet) that otherwise show the release as permanently out of sync. The
+  # migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are then
+  # named after a hash of their own spec instead of the render time, so they rerun
+  # only when something in them changes (an image, config, or the chart version),
+  # and Argus pods stop restarting on every render. A failed Job is not retried by
+  # re-rendering the same values: delete it, or set forceRedeploy for one run.
+  deterministicRender: false
+
 env:
   storageClass: ''
 
