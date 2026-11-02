@@ -123,9 +123,9 @@ data:
   PAYMENT_SERVER_BASE_URL: {{ .Values.license.licenseServer | quote }}
 
   DEFAULT_API_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "120/minute" | quote }}
-  {{- /* '0' makes the API re-read SMTP/OAuth/LLM/LDAP secrets from the environment on
-       every start instead of from the instance-configuration table, which is what
-       lets an external secret store rotate them. See values.yaml env.skip_env_var. */}}
+  {{- /* Instance settings are managed in god-mode by design; the API always reads them
+       from the database. env.skip_env_var is no longer in values.yaml: the default
+       keeps existing releases unchanged, and NOTES warns about an explicit '0'. */}}
   SKIP_ENV_VAR: {{ .Values.env.skip_env_var | default "1" | quote }}
   MINIO_ENDPOINT_SSL: {{ .Values.services.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
   USE_STORAGE_PROXY: {{ .Values.env.use_storage_proxy | default false | ternary "1" "0" | quote }}

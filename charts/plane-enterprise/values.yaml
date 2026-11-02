@@ -1185,14 +1185,6 @@ env:
   # the next major version.
   requireExplicitSecrets: false
 
-  # SKIP_ENV_VAR=1 (the default) makes the API read SMTP, OAuth-provider, LLM and
-  # LDAP secrets from the instance-configuration table in the database, seeded from
-  # the environment only on first startup — so rotating those through a Secret has
-  # no effect. Set '0' when an external secret store is the source of truth: the
-  # API then re-seeds them from the environment on every start. Trade-off: edits
-  # made in the god-mode admin UI for those settings get overwritten on restart.
-  skip_env_var: '1'
-
   # Kubernetes internal cluster domain used to build in-cluster service URLs
   default_cluster_domain: 'cluster.local'
 

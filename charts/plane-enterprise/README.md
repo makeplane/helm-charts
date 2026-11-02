@@ -1736,18 +1736,11 @@ From chart 3.6.0 onward that Secret is rendered as base64 `data` rather than `st
 Helm can express the deletion and this stops recurring. The one-time cleanup above is still
 needed for the upgrade that crosses into 3.6.0.
 
-### 6. Secrets that live in the database, not the environment
+### 6. Settings managed in god-mode, not the environment
 
-By default (`SKIP_ENV_VAR=1`) the API reads about twenty settings — SMTP password, Google/GitHub/GitLab/OIDC client secrets, `LLM_API_KEY`, `LDAP_BIND_PASSWORD`, SAML certificate — from the instance-configuration table, seeded from the environment only on first startup. **Rotating those through a Secret has no effect** while that is the case.
+Instance settings — sign-in methods, Google/GitHub/GitLab/Gitea/OIDC/SAML/LDAP, SMTP (including its password), `LLM_API_KEY` and the other options on the god-mode admin pages — are managed in the god-mode admin UI by design and stored in the database. Environment variables do not configure them, so **rotating them through a Secret has no effect**: change them in god-mode.
 
-Set `env.skip_env_var: '0'` to make the API re-read them from the environment on every start, which makes the external secret the source of truth:
-
-```yaml
-env:
-  skip_env_var: '0'
-```
-
-The trade-off: edits made to those settings in the god-mode admin UI are overwritten on the next restart.
+Earlier chart versions documented `env.skip_env_var: '0'` for this. It never changed what the API reads, and it has been removed from `values.yaml`. If you set it, save those settings in god-mode first, then remove it: while it is set, worker, beat and the consumers read the environment instead of the database and can disagree with the API.
 
 ### AI providers, including Amazon Bedrock
 
@@ -1805,7 +1798,6 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
-| `env.skip_env_var` | '1' | `'0'` makes the API re-read the database-resident secrets (SMTP, OAuth, LLM, LDAP) from the environment on every start. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
 
 ### Provider examples
