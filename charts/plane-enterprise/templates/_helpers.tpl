@@ -688,26 +688,14 @@ true
 {{- end -}}
 {{- end -}}
 
-{{/*
-True for the bundled broker too: unlike Postgres and Redis, the bundled RabbitMQ can
-take its first-boot user from the same Secret (plane.bundledRabbitmqFromSecret), so
-the apps authenticate with a credential the broker actually holds.
-*/}}
+{{/* Also true with the bundled broker, which reads the same Secret (plane.bundledRabbitmqFromSecret). */}}
 {{- define "plane.externalRabbitmq" -}}
 {{- if .Values.external_secrets.rabbitmq.secretName -}}
 true
 {{- end -}}
 {{- end -}}
 
-{{/*
-Returns "true" when the bundled RabbitMQ takes RABBITMQ_DEFAULT_USER/PASS from
-external_secrets.rabbitmq.secretName, the Secret the apps read their RABBITMQ_* parts
-from. One Secret on both sides, so no broker password is rendered from values.
-
-The image applies DEFAULT_USER/PASS only when it initialises an empty data dir. On a
-broker that has already booted, the user in the Secret must exist in the broker
-already (same credentials, or added with rabbitmqctl) — see the values.yaml comment.
-*/}}
+{{/* "true" when the bundled broker takes its first-boot user from external_secrets.rabbitmq. */}}
 {{- define "plane.bundledRabbitmqFromSecret" -}}
 {{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq.secretName -}}
 true
@@ -752,11 +740,7 @@ mirrored cloud secret when it happens to carry them — see hostKey/portKey/dbNa
 {{- end -}}
 {{- end -}}
 
-{{/*
-Port of the bundled broker as a client in the cluster reaches it: the container port
-while the Service is headless (the name resolves to the pod, so servicePort is never
-in the path), servicePort once the Service has a ClusterIP.
-*/}}
+{{/* Bundled broker port: 5672 while the Service is headless, servicePort with a ClusterIP. */}}
 {{- define "plane.bundledRabbitmqPort" -}}
 {{- ternary (.Values.services.rabbitmq.servicePort | default 5672) 5672 (.Values.services.rabbitmq.assign_cluster_ip | default false) | toString -}}
 {{- end -}}
@@ -924,11 +908,8 @@ Caller must indent to the correct depth (env list items).
 {{- end -}}
 
 {{/*
-RabbitMQ credentials from an externally managed Secret.
-
-With the bundled broker the endpoint is the chart's own Service and env.rabbitmq_*
-are ignored, as env.rabbitmq_host already was: plaintext AMQP on the default vhost,
-port from plane.bundledRabbitmqPort.
+RabbitMQ credentials from an externally managed Secret. With the bundled broker,
+env.rabbitmq_* are ignored and the chart's own Service is used.
 */}}
 {{- define "plane.rabbitmqCredsEnv" -}}
 {{- $mq := .Values.external_secrets.rabbitmq -}}
@@ -966,11 +947,7 @@ port from plane.bundledRabbitmqPort.
 {{- end }}
 {{- end -}}
 
-{{/*
-First-boot credentials for the bundled RabbitMQ, from the Secret the apps read.
-Explicit env entries, so they win over the envFrom of rabbitmq_existingSecret when
-both are set. Caller must indent to the correct depth (env list items).
-*/}}
+{{/* Bundled broker's first-boot user from the apps' Secret; explicit env wins over envFrom. */}}
 {{- define "plane.rabbitmqServerCredsEnv" -}}
 {{- $mq := .Values.external_secrets.rabbitmq -}}
 {{- if include "plane.bundledRabbitmqFromSecret" . }}

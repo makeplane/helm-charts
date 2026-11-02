@@ -272,8 +272,7 @@ services:
     managementPort: 15672
     volumeSize: 100Mi
     pullPolicy: IfNotPresent
-    # Ignored when external_secrets.rabbitmq.secretName is set: the broker and the
-    # apps then share that Secret's username/password.
+    # Ignored when external_secrets.rabbitmq.secretName is set.
     default_user: plane
     default_password: plane
     external_rabbitmq_url: ''
@@ -1026,18 +1025,8 @@ external_secrets:
   rabbitmq:
     # Amazon MQ shape. Set env.rabbitmq_ssl: true and env.rabbitmq_port: '5671' —
     # Amazon MQ refuses plaintext AMQP.
-    #
-    # Also works with the bundled broker (services.rabbitmq.local_setup: true), unlike
-    # database and redis: the RabbitMQ StatefulSet then takes RABBITMQ_DEFAULT_USER/PASS
-    # from this Secret and the apps connect to the in-cluster Service with the same
-    # credential, so no broker password is rendered from values (default_user/
-    # default_password are ignored, <release>-rabbitmq-secrets is not created, and
-    # env.rabbitmq_host/port/vhost/ssl do not apply).
-    # RabbitMQ applies DEFAULT_USER/PASS only when it boots on an EMPTY data volume.
-    # Switching an existing install to this Secret, or rotating the password in it,
-    # does not change the broker: put the credentials the broker already has in the
-    # Secret (plane/plane unless default_user/default_password were changed), or
-    # create the new user in the broker first (rabbitmqctl add_user / set_permissions).
+    # Also works with the bundled broker (local_setup: true), which then takes its first-boot
+    # user from this Secret. See README "Bundled RabbitMQ with credentials from a Secret".
     secretName: ''
     usernameKey: username
     passwordKey: password
@@ -1234,8 +1223,7 @@ env:
   pgdb_read_replica_name: ''
 
   # RabbitMQ endpoint used with external_secrets.rabbitmq (credentials come from
-  # that Secret). Ignored, together with rabbitmq_ssl, when services.rabbitmq.local_setup
-  # is true: the bundled broker's in-cluster Service is used instead.
+  # that Secret). Ignored when services.rabbitmq.local_setup is true.
   rabbitmq_host: ''
   rabbitmq_port: '5672'
   rabbitmq_vhost: '/'

@@ -4,8 +4,7 @@
      authenticates that credential. For redis it is worse: plane.externalRedis also blanks
      REDIS_URL, so an older image is left with no route to Redis at all. Fail at render
      time rather than at runtime. plane.externalOpensearch already refuses this pairing.
-     RabbitMQ is the exception: the bundled broker takes its first-boot user from the
-     same Secret (plane.bundledRabbitmqFromSecret), so that pairing is allowed. */}}
+     RabbitMQ is allowed: the bundled broker reads the same Secret. */}}
 {{- if and .Values.external_secrets.database.secretName .Values.services.postgres.local_setup }}
 {{- fail "external_secrets.database.secretName is set while services.postgres.local_setup is true — externalized credentials cannot authenticate against the bundled Postgres. Set services.postgres.local_setup: false and point env.pgdb_host at the remote database, or drop external_secrets.database.secretName" }}
 {{- end }}

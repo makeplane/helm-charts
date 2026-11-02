@@ -50,8 +50,6 @@ spec:
         name: {{ .Release.Name }}-rabbitmq
         stdin: true
         tty: true
-        {{- /* With external_secrets.rabbitmq.secretName the chart renders no
-               <release>-rabbitmq-secrets; the user comes from that Secret below. */}}
         {{- if or .Values.external_secrets.rabbitmq_existingSecret (not (include "plane.bundledRabbitmqFromSecret" .)) }}
         envFrom:
           - secretRef:
