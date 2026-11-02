@@ -58,11 +58,12 @@ spec:
         {{- end }}
         {{- if or .Values.extraEnv (include "plane.bundledRabbitmqFromSecret" .) }}
         env:
-          {{- with (include "plane.rabbitmqServerCredsEnv" .) }}
-{{ trim . | indent 10 }}
-          {{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+          {{- /* After extraEnv: the later duplicate wins, and these must match what the apps read. */}}
+          {{- with (include "plane.rabbitmqServerCredsEnv" .) }}
+{{ trim . | indent 10 }}
           {{- end }}
         {{- end }}
         volumeMounts:

@@ -60,7 +60,7 @@ spec:
         {{- /* Probes the broker's port, not just DNS: a ClusterIP name resolves before the pod is up. */}}
         args:
           - '-c'
-          {{- if .Values.services.rabbitmq.local_setup }}
+          {{- if and .Values.services.rabbitmq.local_setup (not (and .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.rabbitmq.hostKey)) }}
           {{- $mqHost := include "plane.rabbitmqHost" . }}
           {{- $mqPort := include "plane.bundledRabbitmqPort" . }}
           - >-
@@ -84,7 +84,7 @@ spec:
             set -e
             echo "Preparing custom CA bundle for Node.js..."
             if [ "$(ls -A /s3-custom-ca)" ]; then
-              cat /s3-custom-ca/* > /ca-bundle/custom-ca-bundle.crt
+              for f in /s3-custom-ca/*; do cat "$f"; echo; done > /ca-bundle/custom-ca-bundle.crt
               echo "CA bundle created at /ca-bundle/custom-ca-bundle.crt"
             else
               echo "No custom CA certificates found, creating empty bundle"
