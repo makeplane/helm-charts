@@ -780,9 +780,21 @@ the bundled datastores off. Three things to know before you use it:
 | env.remote_redis_url             |                             |          | Users can also decide to use the remote hosted database and link to Plane deployment. Ignoring all the above keys, set `services.redis.local_setup` to `false` and set this key with remote connection url.                                                                                                                                                                      |
 | env.redis_host                   |                             |          | Hostname of a remote Redis/Valkey, used with `external_secrets.redis` instead of `env.remote_redis_url` — the password then comes from the external Secret. Ignored when `services.redis.local_setup=true`. Requires `planeVersion` v3.2.0+.                                                                                                                                       |
 | env.redis_port                   |            6379             |          | Port of a remote Redis, used with `external_secrets.redis`.                                                                                                                                                                                                                                                                                                                       |
-| env.redis_ssl                    |            false            |          | Set `true` to connect over TLS (`rediss://`) — required by ElastiCache with in-transit encryption and by Azure Cache for Redis.                                                                                                                                                                                                                                                    |
+| env.redis_ssl                    |            false            |          | Set `true` to connect over TLS (`rediss://`) — required by ElastiCache with in-transit encryption and by Azure Cache for Redis. Also applies to the data nodes in Sentinel mode.                                                                                                                                                                                                  |
 | external_secrets.redis.secretName |                            |          | Name of an existing Secret holding the Redis password / auth token. See "Keeping credentials out of values.yaml".                                                                                                                                                                                                                                                                  |
 | external_secrets.redis.passwordKey |          password          |          | Key inside that Secret holding the password. `hostKey` / `portKey` are also available when the Secret carries the endpoint.                                                                                                                                                                                                                                                        |
+| external_secrets.redis.usernameKey |                            |          | Optional. Key inside that Secret holding the data nodes' ACL username (`REDIS_USERNAME`). Takes precedence over `env.redis_username`. |
+| external_secrets.redis.sentinelUsernameKey |                    |          | Sentinel mode only. Key holding the sentinels' username (`REDIS_SENTINEL_USERNAME`). Takes precedence over `env.redis_sentinel_username`. |
+| external_secrets.redis.sentinelPasswordKey |                    |          | Sentinel mode only. Key holding the sentinels' password (`REDIS_SENTINEL_PASSWORD`). Takes precedence over `env.redis_sentinel_password`. |
+| env.redis_sentinels              |                             |          | Connect to a Redis Sentinel **you run** (the chart never deploys Sentinel). Comma-separated `host:port` list, e.g. `s1:26379,s2:26379,s3:26379` (port defaults to 26379). Non-empty turns Sentinel mode on for api, workers, beat, consumers, migrator, live, silo and the MCP server; `REDIS_URL` is then rendered empty. Requires `services.redis.local_setup=false` (the default is `true`) and an empty `env.remote_redis_url`; the render fails otherwise. Plane AI (pi) does not use Sentinel yet. See [Redis Sentinel](#redis-sentinel-bring-your-own). |
+| env.redis_sentinel_master        |                             | Sentinel | Master (service) name the sentinels monitor. Required in Sentinel mode. |
+| env.redis_sentinel_username      |                             |          | Username for the sentinels, if they use ACLs (Redis 6.2+). |
+| env.redis_sentinel_password      |                             |          | Password for the sentinels. Plain value, written to the services' Secrets; ignored when `external_secrets.redis.sentinelPasswordKey` is set. |
+| env.redis_username               |                             |          | ACL username for the data nodes. Used in Sentinel mode and with `external_secrets.redis`. |
+| env.redis_password               |                             |          | Password for the data nodes in Sentinel mode without `external_secrets.redis`. Plain value, written to the services' Secrets. |
+| env.redis_db                     |              0              |          | Database index in Sentinel mode. |
+| env.redis_sentinel_ssl           |                             |          | TLS to the sentinels. Empty = same as `env.redis_ssl`. |
+| env.redis_ssl_verify             |            false            |          | Verify the Redis and Sentinel TLS certificates against the container's system CA bundle. A private CA from `customCA` is mounted only on api, external-api, worker, worker-importers, search-index, live and silo. |
 
 ### RabbitMQ Setup
 
@@ -1622,7 +1634,7 @@ The four services differ in what the credential looks like, so:
 | --- | --- | --- | --- |
 | **Postgres** (RDS, CloudSQL, Flexible Server) | `username`, `password` | `env.pgdb_host` / `pgdb_port` / `pgdb_name` | Works on every Plane release. |
 | **RabbitMQ** (Amazon MQ) | `username`, `password` | `env.rabbitmq_host` / `rabbitmq_port` / `rabbitmq_vhost` | **Set `env.rabbitmq_ssl: true` and port `5671` for Amazon MQ** — it only accepts AMQPS. Works on every release; `rabbitmq_ssl` needs v3.2.0+. |
-| **Redis** (ElastiCache, Memorystore, Azure Cache) | `password` only — there is no username | `env.redis_host` / `redis_port` / `redis_ssl` | Needs **planeVersion v3.2.0+**. For ElastiCache the AUTH token goes in the password key. |
+| **Redis** (ElastiCache, Memorystore, Azure Cache) | `password`; an ACL username only if you use one (`usernameKey`) | `env.redis_host` / `redis_port` / `redis_ssl` | Needs **planeVersion v3.2.0+**. For ElastiCache the AUTH token goes in the password key. For a Redis behind Sentinel see below. |
 | **OpenSearch** | `username`, `password` | `env.opensearch_remote_url` | Remote domains only. On AWS, prefer leaving both unset so the pod's IAM role authenticates with SigV4. |
 
 `rabbitmq_ssl` and `redis_ssl` exist because the discrete-parts path has no URL scheme to carry TLS — an `amqp://` URL says "plaintext" in the string itself, but a host and port do not. Without the flag, a mirrored Amazon MQ credential produces a plaintext connection that the broker rejects.
@@ -1640,6 +1652,35 @@ Each workload receives only the credentials it uses. Live gets Redis and nothing
 Plane AI's two databases both come from the same `external_secrets.database` Secret, which is the shape this chart provisions (one managed instance, two databases). If yours have genuinely separate credentials, set `env.pi_envs.follower_postgres_uri` — it still takes precedence — or use `pi_api_env_existingSecret`.
 
 For **planeVersion below v3.2.0**, supply silo/live/Plane AI DSNs through `silo_env_existingSecret` / `live_env_existingSecret` / `pi_api_env_existingSecret` and let ESO compose them with a `template` block (see `examples/external-secrets/`).
+
+#### Redis Sentinel (bring your own)
+
+Plane can connect to a Redis that sits behind Sentinel and is run by you. The chart does not deploy Sentinel, so `services.redis.local_setup` must be `false`, and `env.remote_redis_url` must be empty.
+
+```yaml
+services:
+  redis:
+    local_setup: false
+
+external_secrets:
+  redis:
+    secretName: plane-redis           # optional; plain env.redis_password works too
+    passwordKey: password             # data nodes
+    sentinelPasswordKey: sentinel-password   # only if the sentinels need auth
+
+env:
+  redis_sentinels: "sentinel-0:26379,sentinel-1:26379,sentinel-2:26379"
+  redis_sentinel_master: mymaster
+  redis_ssl: false
+```
+
+Every Redis consumer except Plane AI (api, external-api, worker, importer worker, beat-worker, the consumers, outbox poller, migrator, search-index Job, live, live-exporter, silo and the MCP server) gets `REDIS_SENTINELS`, `REDIS_SENTINEL_MASTER`, `REDIS_DB`, `REDIS_SSL`, `REDIS_SSL_VERIFY`, and `REDIS_SENTINEL_SSL` / the usernames when set, as env entries. `REDIS_URL` is rendered empty. Passwords never go into a manifest or ConfigMap: with `external_secrets.redis` they are `secretKeyRef` entries, otherwise `env.redis_password` / `env.redis_sentinel_password` are written to each service's own Secret (`<release>-app-secrets`, `-live-secrets`, `-silo-secrets`, `-mcp-server-secrets`). If you replace those Secrets with `*_env_existingSecret`, put `REDIS_PASSWORD` / `REDIS_SENTINEL_PASSWORD` in yours and leave `REDIS_URL` out or empty.
+
+Before you switch:
+
+- The images must support Sentinel; older images ignore `REDIS_SENTINELS` and, with `REDIS_URL` empty, have no Redis. `helm install` prints the requirement.
+- `notify-keyspace-events` must include `E` and `x` in the config file of **every** data node. Plane sets it at runtime only on the primary it is connected to, so after a failover silo's webhook-driven syncs stop without it.
+- Plane AI (pi) keeps using its own broker settings; it has no Sentinel support yet.
 
 ### 3. Shared signing keys in one Secret
 
@@ -1791,10 +1832,11 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `serviceAccount.podLabels` | {} | Extra pod-template labels; Azure Workload Identity needs `azure.workload.identity/use: 'true'`. |
 | `external_secrets.database.*` | | Postgres credentials from an existing Secret — see above. |
 | `external_secrets.rabbitmq.*` | | RabbitMQ credentials from an existing Secret. |
-| `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.2.0+). |
+| `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.2.0+), plus optional `usernameKey`, `sentinelUsernameKey` and `sentinelPasswordKey`. |
 | `external_secrets.opensearch.*` | | OpenSearch username/password from an existing Secret; remote domains only. |
 | `env.rabbitmq_ssl` | false | Connect to RabbitMQ over TLS (`amqps`). Required by Amazon MQ. |
 | `env.redis_ssl` | false | Connect to Redis over TLS (`rediss`). Required by ElastiCache with in-transit encryption and Azure Cache. |
+| `env.redis_sentinels` | | Redis Sentinel mode (bring your own); see [Redis Sentinel](#redis-sentinel-bring-your-own). |
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
@@ -1870,14 +1912,18 @@ To configure the external secrets for your application, you need to define speci
 |                          | `AWS_REGION`            | Optional                                                        | AWS region where your S3 bucket is located  | `your_aws_region`                                                                                                                                                                                    |
 |                          | `FILE_SIZE_LIMIT`       | Yes                                                             | Limit for file uploads in your system       | `5MB`                                                                                                                                                                                                |
 | app_env_existingSecret   | `SECRET_KEY`            | Yes                                                             | Random secret key                           | `60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5`                                                                                                                                                 |
-|                          | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `REDIS_URL`             | Yes, except in Sentinel mode (leave it out or empty there)      | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `REDIS_PASSWORD`        | Sentinel mode without `external_secrets.redis`, if the data nodes need auth | Password for the Redis data nodes | `your_redis_password` |
+|                          | `REDIS_SENTINEL_PASSWORD` | Sentinel mode without `external_secrets.redis.sentinelPasswordKey`, if the sentinels need auth | Password for the sentinels | `your_sentinel_password` |
 |                          | `DATABASE_URL`          | Yes                                                             | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
-| live_env_existingSecret  | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+| live_env_existingSecret  | `REDIS_URL`             | Yes, except in Sentinel mode (leave it out or empty there)      | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `REDIS_PASSWORD` / `REDIS_SENTINEL_PASSWORD` | Sentinel mode, as for `app_env_existingSecret` | Redis data-node / sentinel passwords | `your_redis_password` |
 |                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
 |                          | `LIVE_SERVER_SECRET_KEY` | Yes                                                            | Live server secret key                      | `htbqvBJAgpm9bzvf3r4urJer0ENReatceh`                                                                                                                                                                |
 | silo_env_existingSecret  | `SILO_HMAC_SECRET_KEY`  | Yes                                                             | Silo HMAC secret Key                        | `<random-32-bit-string>`                                                                                                                                                                             |
-|                          | `REDIS_URL`             | Yes                                                             | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `REDIS_URL`             | Yes, except in Sentinel mode (leave it out or empty there)      | Redis URL                                   | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                                                               |
+|                          | `REDIS_PASSWORD` / `REDIS_SENTINEL_PASSWORD` | Sentinel mode, as for `app_env_existingSecret` | Redis data-node / sentinel passwords | `your_redis_password` |
 |                          | `DATABASE_URL`          | Yes                                                             | PostgreSQL connection URL                   | **k8s service example**: `postgresql://plane:plane@plane-pgdb.plane-ns.svc.cluster.local:5432/plane` <br> <br>**external service example**: `postgresql://username:password@your-db-host:5432/plane` |
 |                          | `AMQP_URL`              | Yes                                                             | RabbitMQ connection URL                     | **k8s service example**: `amqp://plane:plane@plane-rabbitmq.plane-ns.svc.cluster.local:5672/` <br> <br> **external service example**: `amqp://username:password@your-rabbitmq-host:5672/`            |
 |                          | `GITHUB_APP_NAME`       | required if `services.silo.connectors.github.enabled` is `true` | GitHub app name                             | `your_github_app_name`                                                                                                                                                                               |
@@ -1895,7 +1941,8 @@ To configure the external secrets for your application, you need to define speci
 |                          | `SENTRY_CLIENT_SECRET`  | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry client secret key                    | `your_sentry_client_secret_key`                                                                                                                                                                      |
 |                          | `SENTRY_INTEGRATION_SLUG` | required if `services.silo.connectors.sentry.enabled` is `true` | Sentry integration slug                   | `your_sentry_integration_slug`                                                                                                                                                                       |
 |                          | `CURSOR_WEBHOOK_SECRET` | Yes                                                             | Webhook secret for the Cursor agent integration | `TTqazTcoBajYKzIAeIKFZeTX9czAoUsG` (or your own value)                                                                                                                                               |
-| mcp_server_env_existingSecret | `REDIS_URL`         | Yes (if `services.mcp_server.enabled=true` and `external_secrets.redis.secretName` is unset) | Redis URL for the MCP server's OAuth token store (`rediss://` for TLS) | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                     |
+| mcp_server_env_existingSecret | `REDIS_URL`         | Yes (if `services.mcp_server.enabled=true`, `external_secrets.redis.secretName` is unset and Sentinel mode is off) | Redis URL for the MCP server's OAuth token store (`rediss://` for TLS) | `redis://plane-redis.plane-ns.svc.cluster.local:6379/`                                                                                                     |
+|                          | `REDIS_PASSWORD` / `REDIS_SENTINEL_PASSWORD` | Sentinel mode, as for `app_env_existingSecret` | Redis data-node / sentinel passwords | `your_redis_password` |
 |                          | `PLANE_OAUTH_PROVIDER_CLIENT_ID` | Yes (if `services.mcp_server.enabled=true`)                | Plane OAuth application client ID                | `<client-id>`                                                                                                                                                                                        |
 |                          | `PLANE_OAUTH_PROVIDER_CLIENT_SECRET` | Yes (if `services.mcp_server.enabled=true`)            | Plane OAuth application client secret          | `<client-secret>`                                                                                                                                                                                    |
 |                          | `PLANE_OAUTH_PROVIDER_BASE_URL` | No (the chart derives it into the `<release>-mcp-server-vars` ConfigMap; set it here only to override) | Public URL the MCP server's OAuth endpoints are served on | `https://plane.example.com`                                                                                                                                                                          |

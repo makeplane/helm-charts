@@ -62,6 +62,9 @@ spec:
           {{- with (include "plane.redisCredsEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
+          {{- with (include "plane.redisClientEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live-exporter")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}

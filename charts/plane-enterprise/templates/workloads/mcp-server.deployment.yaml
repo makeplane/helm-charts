@@ -72,19 +72,25 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.mcp_server_env_existingSecret) }}{{ .Values.external_secrets.mcp_server_env_existingSecret }}{{ else }}{{ .Release.Name }}-mcp-server-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.redisCredsEnv" .) }}
+        {{- if or .Values.extraEnv (include "plane.redisCredsEnv" .) (include "plane.redisClientEnv" .) }}
         env:
           {{- with (include "plane.redisCredsEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
-          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl }}
+          {{- with (include "plane.redisClientEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl (not (include "plane.redisSentinel" .)) }}
           {{- /* TLS goes through a rediss:// URL, not REDIS_SSL: on the host/port path the
                  server applies REDIS_SSL to its startup PING only, and the token store itself
                  connects in plaintext, sending REDIS_PASSWORD in the clear. Composed from the
                  entries above so a hostKey/portKey from the Secret still applies; it carries
                  no password, so REDIS_PASSWORD fills it in and rotation keeps working.
                  Images before v0.3.2 ignore REDIS_URL and would keep the plaintext store, so
-                 refuse a known older version; an image without a semver tag passes through. */}}
+                 refuse a known older version; an image without a semver tag passes through.
+                 Never in Sentinel mode: there is usually no env.redis_host, so this became
+                 rediss://:6379/, which released servers try before anything else. TLS there
+                 comes from REDIS_SSL / REDIS_SENTINEL_SSL, which its Sentinel path reads. */}}
           {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
           {{- $mcpVersion := regexFind ":v?[0-9]+\\.[0-9]+\\.[0-9]+$" $mcpImage | trimPrefix ":" | trimPrefix "v" }}
           {{- if and $mcpVersion (semverCompare "<0.3.2" $mcpVersion) }}

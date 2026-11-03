@@ -775,6 +775,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.postgresCredsEnv" . }}
 {{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.redisCredsEnv" . }}
+{{- include "plane.redisClientEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
 {{- include "plane.storageCredsEnv" . }}
 {{- end -}}
@@ -948,6 +949,102 @@ live server, and by Plane AI, whose Celery broker is Redis in Helm deployments.
 {{- end -}}
 
 {{/*
+Returns "true" in Redis Sentinel mode, i.e. when env.redis_sentinels is set. The
+sentinels are run by the operator; the chart never deploys one.
+*/}}
+{{- define "plane.redisSentinel" -}}
+{{- if trim (.Values.env.redis_sentinels | default "" | toString) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Normalizes a truthy value to "1" / "0" with the app's rule: 1/true/yes/on, any case.
+Values can be booleans or strings (questions.yml and --set-string pass strings).
+*/}}
+{{- define "plane.truthyFlag" -}}
+{{- has (lower (toString .)) (list "1" "true" "yes" "on") | ternary "1" "0" -}}
+{{- end -}}
+
+{{/*
+Redis settings beyond plane.redisCredsEnv: the Sentinel connection, and the ACL
+usernames for the data nodes and the sentinels. Renders nothing unless Sentinel
+mode is on or a username is configured, so non-Sentinel releases render as before.
+
+Kept out of plane.redisCredsEnv on purpose: Plane AI includes that helper, and pi
+has no Sentinel support yet, so its env must not change.
+
+Passwords given as plain values are not here: they go into each service's own
+Secret (plane.redisSentinelSecretData), never into a manifest. With
+external_secrets.redis they are secretKeyRef entries, like the rest of the mirror.
+REDIS_SSL is emitted only when plane.redisCredsEnv does not already emit it.
+
+Caller must indent to the correct depth (env list items).
+*/}}
+{{- define "plane.redisClientEnv" -}}
+{{- $redis := .Values.external_secrets.redis -}}
+{{- $env := .Values.env -}}
+{{- if include "plane.redisSentinel" . }}
+- name: REDIS_SENTINELS
+  value: {{ trim (toString $env.redis_sentinels) | quote }}
+- name: REDIS_SENTINEL_MASTER
+  value: {{ trim (toString $env.redis_sentinel_master) | quote }}
+- name: REDIS_DB
+  value: {{ $env.redis_db | default "0" | toString | quote }}
+{{- if not $redis.secretName }}
+- name: REDIS_SSL
+  value: {{ include "plane.truthyFlag" ($env.redis_ssl | default false) | quote }}
+{{- end }}
+{{- /* '' leaves it unset so the app falls back to REDIS_SSL; an explicit false must
+       still render, hence the kind check rather than a truthiness test. */}}
+{{- if or (kindIs "bool" $env.redis_sentinel_ssl) (ne (toString ($env.redis_sentinel_ssl | default "")) "") }}
+- name: REDIS_SENTINEL_SSL
+  value: {{ include "plane.truthyFlag" $env.redis_sentinel_ssl | quote }}
+{{- end }}
+- name: REDIS_SSL_VERIFY
+  value: {{ include "plane.truthyFlag" ($env.redis_ssl_verify | default false) | quote }}
+{{- if and $redis.secretName $redis.sentinelUsernameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_SENTINEL_USERNAME" "secret" $redis.secretName "key" $redis.sentinelUsernameKey) }}
+{{- else if $env.redis_sentinel_username }}
+- name: REDIS_SENTINEL_USERNAME
+  value: {{ $env.redis_sentinel_username | quote }}
+{{- end }}
+{{- if and $redis.secretName $redis.sentinelPasswordKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_SENTINEL_PASSWORD" "secret" $redis.secretName "key" $redis.sentinelPasswordKey) }}
+{{- end }}
+{{- end }}
+{{- /* The data-node username also applies to the non-Sentinel discrete parts
+       (external_secrets.redis). Without either, REDIS_URL carries it. */}}
+{{- if and $redis.secretName $redis.usernameKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "REDIS_USERNAME" "secret" $redis.secretName "key" $redis.usernameKey) }}
+{{- else if and $env.redis_username (or (include "plane.redisSentinel" .) $redis.secretName) }}
+- name: REDIS_USERNAME
+  value: {{ $env.redis_username | quote }}
+{{- end }}
+{{- end -}}
+
+{{/*
+Sentinel-mode passwords given as plain values, as stringData entries for a
+service's own Secret (app, live, silo, mcp-server). REDIS_PASSWORD only without
+external_secrets.redis, whose passwordKey supplies it; REDIS_SENTINEL_PASSWORD
+unless external_secrets.redis.sentinelPasswordKey supplies it. Operators using a
+*_env_existingSecret put these keys in that Secret instead.
+
+Caller must indent to the correct depth (stringData entries).
+*/}}
+{{- define "plane.redisSentinelSecretData" -}}
+{{- $redis := .Values.external_secrets.redis -}}
+{{- if include "plane.redisSentinel" . }}
+{{- if and (not $redis.secretName) .Values.env.redis_password }}
+REDIS_PASSWORD: {{ .Values.env.redis_password | quote }}
+{{- end }}
+{{- if and (not (and $redis.secretName $redis.sentinelPasswordKey)) .Values.env.redis_sentinel_password }}
+REDIS_SENTINEL_PASSWORD: {{ .Values.env.redis_sentinel_password | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
 OpenSearch credentials from an externally managed Secret. Kept separate from
 plane.infraCredsEnv (which includes it) because Plane AI's workloads need these
 without the database/broker/cache parts.
@@ -976,6 +1073,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.postgresCredsEnv" . }}
 {{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.redisCredsEnv" . }}
+{{- include "plane.redisClientEnv" . }}
 {{- include "plane.storageCredsEnv" . }}
 {{- end -}}
 

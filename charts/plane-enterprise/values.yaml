@@ -1038,6 +1038,14 @@ external_secrets:
     passwordKey: password
     hostKey: ''
     portKey: ''
+    # Optional ACL username for the data nodes (REDIS_USERNAME). Takes precedence
+    # over env.redis_username.
+    usernameKey: ''
+    # Sentinel mode only (env.redis_sentinels): auth to the sentinels themselves,
+    # when they need it. Each takes precedence over env.redis_sentinel_username /
+    # redis_sentinel_password.
+    sentinelUsernameKey: ''
+    sentinelPasswordKey: ''
 
   storage:
     # Object-storage credentials.
@@ -1195,7 +1203,32 @@ env:
   # Secret). Ignored when services.redis.local_setup is true.
   redis_host: ''
   redis_port: '6379'
-  redis_ssl: false
+  redis_ssl: false             # TLS to the data nodes; also used in Sentinel mode
+
+  # Redis Sentinel run by you (bring your own; the chart never deploys Sentinel).
+  # A non-empty redis_sentinels turns Sentinel mode on for api, workers, beat,
+  # consumers, migrator, live, silo and the MCP server: they ask the sentinels for
+  # the current primary and follow it across failovers. Requires
+  # services.redis.local_setup: false (the chart default is true) and
+  # env.remote_redis_url left empty; the render fails otherwise. REDIS_URL is
+  # rendered empty in this mode. Plane AI (pi) is not covered yet.
+  # Every data node must have notify-keyspace-events including E and x in its
+  # config file, or silo's webhook-driven syncs stop after a failover.
+  # The passwords below end up in the Helm release Secret and any values file you
+  # commit; prefer external_secrets.redis (passwordKey / sentinelPasswordKey).
+  redis_sentinels: ''          # "h1:26379,h2:26379,h3:26379"; non-empty = Sentinel mode
+  redis_sentinel_master: ''    # required in Sentinel mode
+  redis_sentinel_username: ''
+  redis_sentinel_password: ''  # plain value; ignored when external_secrets.redis.sentinelPasswordKey is used
+  redis_username: ''
+  redis_password: ''           # plain value for Sentinel mode without external_secrets.redis
+  redis_db: '0'
+  redis_sentinel_ssl: ''       # '' = same as redis_ssl
+  # Verify the Redis/Sentinel TLS certificates against the container's system CA
+  # bundle. A private CA from customCA is mounted on api, external-api, worker,
+  # worker-importers, search-index, live and silo only, so with a private CA the
+  # other Redis consumers would fail verification.
+  redis_ssl_verify: false
 
   # POSTGRES DB VALUES
   pgdb_username: plane
