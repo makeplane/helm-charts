@@ -594,12 +594,15 @@ Call with (dict "context" $ "spec" <rendered spec>).
 {{/*
 Argus pod annotations. Argus has always stamped `timestamp` on every render; it
 keeps doing so unless global.deterministicRender, which moves it onto the
-shared, forceRedeploy-gated plane.podAnnotations like every other workload.
+shared, forceRedeploy-gated plane.podAnnotations like every other workload,
+plus checksum/argus-config: argus-env is not in plane.configChecksum (adding it
+would roll every workload), so this is what rolls Argus when its config changes.
 Call with the root context. Caller must nindent to the correct depth.
 */}}
 {{- define "plane.argusPodAnnotations" -}}
 {{- if .Values.global.deterministicRender -}}
-{{- include "plane.podAnnotations" . -}}
+{{- include "plane.podAnnotations" . }}
+checksum/argus-config: {{ include (print .Template.BasePath "/config-secrets/argus-env.yaml") . | sha256sum | quote }}
 {{- else -}}
 timestamp: {{ now | quote }}
 {{- end -}}

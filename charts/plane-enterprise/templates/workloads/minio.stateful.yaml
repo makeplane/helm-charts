@@ -1,4 +1,8 @@
 {{- if eq (include "plane.minioEnabled" .) "true" }}{{- $minioBucketJobSpec := include "plane.minioBucketJobSpec" . }}
+{{- /* The bucket name and credentials reach the bucket Job through the doc-store
+       Secret, not its spec, so its run suffix hashes that Secret and the chart
+       version too. */}}
+{{- $minioBucketJobRun := print $minioBucketJobSpec .Chart.Version (include (print .Template.BasePath "/config-secrets/doc-store.yaml") .) }}
 
 apiVersion: v1
 kind: Service
@@ -95,7 +99,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-minio-bucket-{{ include "plane.jobRunSuffix" (dict "context" . "spec" $minioBucketJobSpec) }}
+  name: {{ .Release.Name }}-minio-bucket-{{ include "plane.jobRunSuffix" (dict "context" . "spec" $minioBucketJobRun) }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.minio) }}
 {{ $minioBucketJobSpec }}
 {{- end }}

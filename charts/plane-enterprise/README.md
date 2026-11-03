@@ -1755,8 +1755,9 @@ Separately, `helm upgrade` no longer restarts every workload unconditionally. Po
 
 **GitOps (ArgoCD, Flux, Fleet).** By default the migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are named after the render time, and Argus pods carry a `timestamp` annotation, so every render differs and the release never shows as in sync. Set `global.deterministicRender: true` to render identical manifests for identical values:
 
-- Each of those Jobs is named after a hash of its own spec, so it reruns only when something in it changes: the image, the rendered config or the chart version. Job specs are immutable, which is why a change produces a new name instead of an update.
-- Argus pods use the same `checksum/config` annotation as every other workload.
+- Each of those Jobs is named after a hash of what it runs with, so it reruns only when that changes: the image, the rendered config (the MinIO bucket name included) or the chart version. Job specs are immutable, which is why a change produces a new name instead of an update.
+- Argus pods use the same `checksum/config` annotation as every other workload, plus `checksum/argus-config` for Argus's own settings.
+- The chart cannot see values supplied through an `external_secrets.*_existingSecret`, so changing only those reruns no Job. Delete the Job to rerun it.
 - A failed Job is not retried by rendering the same values again. Delete it (`kubectl delete job <name>`), or apply once with `global.forceRedeploy: true`, which still renames the Jobs on every render.
 
 ### 5. Switching an existing release over: delete the Secret Helm can no longer clean
