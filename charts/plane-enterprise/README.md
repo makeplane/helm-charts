@@ -566,6 +566,7 @@ ingress:
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | planeVersion          |      v4.0.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
+| license.licenseServer | https://prime.plane.so | | License server the instance activates and syncs with. Keep the default for online installs. |
 
 ### Air-gapped Settings
 
@@ -761,6 +762,9 @@ the bundled datastores off. Three things to know before you use it:
 | external_secrets.database.usernameKey | username            |          | Key inside that Secret holding the username. The defaults match the JSON that RDS and CloudSQL produce. |
 | external_secrets.database.passwordKey | password            |          | Key inside that Secret holding the password. |
 | external_secrets.database.hostKey / portKey / dbNameKey | |         | Optional. Set only when the Secret also carries the endpoint (RDS non-master rotation secrets do); those keys then override `env.pgdb_host` / `pgdb_port` / `pgdb_name`. |
+| services.postgres.read_replica.enabled | false | | Send read queries to a read replica: set `services.postgres.read_replica.remote_url`, or the endpoint and credentials below. |
+| env.pgdb_read_replica_host / pgdb_read_replica_port / pgdb_read_replica_name | '' / 5432 / `env.pgdb_name` | | Replica endpoint when credentials come from `external_secrets.database`. The host is required unless `readReplica.hostKey` is set. |
+| external_secrets.database.readReplica.* | | | Replica credentials. `secretName`, `usernameKey` and `passwordKey` default to the primary's; `hostKey` / `portKey` / `dbNameKey` read the endpoint from the Secret. |
 
 ### Redis/Valkey Setup
 
@@ -818,6 +822,7 @@ the bundled datastores off. Three things to know before you use it:
 | services.opensearch.pullPolicy          |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `opensearch`. (must be set when `services.opensearch.local_setup=true`)                                                                                                                                                                                                                                                    |
 | services.opensearch.servicePort         |               9200                |          | This key sets the default port number to be used while setting up stateful deployment of `opensearch`.                                                                                                                                                                                                                                   |
 | services.opensearch.volumeSize         |               5Gi                 |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                |
+| services.opensearch.runAsUser / fsGroup | 1000 / 1000 | | UID and fsGroup for the bundled OpenSearch. Set to `null` on platforms that assign UIDs (OpenShift). |
 | services.opensearch.username            |               plane               |          | Credentials are requried to access the hosted stateful deployment of `opensearch`. Use this key to set the username for the stateful deployment.                                                                                                                                                                                             |
 | services.opensearch.password            |      Secure@Pass#123!%^&*         |          | Credentials are requried to access the hosted stateful deployment of `opensearch`. Use this key to set the password for the stateful deployment. **Password Complexity Requirements:** Must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character (e.g., `!@#$%^&*`). |
 | services.opensearch.memoryLimit         |               3Gi                 |          | Every deployment in kubernetes can be set to use maximum memory they are allowed to use. This key sets the memory limit for this deployment to use.                                                                                                                                                                                         |
@@ -987,6 +992,9 @@ Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `
 | services.live_exporter.nodeSelector       |             {}             |          | Node selector for the exporter pod.                                                                                                                                                    |
 | services.live_exporter.tolerations        |             []             |          | Tolerations for the exporter pod.                                                                                                                                                      |
 | services.live_exporter.affinity           |             {}             |          | Affinity rules for the exporter pod.                                                                                                                                                   |
+| services.live_exporter.pullPolicy | Always | | Image pull policy for the live exporter deployment |
+| services.live_exporter.labels | {} | | Custom labels to add to the live exporter deployment |
+| services.live_exporter.annotations | {} | | Custom annotations to add to the live exporter deployment |
 
 ### API Deployment
 
@@ -1088,9 +1096,11 @@ Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `
 | env.silo_envs.sentry_traces_sample_rate       |                                              |                                                                 | Sentry Traces Sample Rate                                                                                                                                                                                       |
 | env.silo_envs.hmac_secret_key                 |         &lt;random-32-bit-string&gt;         |                                                                 | HMAC Secret Key                                                                                                                                                                                                 |
 | env.silo_envs.aes_secret_key                  |      "dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr"      |                                                                 | AES Secret Key                                                                                                                                                                                                  |
+| env.silo_envs.aes_salt | '' | | Salt paired with `aes_secret_key`, shared by api, silo and Plane AI. Empty keeps the built-in default. Never change it once data is encrypted. |
 | env.silo_envs.jira_server_issues_page_size    |                      50                      |                                                                 | Page size used when fetching issues from Jira Server during imports                                                                                                                                             |
 | env.silo_envs.jira_server_issues_parallel_pages |                     1                      |                                                                 | Number of Jira Server issue pages fetched in parallel during imports                                                                                                                                            |
 | env.silo_envs.cursor_webhook_secret           |      "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"      |                                                                 | Webhook secret for the Cursor agent integration (`CURSOR_WEBHOOK_SECRET`), stored in the silo Secret                                                                                                            |
+| env.silo_envs.cors_allowed_origins | '' | | Extra origins allowed to call silo (CORS). |
 
 ### Argus Deployment (Sensitive Data & PII Scanner)
 
@@ -1176,6 +1186,11 @@ Operational notes:
 | env.pi_envs.log_level                  |                        DEBUG                         |          | Log level for Plane AI (PI) API (e.g. DEBUG, INFO, WARNING, ERROR).                                                                                                                                                        |
 | env.pi_envs.ai_usage_agent_max_tokens_budget |                         10000000                         |          | Max token budget for a single Plane AI agent run.                                                                                                                                                                                             |
 | env.pi_envs.ai_usage_credits_per_usd   |                         100                          |          | Number of Plane AI usage credits granted per US dollar.                                                                                                                                                                    |
+| env.pi_envs.ai_usage_enforcement_enabled | true | | Block AI requests once a member or workspace has spent its monthly budget. `false` keeps metering but stops blocking. |
+| env.pi_envs.plane_oauth.state_expiry_seconds | 82800 | | Lifetime of the Plane OAuth `state` used by Plane AI's sign-in flow. |
+| env.pi_envs.celery.vector_sync_enabled / vector_sync_interval | false / 3 | | Periodic sync of work items into the vector index for semantic search. Interval in seconds. |
+| env.pi_envs.celery.workspace_plan_sync_enabled / workspace_plan_sync_interval | false / 86400 | | Periodic sync of workspace plans; it queues workspace vectorization. Interval in seconds. |
+| env.pi_envs.celery.docs_sync_enabled / docs_sync_interval | false / 86400 | | Periodic documentation sync. Interval in seconds. |
 | services.pi.ai_providers.openai.enabled |                        false                         |          | Enable OpenAI as a Plane AI provider.                                                                                                                                                                                      |
 | services.pi.ai_providers.openai.base_url |                           ""                         |          | OpenAI API base URL (optional override).                                                                                                                                                                                   |
 | services.pi.ai_providers.openai.api_key |                           ""                         | required if `services.pi.ai_providers.openai.enabled` is `true` | OpenAI API key.                                                                                                                                                                                                     |
@@ -1188,6 +1203,10 @@ Operational notes:
 | services.pi.ai_providers.cohere.enabled |                        false                         |          | Enable Cohere as a Plane AI provider.                                                                                                                                                                                      |
 | services.pi.ai_providers.cohere.base_url |                           ""                         |          | Cohere API base URL (optional override).                                                                                                                                                                                  |
 | services.pi.ai_providers.cohere.api_key |                           ""                         |          | Cohere API key (optional if Cohere is disabled).                                                                                                                                                                           |
+| services.pi.ai_providers.bedrock.enabled | false | | Enable Amazon Bedrock as an LLM provider. See [AI providers, including Amazon Bedrock](#ai-providers-including-amazon-bedrock). |
+| services.pi.ai_providers.bedrock.api_key | | | Bedrock API key (`AWS_BEARER_TOKEN_BEDROCK`). Leave empty to use the pod's IAM identity. |
+| services.pi.ai_providers.bedrock.region | | | Bedrock region. Falls back to `env.aws_region`. |
+| services.pi.ai_providers.bedrock.inference_profile_arn / inference_profile_id | | | Inference profile to call, by ARN or by ID. |
 | services.pi.ai_providers.custom_llm.enabled |                    false                         |          | Enable a custom LLM backend for Plane AI.                                                                                                                                                                                    |
 | services.pi.ai_providers.custom_llm.api_key |                           ""                         | required if `services.pi.ai_providers.custom_llm.enabled` is `true` | Custom LLM API key.                                                                                                                                                                                             |
 | services.pi.ai_providers.custom_llm.base_url |                           ""                         |          | Custom LLM base URL.                                                                                                                                                                                                       |
@@ -1294,6 +1313,7 @@ Operational notes:
 | services.email_service.cpuRequest    |                     100m                      |          | CPU request for the email service deployment                                                                                                                                                   |
 | services.email_service.image         | makeplane/email-commercial |          | Docker image for the email service deployment                                                                                                                                                  |
 | services.email_service.pullPolicy    |                    Always                     |          | Image pull policy for the email service deployment                                                                                                                                             |
+| services.email_service.runAsUser | 100 | | UID the email service runs as (its image pins UID 100). Set to `null` on platforms that assign UIDs (OpenShift). |
 | services.email_service.nodeSelector  |                      {}                       |          | This key allows you to set the node selector for the deployment of `email_service`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.           |
 | services.email_service.tolerations   |                      []                       |          | This key allows you to set the tolerations for the deployment of `email_service`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster. |
 | services.email_service.affinity      |                      {}                       |          | This key allows you to set the affinity rules for the deployment of `email_service`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.       |
@@ -1508,6 +1528,29 @@ Runs the [Plane MCP server](https://github.com/makeplane/plane-mcp-server) insid
 | services.mcp_server.labels          |                      {}                      |          | Custom labels to add to the MCP server deployment                                                                                                                                               |
 | services.mcp_server.annotations     |                      {}                      |          | Custom annotations to add to the MCP server deployment                                                                                                                                          |
 
+### Runner Deployment
+
+Runs user-written automation scripts in a sandbox. Off by default.
+
+| Setting | Default | Required | Description |
+| ------- | :-----: | :------: | ----------- |
+| services.runner.enabled | false | | Set to `true` to deploy the runner |
+| services.runner.replicas | 1 | | Number of replicas for the runner deployment |
+| services.runner.memoryLimit | 512Mi | | Memory limit for the runner deployment |
+| services.runner.cpuLimit | 500m | | CPU limit for the runner deployment |
+| services.runner.memoryRequest | 128Mi | | Memory request for the runner deployment |
+| services.runner.cpuRequest | 100m | | CPU request for the runner deployment |
+| services.runner.image | makeplane/node-runner-commercial | | Runner image; the tag is `planeVersion` |
+| services.runner.pullPolicy | Always | | Image pull policy for the runner deployment |
+| services.runner.assign_cluster_ip | false | | Set it to `true` if you want to assign `ClusterIP` to the service |
+| services.runner.nodeSelector / tolerations / affinity | {} / [] / {} | | Scheduling rules for the runner pods |
+| services.runner.labels / annotations | {} | | Custom labels and annotations to add to the runner deployment |
+| env.runner_envs.hmac_secret_key | '' | Yes, after v4.0.1 | Key the API and runner share to sign their calls. Generate with `openssl rand -hex 32`; runner images after v4.0.1 refuse to start without it. Or supply `RUNNER_HMAC_SECRET_KEY` through `external_secrets.runner_env_existingSecret` or `app_keys_existingSecret` |
+| env.runner_envs.execution_timeout_ms | "10000" | | Maximum run time of one script, in milliseconds |
+| env.runner_envs.init_timeout_ms | "5000" | | Maximum time for a script to initialize, in milliseconds |
+| env.runner_envs.isolate_memory_mb | "128" | | Memory limit of each script's sandbox, in MB |
+| env.runner_envs.control_service_base_url | '' | | Not read by current runner images; leave empty |
+
 ### Ingress and SSL Setup
 
 | Setting                     |                          Default                          | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -1535,12 +1578,20 @@ Runs the [Plane MCP server](https://github.com/makeplane/plane-mcp-server) insid
 | ---------------- | :------------------------------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | env.storageClass |         &lt;k8s-default-storage-class&gt;          |          | Creating the persitant volumes for the stateful deployments needs the `storageClass` name. Set the correct value as per your kubernetes cluster configuration.                   |
 | env.secret_key   | 60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5 |   Yes    | This must a random string which is used for hashing/encrypting the sensitive data within the application. Once set, changing this might impact the already hashed/encrypted data |
+| env.cors_allowed_origins | '' | | Extra origins allowed to call the API (CORS). |
+| env.export_download_base_url | '' | | Base URL for PDF/DOCX export download links. Defaults to `license.licenseDomain` with the protocol from the SSL settings. |
 
 ### Extra Environment Variables
 
 | Setting  | Default | Required | Description                                                                                                                                                                                                                                                                                                                       |
 | -------- | :-----: | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | extraEnv |   []    |    No    | Global extra environment variables that will be applied to all workloads. This allows you to add custom environment variables to all deployments (web, api, worker, etc.). Useful for proxy settings, custom configurations, or any environment-specific variables. Some example variables are HTTP_PROXY, HTTPS_PROXY, NO_PROXY. |
+
+### Extra Kubernetes Objects
+
+| Setting | Default | Required | Description |
+| ------- | :-----: | :------: | ----------- |
+| extraObjects | [] | No | Extra manifests rendered with the release, such as an `ExternalSecret` or `SecretStore`. Passed through as-is, so ESO `{{ }}` templates survive. |
 
 ## Keeping credentials out of values.yaml
 
@@ -1789,10 +1840,13 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `serviceAccount.name` | | Defaults to `<release>-srv-account`. |
 | `serviceAccount.annotations` | {} | Cloud workload-identity bindings (IRSA, GKE WI, Azure WI). |
 | `serviceAccount.podLabels` | {} | Extra pod-template labels; Azure Workload Identity needs `azure.workload.identity/use: 'true'`. |
+| `serviceAccount.cloudIdentity` | false | Declare that the ServiceAccount is bound to a cloud identity outside the chart (EKS Pod Identity, GKE Workload Identity). Renders nothing; lets `helm upgrade` warn about it. |
 | `external_secrets.database.*` | | Postgres credentials from an existing Secret — see above. |
 | `external_secrets.rabbitmq.*` | | RabbitMQ credentials from an existing Secret. |
 | `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.2.0+). |
 | `external_secrets.opensearch.*` | | OpenSearch username/password from an existing Secret; remote domains only. |
+| `external_secrets.storage.*` | | S3-compatible or GCS credentials from an existing Secret: `secretName`, `accessKeyIdKey`, `secretAccessKeyKey`, `gcsCredentialsJsonKey`. Ignored with the bundled MinIO; on a cloud, prefer workload identity. |
+| `external_secrets.silo_connectors_existingSecret` | | One Secret for every silo connector credential (Slack, GitHub, GitLab, Sentry, Bitbucket, HubSpot). The chart then renders none of the connector keys. |
 | `env.rabbitmq_ssl` | false | Connect to RabbitMQ over TLS (`amqps`). Required by Amazon MQ. |
 | `env.redis_ssl` | false | Connect to Redis over TLS (`rediss`). Required by ElastiCache with in-transit encryption and Azure Cache. |
 | `external_secrets.app_keys_existingSecret` | | One Secret for the shared signing/encryption keys. |
