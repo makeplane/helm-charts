@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (hasPrefix "traefik" .Values.ingress.ingressClass) }}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "traefik") .Values.license.licenseDomain }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -9,5 +9,37 @@ metadata:
 spec:
   buffering:
     maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 20971520 }}
+
+{{- if .Values.services.drawio.local_setup }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-drawio-stripprefix
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /drawio
+---
+{{- /* Exactly /drawio (optionally with a query string) -> /drawio/. The Location is
+       relative, so the browser keeps its scheme even when TLS ends in front of
+       Traefik. The service on the route is never reached: the middleware answers
+       every request the route matches. */}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-drawio-redirect
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  redirectRegex:
+    regex: '^[a-z]+://[^/]+/drawio(\?.*)?$'
+    replacement: '/drawio/${1}'
+    permanent: true
+{{- end }}
 
 {{- end }}

@@ -1,4 +1,4 @@
-planeVersion: v3.1.4
+planeVersion: v4.0.1
 
 dockerRegistry:
   enabled: false
@@ -14,23 +14,17 @@ license:
 
 airgapped:
   enabled: false
-  # The boto module used by API does not use the CA bundles in the container, so we need to
-  # mount the CA bundle into the API pod by passing it in as an environment
-  # variable.
-  # Preferred: list of Kubernetes Secrets containing CA certificates (supports multiple certs).
-  # Example:
-  # s3Secrets:
-  #   - name: plane-s3-ca
-  #     key: s3-custom-ca.crt
-  #   - name: plane-s3-ca-2
-  #     key: s3-custom-ca-2.crt
+  # DEPRECATED: use the top-level `customCA` instead. Still honored as a fallback.
   s3Secrets: []
+  s3SecretName: ""
+  s3SecretKey: ""
 
-  # Deprecated (backward compatibility): use a single secret for custom S3 CA.
-  # If set, used when s3Secrets is empty. Prefer migrating to s3Secrets.
-  # Example:
-  # s3SecretName: plane-s3-ca
-  # s3SecretKey: s3-custom-ca.crt
+# Private/internal CA certificates to trust for outbound TLS (S3, Git, IdP, ...).
+# Works with or without airgapped mode. Each cert is also mounted at /s3-custom-ca/<key>.
+customCA:
+  # List of Secrets holding CA certs, e.g. [{name: corp-ca, key: ca.crt}].
+  s3Secrets: []
+  # Single-secret form, used only when s3Secrets is empty.
   s3SecretName: ""
   s3SecretKey: ""
 
@@ -38,16 +32,30 @@ ingress:
   enabled: true
   minioHost: ''
   rabbitmqHost: ''
-  # Selects which ingress template is rendered:
-  #   'traefik*'          -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
-  #   'openshift'         -> OpenShift Route per path      (templates/ingress-openshift.yaml)
-  #   'nginx'             -> networking.k8s.io/v1 Ingress  (templates/ingress.yaml)
-  # Any OTHER value renders no ingress at all -- see the note in templates/ingress.yaml.
+  # controller selects WHICH KIND of ingress resource is rendered, decoupled from
+  # the class name below. Supported: nginx, traefik and openshift. When set:
+  #   'traefik'   -> Traefik IngressRoute CRD      (templates/ingress-traefik.yaml)
+  #   'openshift' -> one OpenShift Route per path  (templates/ingress-openshift.yaml)
+  #   'nginx' (or any other value)
+  #               -> networking.k8s.io/v1 Ingress (templates/ingress-nginx.yaml),
+  #                  with ingressClass below used verbatim as spec.ingressClassName.
+  # Leave it empty and the legacy selection applies, unchanged: only a class of
+  # 'traefik*', 'openshift' or 'nginx' renders anything, and ANY OTHER class
+  # renders no ingress at all, silently. That is kept so upgrades never create an
+  # ingress where the chart previously created none.
+  # => Set controller when your class name is not exactly 'nginx', 'openshift' or
+  #    'traefik*' -- e.g. controller 'nginx' with ingressClass 'nginx-new'.
+  controller: ''
+  # ingressClass is the free-form class name written to the standard Ingress'
+  # spec.ingressClassName. Unused on the traefik and openshift paths, since
+  # neither an IngressRoute nor a Route carries a class name. It also drives the
+  # legacy selection above while controller is empty.
   ingressClass: 'traefik'
-  # Annotations for the standard Ingress — e.g. to set the proxy body size limit on
-  # the nginx controller. ONLY rendered when ingressClass is exactly 'nginx'; they
-  # have no effect with traefik, and the 'openshift' Route path takes its
-  # annotations from ingress.openshift.route_annotations instead. Example:
+  # Annotations for the standard Ingress — e.g. to set the proxy body size limit
+  # on the nginx controller. Rendered onto the standard Ingress only; they have no
+  # effect with traefik (use ingress.traefik.maxRequestBodyBytes) and the openshift
+  # path takes its annotations from ingress.openshift.route_annotations instead.
+  # Example for ingress-nginx:
   # - proxy-body-size: nginx equivalent of traefik's maxRequestBodyBytes (upload size limit).
   # - proxy-buffer-size: size of the buffer for the response headers from upstream; bump this to avoid
   #   "502 upstream sent too big header" errors.
@@ -64,7 +72,7 @@ ingress:
     # Set explicitly only if your Traefik install renamed the default entrypoints,
     # e.g. entryPoints: ['websecure', 'web'] or ['https'].
     entryPoints: []
-  # Only read when ingressClass is 'openshift'.
+  # Only read on the openshift path (see controller above).
   openshift:
     # HAProxy's per-route timeout. The router default is 30s, which severs
     # /live/'s collaborative-editing WebSockets and /pi/'s streaming responses.
@@ -114,8 +122,8 @@ ssl:
 # ============================================================
 # When enabled, applies a hardened pod- and container-level securityContext to
 # all first-party Plane workloads: api, web, space, admin, live, worker,
-# beat-worker, automation-consumer, outbox-poller, silo, monitor, iframely,
-# runner, pi-api/beat/worker, and the migration Jobs (including their busybox
+# beat-worker, automation-consumer, outbox-poller, silo, iframely,
+# runner, argus, pi-api/beat/worker, and the migration Jobs (including their busybox
 # init containers). Plane's images run fine as non-root, so these defaults
 # satisfy the PSA "restricted" profile.
 #
@@ -210,6 +218,23 @@ securityContext:
     seccompProfile:
       type: RuntimeDefault
 
+# PodDisruptionBudgets for the stateless, horizontally-scalable workloads.
+#
+# enabled: true gives every eligible workload a budget. Workloads at replicas: 1 are skipped -- with
+# no second copy a budget cannot protect anything, it can only block the drain. Asking for one on a
+# single-replica or stateful service fails the render (see templates/validations.yaml).
+#
+# Override per workload at services.<svc>.podDisruptionBudget.
+# Prefer maxUnavailable -- minAvailable: 1 wedges every drain if the workload is later scaled to 1.
+# unhealthyPodEvictionPolicy: AlwaysAllow (k8s >= 1.27) stops a crashlooping pod holding a node.
+podDisruptionBudget:
+  enabled: false
+  # Set ONE of these. Left unset, the renderer uses maxUnavailable: 1 -- shipping it as a concrete
+  # value here would merge into a user's minAvailable and be refused as "both fields set".
+  # maxUnavailable: 1
+  # minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
 services:
   redis:
     local_setup: true
@@ -284,13 +309,19 @@ services:
 
   minio:
     local_setup: true
-    image: minio/minio:latest
-    image_mc: minio/mc:latest
+    # pgsty/silo is pgsty/minio renamed: same S3 API, MINIO_* env vars and on-disk format.
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    image_mc: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     init_image: busybox
     volumeSize: 3Gi
     pullPolicy: IfNotPresent
     root_user: admin
     root_password: password
+    # MINIO_IDLE_TIMEOUT: how long MinIO keeps a stalled or idle connection open.
+    # Empty keeps MinIO's 30s default. A large import (e.g. Confluence) can fail with
+    # ECONNRESET "aborted" when silo pauses its read longer than that; set e.g. 1h.
+    # Opt-in because it also lets any client hold a connection open that long.
+    idle_timeout: ""
     assign_cluster_ip: false
     env:
       minio_endpoint_ssl: false
@@ -307,12 +338,38 @@ services:
     cpuLimit: 1000m
     memoryRequest: 256Mi
     cpuRequest: 100m
-    image: makeplane/iframely:v1.2.0
+    image: makeplane/iframely:v2.5.4
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
+    labels: {}
+    annotations: {}
+
+  # Self-hosted draw.io for the Wiki editor's diagram extension. With
+  # local_setup: true it is deployed in the chart, served on the /drawio/ path prefix
+  # of the license domain, and DRAWIO_EMBED_URL points there. Set it to false to
+  # use a remotely hosted drawio via env.drawio_remote_url, or leave both unset
+  # for the diagrams.net cloud. The image is versioned independently of
+  # planeVersion.
+  drawio:
+    local_setup: false
+    replicas: 1
+    memoryLimit: 512Mi
+    cpuLimit: 500m
+    memoryRequest: 256Mi
+    cpuRequest: 100m
+    image: makeplane/drawio:v2.5.0
+    pullPolicy: IfNotPresent
+    assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -328,21 +385,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
-    labels: {}
-    annotations: {}
-
-  monitor:
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
-    memoryRequest: 128Mi
-    cpuRequest: 100m
-    image: makeplane/monitor-commercial
-    pullPolicy: Always
-    volumeSize: 100Mi
-    assign_cluster_ip: false
-    nodeSelector: {}
-    tolerations: []
-    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -358,6 +402,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -373,6 +419,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -383,11 +431,17 @@ services:
     memoryRequest: 512Mi
     cpuRequest: 100m
     image: makeplane/live-commercial
+    # Image for the prepare-ca-bundle init container (rendered only when a custom
+    # S3 CA is configured). Must be BusyBox-compatible: the script needs /bin/sh,
+    # ls, cat and touch.
+    init_image: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -404,6 +458,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -419,8 +475,29 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
+    # Post-install/post-upgrade hook Job <release>-api-search-index that creates the
+    # OpenSearch indexes Plane needs but never creates itself (a missing index makes
+    # workspace search return HTTP 500). It runs Plane's own commands
+    # (`manage_search_index index create --force --ignore-error`, then
+    # `manage_search_index list` to check every index exists); existing indexes are
+    # left alone, so it is safe on every upgrade. Mapping updates and rebuilds of existing
+    # indexes stay manual (`python manage.py manage_search_index index update|rebuild
+    # --indices <name> --force` in an api pod). Rendered only when OpenSearch can be
+    # on: services.opensearch.local_setup, env.opensearch_remote_url,
+    # external_secrets.opensearch_existingSecret, or an extraEnv entry
+    # OPENSEARCH_ENABLED with value "1"/"true" or a valueFrom. At runtime the Job
+    # does nothing unless the pod's OPENSEARCH_ENABLED is exactly "1".
+    # The Job first waits for migrations, and Helm waits for the Job: give
+    # `helm install/upgrade --timeout` (Terraform helm_release `timeout`) enough for
+    # migrations plus index creation on a fresh install. A failure fails the release.
+    searchIndexJob:
+      enabled: true
+      # Upper bound for the whole Job, retries included.
+      activeDeadlineSeconds: 3600
 
   external_api:
     enabled: false
@@ -433,6 +510,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -445,6 +524,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -458,6 +539,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -476,16 +559,24 @@ services:
   silo:
     enabled: true
     replicas: 1
-    memoryLimit: 1000Mi
-    cpuLimit: 500m
+    # Parsing an import (e.g. a Confluence entities.xml) is CPU-bound; at 500m the
+    # batch writes stall long enough for storage to drop the read.
+    memoryLimit: 2Gi
+    cpuLimit: 2000m
     memoryRequest: 256Mi
     cpuRequest: 100m
     image: makeplane/silo-commercial
+    # Image for the wait-for-rabbitmq and prepare-ca-bundle init containers.
+    # Must be BusyBox-compatible: the scripts need /bin/sh, grep, nslookup,
+    # sleep, ls, cat and touch.
+    init_image: busybox
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
     connectors:
@@ -540,8 +631,59 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
+    # Annotations on the email Deployment (not the Service -- see service.annotations).
+    # When this service mounts a TLS Secret (see TLS below) it needs a restart when
+    # the certificate is renewed. Add reloader.stakater.com/auto: "true" here (and
+    # install Stakater Reloader) if you want that to happen automatically.
     annotations: {}
+    # The Kubernetes Service in front of the SMTP ports (25, 465, 587).
+    service:
+      # ClusterIP, NodePort or LoadBalancer. LoadBalancer is the historical default.
+      # Use ClusterIP to run the email service without a load balancer (e.g. when
+      # SMTP reaches the cluster some other way, or only in-cluster).
+      type: LoadBalancer
+      # Annotations on the Service, e.g. for the AWS Load Balancer Controller:
+      #   service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      #   service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      annotations: {}
+      # spec.loadBalancerClass, e.g. service.k8s.aws/nlb. LoadBalancer only; unset
+      # leaves the choice to the cluster's default load balancer implementation.
+      # Kubernetes treats it as immutable on an existing LoadBalancer Service, so
+      # changing it fails `helm upgrade`. Set it on first install. To change it
+      # later: upgrade with type: ClusterIP, then upgrade back to LoadBalancer with
+      # the new class (or delete the Service, then upgrade).
+      loadBalancerClass: ''
+      # spec.loadBalancerSourceRanges (CIDRs allowed to connect). LoadBalancer only.
+      loadBalancerSourceRanges: []
+      # Local keeps the client source IP, which the mail server needs for spam
+      # checks. Rendered for LoadBalancer and NodePort only.
+      externalTrafficPolicy: Local
+      # Fixed node ports per port name; any left unset are allocated by Kubernetes.
+      # NodePort and LoadBalancer only.
+      nodePorts: {}
+      #  smtp: 30025
+      #  smtps: 30465
+      #  submission: 30587
+    # TLS for SMTP. The email app generates a self-signed certificate at startup when
+    # none is mounted, so a Secret is only needed for a real certificate:
+    #   - tls_secret_name set: mount this existing kubernetes.io/tls Secret
+    #     (tls.crt/tls.key); the chart renders no Certificate.
+    #   - otherwise, with env.email_service_envs.smtp_domain set and generateCert
+    #     true: the chart renders a cert-manager Certificate for smtp_domain into
+    #     <release>-mail-tls-secret and mounts it.
+    #   - otherwise: an emptyDir, and the app self-signs.
+    tls_secret_name: ''
+    generateCert: true
+    # Issuer for that Certificate. Empty name keeps the chart's namespaced
+    # <release>-cert-issuer, which the chart creates while ssl.tls_secret_name is
+    # empty. Set name (and kind: ClusterIssuer) to use an issuer you already run;
+    # the chart then no longer creates <release>-cert-issuer for the email service.
+    certIssuerRef:
+      name: ''
+      kind: ''
 
   outbox_poller:
     enabled: false
@@ -555,6 +697,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -569,6 +713,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -583,6 +729,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -594,6 +742,34 @@ services:
     memoryRequest: 256Mi
     cpuRequest: 100m
     assign_cluster_ip: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
+    labels: {}
+    annotations: {}
+
+  # Argus -- sensitive-data & PII scanner (gated in the product by the
+  # PII_SCANNER feature flag). Opt-in: enabling it also REQUIRES
+  # env.argus_envs.fingerprint_secret, which has no safe default.
+  #
+  # Runs a single replica by design: findings-export CSVs are written to (and
+  # served from) the pod's own filesystem, and the startup reapers are unscoped,
+  # so a second pod would break in-flight scans and exports. There is
+  # intentionally no `replicas` key.
+  argus:
+    enabled: false
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 250Mi
+    cpuRequest: 50m
+    image: makeplane/argus-commercial
+    pullPolicy: Always
+    assign_cluster_ip: false
+    # Argus drains in-flight scan workers before its 10s HTTP drain, so the
+    # 30s Kubernetes default can cut shutdown short mid-scan.
+    termination_grace_period_seconds: 60
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -611,6 +787,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -627,6 +805,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
     ai_providers:
@@ -646,6 +826,24 @@ services:
         enabled: false
         base_url: ''
         api_key: ''
+      # Amazon Bedrock. Two ways in, and on AWS the second is the better one:
+      #
+      #   api_key -> AWS_BEARER_TOKEN_BEDROCK, the Bedrock API key (a bearer token issued in
+      #              the Bedrock console). botocore honours that env var natively from 1.39
+      #              onward, so nothing in the application has to change to use it. Useful off
+      #              AWS, or where a scoped Bedrock key is easier to hand out than an IAM role.
+      #   nothing -> the pod's own identity. With no key set, boto3 walks its credential chain
+      #              to IRSA / EKS Pod Identity and Bedrock is reached with no credential in
+      #              the cluster at all. Pair it with inference_profile_arn.
+      #
+      # As everywhere else in this chart the key is OMITTED rather than rendered empty when
+      # unset: an empty credential is *present*, and present beats the credential chain.
+      bedrock:
+        enabled: false
+        api_key: ''                # -> AWS_BEARER_TOKEN_BEDROCK
+        region: ''                 # -> BEDROCK_REGION; falls back to env.aws_region
+        inference_profile_arn: ''  # -> BEDROCK_INFERENCE_PROFILE_ARN
+        inference_profile_id: ''   # -> BEDROCK_INFERENCE_PROFILE_ID
       custom_llm:
         enabled: false
         api_key: ''
@@ -686,6 +884,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
@@ -702,10 +902,269 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 
+  mcp_server:
+    enabled: false
+    replicas: 1
+    memoryLimit: 1000Mi
+    cpuLimit: 500m
+    memoryRequest: 150Mi
+    cpuRequest: 100m
+    image: makeplane/plane-mcp-server:v0.3.2
+    pullPolicy: Always
+    assign_cluster_ip: false
+    path_prefix: '/mcp'
+    plane_base_url: ''
+    plane_internal_base_url: ''
+    # The MCP server's HTTP transport authenticates MCP clients through a Plane OAuth
+    # application and refuses to start without one, so client_id and client_secret
+    # are required whenever this service is enabled (or ship them through
+    # external_secrets.mcp_server_env_existingSecret). Register the application in
+    # Plane (workspace settings > Integrations) with the redirect URIs
+    #   https://<licenseDomain><path_prefix>/http/auth/callback
+    #   https://<licenseDomain><path_prefix>/auth/callback
+    plane_oauth:
+      client_id: ''
+      client_secret: ''
+      # Public URL the MCP server's OAuth endpoints are served on; the server appends
+      # "<path_prefix>/http" itself. Leave empty to derive it from
+      # license.licenseDomain and the ingress TLS setting, like plane_base_url.
+      provider_base_url: ''
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    labels: {}
+    annotations: {}
+
+# ============================================================
+# ServiceAccount / cloud workload identity
+# ============================================================
+# All Plane workloads run as one ServiceAccount. Annotate it to give the pods a
+# cloud identity, which is the preferred way to reach object storage, OpenSearch
+# and (on AWS) Secrets Manager — no access keys anywhere in the cluster:
+#
+#   AWS IRSA:              eks.amazonaws.com/role-arn: arn:aws:iam::<acct>:role/<role>
+#   AWS EKS Pod Identity:  no annotation — create the association against this
+#                          ServiceAccount's name instead
+#   GCP Workload Identity: iam.gke.io/gcp-service-account: <sa>@<project>.iam.gserviceaccount.com
+#   Azure Workload Id:     azure.workload.identity/client-id: <client-id>
+#                          plus podLabels: { azure.workload.identity/use: "true" }
+#
+# With an identity attached, leave env.aws_access_key / aws_secret_access_key (and
+# gcs_credentials_json) empty: the chart then omits those env vars entirely so the
+# cloud SDK's default credential chain picks up the pod identity.
+serviceAccount:
+  # Set false to reference a ServiceAccount managed outside the chart.
+  create: true
+  # Defaults to "<release>-srv-account".
+  name: ''
+  annotations: {}
+  # Extra pod-template labels (Azure Workload Identity requires one).
+  podLabels: {}
+
+  # Declares that this ServiceAccount is bound to a cloud identity configured OUT OF
+  # BAND — an EKS Pod Identity association, a GKE Workload Identity binding. The chart
+  # cannot detect that on its own: a Pod Identity association is an EKS API object keyed
+  # on cluster + namespace + service account, and nothing about it appears in the pod
+  # spec. Setting this changes no rendered output; it only lets `helm upgrade` warn
+  # about the interactions an attached identity creates, chiefly that credentials now
+  # reach every container on this ServiceAccount.
+  cloudIdentity: false
+
+# ============================================================
+# Externalized secrets
+# ============================================================
+# Two ways to keep credentials out of this file. Both consume plain Kubernetes
+# Secrets, so any backend works — External Secrets Operator against AWS Secrets
+# Manager / GCP Secret Manager / Azure Key Vault / Vault, sealed-secrets, or a
+# Secret you create by hand. The chart never renders ExternalSecret resources
+# itself, which is what keeps it cloud-agnostic.
+#
+# 1. Infrastructure credentials (database / rabbitmq / redis) — recommended.
+#    Point `secretName` at a Secret that MIRRORS your cloud secret verbatim: an
+#    RDS or CloudSQL managed-rotation secret contains only {"username","password"},
+#    so a plain ESO `dataFrom.extract` is all you need — no templating, and only
+#    ONE secret to watch and rotate. The key names below tell the chart which keys
+#    inside that secret to read; the non-secret endpoint (host/port/database) comes
+#    from env.* below. The app composes its own connection URLs from these parts,
+#    so a rotated password needs no URL rewriting anywhere.
+#
+#    Requires the Django services to read the discrete parts. POSTGRES_* and
+#    RABBITMQ_* are supported by all releases; REDIS_HOST/PORT/PASSWORD/SSL needs
+#    planeVersion v3.2.0 or newer.
+#
+#    Annotate the workloads with reloader.stakater.com/auto (and install Reloader) so pods restart
+#    when the mirrored Secret changes — that is what makes rotation take effect.
+#
+# 2. Whole-Secret replacement (*_existingSecret) — the chart skips rendering that
+#    Secret and every workload reads yours instead. You own all of its keys.
+# ============================================================
 external_secrets:
+  database:
+    # Secret mirroring your managed-database credential (e.g. the RDS secret).
+    secretName: ''
+    usernameKey: username
+    passwordKey: password
+    # Optional: set only if your secret also carries the endpoint. When empty the
+    # host/port/database come from env.pgdb_host / pgdb_port / pgdb_name.
+    hostKey: ''
+    portKey: ''
+    dbNameKey: ''
+
+    # Read replica. services.postgres.read_replica.remote_url is a DSN with the
+    # password inside it, which a managed rotation can never update — so this is the
+    # replica's equivalent of the block above. The API reads
+    # POSTGRES_READ_REPLICA_{DB,USER,PASSWORD,HOST,PORT} natively (Django takes the
+    # parts as a config dict; nothing composes a URL), so no application change is
+    # needed to use it.
+    #
+    # secretName defaults to the primary's, since a replica normally accepts the same
+    # credential. Set it only when the replica has its own user.
+    #
+    # env.pgdb_read_replica_host is MANDATORY unless hostKey below names a key in the
+    # mirrored secret that carries the replica host. The chart fails the render if
+    # neither is set: the API never falls back to the primary's endpoint, so an empty
+    # replica host would send every read to the writer silently.
+    readReplica:
+      secretName: ''
+      usernameKey: ''   # defaults to database.usernameKey
+      passwordKey: ''   # defaults to database.passwordKey
+      hostKey: ''
+      portKey: ''
+      dbNameKey: ''
+
+  rabbitmq:
+    # Amazon MQ shape. Set env.rabbitmq_ssl: true and env.rabbitmq_port: '5671' —
+    # Amazon MQ refuses plaintext AMQP.
+    secretName: ''
+    usernameKey: username
+    passwordKey: password
+    hostKey: ''
+    portKey: ''
+    vhostKey: ''
+
+  redis:
+    # Requires planeVersion v3.2.0+ (discrete REDIS_* support in the API).
+    # For ElastiCache the auth token goes in passwordKey; set env.redis_ssl: true.
+    secretName: ''
+    passwordKey: password
+    hostKey: ''
+    portKey: ''
+
+  storage:
+    # Object-storage credentials.
+    #
+    # On a cloud, leave this unset and give the pod an identity instead — annotate the
+    # ServiceAccount (see serviceAccount.annotations) or attach an EKS Pod Identity
+    # association. With env.aws_access_key / aws_secret_access_key empty the chart omits
+    # those variables entirely, which is what lets the SDK's credential chain reach the
+    # pod's role. An empty value would beat the chain and fail every request.
+    #
+    # Use this for an S3-compatible backend with no workload identity (Ceph, DO Spaces,
+    # an external MinIO), or for GCS with a service-account key. Ignored while the
+    # bundled MinIO is deployed, which supplies its own credentials.
+    #
+    # gcsCredentialsJsonKey carries the whole service-account JSON, private key
+    # included — the single highest-value blob in a GCS deployment, and the reason it
+    # should never sit in values.yaml.
+    secretName: ''
+    accessKeyIdKey: ''         # -> AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: ''     # -> AWS_SECRET_ACCESS_KEY
+    gcsCredentialsJsonKey: ''  # -> GCS_CREDENTIALS_JSON
+
+  opensearch:
+    # Credentials for a REMOTE OpenSearch. Ignored when
+    # services.opensearch.local_setup is true — the chart owns both sides of the
+    # bundled cluster's credentials, so use opensearch_existingSecret for that.
+    # On AWS, prefer leaving these unset entirely and letting the pod's IAM identity
+    # authenticate with SigV4 (see serviceAccount.annotations).
+    secretName: ''
+    usernameKey: username
+    passwordKey: password
+
+  # Shared signing/encryption keys. One Secret for every service that needs them, so
+  # a rotation can never leave two services disagreeing. While this is set, the chart
+  # stops emitting these keys in its own Secrets, making yours the only source.
+  #
+  # The Secret MUST contain every key your deployment uses — a missing key is not a
+  # render error, it is an absent env var:
+  #   SECRET_KEY              REQUIRED. The API falls back to a per-pod random value
+  #                           when absent, so JWTs stop verifying across replicas and
+  #                           encrypted instance-configuration rows become unreadable.
+  #   AES_SECRET_KEY          REQUIRED. api/silo/pi all derive from it.
+  #   AES_SALT                Optional; all three services default to "aes-salt".
+  #                           Set it only if you set it from the start.
+  #   LIVE_SERVER_SECRET_KEY  Required when live is deployed (api <-> live <-> pi).
+  #   PI_INTERNAL_SECRET      Required when Plane AI is deployed.
+  #   SILO_HMAC_SECRET_KEY    Required when silo is deployed (silo signs, API verifies).
+  #   CURSOR_WEBHOOK_SECRET   Required for silo's Cursor agent integration.
+  #   RUNNER_HMAC_SECRET_KEY  Required when the runner is deployed.
+  #
+  # WARNING — SECRET_KEY, AES_SECRET_KEY and AES_SALT are key-encryption keys:
+  # SECRET_KEY protects the encrypted instance-configuration rows and the AES pair
+  # protects stored OAuth/MCP tokens. Changing them makes existing ciphertext
+  # undecryptable, and it fails silently. Store them in a secret that is NOT on a
+  # rotation schedule.
+  #
+  # Do NOT also define these keys in one of the *_existingSecret groups below. This
+  # Secret is mounted after them on every workload, so its value wins and the
+  # duplicate is ignored -- until app_keys_existingSecret is unset, when the stale
+  # copy silently becomes the live value.
+  app_keys_existingSecret: ''
+
+  # AI/LLM provider keys ONLY.
+  #
+  # pi_api_env_existingSecret below replaces the WHOLE Plane AI Secret, which forces
+  # you to own PLANE_PI_DATABASE_URL, FOLLOWER_POSTGRES_URI, AMQP_URL,
+  # CELERY_BROKER_URL and the signing keys as well. Those are per-environment, so it
+  # cannot express "one provider account shared by every environment". This hook
+  # carries nothing environment-specific, so a single Secret can be mirrored into as
+  # many namespaces as share the account — while a customer deployment can just as
+  # well point it at a per-environment Secret. The chart only takes a name.
+  #
+  # Keys read (all optional; an omitted key is simply an absent env var):
+  #   OPENAI_API_KEY  CLAUDE_API_KEY  GROQ_API_KEY  COHERE_API_KEY
+  #   CUSTOM_LLM_API_KEY  AWS_BEARER_TOKEN_BEDROCK
+  #   BR_AWS_ACCESS_KEY_ID  BR_AWS_SECRET_ACCESS_KEY  BR_AWS_SESSION_TOKEN
+  #     Bedrock embeddings. On AWS omit all three and let the pod's identity sign —
+  #     Plane AI falls back to AWS_ACCESS_KEY_ID and then to boto3's own chain.
+  #   AI_OPENAI_API_KEY
+  #     The live server's OpenAI-compatible proxy. The chart has no values key for
+  #     this at all, so this hook is the only way to supply it.
+  #
+  # Do NOT put base URLs in this Secret. They are not secret, they belong in
+  # services.pi.ai_providers.*.base_url, and the live server validates
+  # AI_OPENAI_BASE_URL as a URL and exits on an empty string — which is exactly what
+  # a `dataFrom.extract` of a JSON secret containing an empty base URL would deliver.
+  ai_providers_existingSecret: ''
+
+  # Silo connector app credentials (OAuth client secrets, the GitHub App private key,
+  # webhook secrets). The silo Secret also carries DATABASE_URL / AMQP_URL /
+  # REDIS_URL, so silo_env_existingSecret cannot externalize just the connectors.
+  #
+  # When set the chart emits none of the connector keys and this Secret owns the whole
+  # connector surface — client ids and app names included. They are not secret, but a
+  # half-external, half-rendered connector block is a configuration people get wrong.
+  #
+  # Naturally per-environment: a connector's OAuth callback URL is per-host, so the
+  # app registration differs per environment.
+  #   SLACK_CLIENT_ID/SECRET, SLACK_SIGNING_SECRET, SLACK_BASE_URL
+  #   GITHUB_CLIENT_ID/SECRET, GITHUB_APP_NAME, GITHUB_APP_ID, GITHUB_PRIVATE_KEY,
+  #     GITHUB_WEBHOOK_SECRET
+  #   GITLAB_CLIENT_ID/SECRET
+  #   SENTRY_CLIENT_ID/SECRET, SENTRY_BASE_URL, SENTRY_INTEGRATION_SLUG
+  #   BITBUCKET_CLIENT_ID/SECRET, BITBUCKET_WEBHOOK_SECRET
+  #   HUBSPOT_CLIENT_ID/SECRET
+  silo_connectors_existingSecret: ''
+
+  # DNS-01 API token for the cert-manager Issuer (ssl.issuer cloudflare/digitalocean).
+  # Must contain the key `api-token`.
+  ssl_token_existingSecret: ''
+
   # Name of the existing Kubernetes Secret resource; see README for more details
   rabbitmq_existingSecret: ''
   pgdb_existingSecret: ''
@@ -714,14 +1173,42 @@ external_secrets:
   app_env_existingSecret: ''
   live_env_existingSecret: ''
   silo_env_existingSecret: ''
+  argus_env_existingSecret: ''
   pi_api_env_existingSecret: ''
   runner_env_existingSecret: ''
   # Supplies OTEL_EXPORTER_OTLP_HEADERS (collector ingestion credential) when
   # observability.otel.enabled is set; leave blank to let the chart create it.
   otel_env_existingSecret: ''
+  mcp_server_env_existingSecret: ''
+
+# ============================================================
+# Stakater Reloader
+# ============================================================
+global:
+  # Pre-3.1 behaviour: stamp every pod template with the current timestamp so that
+  # `helm upgrade` restarts every workload whether or not anything changed. The
+  # chart now annotates pods with a checksum of the config it renders instead, so
+  # upgrades roll only what actually changed. Set true to force a full restart.
+  forceRedeploy: false
+
+  # Render identical manifests for identical values, for GitOps tools (ArgoCD,
+  # Flux, Fleet) that otherwise show the release as permanently out of sync. The
+  # migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are then
+  # named after a hash of their own spec instead of the render time, so they rerun
+  # only when something in them changes (an image, config, or the chart version),
+  # and Argus pods stop restarting on every render. A failed Job is not retried by
+  # re-rendering the same values: delete it, or set forceRedeploy for one run.
+  deterministicRender: false
 
 env:
   storageClass: ''
+
+  # Fail the render instead of falling back to this chart's public example values
+  # for SECRET_KEY, AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
+  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. Recommended for production;
+  # defaults to false so existing installs keep rendering. Will default to true in
+  # the next major version.
+  requireExplicitSecrets: false
 
   # Kubernetes internal cluster domain used to build in-cluster service URLs
   default_cluster_domain: 'cluster.local'
@@ -729,13 +1216,43 @@ env:
   # REDIS
   remote_redis_url: '' #INCASE OF REMOTE REDIS ONLY
 
+  # Redis endpoint used with external_secrets.redis (credentials come from that
+  # Secret). Ignored when services.redis.local_setup is true.
+  redis_host: ''
+  redis_port: '6379'
+  redis_ssl: false
+
   # POSTGRES DB VALUES
   pgdb_username: plane
+  # DEPRECATED: a password in this file ends up in the Helm release Secret and in
+  # any values file you commit. Prefer external_secrets.database.
   pgdb_password: plane
   pgdb_name: plane
   pg_pi_db_name: plane_pi
   pgdb_remote_url: '' #INCASE OF REMOTE PG DB URL ONLY
   pg_pi_db_remote_url: '' #INCASE OF REMOTE Plane AI (PI) PG DB URL ONLY
+
+  # Postgres endpoint used with external_secrets.database (username/password come
+  # from that Secret). Ignored when services.postgres.local_setup is true.
+  pgdb_host: ''
+  pgdb_port: '5432'
+
+  # Read-replica endpoint, used with external_secrets.database.readReplica (the
+  # credentials come from that Secret). The database name defaults to pgdb_name, since
+  # a replica serves the same database under a different endpoint.
+  pgdb_read_replica_host: ''
+  pgdb_read_replica_port: '5432'
+  pgdb_read_replica_name: ''
+
+  # RabbitMQ endpoint used with external_secrets.rabbitmq (credentials come from
+  # that Secret). Ignored when services.rabbitmq.local_setup is true.
+  rabbitmq_host: ''
+  rabbitmq_port: '5672'
+  rabbitmq_vhost: '/'
+  # Connect over TLS (amqps). Required by Amazon MQ for RabbitMQ, which listens on
+  # 5671 and refuses plaintext. Only applies to the discrete-parts path — a URL in
+  # services.rabbitmq.external_rabbitmq_url carries its own scheme.
+  rabbitmq_ssl: false
 
   # DATA STORE
   docstore_bucket: uploads
@@ -768,6 +1285,11 @@ env:
   allow_all_attachment_types: false
   enable_drf_spectacular: false
 
+  # INCASE OF REMOTE DRAWIO ONLY: URL of a drawio hosted outside this chart,
+  # rendered as DRAWIO_EMBED_URL. Ignored when services.drawio.local_setup is
+  # true. Leave empty (with local_setup false) to use the diagrams.net cloud.
+  drawio_remote_url: ''
+
   #OPENSEARCH ENVS
   opensearch_remote_url: ''
   opensearch_remote_username: ''
@@ -776,6 +1298,12 @@ env:
   opensearch_embedding_dimension: 1536
 
   #API KEYS
+  # DEPRECATED as a place to keep the real value — this is a PUBLIC example key.
+  # Supply it through external_secrets.app_keys_existingSecret instead.
+  #
+  # NEVER ROTATE once an instance is running: SECRET_KEY derives the Fernet key that
+  # encrypts the instance-configuration rows (SMTP password, OAuth client secrets,
+  # LLM keys). Changing it makes every one of those rows undecryptable.
   secret_key: "60gp0byfz2dvffa45cxl20p1scy9xbpf6d8c5y0geejgkyp1b5"
   api_key_rate_limit: "60/minute"
 
@@ -794,17 +1322,24 @@ env:
   sentry_environment: ''
 
   cors_allowed_origins: ''
-  instance_admin_email: ''
+  # instance_admin_email removed in 3.10.11: it was never read by any template, so
+  # setting it did nothing. The first instance admin is created through the
+  # /god-mode/ setup page.
   web_url: ''
 
-  # Comma-separated list of IPs/CIDRs and hostnames that webhooks are allowed to target.
-  # Leave empty to allow all (no restriction).
+  # Comma-separated list of IPs/CIDRs that webhooks may target even when they resolve
+  # to private ranges. Leave empty for no extra allowance.
   webhook_allowed_ips: ''
+  # Comma-separated list of hostnames that webhooks may target, bypassing the SSRF and
+  # disallowed-domain checks (e.g. plane.example.com,hooks.example.com). Use bare
+  # hostnames, not URLs. Leave empty to default to the license domain.
   webhook_allowed_hosts: ''
 
   live_sentry_dsn: ""
   live_sentry_environment: ""
   live_sentry_traces_sample_rate: ""
+  # DEPRECATED as a place to keep the real value — PUBLIC example key.
+  # Supply through external_secrets.app_keys_existingSecret.
   live_server_secret_key: "htbqvBJAgpm9bzvf3r4urJer0ENReatceh"
 
   # Background PDF/DOCX export worker queue.
@@ -821,8 +1356,16 @@ env:
     mq_prefetch_count: 1
     request_interval: 400
     importers_queue_name: 'celery'
+    # DEPRECATED as a place to keep the real values — these are PUBLIC example keys.
+    # Supply them through external_secrets.app_keys_existingSecret.
+    # aes_secret_key encrypts stored connector tokens: NEVER ROTATE on a live instance.
     hmac_secret_key: 'gzb7MRLr0FoN129NyWARZEs84P9LzQ'
     aes_secret_key: 'dsOdt7YrvxsTIFJ37pOaEVvLxN8KGBCr'
+    # Salt paired with aes_secret_key. Shared by api, silo and pi, which all default
+    # to "aes-salt" internally — leave empty to keep that default. Setting it on an
+    # instance that already has encrypted data makes that data undecryptable, exactly
+    # like changing aes_secret_key. NEVER ROTATE.
+    aes_salt: ''
     cors_allowed_origins: ''
     jira_server_issues_page_size: 50
     jira_server_issues_parallel_pages: 1
@@ -831,6 +1374,48 @@ env:
     integration_event_ingest_enabled: false
     integration_event_providers: "github,gitlab,slack"
     integration_event_ingest_timeout_ms: 2000
+
+  argus_envs:
+    # REQUIRED when services.argus.enabled. HKDF master key for finding
+    # fingerprints. Argus refuses to start on a placeholder or on anything under
+    # 32 characters, and the chart fails to render without one, so this MUST be
+    # set per deployment: openssl rand -hex 32
+    # Rotating it invalidates every stored fingerprint, which breaks finding
+    # dedup, staling, group_by=fingerprint and existing triage decisions.
+    fingerprint_secret: ''
+    # Reserved for service-to-service routes (unused in v1).
+    internal_secret: 'LgMZ9h1vNO4XMOCawFvy1Ux9OmItCQ0i'
+    # Leave empty to derive the Plane database DSN from services.postgres /
+    # env.pgdb_*. Argus owns its own schema inside that database.
+    database_url: ''
+    # Optional read replica for content scans. Empty falls back to
+    # services.postgres.read_replica when it is on, else to database_url.
+    content_database_url: ''
+    # Schema Argus creates and owns inside the Plane database. Plane's own
+    # tables are always read from public and are never written.
+    schema: 'argus'
+    # Route mount prefix. Every route -- including /healthz -- is served under
+    # it, and it MUST equal the web build's VITE_ARGUS_BASE_PATH (the web image
+    # defaults that to /argus) or every call 404s. Also drives the ingress path.
+    base_path: '/argus'
+    # Where findings-export CSVs are written (an emptyDir is mounted here).
+    # /home/nonroot/data for makeplane/argus-commercial; the FIPS image uses /app/data.
+    data_dir: '/home/nonroot/data'
+    # Empty is correct for path-routed (same-origin) deployments. Argus always
+    # sends credentials, so '*' is rejected at startup.
+    cors_allowed_origins: ''
+    # Empty trusts NO proxy, so audit rows record the ingress IP rather than the
+    # end user's. Set to the CIDRs your ingress connects from for real client
+    # IPs, e.g. '10.0.0.0/8,172.16.0.0/12'.
+    trusted_proxies: ''
+    # Private telemetry listener for /metrics -- never exposed on the
+    # browser-facing router. The loopback default is unreachable from a cluster
+    # scraper; use ':9100' to expose it on the pod network, or '' to disable.
+    metrics_addr: '127.0.0.1:9100'
+    # Empty uses Argus' own default of min(8, NumCPU).
+    worker_pool: ''
+    default_rate_rps: 500
+    max_rate_rps: 10000
 
   email_service_envs:
     smtp_domain: ''
@@ -897,11 +1482,14 @@ env:
     plane_api_host: ''
     follower_postgres_uri: ''
     cors_allowed_origins: ''
+    # DEPRECATED as a place to keep the real value — PUBLIC example key.
+    # Supply through external_secrets.app_keys_existingSecret.
     internal_secret: 'tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk'
     log_level: 'DEBUG'
 
-    ai_usage_agent_max_tokens_budget: ''
+    ai_usage_agent_max_tokens_budget: '10000000'
     ai_usage_enforcement_enabled: true
+    ai_usage_credits_per_usd: 100
 
     celery:
       vector_sync_enabled: false
@@ -919,6 +1507,20 @@ extraEnv: []
   #   value: "http://proxy.example.com:8080"
   # - name: NO_PROXY
   #   value: "localhost,127.0.0.1,.example.com"
+
+# Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
+# things that let an environment hold no credentials — an ESO SecretStore and the
+# ExternalSecrets producing the Secrets referenced by external_secrets.* above — which
+# belong to the operator rather than to this chart, but have nowhere to live when a GitOps
+# tool treats one directory as one unit.
+#
+# Passed through verbatim (toYaml, not tpl) so that ESO's own {{ }} placeholders inside a
+# target.template survive. Add the standard Helm hook annotations to have an object applied
+# BEFORE the workloads; the Secret references in this chart are optional: false, so a pod
+# that starts before its Secret exists waits in CreateContainerConfigError until it appears.
+#
+# See the "Keeping credentials out of values.yaml" section of the README for a worked example.
+extraObjects: []
 
 # OpenTelemetry (traces + logs + metrics). Off by default. When enabled, a shared
 # ConfigMap (<release>-otel-vars) is mounted via envFrom into the backend

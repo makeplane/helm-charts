@@ -41,6 +41,7 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-rabbitmq
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       {{- include "plane.podScheduling" .Values.services.rabbitmq }}
       containers:
@@ -68,8 +69,8 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 30
           failureThreshold: 50
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
   - apiVersion: v1
     kind: PersistentVolumeClaim

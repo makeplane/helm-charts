@@ -20,7 +20,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v1.4.1
+  default: v1.4.3
   required: true
   group: "Docker Registry"
 
@@ -249,6 +249,10 @@ questions:
     label: "API Key Rate Limit"
     type: string
     default: "60/minute"
+  - variable: env.enable_drf_spectacular
+    label: "Enable DRF Spectacular (OpenAPI / Swagger UI)"
+    type: boolean
+    default: false
 
 - variable: worker.replicas
   label: "Default Replica Count"
@@ -474,12 +478,12 @@ questions:
   - variable: minio.image
     label: "Docker Image"
     type: string
-    default: "minio/minio:latest"
+    default: "docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z"
     show_if: "minio.local_setup=true"
   - variable: minio.image_mc
     label: "MinIO Client Docker Image"
     type: string
-    default: "minio/mc:latest"
+    default: "docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z"
     show_if: "minio.local_setup=true"
   - variable: minio.init_image
     label: "Init Docker Image"
