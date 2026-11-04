@@ -78,14 +78,12 @@ turns what would be a runner CrashLoopBackOff halfway through `helm upgrade --wa
 clear message before anything changes.
 
 Not checked when the key comes from a Secret the chart cannot see into
-(runner_env_existingSecret, app_keys_existingSecret; NOTES.txt reminds about the latter),
-or when env.generateSecrets is on: that flag creates the key on first install.
+(runner_env_existingSecret, app_keys_existingSecret; NOTES.txt reminds about the latter).
 */ -}}
 {{- if and .Values.services.runner.enabled
            (empty .Values.env.runner_envs.hmac_secret_key)
            (empty .Values.external_secrets.runner_env_existingSecret)
-           (empty .Values.external_secrets.app_keys_existingSecret)
-           (not .Values.env.generateSecrets) }}
+           (empty .Values.external_secrets.app_keys_existingSecret) }}
 {{- fail `
 services.runner.enabled is true, but no RUNNER_HMAC_SECRET_KEY is configured.
 
