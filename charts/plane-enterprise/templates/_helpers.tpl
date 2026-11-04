@@ -658,14 +658,19 @@ In order:
   2. The value already in <release>-runner-secrets, so every upgrade keeps the key.
   3. A new random key, when this render can read the release namespace and so
      will find that key again next time (helm install/upgrade, --dry-run=server).
-     The default ServiceAccount is the probe because every namespace has one and
-     the installer can read it; a cluster-scoped probe would fail the render for
-     namespace-scoped installers.
+     The probe is the kube-root-ca.crt ConfigMap that Kubernetes publishes into
+     every namespace. Reading it needs only `get configmaps` in the release
+     namespace, which every installer of this chart already has because the chart
+     always renders ConfigMaps. A lookup the installer is not allowed to make fails
+     the whole render, so the probe must not need any other permission: not
+     ServiceAccounts (the chart creates one only optionally) and nothing
+     cluster-scoped.
   4. Otherwise nothing can be kept: helm template, --dry-run=client, GitOps
-     renderers, or a namespace --create-namespace has not created yet. A random
-     value would change on every render, so fail under env.requireExplicitSecrets
-     and otherwise render it empty, as charts before 3.12.0 always did. NOTES.txt
-     reports it.
+     renderers, or a namespace --create-namespace has not created yet. Those look
+     identical from inside a template. A random value here would change on every
+     render, and under ArgoCD every sync would rotate the key and roll the api and
+     runner pods. So fail under env.requireExplicitSecrets, and otherwise render it
+     empty, as charts before 3.12.0 always did. NOTES.txt reports it.
 
 Result: .Values._planeRunnerHmac = dict "value" <key> "source" values|existing|generated|none
 Call with the root context.
@@ -679,7 +684,7 @@ Call with the root context.
 {{- $value = get (get $existing "data" | default dict) "RUNNER_HMAC_SECRET_KEY" | default "" | b64dec -}}
 {{- $source = "existing" -}}
 {{- if not $value -}}
-{{- if or $existing (lookup "v1" "ServiceAccount" .Release.Namespace "default") -}}
+{{- if or $existing (lookup "v1" "ConfigMap" .Release.Namespace "kube-root-ca.crt") -}}
 {{- $value = randAlphaNum 64 -}}
 {{- $source = "generated" -}}
 {{- else if .Values.env.requireExplicitSecrets -}}

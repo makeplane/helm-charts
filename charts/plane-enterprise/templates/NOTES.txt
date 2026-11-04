@@ -115,9 +115,9 @@ silently becomes the live value again if app_keys_existingSecret is ever unset.
 {{- else }}
 {{- include "plane.runnerHmacResolve" . }}
 {{- if eq .Values._planeRunnerHmac.source "none" }}
-{{- $warnings = append $warnings (printf "RUNNER_HMAC_SECRET_KEY is empty: this render could not read namespace %s, so the\n    chart could neither find the runner's existing key nor keep a new one. Runner images\n    after v4.0.1 exit at startup without it. If --create-namespace just created the\n    namespace, run `helm upgrade` once more and the chart generates the key. If you render\n    with helm template or a GitOps tool, set env.runner_envs.hmac_secret_key\n    (`openssl rand -hex 32`)." .Release.Namespace) }}
+{{- $warnings = append $warnings (printf "RUNNER_HMAC_SECRET_KEY is empty: this render could not read namespace %s, so the\n    chart could neither find the runner's existing key nor keep a new one. Runner images\n    after v4.0.1 exit at startup without it. If --create-namespace just created the\n    namespace, run `helm upgrade` once more and the chart generates the key (or create the\n    namespace before installing next time). If you render\n    with helm template or a GitOps tool, set env.runner_envs.hmac_secret_key\n    (`openssl rand -hex 32`)." .Release.Namespace) }}
 {{- else if eq .Values._planeRunnerHmac.source "generated" }}
-{{- $runnerHmacNote = printf "Generated a runner signing key (RUNNER_HMAC_SECRET_KEY) and stored it in Secret\n%s-runner-secrets. Later upgrades keep it. To use your own, set\nenv.runner_envs.hmac_secret_key." .Release.Name }}
+{{- $runnerHmacNote = printf "No runner signing key (RUNNER_HMAC_SECRET_KEY) was set or found, so this render\ngenerated one. An install or upgrade stores it in Secret %s-runner-secrets\n(a dry run stores nothing), and later upgrades keep it. To use your own, set\nenv.runner_envs.hmac_secret_key." .Release.Name }}
 {{- end }}
 {{- end }}
 {{- end }}
