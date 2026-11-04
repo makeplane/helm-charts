@@ -1545,15 +1545,23 @@ Runs user-written automation scripts in a sandbox. Off by default.
 | services.runner.assign_cluster_ip | false | | Set it to `true` if you want to assign `ClusterIP` to the service |
 | services.runner.nodeSelector / tolerations / affinity | {} / [] / {} | | Scheduling rules for the runner pods |
 | services.runner.labels / annotations | {} | | Custom labels and annotations to add to the runner deployment |
-| env.runner_envs.hmac_secret_key | '' | Yes, when the runner is enabled | Key the API and runner share to sign their calls. Generate one per installation with `openssl rand -hex 32`. The chart ships no default: with `services.runner.enabled=true` the render fails unless this is set or `RUNNER_HMAC_SECRET_KEY` comes from `external_secrets.app_keys_existingSecret` or `external_secrets.runner_env_existingSecret`. Runner images after v4.0.1 refuse to start without it |
+| env.runner_envs.hmac_secret_key | '' | Only for `helm template` and GitOps renders | Key the API and runner share to sign their calls. When empty, `helm install`/`helm upgrade` generates one per installation and keeps it in `<release>-runner-secrets` across upgrades. A render without cluster access (`helm template`, `--dry-run=client`, ArgoCD) cannot keep a key, so set one there (`openssl rand -hex 32`), or supply `RUNNER_HMAC_SECRET_KEY` through `external_secrets.app_keys_existingSecret` or `external_secrets.runner_env_existingSecret`. Runner images after v4.0.1 refuse to start without it |
 | env.runner_envs.execution_timeout_ms | "10000" | | Maximum run time of one script, in milliseconds |
 | env.runner_envs.init_timeout_ms | "5000" | | Maximum time for a script to initialize, in milliseconds |
 | env.runner_envs.isolate_memory_mb | "128" | | Memory limit of each script's sandbox, in MB |
 | env.runner_envs.control_service_base_url | '' | | Not read by current runner images; leave empty |
 
-#### Upgrading to 3.12.0 with the runner enabled
+#### Runner signing key (chart 3.12.0 and later)
 
-From chart 3.12.0, `helm upgrade` fails at render time when `services.runner.enabled=true` and no runner signing key is configured. Earlier charts rendered an empty `RUNNER_HMAC_SECRET_KEY`, which runner images after v4.0.1 reject at startup, so the runner would crash-loop part-way through the upgrade instead. Before upgrading, generate a key and set it once:
+The API signs every call to the runner with `RUNNER_HMAC_SECRET_KEY`, and runner images after v4.0.1 exit at startup without it. Earlier charts rendered it empty. From 3.12.0, when you leave `env.runner_envs.hmac_secret_key` empty, the chart resolves the key in this order:
+
+1. The value already in `<release>-runner-secrets`, so every later upgrade keeps it.
+2. Otherwise, a new random key, when the render can read the release namespace (`helm install`, `helm upgrade`, `--dry-run=server`). `helm upgrade` prints a note when it creates one.
+3. Otherwise empty, as before. This happens with `helm template`, `--dry-run=client`, GitOps renderers, and a namespace that `--create-namespace` is creating in the same command. With `env.requireExplicitSecrets: true` the render fails instead.
+
+For a plain `helm upgrade` there is nothing to do. The upgrade that creates the key rolls the API-family and runner pods once, through their `checksum/config` annotation. The key only signs calls between the API and the runner, and nothing stored is encrypted with it, so creating or rotating it loses no data.
+
+If you render with `helm template` or a GitOps tool, set the key yourself so it does not change between renders:
 
 ```bash
 openssl rand -hex 32
@@ -1565,7 +1573,7 @@ env:
     hmac_secret_key: <generated value>
 ```
 
-If you use `external_secrets.app_keys_existingSecret`, add `RUNNER_HMAC_SECRET_KEY` to that Secret instead; if you use `external_secrets.runner_env_existingSecret`, put it there. The key only signs calls between the API and the runner, and nothing stored is encrypted with it, so adding it loses no data.
+If you use `external_secrets.app_keys_existingSecret`, add `RUNNER_HMAC_SECRET_KEY` to that Secret instead; if you use `external_secrets.runner_env_existingSecret`, put it there. The chart cannot look inside those Secrets.
 
 ### Ingress and SSL Setup
 
@@ -1727,7 +1735,7 @@ The trade-off: because it is one Secret, every service that mounts it sees all o
 
 > **Never rotate `SECRET_KEY`, `AES_SECRET_KEY` or `AES_SALT` on a running instance.** `SECRET_KEY` derives the Fernet key that encrypts the instance-configuration rows (SMTP password, OAuth client secrets, LLM keys); the AES pair protects stored OAuth application secrets, MCP connections and desktop handoff tokens. Changing either makes existing ciphertext undecryptable, and the failure is silent — values come back empty. Keep them in a secret with no rotation schedule.
 
-The chart ships **public example values** for all of these except `RUNNER_HMAC_SECRET_KEY`, which has no default and is always required when the runner is enabled. Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to the others:
+The chart ships **public example values** for all of these except `RUNNER_HMAC_SECRET_KEY`, which has none: the chart generates one per installation (see [Runner signing key](#runner-signing-key-chart-3120-and-later)). Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to the example values:
 
 ```yaml
 env:

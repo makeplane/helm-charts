@@ -643,6 +643,73 @@ Call with a dict: (dict "context" $ "name" "SECRET_KEY" "value" .Values.env.secr
 {{- end -}}
 
 {{/*
+RUNNER_HMAC_SECRET_KEY for <release>-runner-secrets. Resolved once per render: the
+Secret and every workload's checksum/config include runner-env.yaml, and they must
+all see the same value.
+
+The API signs its calls to the runner with this key. Runner images after v4.0.1
+exit at startup without it (this chart always sets NODE_ENV=production); v4.0.1 and
+earlier read it on neither side. The chart has never shipped a value for it, and
+nothing stored is encrypted with it, so creating one on an existing install loses
+nothing: the api-family and runner pods pick it up together on the checksum roll.
+
+In order:
+  1. env.runner_envs.hmac_secret_key, when set.
+  2. The value already in <release>-runner-secrets, so every upgrade keeps the key.
+  3. A new random key, when this render can read the release namespace and so
+     will find that key again next time (helm install/upgrade, --dry-run=server).
+     The default ServiceAccount is the probe because every namespace has one and
+     the installer can read it; a cluster-scoped probe would fail the render for
+     namespace-scoped installers.
+  4. Otherwise nothing can be kept: helm template, --dry-run=client, GitOps
+     renderers, or a namespace --create-namespace has not created yet. A random
+     value would change on every render, so fail under env.requireExplicitSecrets
+     and otherwise render it empty, as charts before 3.12.0 always did. NOTES.txt
+     reports it.
+
+Result: .Values._planeRunnerHmac = dict "value" <key> "source" values|existing|generated|none
+Call with the root context.
+*/}}
+{{- define "plane.runnerHmacResolve" -}}
+{{- if not (hasKey .Values "_planeRunnerHmac") -}}
+{{- $value := toString (.Values.env.runner_envs.hmac_secret_key | default "") -}}
+{{- $source := "values" -}}
+{{- if not $value -}}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace (printf "%s-runner-secrets" .Release.Name) -}}
+{{- $value = get (get $existing "data" | default dict) "RUNNER_HMAC_SECRET_KEY" | default "" | b64dec -}}
+{{- $source = "existing" -}}
+{{- if not $value -}}
+{{- if or $existing (lookup "v1" "ServiceAccount" .Release.Namespace "default") -}}
+{{- $value = randAlphaNum 64 -}}
+{{- $source = "generated" -}}
+{{- else if .Values.env.requireExplicitSecrets -}}
+{{- fail `
+env.requireExplicitSecrets is on and RUNNER_HMAC_SECRET_KEY has no value.
+
+The chart generates this key, and keeps it across upgrades, only when the render can
+read the release namespace (helm install/upgrade, or --dry-run=server). This render
+cannot: helm template, --dry-run=client and GitOps renderers have no cluster access.
+Generate a key once:
+
+  openssl rand -hex 32
+
+and supply it in ONE of these ways:
+
+  env.runner_envs.hmac_secret_key: <value>
+  external_secrets.app_keys_existingSecret: a Secret that carries RUNNER_HMAC_SECRET_KEY
+                                            (with the other shared keys)
+  external_secrets.runner_env_existingSecret: a Secret that carries RUNNER_HMAC_SECRET_KEY
+` -}}
+{{- else -}}
+{{- $source = "none" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set .Values "_planeRunnerHmac" (dict "value" $value "source" $source) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 envFrom entry for the Secret carrying the shared signing/encryption keys
 (SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
 SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET, RUNNER_HMAC_SECRET_KEY). Renders nothing unless
