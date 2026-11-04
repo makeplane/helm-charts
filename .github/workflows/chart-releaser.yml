@@ -191,3 +191,138 @@ jobs:
           fi
   
 
+
+  collect-tags:
+    if: ${{ github.ref_name == 'master' }}
+    needs: setup
+    runs-on: ubuntu-22.04
+    outputs:
+      tags: ${{ steps.tags.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Collect released chart tags
+        id: tags
+        run: |
+          TAGS=()
+          add() {
+            name=$(grep '^name:' "charts/$1/Chart.yaml" | sed 's/^name:[[:space:]]*//' | tr -d '\r')
+            version=$(grep '^version:' "charts/$1/Chart.yaml" | sed 's/^version:[[:space:]]*//' | tr -d '\r')
+            TAGS+=("${name}-${version}")
+          }
+          [ "${{ github.event.inputs.plane-ce }}" = "true" ] && add ${{ env.CHART_NAME_CE }}
+          [ "${{ github.event.inputs.plane-ee }}" = "true" ] && add ${{ env.CHART_NAME_ENTERPRISE }}
+          [ "${{ github.event.inputs.plane-mcp-server }}" = "true" ] && add ${{ env.CHART_NAME_MCP_SERVER }}
+          echo "tags=$(printf '%s\n' "${TAGS[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+
+  notify:
+    needs: collect-tags
+    if: ${{ needs.collect-tags.outputs.tags != '[]' }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJson(needs.collect-tags.outputs.tags) }}
+    steps:
+      - name: Fetch release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(gh release view "${{ matrix.tag }}" --repo "${{ github.repository }}" --json body -q .body 2>/dev/null || true)
+          # chart-releaser puts the Chart.yaml description above the generated notes; keep only the notes.
+          if printf '%s\n' "$BODY" | grep -q "^## What's Changed"; then
+            BODY=$(printf '%s\n' "$BODY" | sed -n "/^## What's Changed/,\$p")
+          fi
+          # Strip HTML comments (e.g. "<!-- Release notes generated using ... -->") so they don't show in Slack
+          BODY=$(printf '%s\n' "$BODY" | sed 's/<!--[^>]*-->//g' | sed '/^[[:space:]]*$/d' | sed -z 's/\n$//')
+          if [ -z "$BODY" ] || [ -z "$(echo "$BODY" | tr -d '[:space:]')" ]; then
+            BODY="Helm chart release **${{ matrix.tag }}** is now available."
+          fi
+          printf '%s\n' "$BODY" > release_body.txt
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install slackify-markdown
+        run: npm install --no-save --prefix /tmp/slackify slackify-markdown@5
+
+      - name: Send Slack notification
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN || '' }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL || '' }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ] || [ -z "$SLACK_CHANNEL" ]; then
+            echo "SLACK_BOT_TOKEN or SLACK_CHANNEL not set, skipping notification"
+            exit 0
+          fi
+
+          [ -f release_body.txt ] || { echo "No release body found"; exit 0; }
+
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${{ matrix.tag }}"
+          HEADER_TEXT="Helm Chart Release: ${{ matrix.tag }}"
+          RELEASE_LINK="<${RELEASE_URL}|View release>"
+          WORKFLOW_LINK="<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+          # Node's ESM resolver only finds the package via a parent-dir walk, so run from the install dir.
+          WORKSPACE_DIR="$PWD"
+          CLEAN_BODY=$(cd /tmp/slackify && node --input-type=module -e "
+            import {slackifyMarkdown} from 'slackify-markdown';
+            import {readFileSync} from 'node:fs';
+            process.stdout.write(slackifyMarkdown(readFileSync('$WORKSPACE_DIR/release_body.txt','utf8')));
+          ")
+
+          CLEAN_BODY=$(printf '%s' "$CLEAN_BODY" | sed -E \
+            -e 's/<!--[^>]*-->//g' \
+            -e "/\\*What's Changed\\*/d" \
+            -e '/\*New Contributors\*/d' \
+            -e '/\*Full Changelog\*/d' \
+            -e 's/ by @[^ ]+ in <[^|]+\|[^>]+>$//' \
+            -e '/^[[:space:]]*$/d')
+
+          CLEAN_BODY=$(printf '%s' "$CLEAN_BODY" | sed -z 's/\n*$//')
+          if [ -z "$(echo "$CLEAN_BODY" | tr -d '[:space:]')" ]; then
+            CLEAN_BODY="Release *${{ matrix.tag }}* is now available. <${RELEASE_URL}|View release>"
+          fi
+
+          # Slack section blocks cap text at 3000 chars.
+          MAX_BODY_LEN=2800
+          if [ "${#CLEAN_BODY}" -gt "$MAX_BODY_LEN" ]; then
+            CLEAN_BODY="${CLEAN_BODY:0:$MAX_BODY_LEN}..."$'\n\n'"<${RELEASE_URL}|Read full release notes>"
+          fi
+          RELEASE_BODY=$(printf '%s\n' "$CLEAN_BODY" | jq -Rs .)
+
+          PAYLOAD=$(jq -n \
+            --arg channel "$SLACK_CHANNEL" \
+            --arg header "$HEADER_TEXT" \
+            --argjson body "$RELEASE_BODY" \
+            --arg release_link "$RELEASE_LINK" \
+            --arg workflow_link "$WORKFLOW_LINK" \
+            '{
+              channel: $channel,
+              text: $header,
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: $header, emoji: true } },
+                { type: "section", text: { type: "mrkdwn", text: $body } },
+                { type: "context", elements: [{ type: "mrkdwn", text: ($release_link + " | " + $workflow_link) }] }
+              ]
+            }')
+
+          HTTP_CODE=$(curl -s -o /tmp/slack_response.json -w "%{http_code}" -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Slack API returned HTTP $HTTP_CODE"
+            cat /tmp/slack_response.json
+            exit 1
+          fi
+          if grep -q '"ok":\s*false' /tmp/slack_response.json 2>/dev/null; then
+            echo "Slack API returned error:"
+            cat /tmp/slack_response.json
+            exit 1
+          fi
+          echo "Slack notification sent successfully for ${{ matrix.tag }}"
