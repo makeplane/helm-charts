@@ -589,6 +589,8 @@ Use this when Plane makes outbound TLS calls to a service (S3-compatible storage
 
 Resolution precedence is: `customCA.s3Secrets` → `customCA.s3SecretName`/`s3SecretKey` → `airgapped.s3Secrets` → `airgapped.s3SecretName`/`s3SecretKey`.
 
+A changed CA Secret takes effect when the pods restart: the Node.js services (live, live-exporter, silo) build their CA bundle once, at start. With Stakater Reloader, annotate them (`services.<name>.annotations: {reloader.stakater.com/auto: "true"}`) so a CA rotation restarts them.
+
 Example:
 
 ```yaml
