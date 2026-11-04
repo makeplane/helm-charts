@@ -576,6 +576,39 @@ timestamp: {{ now | quote }}
 {{- end -}}
 
 {{/*
+Run suffix for a Job's name. Job specs are immutable, so every Job that may
+change between upgrades gets a fresh name. By default that is the render time,
+so the name changes on every render. With global.deterministicRender it is a
+hash of the Job's own rendered spec: identical values render an identical name
+(no GitOps drift), and any change to the spec still yields a new Job.
+Call with (dict "context" $ "spec" <rendered spec>).
+*/}}
+{{- define "plane.jobRunSuffix" -}}
+{{- if .context.Values.global.deterministicRender -}}
+{{- .spec | sha256sum | trunc 10 -}}
+{{- else -}}
+{{- now | date "20060102-150405" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Argus pod annotations. Argus has always stamped `timestamp` on every render; it
+keeps doing so unless global.deterministicRender, which moves it onto the
+shared, forceRedeploy-gated plane.podAnnotations like every other workload,
+plus checksum/argus-config: argus-env is not in plane.configChecksum (adding it
+would roll every workload), so this is what rolls Argus when its config changes.
+Call with the root context. Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.argusPodAnnotations" -}}
+{{- if .Values.global.deterministicRender -}}
+{{- include "plane.podAnnotations" . }}
+checksum/argus-config: {{ include (print .Template.BasePath "/config-secrets/argus-env.yaml") . | sha256sum | quote }}
+{{- else -}}
+timestamp: {{ now | quote }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Rolling-update strategy that keeps full capacity during a rollout, so a
 Reloader-triggered restart after a credential rotation never drops requests.
 Rendered only for replicated Deployments (surge needs room to schedule).
