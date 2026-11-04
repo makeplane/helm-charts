@@ -36,16 +36,18 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-iframely
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.iframely }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.iframely "app" "iframely" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-iframely
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v1.2.0" }}
+        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v2.5.4" }}
         stdin: true
         tty: true
         resources:
@@ -63,6 +65,6 @@ spec:
         env:
           {{- toYaml .Values.extraEnv | nindent 10 }}
         {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 {{- end }}

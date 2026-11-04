@@ -1,0 +1,87 @@
+{{- /*
+Self-hosted draw.io, the diagram editor behind the Wiki editor's diagram extension.
+Gated by services.drawio.local_setup (off by default), like the other bundled services:
+with it off, DRAWIO_EMBED_URL comes from env.drawio_remote_url, or the editor falls back
+to the diagrams.net cloud when that is empty too.
+
+makeplane/drawio is versioned independently of planeVersion, so the image is pinned
+here rather than built from it. The ingress templates expose it on the /drawio subpath
+and app-env.yaml points DRAWIO_EMBED_URL at that path.
+
+The pod- and container-level securityContext helpers are deliberately not applied: the
+image is third-party-based (Tomcat) and is not verified against the PSA "restricted"
+profile the way first-party Plane images are.
+*/ -}}
+{{- if .Values.services.drawio.local_setup }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio
+  labels:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-drawio
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+spec:
+  {{- if not .Values.services.drawio.assign_cluster_ip }}
+  clusterIP: None
+  {{- end }}
+  ports:
+  - name: drawio-8080
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-drawio
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio-wl
+  {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.drawio) }}
+spec:
+  replicas: {{ .Values.services.drawio.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-drawio
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-drawio
+        {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
+      annotations:
+        {{- include "plane.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "plane.podScheduling" .Values.services.drawio }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.drawio "app" "drawio" "root" .) }}
+      containers:
+      - name: {{ .Release.Name }}-drawio
+        imagePullPolicy: {{ .Values.services.drawio.pullPolicy | default "IfNotPresent" }}
+        image: {{ .Values.services.drawio.image | default "makeplane/drawio:v2.5.0" }}
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            memory: {{ .Values.services.drawio.memoryRequest | default "256Mi" | quote }}
+            cpu: {{ .Values.services.drawio.cpuRequest | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.services.drawio.memoryLimit | default "512Mi" | quote }}
+            cpu: {{ .Values.services.drawio.cpuLimit | default "500m" | quote }}
+        {{- if .Values.extraEnv }}
+        env:
+          {{- toYaml .Values.extraEnv | nindent 10 }}
+        {{- end }}
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
+{{- end }}

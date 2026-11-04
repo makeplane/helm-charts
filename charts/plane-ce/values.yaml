@@ -1,4 +1,4 @@
-planeVersion: v1.4.1
+planeVersion: v1.4.3
 
 dockerRegistry:
   enabled: false
@@ -108,8 +108,9 @@ rabbitmq:
   affinity: {}
 
 minio:
-  image: minio/minio:latest
-  image_mc: minio/mc:latest
+  # pgsty/silo is pgsty/minio renamed: same S3 API, MINIO_* env vars and on-disk format.
+  image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+  image_mc: docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z
   init_image: busybox
   local_setup: true
   pullPolicy: IfNotPresent
@@ -347,6 +348,8 @@ env:
   default_cluster_domain: cluster.local
 
   api_key_rate_limit: "60/minute"
+  # Serves the OpenAPI schema and Swagger UI at /api/schema/swagger-ui/ (ENABLE_DRF_SPECTACULAR).
+  enable_drf_spectacular: false
 
 # Arbitrary extra Kubernetes objects rendered as part of this release. Intended for the
 # things that let an environment hold no credentials -- an ESO SecretStore and the

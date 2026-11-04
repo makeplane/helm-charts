@@ -1,0 +1,298 @@
+{{/*
+Standard networking.k8s.io/v1 Ingress, for ingress-nginx. Which of the three
+ingress templates renders is decided by the "plane.ingressController" helper, not
+by ingressClass directly.
+
+The resource itself is controller-agnostic, so setting ingress.controller to
+something other than traefik/openshift also renders from here -- that is how a
+non-"nginx" class name such as "nginx-new" is served. Only nginx, Traefik and
+OpenShift are supported configurations.
+*/}}
+{{- if and .Values.ingress.enabled (eq (include "plane.ingressController" .) "ingress") .Values.license.licenseDomain }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-ingress
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with .Values.ingress.ingress_annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-web
+            path: /
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-space
+            path: /spaces/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-admin
+            path: /god-mode/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /api/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /auth/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /static/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-live
+            path: /live/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /graphql/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /marketplace/
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-api
+            path: /dav/
+            pathType: Prefix
+          {{- if .Values.services.silo.enabled }}
+          - backend:
+              service:
+                port:
+                  number: 3000
+                name: {{ .Release.Name }}-silo
+            path: /silo/
+            pathType: Prefix
+          {{- end }}
+          {{- /* Argus serves every route under ARGUS_BASE_PATH, so the prefix is
+                 forwarded intact (no rewrite). It must match the web build's
+                 VITE_ARGUS_BASE_PATH, which defaults to /argus. */}}
+          {{- if .Values.services.argus.enabled }}
+          - backend:
+              service:
+                port:
+                  number: 8100
+                name: {{ .Release.Name }}-argus
+            path: {{ trimSuffix "/" .Values.env.argus_envs.base_path }}/
+            pathType: Prefix
+          {{- end }}
+          {{- if .Values.services.pi.enabled }}
+          - backend:
+              service:
+                port:
+                  number: 8000
+                name: {{ .Release.Name }}-pi-api
+            path: /pi/
+            pathType: Prefix
+          {{- end }}
+          {{- if .Values.services.mcp_server.enabled }}
+          {{- $mcpPrefix := .Values.services.mcp_server.path_prefix | default "/mcp" | trimSuffix "/" }}
+          - backend:
+              service:
+                port:
+                  number: 8211
+                name: {{ .Release.Name }}-mcp-server
+            path: {{ $mcpPrefix }}/
+            pathType: Prefix
+          {{- /* OAuth discovery documents live at the host root (path-inserted, RFC 9728 /
+                 RFC 8414) and are served by the MCP server itself; see ingress-traefik.yaml. */}}
+          - backend:
+              service:
+                port:
+                  number: 8211
+                name: {{ .Release.Name }}-mcp-server
+            path: /.well-known/oauth-protected-resource{{ $mcpPrefix }}
+            pathType: Prefix
+          - backend:
+              service:
+                port:
+                  number: 8211
+                name: {{ .Release.Name }}-mcp-server
+            path: /.well-known/oauth-authorization-server{{ $mcpPrefix }}
+            pathType: Prefix
+          {{- end }}
+          {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.env.docstore_bucket }}
+          - backend:
+              service:
+                port:
+                  number: 9000
+                name: {{ .Release.Name }}-minio
+            path: /{{ .Values.env.docstore_bucket }}
+            pathType: Prefix
+          {{- end }}
+
+    {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+    - host: {{ .Values.ingress.minioHost }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 9090
+                name: {{ .Release.Name }}-minio
+            path: /
+            pathType: Prefix
+    {{- end }}
+    {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+    - host: {{ .Values.ingress.rabbitmqHost}}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 15672
+                name: {{ .Release.Name }}-rabbitmq
+            path: /
+            pathType: Prefix
+    {{- end }}
+
+  {{- if .Values.ssl.tls_secret_name}}
+  tls:
+    - hosts:
+      - {{ .Values.license.licenseDomain | quote }}
+      {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+      - {{ .Values.ingress.minioHost | quote }}
+      {{ end }}
+      {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+      - {{ .Values.ingress.rabbitmqHost | quote }}
+      {{ end }}
+      secretName: {{ .Values.ssl.tls_secret_name }}
+  {{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
+  tls:
+    - hosts:
+      - {{ .Values.license.licenseDomain | quote }}
+      {{- if and (eq (include "plane.minioEnabled" .) "true") .Values.ingress.minioHost }}
+      - {{ .Values.ingress.minioHost | quote }}
+      {{ end }}
+      {{- if and .Values.services.rabbitmq.local_setup .Values.ingress.rabbitmqHost }}
+      - {{ .Values.ingress.rabbitmqHost | quote }}
+      {{ end }}
+      secretName: {{ .Release.Name }}-ssl-cert
+  {{- end }}
+
+{{- /*
+drawio gets its own Ingress: makeplane/drawio serves at "/", so the /drawio/ prefix is
+stripped with rewrite-target, a per-Ingress nginx annotation that must not leak onto the
+Plane routes above. ingress.ingress_annotations is intentionally not copied here -- a
+cert-manager annotation on a second Ingress sharing the same TLS secret would fight the
+first.
+*/}}
+{{- if .Values.services.drawio.local_setup }}
+{{- $drawioTlsSecret := "" }}
+{{- if .Values.ssl.tls_secret_name }}
+{{- $drawioTlsSecret = .Values.ssl.tls_secret_name }}
+{{- else if and .Values.ssl.generateCerts .Values.ssl.createIssuer }}
+{{- $drawioTlsSecret = printf "%s-ssl-cert" .Release.Name }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-drawio
+            path: /drawio/(.*)
+            pathType: ImplementationSpecific
+  {{- with $drawioTlsSecret }}
+  tls:
+    - hosts:
+      - {{ $.Values.license.licenseDomain | quote }}
+      secretName: {{ . }}
+  {{- end }}
+{{- /*
+A bare /drawio matches neither /drawio/(.*) nor any Plane route but "/", so it would
+reach web. Redirect exactly /drawio to /drawio/. ingress-nginx only accepts an
+absolute http(s) URL here, hence the scheme from plane.tlsEnabled. The backend is
+required by the API but never reached.
+*/}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-drawio-redirect
+  labels:
+    {{- include "plane.commonLabels" $ | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: "{{ eq (include "plane.tlsEnabled" .) "true" | ternary "https" "http" }}://{{ .Values.license.licenseDomain }}/drawio/"
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+    - host: {{ .Values.license.licenseDomain }}
+      http:
+        paths:
+          - backend:
+              service:
+                port:
+                  number: 8080
+                name: {{ .Release.Name }}-drawio
+            path: /drawio
+            pathType: Exact
+  {{- with $drawioTlsSecret }}
+  tls:
+    - hosts:
+      - {{ $.Values.license.licenseDomain | quote }}
+      secretName: {{ . }}
+  {{- end }}
+{{- end }}
+
+{{- end }}

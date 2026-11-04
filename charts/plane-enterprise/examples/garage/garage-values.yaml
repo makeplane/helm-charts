@@ -1,0 +1,44 @@
+# Values for Garage's own Helm chart (script/helm/garage in https://github.com/deuxfleurs-org/garage), for use
+# as Plane's object store. You install and run Garage; see README.md in this directory.
+#
+#   git clone --depth 1 --branch v2.4.1 https://github.com/deuxfleurs-org/garage.git
+#   helm install garage ./garage/script/helm/garage -n garage --create-namespace -f garage-values.yaml \
+#     --set garage.rpcSecret="$(openssl rand -hex 32)"
+
+garage:
+  # Three nodes, each object stored on all three: losing a node or its disk loses no data.
+  replicationFactor: "3"
+  # LMDB is Garage's recommended engine with replication_factor >= 2: a node that loses its metadata
+  # resyncs from its peers. On a single node use "sqlite" and replicationFactor "1".
+  dbEngine: "lmdb"
+  metadataAutoSnapshotInterval: "6h"
+  s3:
+    api:
+      # Must equal env.aws_region in Plane's values: Garage rejects requests signed for any other region.
+      region: "us-east-1"
+      rootDomain: ".s3.garage.internal"
+
+image:
+  # The chart's default image (dxflrs/amd64_garage) is amd64-only. This one is multi-arch.
+  repository: dxflrs/garage
+  tag: "v2.4.1"
+
+deployment:
+  kind: StatefulSet
+  replicaCount: 3
+
+persistence:
+  enabled: true
+  meta:
+    size: 1Gi
+  data:
+    # Size for your files plus growth: each node holds a full copy at replicationFactor 3.
+    size: 50Gi
+
+# Garage stays inside the cluster: with env.use_storage_proxy=true, Plane's API carries every upload and
+# download, so no browser ever talks to Garage. Enable the chart's s3 ingress only for the
+# plane-ce / no-proxy path in README.md.
+ingress:
+  s3:
+    api:
+      enabled: false

@@ -53,6 +53,7 @@ data:
   GUNICORN_WORKERS: "1"
   MINIO_ENDPOINT_SSL: {{ .Values.minio.env.minio_endpoint_ssl | default false | ternary "1" "0" | quote }}
   API_KEY_RATE_LIMIT: {{ .Values.env.api_key_rate_limit | default "60/minute" | quote }}
+  ENABLE_DRF_SPECTACULAR: {{ .Values.env.enable_drf_spectacular | default false | ternary "1" "0" | quote }}
 
   {{- if and .Values.ingress.appHost (eq (include "plane.tlsEnabled" .) "true") }}
   WEB_URL: "https://{{ .Values.ingress.appHost }}"

@@ -1,16 +1,10 @@
 {{- if and .Values.ingress.enabled .Values.ingress.host (eq .Values.ingress.ingressController "traefik") }}
 
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-body-limit
-spec:
-  buffering:
-    maxRequestBodyBytes: {{ .Values.ingress.traefik.maxRequestBodyBytes | default 10485760 }}
-
----
-
+{{- /* No `buffering` Middleware: it holds the whole response until the upstream closes. The MCP
+       server answers over SSE -- /sse is a stream that stays open for the session, and
+       /http/mcp replies as text/event-stream -- so a buffered route never delivers the SSE
+       endpoint event and delays every streamed reply. Traefik has no request-body cap that does
+       not also buffer the response, so the host carries none. */}}
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -22,8 +16,6 @@ spec:
   routes:
     - match: Host(`{{ .Values.ingress.host }}`)
       kind: Rule
-      middlewares:
-        - name: {{ .Release.Name }}-body-limit
       services:
         - name: {{ .Release.Name }}-api
           port: 8211
