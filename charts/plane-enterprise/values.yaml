@@ -1180,7 +1180,9 @@ env:
 
   # Fail the render instead of falling back to this chart's public example values
   # for SECRET_KEY, AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
-  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. Recommended for production;
+  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. (RUNNER_HMAC_SECRET_KEY has no
+  # example value: the render always fails without it when the runner is enabled.)
+  # Recommended for production;
   # defaults to false so existing installs keep rendering. Will default to true in
   # the next major version.
   requireExplicitSecrets: false
@@ -1427,6 +1429,11 @@ env:
     init_timeout_ms: "5000"
     isolate_memory_mb: "128"
     control_service_base_url: ""
+    # RUNNER_HMAC_SECRET_KEY, shared by the API (signs) and the runner (verifies).
+    # Required when services.runner.enabled is true: the chart ships no default and
+    # the render fails without one. Generate per installation: openssl rand -hex 32
+    # Or leave this empty and supply RUNNER_HMAC_SECRET_KEY through
+    # external_secrets.app_keys_existingSecret or runner_env_existingSecret.
     hmac_secret_key: ""
 
   pi_envs:

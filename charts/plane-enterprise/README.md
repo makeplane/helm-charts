@@ -1545,11 +1545,27 @@ Runs user-written automation scripts in a sandbox. Off by default.
 | services.runner.assign_cluster_ip | false | | Set it to `true` if you want to assign `ClusterIP` to the service |
 | services.runner.nodeSelector / tolerations / affinity | {} / [] / {} | | Scheduling rules for the runner pods |
 | services.runner.labels / annotations | {} | | Custom labels and annotations to add to the runner deployment |
-| env.runner_envs.hmac_secret_key | '' | Yes, after v4.0.1 | Key the API and runner share to sign their calls. Generate with `openssl rand -hex 32`; runner images after v4.0.1 refuse to start without it. Or supply `RUNNER_HMAC_SECRET_KEY` through `external_secrets.runner_env_existingSecret` or `app_keys_existingSecret` |
+| env.runner_envs.hmac_secret_key | '' | Yes, when the runner is enabled | Key the API and runner share to sign their calls. Generate one per installation with `openssl rand -hex 32`. The chart ships no default: with `services.runner.enabled=true` the render fails unless this is set or `RUNNER_HMAC_SECRET_KEY` comes from `external_secrets.app_keys_existingSecret` or `external_secrets.runner_env_existingSecret`. Runner images after v4.0.1 refuse to start without it |
 | env.runner_envs.execution_timeout_ms | "10000" | | Maximum run time of one script, in milliseconds |
 | env.runner_envs.init_timeout_ms | "5000" | | Maximum time for a script to initialize, in milliseconds |
 | env.runner_envs.isolate_memory_mb | "128" | | Memory limit of each script's sandbox, in MB |
 | env.runner_envs.control_service_base_url | '' | | Not read by current runner images; leave empty |
+
+#### Upgrading to 3.12.0 with the runner enabled
+
+From chart 3.12.0, `helm upgrade` fails at render time when `services.runner.enabled=true` and no runner signing key is configured. Earlier charts rendered an empty `RUNNER_HMAC_SECRET_KEY`, which runner images after v4.0.1 reject at startup, so the runner would crash-loop part-way through the upgrade instead. Before upgrading, generate a key and set it once:
+
+```bash
+openssl rand -hex 32
+```
+
+```yaml
+env:
+  runner_envs:
+    hmac_secret_key: <generated value>
+```
+
+If you use `external_secrets.app_keys_existingSecret`, add `RUNNER_HMAC_SECRET_KEY` to that Secret instead; if you use `external_secrets.runner_env_existingSecret`, put it there. The key only signs calls between the API and the runner, and nothing stored is encrypted with it, so adding it loses no data.
 
 ### Ingress and SSL Setup
 
@@ -1694,16 +1710,16 @@ For **planeVersion below v3.2.0**, supply silo/live/Plane AI DSNs through `silo_
 
 ### 3. Shared signing keys in one Secret
 
-`SECRET_KEY`, `AES_SECRET_KEY`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY` and `CURSOR_WEBHOOK_SECRET` appear in up to four of the chart's Secrets, and several of them must match for the services to talk to each other. `external_secrets.app_keys_existingSecret` points all of them at a single Secret so they cannot drift:
+`SECRET_KEY`, `AES_SECRET_KEY`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET` and `RUNNER_HMAC_SECRET_KEY` appear in up to four of the chart's Secrets, and several of them must match for the services to talk to each other. `external_secrets.app_keys_existingSecret` points all of them at a single Secret so they cannot drift:
 
 ```yaml
 external_secrets:
   app_keys_existingSecret: plane-app-keys
 ```
 
-The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted last in `envFrom`, so it wins over a copy of the same key in one of the older `*_existingSecret` groups — don't define the same key in both.
+The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`, and `RUNNER_HMAC_SECRET_KEY` when the runner is deployed. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted last in `envFrom`, so it wins over a copy of the same key in one of the older `*_existingSecret` groups — don't define the same key in both.
 
-The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. `RUNNER_HMAC_SECRET_KEY` belongs here too when the runner is deployed.
+The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. A missing `RUNNER_HMAC_SECRET_KEY` makes runner images after v4.0.1 exit at startup; the chart cannot see inside this Secret to catch it, so `helm upgrade` prints a reminder when the runner is enabled.
 
 Do not also define any of these keys in one of the `*_existingSecret` groups. This Secret is mounted after them on every workload, so the duplicate is ignored — until `app_keys_existingSecret` is unset, when the stale copy silently becomes the live value. `helm upgrade` warns when it sees both set.
 
@@ -1711,7 +1727,7 @@ The trade-off: because it is one Secret, every service that mounts it sees all o
 
 > **Never rotate `SECRET_KEY`, `AES_SECRET_KEY` or `AES_SALT` on a running instance.** `SECRET_KEY` derives the Fernet key that encrypts the instance-configuration rows (SMTP password, OAuth client secrets, LLM keys); the AES pair protects stored OAuth application secrets, MCP connections and desktop handoff tokens. Changing either makes existing ciphertext undecryptable, and the failure is silent — values come back empty. Keep them in a secret with no rotation schedule.
 
-The chart ships **public example values** for all of these. Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to them:
+The chart ships **public example values** for all of these except `RUNNER_HMAC_SECRET_KEY`, which has no default and is always required when the runner is enabled. Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to the others:
 
 ```yaml
 env:

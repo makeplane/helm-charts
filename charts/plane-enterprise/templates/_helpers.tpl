@@ -612,7 +612,7 @@ Call with a dict: (dict "context" $ "name" "SECRET_KEY" "value" .Values.env.secr
 {{/*
 envFrom entry for the Secret carrying the shared signing/encryption keys
 (SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
-SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET). Renders nothing unless
+SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET, RUNNER_HMAC_SECRET_KEY). Renders nothing unless
 external_secrets.app_keys_existingSecret is set.
 
 These keys are duplicated across the api, live, silo and pi Secrets, and several of

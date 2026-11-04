@@ -104,6 +104,14 @@ silently becomes the live value again if app_keys_existingSecret is ever unset.
 {{- end }}
 {{- end }}
 
+{{- /* The runner key check in validations.yaml cannot look inside app_keys_existingSecret,
+       and the chart stops rendering its own RUNNER_HMAC_SECRET_KEY while that is set. A
+       Secret built from the key list of an older README would lack it, and the runner then
+       exits at startup on images after v4.0.1. */}}
+{{- if and .Values.services.runner.enabled .Values.external_secrets.app_keys_existingSecret (empty .Values.external_secrets.runner_env_existingSecret) }}
+{{- $warnings = append $warnings (printf "The runner is enabled and its signing key comes from app_keys_existingSecret (%s).\n    Make sure that Secret carries RUNNER_HMAC_SECRET_KEY (generate one with\n    `openssl rand -hex 32`). The chart cannot check it, and runner images after v4.0.1\n    exit at startup without it." .Values.external_secrets.app_keys_existingSecret) }}
+{{- end }}
+
 {{- /*
 silo-secrets is mounted on the API workloads (they verify silo's HMAC) after app_env,
 so a Secret supplied as silo_env decides their DATABASE_URL/REDIS_URL/AMQP_URL too.
