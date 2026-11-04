@@ -787,6 +787,8 @@ services:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    topologySpreadConstraints: []
+    podDisruptionBudget: {}
     labels: {}
     annotations: {}
 

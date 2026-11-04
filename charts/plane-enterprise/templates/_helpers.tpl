@@ -38,6 +38,7 @@ external_api: external-api
 outbox_poller: outbox-poller
 automation_consumer: automation-consumer
 webhook_consumer: webhook-consumer
+integration_event_consumer: integration-event-consumer
 agent_consumer: agent-consumer
 pi: pi-api
 pi_worker: pi-worker
