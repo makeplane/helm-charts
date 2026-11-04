@@ -301,6 +301,12 @@ services:
     cpuLimit: 750m
     memoryRequest: 2Gi
     cpuRequest: 500m
+    # OPENSEARCH_JAVA_OPTS. A bigger heap needs a matching memoryLimit.
+    javaOpts: "-Xms768m -Xmx768m"
+    # Env for the OpenSearch container only, after the global extraEnv. E.g. for Plane AI:
+    #   - {name: plugins.ml_commons.only_run_on_ml_node, value: "false"}
+    #   - {name: plugins.ml_commons.native_memory_threshold, value: "99"}
+    extraEnv: []
     assign_cluster_ip: false
     nodeSelector: {}
     tolerations: []
@@ -1237,7 +1243,8 @@ env:
   doc_upload_size_limit: '5242880' # 5MB
 
   # Storage backend selection: 'S3' (default; covers MinIO and S3-compatible
-  # services) or 'GCS' (Google Cloud Storage native mode).
+  # services) or 'GCS' (Google Cloud Storage native mode). Plane AI (pi) supports
+  # 'GCS' from the Plane release that adds GCS support to it.
   storage_provider: 'S3'
 
   # REQUIRED IF MINIO LOCAL SETUP IS FALSE
