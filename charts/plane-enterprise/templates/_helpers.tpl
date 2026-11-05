@@ -651,7 +651,9 @@ The API signs its calls to the runner with this key. Runner images after v4.0.1
 exit at startup without it (this chart always sets NODE_ENV=production); v4.0.1 and
 earlier read it on neither side. The chart has never shipped a value for it, and
 nothing stored is encrypted with it, so creating one on an existing install loses
-nothing: the api-family and runner pods pick it up together on the checksum roll.
+nothing. The key is part of the checksum/config that every chart workload shares
+(plane.configChecksum), so a new or changed key rolls every chart workload once,
+and the api-family and runner pods pick it up together.
 
 In order:
   1. env.runner_envs.hmac_secret_key, when set.
@@ -668,9 +670,10 @@ In order:
   4. Otherwise nothing can be kept: helm template, --dry-run=client, GitOps
      renderers, or a namespace --create-namespace has not created yet. Those look
      identical from inside a template. A random value here would change on every
-     render, and under ArgoCD every sync would rotate the key and roll the api and
-     runner pods. So fail under env.requireExplicitSecrets, and otherwise render it
-     empty, as charts before 3.12.0 always did. NOTES.txt reports it.
+     render, and under ArgoCD every sync would rotate the key and, through the
+     shared checksum/config, roll every chart workload. So fail under
+     env.requireExplicitSecrets, and otherwise render it empty, as charts before
+     3.12.0 always did. NOTES.txt reports it.
 
 Result: .Values._planeRunnerHmac = dict "value" <key> "source" values|existing|generated|none
 Call with the root context.
