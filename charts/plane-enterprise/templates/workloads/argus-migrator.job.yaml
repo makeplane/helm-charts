@@ -1,4 +1,4 @@
-{{- if .Values.services.argus.enabled }}
+{{- if .Values.services.argus.enabled }}{{- $argusMigrateJobSpec := include "plane.argusMigrateJobSpec" . }}
 
 {{- /* `argus start` deliberately does NOT migrate, so the argus schema is applied
        by this one-shot Job. It only ever touches its own schema: CREATE SCHEMA IF
@@ -13,8 +13,13 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: {{ .Release.Name }}-argus-migrate-{{ now | date "20060102-150405" }}
+  name: {{ .Release.Name }}-argus-migrate-{{ include "plane.jobRunSuffix" (dict "context" . "spec" $argusMigrateJobSpec) }}
   {{- include "plane.labelsAndAnnotations" (dict "context" $ "values" .Values.services.argus) }}
+{{ $argusMigrateJobSpec }}
+---
+{{- end }}
+
+{{- define "plane.argusMigrateJobSpec" -}}
 spec:
   backoffLimit: 3
   template:
@@ -23,7 +28,7 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-argus-migrate
         {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.argusPodAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.argus }}
       {{- include "plane.podSecurityContext" . }}
@@ -60,5 +65,4 @@ spec:
       restartPolicy: OnFailure
       serviceAccount: {{ .Release.Name }}-srv-account
       serviceAccountName: {{ .Release.Name }}-srv-account
----
 {{- end }}

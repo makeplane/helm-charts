@@ -576,6 +576,39 @@ timestamp: {{ now | quote }}
 {{- end -}}
 
 {{/*
+Run suffix for a Job's name. Job specs are immutable, so every Job that may
+change between upgrades gets a fresh name. By default that is the render time,
+so the name changes on every render. With global.deterministicRender it is a
+hash of the Job's own rendered spec: identical values render an identical name
+(no GitOps drift), and any change to the spec still yields a new Job.
+Call with (dict "context" $ "spec" <rendered spec>).
+*/}}
+{{- define "plane.jobRunSuffix" -}}
+{{- if .context.Values.global.deterministicRender -}}
+{{- .spec | sha256sum | trunc 10 -}}
+{{- else -}}
+{{- now | date "20060102-150405" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Argus pod annotations. Argus has always stamped `timestamp` on every render; it
+keeps doing so unless global.deterministicRender, which moves it onto the
+shared, forceRedeploy-gated plane.podAnnotations like every other workload,
+plus checksum/argus-config: argus-env is not in plane.configChecksum (adding it
+would roll every workload), so this is what rolls Argus when its config changes.
+Call with the root context. Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.argusPodAnnotations" -}}
+{{- if .Values.global.deterministicRender -}}
+{{- include "plane.podAnnotations" . }}
+checksum/argus-config: {{ include (print .Template.BasePath "/config-secrets/argus-env.yaml") . | sha256sum | quote }}
+{{- else -}}
+timestamp: {{ now | quote }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Rolling-update strategy that keeps full capacity during a rollout, so a
 Reloader-triggered restart after a credential rotation never drops requests.
 Rendered only for replicated Deployments (surge needs room to schedule).
@@ -610,9 +643,84 @@ Call with a dict: (dict "context" $ "name" "SECRET_KEY" "value" .Values.env.secr
 {{- end -}}
 
 {{/*
+RUNNER_HMAC_SECRET_KEY for <release>-runner-secrets. Resolved once per render: the
+Secret and every workload's checksum/config include runner-env.yaml, and they must
+all see the same value.
+
+The API signs its calls to the runner with this key. Runner images after v4.0.1
+exit at startup without it (this chart always sets NODE_ENV=production); v4.0.1 and
+earlier read it on neither side. The chart has never shipped a value for it, and
+nothing stored is encrypted with it, so creating one on an existing install loses
+nothing. The key is part of the checksum/config that every chart workload shares
+(plane.configChecksum), so a new or changed key rolls every chart workload once,
+and the api-family and runner pods pick it up together.
+
+In order:
+  1. env.runner_envs.hmac_secret_key, when set.
+  2. The value already in <release>-runner-secrets, so every upgrade keeps the key.
+  3. A new random key, when this render can read the release namespace and so
+     will find that key again next time (helm install/upgrade, --dry-run=server).
+     The probe is the kube-root-ca.crt ConfigMap that Kubernetes publishes into
+     every namespace. Reading it needs only `get configmaps` in the release
+     namespace, which every installer of this chart already has because the chart
+     always renders ConfigMaps. A lookup the installer is not allowed to make fails
+     the whole render, so the probe must not need any other permission: not
+     ServiceAccounts (the chart creates one only optionally) and nothing
+     cluster-scoped.
+  4. Otherwise nothing can be kept: helm template, --dry-run=client, GitOps
+     renderers, or a namespace --create-namespace has not created yet. Those look
+     identical from inside a template. A random value here would change on every
+     render, and under ArgoCD every sync would rotate the key and, through the
+     shared checksum/config, roll every chart workload. So fail under
+     env.requireExplicitSecrets, and otherwise render it empty, as charts before
+     3.12.0 always did. NOTES.txt reports it.
+
+Result: .Values._planeRunnerHmac = dict "value" <key> "source" values|existing|generated|none
+Call with the root context.
+*/}}
+{{- define "plane.runnerHmacResolve" -}}
+{{- if not (hasKey .Values "_planeRunnerHmac") -}}
+{{- $value := toString (.Values.env.runner_envs.hmac_secret_key | default "") -}}
+{{- $source := "values" -}}
+{{- if not $value -}}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace (printf "%s-runner-secrets" .Release.Name) -}}
+{{- $value = get (get $existing "data" | default dict) "RUNNER_HMAC_SECRET_KEY" | default "" | b64dec -}}
+{{- $source = "existing" -}}
+{{- if not $value -}}
+{{- if or $existing (lookup "v1" "ConfigMap" .Release.Namespace "kube-root-ca.crt") -}}
+{{- $value = randAlphaNum 64 -}}
+{{- $source = "generated" -}}
+{{- else if .Values.env.requireExplicitSecrets -}}
+{{- fail `
+env.requireExplicitSecrets is on and RUNNER_HMAC_SECRET_KEY has no value.
+
+The chart generates this key, and keeps it across upgrades, only when the render can
+read the release namespace (helm install/upgrade, or --dry-run=server). This render
+cannot: helm template, --dry-run=client and GitOps renderers have no cluster access.
+Generate a key once:
+
+  openssl rand -hex 32
+
+and supply it in ONE of these ways:
+
+  env.runner_envs.hmac_secret_key: <value>
+  external_secrets.app_keys_existingSecret: a Secret that carries RUNNER_HMAC_SECRET_KEY
+                                            (with the other shared keys)
+  external_secrets.runner_env_existingSecret: a Secret that carries RUNNER_HMAC_SECRET_KEY
+` -}}
+{{- else -}}
+{{- $source = "none" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set .Values "_planeRunnerHmac" (dict "value" $value "source" $source) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 envFrom entry for the Secret carrying the shared signing/encryption keys
 (SECRET_KEY, AES_SECRET_KEY, AES_SALT, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
-SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET). Renders nothing unless
+SILO_HMAC_SECRET_KEY, CURSOR_WEBHOOK_SECRET, RUNNER_HMAC_SECRET_KEY). Renders nothing unless
 external_secrets.app_keys_existingSecret is set.
 
 These keys are duplicated across the api, live, silo and pi Secrets, and several of

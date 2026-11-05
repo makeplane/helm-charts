@@ -104,6 +104,24 @@ silently becomes the live value again if app_keys_existingSecret is ever unset.
 {{- end }}
 {{- end }}
 
+{{- /* Runner signing key (plane.runnerHmacResolve). While app_keys_existingSecret is set
+       the chart renders no RUNNER_HMAC_SECRET_KEY of its own and cannot look inside that
+       Secret; one built from the key list of an older README would lack it, and the runner
+       then exits at startup on images after v4.0.1. */}}
+{{- $runnerHmacNote := "" }}
+{{- if and .Values.services.runner.enabled (empty .Values.external_secrets.runner_env_existingSecret) }}
+{{- if .Values.external_secrets.app_keys_existingSecret }}
+{{- $warnings = append $warnings (printf "The runner is enabled and its signing key comes from app_keys_existingSecret (%s).\n    Make sure that Secret carries RUNNER_HMAC_SECRET_KEY (generate one with\n    `openssl rand -hex 32`). The chart cannot check it, and runner images after v4.0.1\n    exit at startup without it." .Values.external_secrets.app_keys_existingSecret) }}
+{{- else }}
+{{- include "plane.runnerHmacResolve" . }}
+{{- if eq .Values._planeRunnerHmac.source "none" }}
+{{- $warnings = append $warnings (printf "RUNNER_HMAC_SECRET_KEY is empty: this render could not read namespace %s, so the\n    chart could neither find the runner's existing key nor keep a new one. Runner images\n    after v4.0.1 exit at startup without it. If --create-namespace just created the\n    namespace, run `helm upgrade` once more and the chart generates the key (or create the\n    namespace before installing next time). If you render\n    with helm template or a GitOps tool, set env.runner_envs.hmac_secret_key\n    (`openssl rand -hex 32`)." .Release.Namespace) }}
+{{- else if eq .Values._planeRunnerHmac.source "generated" }}
+{{- $runnerHmacNote = printf "No runner signing key (RUNNER_HMAC_SECRET_KEY) was set or found, so this render\ngenerated one. An install or upgrade stores it in Secret %s-runner-secrets\n(a dry run stores nothing), and later upgrades keep it. To use your own, set\nenv.runner_envs.hmac_secret_key." .Release.Name }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- /*
 silo-secrets is mounted on the API workloads (they verify silo's HMAC) after app_env,
 so a Secret supplied as silo_env decides their DATABASE_URL/REDIS_URL/AMQP_URL too.
@@ -204,6 +222,11 @@ Redis Sentinel mode: services follow master "{{ .Values.env.redis_sentinel_maste
     node, not only the current primary. Without it silo's webhook-driven syncs stop
     after a failover.
   - Plane AI (pi) does not use Sentinel yet.
+{{- end }}
+
+{{- with $runnerHmacNote }}
+
+Note: {{ . }}
 {{- end }}
 
 {{- if .Values.global.forceRedeploy }}
