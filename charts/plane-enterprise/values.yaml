@@ -1222,7 +1222,7 @@ env:
   # the current primary and follow it across failovers. Requires
   # services.redis.local_setup: false (the chart default is true) and
   # env.remote_redis_url left empty; the render fails otherwise. REDIS_URL is
-  # rendered empty in this mode. Plane AI (pi) is not covered yet.
+  # rendered empty in this mode.
   # Every data node must have notify-keyspace-events including E and x in its
   # config file, or silo's webhook-driven syncs stop after a failover.
   # The passwords below end up in the Helm release Secret and any values file you
@@ -1236,9 +1236,7 @@ env:
   redis_db: '0'
   redis_sentinel_ssl: ''       # '' = same as redis_ssl
   # Verify the Redis/Sentinel TLS certificates against the container's system CA
-  # bundle. A private CA from customCA is mounted on api, external-api, worker,
-  # worker-importers, search-index, live and silo only, so with a private CA the
-  # other Redis consumers would fail verification.
+  # bundle. For a private CA, list it in customCA: every Redis consumer installs it.
   redis_ssl_verify: false
 
   # POSTGRES DB VALUES

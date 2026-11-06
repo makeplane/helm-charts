@@ -790,7 +790,7 @@ the bundled datastores off. Three things to know before you use it:
 | external_secrets.redis.usernameKey |                            |          | Optional. Key inside that Secret holding the data nodes' ACL username (`REDIS_USERNAME`). Takes precedence over `env.redis_username`. |
 | external_secrets.redis.sentinelUsernameKey |                    |          | Sentinel mode only. Key holding the sentinels' username (`REDIS_SENTINEL_USERNAME`). Takes precedence over `env.redis_sentinel_username`. |
 | external_secrets.redis.sentinelPasswordKey |                    |          | Sentinel mode only. Key holding the sentinels' password (`REDIS_SENTINEL_PASSWORD`). Takes precedence over `env.redis_sentinel_password`. |
-| env.redis_sentinels              |                             |          | Connect to a Redis Sentinel **you run** (the chart never deploys Sentinel). Comma-separated `host:port` list, e.g. `s1:26379,s2:26379,s3:26379` (port defaults to 26379). Non-empty turns Sentinel mode on for api, workers, beat, consumers, migrator, live, silo and the MCP server; `REDIS_URL` is then rendered empty. Requires `services.redis.local_setup=false` (the default is `true`) and an empty `env.remote_redis_url`; the render fails otherwise. Plane AI (pi) does not use Sentinel yet. See [Redis Sentinel](#redis-sentinel-bring-your-own). |
+| env.redis_sentinels              |                             |          | Connect to a Redis Sentinel **you run** (the chart never deploys Sentinel). Comma-separated `host:port` list, e.g. `s1:26379,s2:26379,s3:26379` (port defaults to 26379). Non-empty turns Sentinel mode on for api, workers, beat, consumers, migrator, live, silo, the MCP server and Plane AI; `REDIS_URL` is then rendered empty. Requires `services.redis.local_setup=false` (the default is `true`) and an empty `env.remote_redis_url`; the render fails otherwise. See [Redis Sentinel](#redis-sentinel-bring-your-own). |
 | env.redis_sentinel_master        |                             | Sentinel | Master (service) name the sentinels monitor. Required in Sentinel mode. |
 | env.redis_sentinel_username      |                             |          | Username for the sentinels, if they use ACLs (Redis 6.2+). |
 | env.redis_sentinel_password      |                             |          | Password for the sentinels. Plain value, written to the services' Secrets; ignored when `external_secrets.redis.sentinelPasswordKey` is set. |
@@ -798,7 +798,7 @@ the bundled datastores off. Three things to know before you use it:
 | env.redis_password               |                             |          | Password for the data nodes in Sentinel mode without `external_secrets.redis`. Plain value, written to the services' Secrets. |
 | env.redis_db                     |              0              |          | Database index in Sentinel mode. |
 | env.redis_sentinel_ssl           |                             |          | TLS to the sentinels. Empty = same as `env.redis_ssl`. |
-| env.redis_ssl_verify             |            false            |          | Verify the Redis and Sentinel TLS certificates against the container's system CA bundle. A private CA from `customCA` is mounted only on api, external-api, worker, worker-importers, search-index, live and silo. |
+| env.redis_ssl_verify             |            false            |          | Verify the Redis and Sentinel TLS certificates against the container's system CA bundle. For a private CA, list it in `customCA`: every Redis consumer installs it. |
 
 ### RabbitMQ Setup
 
@@ -1758,6 +1758,7 @@ Before you switch:
 - The images must support Sentinel; older images ignore `REDIS_SENTINELS` and, with `REDIS_URL` empty, have no Redis. `helm install` prints the requirement.
 - `notify-keyspace-events` must include `E` and `x` in the config file of **every** data node. Plane sets it at runtime only on the primary it is connected to, so after a failover silo's webhook-driven syncs stop without it.
 - Plane AI (pi) keeps Redis as its Celery broker, now through Sentinel: the chart sets `CELERY_BROKER_URL` to `sentinel://`. With `pi_api_env_existingSecret` you own that value, so set it to `sentinel://` in your Secret, along with `REDIS_PASSWORD` and `REDIS_SENTINEL_PASSWORD` if you use them. A fixed Redis URL there won't follow a failover.
+- For TLS with verification against a private CA, set `env.redis_ssl_verify: true` and list the CA in `customCA`. The certificates on the data nodes and sentinels must match the addresses clients connect to: the hosts in `env.redis_sentinels`, and the address the sentinels report for the primary. Sentinels usually report an IP, so use IP SANs, or `sentinel announce-hostnames yes` with hostname certificates. A CA that fails to install logs a warning and the service still starts, so a bad CA shows up as TLS errors on Redis.
 
 ### 3. Shared signing keys in one Secret
 

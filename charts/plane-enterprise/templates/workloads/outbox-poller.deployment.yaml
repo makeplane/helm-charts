@@ -23,6 +23,9 @@ spec:
       {{- include "plane.podScheduling" .Values.services.outbox_poller }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.outbox_poller "app" "outbox-poller" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-outbox-poller
         {{- include "plane.containerSecurityContext" . }}
@@ -37,8 +40,10 @@ spec:
           limits:
             memory: {{ .Values.services.outbox_poller.memoryLimit  | default "1000Mi" | quote }}
             cpu: {{ .Values.services.outbox_poller.cpuLimit | default "500m" | quote}}
-        command:
-          - ./bin/docker-entrypoint-outbox-poller.sh
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        {{- include "plane.s3CACommand" (dict "ctx" . "entrypoint" "./bin/docker-entrypoint-outbox-poller.sh") | nindent 8 }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-outbox-poller-vars
@@ -56,8 +61,11 @@ spec:
                  not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
                  or live-server auth fails with nothing logged. */}}
           {{- include "plane.appKeysSecretRef" . }}
-        {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") (include "plane.infraCredsEnv" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") (include "plane.infraCredsEnv" .) }}
         env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "outbox-poller")) }}{{ . | nindent 10 }}{{- end }}
           {{- with (include "plane.infraCredsEnv" .) }}
 {{ trim . | indent 10 }}

@@ -437,6 +437,29 @@ volumeMounts:
 {{- end -}}
 
 {{/*
+Render a container's command for an image entrypoint that doesn't run plane.s3CAInitScript
+itself. With a custom CA it installs the certificates, then execs the entrypoint; without
+one it's the entrypoint alone, so these workloads render as they always did.
+Call with (dict "ctx" . "entrypoint" "./bin/docker-entrypoint-x.sh").
+Caller must nindent to the correct depth.
+*/}}
+{{- define "plane.s3CACommand" -}}
+{{- if include "plane.s3CAEnabled" .ctx -}}
+command:
+  - /bin/bash
+  - -c
+  - |
+    set -e
+    {{- include "plane.s3CAInitScript" .ctx | nindent 4 }}
+
+    exec {{ .entrypoint }}
+{{- else -}}
+command:
+  - {{ .entrypoint }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Render env vars for Node.js containers when custom CA certs are installed.
 NODE_EXTRA_CA_CERTS tells Node.js to trust additional CAs on top of its built-in bundle.
 Caller must nindent to the correct depth.

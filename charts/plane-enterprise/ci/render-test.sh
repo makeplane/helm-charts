@@ -80,6 +80,41 @@ env_count() { # file workload var
      .spec.template.spec.containers[0].env // [] | .[] | select(.name == $v)] | length' "$1.json"
 }
 
+# What a workload's pod does with a custom CA, as "<volume> <install> <trust>" of yes/no:
+# the CA volume, the step that installs it, and the variable that makes the client trust it.
+ca_python() { # file workload
+  jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec |
+    [ (any(.volumes[]?; .name == "s3-custom-ca") and any(.containers[0].volumeMounts[]?; .mountPath == "/s3-custom-ca")),
+      ((.containers[0].command // []) | join(" ") | contains("plane_install_custom_ca")),
+      any(.containers[0].env[]?; .name == "SSL_CERT_FILE") ] |
+    map(if . then "yes" else "no" end) | join(" ")' "$1.json"
+}
+ca_node() { # file workload
+  jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec |
+    [ (any(.volumes[]?; .name == "s3-custom-ca") and any(.containers[0].volumeMounts[]?; .mountPath == "/ca-bundle")),
+      any(.initContainers[]?; .name == "prepare-ca-bundle"),
+      any(.containers[0].env[]?; .name == "NODE_EXTRA_CA_CERTS") ] |
+    map(if . then "yes" else "no" end) | join(" ")' "$1.json"
+}
+# Main-container command as one line, for the entrypoint checks.
+command_of() { # file workload
+  jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec.containers[0].command // [] | join(" ")' "$1.json"
+}
+# Every workload told about the sentinels, found from the render rather than a list, so a
+# new Redis consumer can't miss the CA unnoticed.
+sentinel_workloads() { # file
+  jq -rs '.[] | select(.kind == "Deployment" or .kind == "Job") |
+    select(any(.spec.template.spec.containers[0].env[]?; .name == "REDIS_SENTINELS")) | .metadata.name' "$1.json"
+}
+has_ca_volume() { # file workload
+  jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec |
+    any(.volumes[]?; .name == "s3-custom-ca")' "$1.json"
+}
+
 # A key of a Secret's stringData, "<unset>" when absent, "<no-secret>" when the
 # Secret is not rendered.
 secret_of() { # file secret key
@@ -213,7 +248,7 @@ for values in "$CI_DIR"/*-values.yaml; do
       expect_env "$case_name" "$out" "$MCP_WORKLOAD" REDIS_URL 'rediss://$(REDIS_HOST):$(REDIS_PORT)/'
       ;;
 
-    sentinel|sentinel-external-secrets|sentinel-existing-secret)
+    sentinel|sentinel-external-secrets|sentinel-existing-secret|sentinel-private-ca)
       sentinels=$(yq '.env.redis_sentinels' "$values")
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SENTINELS "$sentinels"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SENTINEL_MASTER "mymaster"
@@ -240,6 +275,13 @@ for values in "$CI_DIR"/*-values.yaml; do
       # Passwords come from each service's own Secret, never from the manifest.
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_PASSWORD "<unset>"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SENTINEL_PASSWORD "<unset>"
+      # No custom CA: the entrypoint runs directly and there's no CA volume.
+      for w in $REDIS_WORKLOADS $PI_WORKLOADS; do
+        [[ "$(has_ca_volume "$out" "$w")" == "false" ]] || fail "$case_name: $w has the CA volume without customCA"
+      done
+      expect "$case_name: beat-worker command" "$(command_of "$out" plane-beat-worker-wl)" "./bin/docker-entrypoint-beat.sh"
+      expect "$case_name: migrator command" "$(command_of "$out" plane-api-migrate-TS)" "./bin/docker-entrypoint-migrator.sh"
+      expect "$case_name: mcp-server keeps the image's command" "$(command_of "$out" "$MCP_WORKLOAD")" ""
       for s in $REDIS_SECRETS; do
         expect "$case_name: $s REDIS_URL" "$(secret_of "$out" "$s" REDIS_URL)" ""
         expect "$case_name: $s REDIS_PASSWORD" "$(secret_of "$out" "$s" REDIS_PASSWORD)" "ci-redis-password"
@@ -262,6 +304,33 @@ for values in "$CI_DIR"/*-values.yaml; do
         expect "$case_name: $s REDIS_PASSWORD" "$(secret_of "$out" "$s" REDIS_PASSWORD)" "<unset>"
         expect "$case_name: $s REDIS_SENTINEL_PASSWORD" "$(secret_of "$out" "$s" REDIS_SENTINEL_PASSWORD)" "<unset>"
       done
+      ;;
+
+    sentinel-private-ca)
+      found=$(sentinel_workloads "$out")
+      for w in $found; do
+        expect "$case_name: $w has the CA volume" "$(has_ca_volume "$out" "$w")" "true"
+      done
+      for w in $APP_WORKLOADS $MCP_WORKLOAD $PI_WORKLOADS; do
+        expect "$case_name: $w installs and trusts the CA" "$(ca_python "$out" "$w")" "yes yes yes"
+      done
+      for w in $NODE_WORKLOADS; do
+        expect "$case_name: $w installs and trusts the CA" "$(ca_node "$out" "$w")" "yes yes yes"
+      done
+      # The install must end by running the same entrypoint as without a CA.
+      for pair in plane-beat-worker-wl:beat plane-agent-consumer-wl:agent-consumer \
+        plane-automation-consumer-wl:automation-consumer plane-webhook-consumer-wl:webhook-consumer \
+        plane-outbox-poller-wl:outbox-poller plane-api-migrate-TS:migrator; do
+        w=${pair%%:*}
+        case "$(command_of "$out" "$w")" in
+          *"exec ./bin/docker-entrypoint-${pair#*:}.sh"*) pass "$case_name: $w ends on its entrypoint" ;;
+          *) fail "$case_name: $w does not exec its entrypoint" ;;
+        esac
+      done
+      case "$(command_of "$out" "$MCP_WORKLOAD")" in
+        *"exec python -m plane_mcp http"*) pass "$case_name: mcp-server ends on the image's command" ;;
+        *) fail "$case_name: mcp-server does not exec the image's command" ;;
+      esac
       ;;
 
     sentinel-existing-secret)
