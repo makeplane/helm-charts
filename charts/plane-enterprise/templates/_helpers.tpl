@@ -1228,6 +1228,10 @@ Caller must indent to the correct depth (env list items).
 {{- end }}
 {{- end }}
 {{- include "plane.redisCredsEnv" . }}
+{{- /* Sentinel settings reach pi only in Sentinel mode, so other installs render as before. */}}
+{{- if include "plane.redisSentinel" . }}
+{{- include "plane.redisClientEnv" . }}
+{{- end }}
 {{- include "plane.opensearchCredsEnv" . }}
 {{- include "plane.storageCredsEnv" . }}
 {{- end -}}

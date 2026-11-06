@@ -1218,7 +1218,7 @@ env:
 
   # Redis Sentinel run by you (bring your own; the chart never deploys Sentinel).
   # A non-empty redis_sentinels turns Sentinel mode on for api, workers, beat,
-  # consumers, migrator, live, silo and the MCP server: they ask the sentinels for
+  # consumers, migrator, live, silo, the MCP server and Plane AI: they ask the sentinels for
   # the current primary and follow it across failovers. Requires
   # services.redis.local_setup: false (the chart default is true) and
   # env.remote_redis_url left empty; the render fails otherwise. REDIS_URL is

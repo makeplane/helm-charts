@@ -1751,13 +1751,13 @@ env:
   redis_ssl: false
 ```
 
-Every Redis consumer except Plane AI (api, external-api, worker, importer worker, beat-worker, the consumers, outbox poller, migrator, search-index Job, live, live-exporter, silo and the MCP server) gets `REDIS_SENTINELS`, `REDIS_SENTINEL_MASTER`, `REDIS_DB`, `REDIS_SSL`, `REDIS_SSL_VERIFY`, and `REDIS_SENTINEL_SSL` / the usernames when set, as env entries. `REDIS_URL` is rendered empty. Passwords never go into a manifest or ConfigMap: with `external_secrets.redis` they are `secretKeyRef` entries, otherwise `env.redis_password` / `env.redis_sentinel_password` are written to each service's own Secret (`<release>-app-secrets`, `-live-secrets`, `-silo-secrets`, `-mcp-server-secrets`). If you replace those Secrets with `*_env_existingSecret`, put `REDIS_PASSWORD` / `REDIS_SENTINEL_PASSWORD` in yours and leave `REDIS_URL` out or empty.
+Every Redis consumer (api, external-api, worker, importer worker, beat-worker, the consumers, outbox poller, migrator, search-index Job, live, live-exporter, silo, the MCP server and Plane AI) gets `REDIS_SENTINELS`, `REDIS_SENTINEL_MASTER`, `REDIS_DB`, `REDIS_SSL`, `REDIS_SSL_VERIFY`, and `REDIS_SENTINEL_SSL` / the usernames when set, as env entries. `REDIS_URL` is rendered empty. Passwords never go into a manifest or ConfigMap: with `external_secrets.redis` they are `secretKeyRef` entries, otherwise `env.redis_password` / `env.redis_sentinel_password` are written to each service's own Secret (`<release>-app-secrets`, `-live-secrets`, `-silo-secrets`, `-mcp-server-secrets`). If you replace those Secrets with `*_env_existingSecret`, put `REDIS_PASSWORD` / `REDIS_SENTINEL_PASSWORD` in yours and leave `REDIS_URL` out or empty.
 
 Before you switch:
 
 - The images must support Sentinel; older images ignore `REDIS_SENTINELS` and, with `REDIS_URL` empty, have no Redis. `helm install` prints the requirement.
 - `notify-keyspace-events` must include `E` and `x` in the config file of **every** data node. Plane sets it at runtime only on the primary it is connected to, so after a failover silo's webhook-driven syncs stop without it.
-- Plane AI (pi) keeps using its own broker settings; it has no Sentinel support yet.
+- Plane AI (pi) keeps Redis as its Celery broker, now through Sentinel: the chart sets `CELERY_BROKER_URL` to `sentinel://`. With `pi_api_env_existingSecret` you own that value, so set it to `sentinel://` in your Secret, along with `REDIS_PASSWORD` and `REDIS_SENTINEL_PASSWORD` if you use them. A fixed Redis URL there won't follow a failover.
 
 ### 3. Shared signing keys in one Secret
 

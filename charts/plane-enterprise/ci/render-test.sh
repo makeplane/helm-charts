@@ -7,9 +7,9 @@
 #   charts/plane-enterprise/ci/render-test.sh [BASE_REF]
 #
 # Needs helm 3+, yq v4 (mikefarah) and jq. BASE_REF (default: $BASE_REF, else
-# origin/master) is the git ref that Plane AI's manifests are compared against: pi
-# has no Sentinel support yet, so this chart must not change what pi receives. Set
-# SKIP_BASE_COMPARE=1 to skip that comparison (e.g. in a tarball with no git).
+# origin/master) is the git ref that Plane AI's manifests are compared against: outside
+# Sentinel mode this chart must not change what pi receives. Set SKIP_BASE_COMPARE=1
+# to skip that comparison (e.g. in a tarball with no git).
 #
 # Values files: ci/*-values.yaml must render; ci/fail/*.yaml must fail with the
 # message listed in FAIL_CASES below.
@@ -44,8 +44,8 @@ render() { # chart_dir values_file out_file
 # One JSON document per manifest, for jq.
 to_json() { yq -o=json -I=0 'select(. != null)' "$1"; }
 
-# Workloads that read Redis, by the env helper they use. pi is listed separately:
-# it must NOT receive the new variables.
+# Workloads that read Redis, by the env helper they use. pi is listed separately: it
+# gets the new variables only in Sentinel mode.
 APP_WORKLOADS="plane-api-wl plane-external-api-wl plane-worker-wl plane-worker-importers-wl
   plane-beat-worker-wl plane-outbox-poller-wl plane-automation-consumer-wl
   plane-webhook-consumer-wl plane-agent-consumer-wl plane-api-migrate-TS plane-api-search-index"
@@ -97,12 +97,12 @@ expect_env() { # case file workloads var expected
   for w in $3; do expect "$1: $w $4" "$(env_of "$2" "$w" "$4")" "$5"; done
 }
 
-# The new variables must not reach pi, in any mode.
+# Outside Sentinel mode the new variables must not reach pi.
 check_pi_untouched() { # case file
   local w v
   for w in $PI_WORKLOADS; do
     for v in $NEW_VARS; do
-      [[ "$(env_of "$2" "$w" "$v")" == "<unset>" ]] || fail "$1: $w has $v (pi is out of scope)"
+      [[ "$(env_of "$2" "$w" "$v")" == "<unset>" ]] || fail "$1: $w has $v outside Sentinel mode"
     done
   done
   pass "$1: no Sentinel variables on pi"
@@ -221,11 +221,17 @@ for values in "$CI_DIR"/*-values.yaml; do
       # Sentinel mode leaves REDIS_URL blank everywhere the chart renders it, and the
       # MCP deployment adds no rediss:// URL of its own.
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_URL "<unset>"
+      # pi stays on Redis, through Sentinel: the marker makes it build the broker from these.
+      expect_env "$case_name" "$out" "$PI_WORKLOADS" REDIS_SENTINELS "$sentinels"
+      expect_env "$case_name" "$out" "$PI_WORKLOADS" REDIS_SENTINEL_MASTER "mymaster"
+      expect "$case_name: pi CELERY_BROKER_URL" "$(secret_of "$out" plane-pi-api-secrets CELERY_BROKER_URL)" "sentinel://"
       ;;
   esac
 
   case "$case_name" in
     sentinel)
+      expect "$case_name: pi REDIS_PASSWORD" "$(secret_of "$out" plane-pi-api-secrets REDIS_PASSWORD)" "ci-redis-password"
+      expect "$case_name: pi REDIS_SENTINEL_PASSWORD" "$(secret_of "$out" plane-pi-api-secrets REDIS_SENTINEL_PASSWORD)" "ci-sentinel-password"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_DB "2"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SENTINEL_SSL "0"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SSL_VERIFY "1"
@@ -242,6 +248,8 @@ for values in "$CI_DIR"/*-values.yaml; do
       ;;
 
     sentinel-external-secrets)
+      expect_env "$case_name" "$out" "$PI_WORKLOADS" REDIS_PASSWORD "secret:plane-redis/redis-password"
+      expect_env "$case_name" "$out" "$PI_WORKLOADS" REDIS_SENTINEL_PASSWORD "secret:plane-redis/sentinel-password"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_DB "0"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SENTINEL_SSL "<unset>"
       expect_env "$case_name" "$out" "$REDIS_WORKLOADS" REDIS_SSL_VERIFY "0"
@@ -266,8 +274,13 @@ for values in "$CI_DIR"/*-values.yaml; do
       ;;
   esac
 
-  check_pi_untouched "$case_name" "$out"
-  compare_pi_with_base "$case_name" "$values" "$out"
+  case "$case_name" in
+    sentinel*) ;;
+    *)
+      check_pi_untouched "$case_name" "$out"
+      compare_pi_with_base "$case_name" "$values" "$out"
+      ;;
+  esac
 done
 
 # --- Cases that must fail -----------------------------------------------------
