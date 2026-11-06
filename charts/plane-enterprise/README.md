@@ -672,10 +672,28 @@ securityContext:
 The chart's busybox init containers take their requests and limits from
 `initContainerResources`: silo's `wait-for-rabbitmq`, the `prepare-ca-bundle`
 that live and silo run when a custom CA is configured, and the MinIO bucket
-Job's `init`. Each runs a few shell commands, so the defaults are small. Policy
-engines such as Gatekeeper or Kyverno that require resources on every container
-then pass, and the pods count toward a namespace `ResourceQuota` that requires
-them.
+Job's `init`. Each runs a few shell commands, so the defaults are small.
+
+Two gaps remain where a policy engine (Gatekeeper, Kyverno) or a namespace
+`ResourceQuota` requires resources on every container:
+
+- The defaults set no CPU limit. Where `limits.cpu` is required, add one. Helm
+  merges it with the defaults, so the requests and the memory limit stay:
+
+  ```yaml
+  initContainerResources:
+    limits:
+      cpu: 50m
+  ```
+
+- The bundled MinIO's bucket Job runs an `mc` container that sets no
+  resources, and the chart has no value for it. With `services.minio.local_setup`
+  on, give that pod resources through a `LimitRange` default in the namespace.
+
+`helm upgrade --reuse-values` reuses the previous chart's default values, so an
+upgrade from 3.12.0 or earlier renders no init container resources. Upgrade with
+`--reset-then-reuse-values` (Helm 3.14 or later), or set
+`initContainerResources` explicitly.
 
 | Setting                |                     Default                     | Required | Description                                                                                  |
 | ---------------------- | :---------------------------------------------: | :------: | -------------------------------------------------------------------------------------------- |
