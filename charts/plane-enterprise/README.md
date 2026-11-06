@@ -667,6 +667,20 @@ securityContext:
     runAsUser: 10001
 ```
 
+### Init container resources
+
+The chart's busybox init containers take their requests and limits from
+`initContainerResources`: silo's `wait-for-rabbitmq`, the `prepare-ca-bundle`
+that live and silo run when a custom CA is configured, and the MinIO bucket
+Job's `init`. Each runs a few shell commands, so the defaults are small. Policy
+engines such as Gatekeeper or Kyverno that require resources on every container
+then pass, and the pods count toward a namespace `ResourceQuota` that requires
+them.
+
+| Setting                |                     Default                     | Required | Description                                                                                  |
+| ---------------------- | :---------------------------------------------: | :------: | -------------------------------------------------------------------------------------------- |
+| initContainerResources | requests `cpu: 10m`, `memory: 32Mi`; limits `memory: 32Mi` |    No    | Rendered as `resources` on every busybox init container. Set to `null` to render none, as before 3.12.1; `{}` keeps the defaults, since Helm merges maps. |
+
 ### OpenShift (`restricted-v2` SCC)
 
 OpenShift is the inverse case: it refuses to let you choose the UID at all. The
@@ -1025,6 +1039,9 @@ Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `
 | services.api.labels            |                       {}                        |          | Custom labels to add to the API deployment                                                                                                                                                                      |
 | services.api.annotations       |                       {}                        |          | Custom annotations to add to the API deployment                                                                                                                                                                 |
 
+The migrator Job (`<release>-api-migrate-*`) and the search-index Job run the
+`api` image and use the same `services.api` requests and limits.
+
 ### External API Deployment
 
 | Setting                                 | Default | Required | Description                                                                                                                                                                                                     |
@@ -1223,6 +1240,9 @@ Operational notes:
 | services.pi.ai_providers.embedding_model.aws_secret_access_key |                           ""                         | required if `services.pi.ai_providers.embedding_model.enabled` is `true` | AWS secret access key for the embedding model (also `BR_AWS_SECRET_ACCESS_KEY` in external secrets).                                                                                                        |
 | services.pi.ai_providers.embedding_model.aws_region |                  us-east-1                     |          | AWS region for the embedding model (`BR_AWS_REGION`).                                                                                                                                                                      |
 | services.pi.ai_providers.embedding_model.aws_session_token |                           ""                         |          | AWS session token when using temporary credentials (`BR_AWS_SESSION_TOKEN`).                                                                                                                                               |
+
+The Plane AI migrator Job (`<release>-pi-api-migrate-*`) uses the same
+`services.pi` requests and limits as the Plane AI API.
 
 ### Plane AI (PI) Worker Deployment
 

@@ -55,6 +55,7 @@ spec:
       - name: wait-for-rabbitmq
         image: {{ .Values.services.silo.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
+        {{- with (include "plane.initContainerResources" .) }}{{ . | nindent 8 }}{{- end }}
         command:
           - /bin/sh
         args:
@@ -78,6 +79,7 @@ spec:
       - name: prepare-ca-bundle
         image: {{ .Values.services.silo.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
+        {{- with (include "plane.initContainerResources" .) }}{{ . | nindent 8 }}{{- end }}
         command:
           - /bin/sh
           - -c

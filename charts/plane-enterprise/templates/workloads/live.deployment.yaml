@@ -55,6 +55,7 @@ spec:
       - name: prepare-ca-bundle
         image: {{ .Values.services.live.init_image | default "busybox" }}
         {{- include "plane.containerSecurityContext" . }}
+        {{- with (include "plane.initContainerResources" .) }}{{ . | nindent 8 }}{{- end }}
         command:
           - /bin/sh
           - -c

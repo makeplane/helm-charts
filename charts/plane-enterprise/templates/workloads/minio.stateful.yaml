@@ -116,6 +116,7 @@ spec:
       initContainers:
         - name: init
           image: {{ .Values.services.minio.init_image | default "busybox" }}
+          {{- with (include "plane.initContainerResources" .) }}{{ . | nindent 10 }}{{- end }}
           command: ['sh', '-c', "until nslookup  {{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}; do echo waiting for  {{ .Release.Name }}-minio; sleep 2; done"]
       containers:
         - name: {{ .Release.Name }}-minio-bucket
