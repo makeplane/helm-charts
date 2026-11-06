@@ -218,6 +218,14 @@ securityContext:
     seccompProfile:
       type: RuntimeDefault
 
+# Resources for every busybox init container the chart renders; null renders none, as before 3.12.1.
+initContainerResources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 32Mi
+
 # PodDisruptionBudgets for the stateless, horizontally-scalable workloads.
 #
 # enabled: true gives every eligible workload a budget. Workloads at replicas: 1 are skipped -- with

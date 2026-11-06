@@ -136,6 +136,18 @@ Place inside a container/initContainer entry — call with the root context, e.g
 {{- end -}}
 
 {{/*
+The resources block for the chart's busybox init containers, from
+initContainerResources. Empty when that value is null. Caller must nindent to
+the container's field depth.
+*/}}
+{{- define "plane.initContainerResources" -}}
+{{- with .Values.initContainerResources -}}
+resources:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end -}}
+
+{{/*
 Chart name and version, sanitized for use as the `helm.sh/chart` label value.
 */}}
 {{- define "plane.chart" -}}

@@ -28,6 +28,13 @@ spec:
         command: 
           - ./bin/docker-entrypoint-migrator.sh
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
+        resources:
+          requests:
+            memory: {{ .Values.services.api.memoryRequest | default "512Mi" | quote }}
+            cpu: {{ .Values.services.api.cpuRequest | default "200m" | quote }}
+          limits:
+            memory: {{ .Values.services.api.memoryLimit  | default "2Gi" | quote }}
+            cpu: {{ .Values.services.api.cpuLimit | default "1000m" | quote}}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-app-vars
