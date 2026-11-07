@@ -37,8 +37,8 @@ fail() { echo "FAIL - $*"; failures=$((failures + 1)); }
 # both so two renders can be compared.
 normalize() { sed -E -e 's/-[0-9]{8}-[0-9]{6}/-TS/g' -e 's/(helm\.sh\/chart: )plane-enterprise-.*/\1plane-enterprise/'; }
 
-render() { # chart_dir values_file out_file
-  helm template "$RELEASE" "$1" -n "$NAMESPACE" -f "$2" | normalize > "$3"
+render() { # chart_dir values_file out_file [helm args...]
+  helm template "$RELEASE" "$1" -n "$NAMESPACE" -f "$2" "${@:4}" | normalize > "$3"
 }
 
 # One JSON document per manifest, for jq.
@@ -113,6 +113,86 @@ has_ca_volume() { # file workload
   jq -rs --arg w "$2" '
     [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec |
     any(.volumes[]?; .name == "s3-custom-ca")' "$1.json"
+}
+
+run_as_user() { # file workload
+  jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec.containers[0].securityContext.runAsUser' "$1.json"
+}
+# The order of the custom CA attempts in a workload's command: system store, own bundle, warning.
+ca_attempts_in_order() { # file workload
+  jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec.containers[0].command // [] | join(" ") |
+    test("if plane_install_custom_ca; then\\s+:\\s+elif plane_build_ca_bundle; then\\s+:\\s+else\\s+echo \"plane: WARNING")' "$1.json"
+}
+
+# Runs a workload's rendered install script on this machine and prints what it logged and
+# the environment it left. Its paths are moved under a scratch directory and the trust tools
+# are out of reach, so the system store can't be updated, as in a non-root pod, even when
+# this runs as root.
+run_ca_script() { # file workload scratch tmpdir
+  local script
+  script=$(jq -rs --arg w "$2" '
+    [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec.containers[0].command[2]' "$1.json" |
+    sed -e '/^exec /d' -e "s#/s3-custom-ca#$3/ca#g" -e "s#/etc/ssl/certs/ca-certificates.crt#$3/system.crt#g" \
+      -e "s#/etc/pki/tls/certs/ca-bundle.crt#$3/absent#g" -e "s#/etc/ssl/cert.pem#$3/absent#g" \
+      -e "s#/dev/shm#$3/shm#g" -e 's#update-ca-#absent-update-ca-#g')
+  env -i PATH="$PATH" TMPDIR="$4" bash -c "$script"$'\nenv' 2>&1
+}
+
+# The non-root fallback, run for real: the bundle lands where it should, holds the image's
+# CAs and the supplied ones, and every client variable points at it. When that can't happen
+# the warning is the last resort.
+check_ca_fallback() { # case file
+  local dir="$WORK/ca-fallback" out bundle v
+  if ! command -v openssl >/dev/null; then
+    echo "render-test: openssl not found, skipping the run of the non-root CA fallback" >&2
+    return 0
+  fi
+  mkdir -p "$dir/ca" "$dir/shm" "$dir/tmp"
+  openssl req -x509 -newkey rsa:2048 -nodes -keyout /dev/null -subj /CN=ci-system -days 2 -out "$dir/system.crt" 2>/dev/null
+  openssl req -x509 -newkey rsa:2048 -nodes -keyout /dev/null -subj /CN=ci-private -days 2 -out "$dir/ca/ca.crt" 2>/dev/null
+
+  out=$(run_ca_script "$2" plane-worker-wl "$dir" "$dir/tmp")
+  bundle=$(sed -n 's/^SSL_CERT_FILE=//p' <<<"$out")
+  case "$bundle" in
+    "$dir"/tmp/plane-ca.*/ca-bundle.crt) pass "$1: the bundle goes in a directory of its own under the temp dir" ;;
+    *) fail "$1: bundle at '$bundle':"$'\n'"$out" ;;
+  esac
+  for v in REQUESTS_CA_BUNDLE CURL_CA_BUNDLE AWS_CA_BUNDLE; do
+    expect "$1: $v points at the bundle" "$(sed -n "s/^$v=//p" <<<"$out")" "$bundle"
+  done
+  expect "$1: SSL_CERT_DIR is the bundle's directory" "$(sed -n 's/^SSL_CERT_DIR=//p' <<<"$out")" "${bundle%/*}"
+  expect "$1: the bundle holds the image's CAs and the supplied ones" "$(grep -c 'BEGIN CERTIFICATE' "$bundle" 2>/dev/null)" "2"
+  case "$out" in
+    *WARNING*) fail "$1: warned although the bundle was built" ;;
+    *) pass "$1: no warning when the bundle was built" ;;
+  esac
+
+  run_ca_script "$2" plane-worker-wl "$dir" "$dir/tmp" >/dev/null
+  expect "$1: a restart replaces the last bundle" "$(find "$dir/tmp" -type d -name 'plane-ca.*' | wc -l | tr -d ' ')" "1"
+
+  out=$(run_ca_script "$2" plane-worker-wl "$dir" "$dir/no-such-dir")
+  case "$(sed -n 's/^SSL_CERT_FILE=//p' <<<"$out")" in
+    "$dir"/shm/plane-ca.*/ca-bundle.crt) pass "$1: with no writable temp dir the bundle goes in /dev/shm" ;;
+    *) fail "$1: temp dir not writable:"$'\n'"$out" ;;
+  esac
+
+  rm -rf "$dir/shm"
+  out=$(run_ca_script "$2" plane-worker-wl "$dir" "$dir/no-such-dir")
+  case "$out" in
+    *"WARNING custom CA certificates were not installed"*) pass "$1: warns when nowhere is writable" ;;
+    *) fail "$1: no warning when nowhere is writable:"$'\n'"$out" ;;
+  esac
+  expect "$1: SSL_CERT_FILE unset when nowhere is writable" "$(sed -n 's/^SSL_CERT_FILE=//p' <<<"$out")" ""
+
+  echo "not a certificate" > "$dir/ca/ca.crt"
+  out=$(run_ca_script "$2" plane-worker-wl "$dir" "$dir/tmp")
+  case "$out" in
+    *"WARNING custom CA certificates were not installed"*) pass "$1: warns on a file that isn't a certificate" ;;
+    *) fail "$1: no warning on a file that isn't a certificate:"$'\n'"$out" ;;
+  esac
+  expect "$1: SSL_CERT_FILE unset on a file that isn't a certificate" "$(sed -n 's/^SSL_CERT_FILE=//p' <<<"$out")" ""
 }
 
 # A key of a Secret's stringData, "<unset>" when absent, "<no-secret>" when the
@@ -331,6 +411,16 @@ for values in "$CI_DIR"/*-values.yaml; do
         *"exec python -m plane_mcp http"*) pass "$case_name: mcp-server ends on the image's command" ;;
         *) fail "$case_name: mcp-server does not exec the image's command" ;;
       esac
+      # Non-root, the system trust store can't be written. Each Python workload has to get
+      # past that with a bundle of its own, or it logs a warning and fails TLS to the CA.
+      nonroot="$WORK/$case_name-nonroot.yaml"
+      render "$CHART_DIR" "$values" "$nonroot" --set securityContext.enabled=true
+      to_json "$nonroot" > "$nonroot.json"
+      for w in $APP_WORKLOADS $MCP_WORKLOAD $PI_WORKLOADS; do
+        expect "$case_name non-root: $w runs as uid 1000" "$(run_as_user "$nonroot" "$w")" "1000"
+        expect "$case_name non-root: $w tries the system store, then a bundle, then warns" "$(ca_attempts_in_order "$nonroot" "$w")" "true"
+      done
+      check_ca_fallback "$case_name non-root" "$nonroot"
       ;;
 
     sentinel-existing-secret)

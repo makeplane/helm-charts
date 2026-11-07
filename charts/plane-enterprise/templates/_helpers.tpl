@@ -310,9 +310,15 @@ SSL_* variables are exported here, overriding the pod spec's Alpine/Debian
 defaults from plane.s3CAEnvVars -- an export in this shell survives the exec
 that follows.
 
+The system trust store is tried first, and needs root. A non-root container
+(securityContext.enabled) can't write it, so plane_build_ca_bundle combines the
+image's bundle with the supplied certificates in a directory of its own, which
+needs no chart setting: /tmp is world-writable in these images, and if
+readOnlyRootFilesystem was added to containerSecurityContext, /dev/shm still is.
+
 Nothing below may fail the container. The caller runs under `set -e`, and a
-trust-store problem must not stop the service from starting; when the install
-does not happen the pod-spec defaults are unset rather than left pointing at a
+trust-store problem must not stop the service from starting; when neither of
+those works the pod-spec defaults are unset rather than left pointing at a
 bundle this image does not have, because a non-existent SSL_CERT_FILE breaks
 every outbound TLS call instead of just the private-CA ones.
 */}}
@@ -374,7 +380,89 @@ plane_install_custom_ca() {
   return 0
 }
 
+plane_build_ca_bundle() {
+  [ -n "$(ls -A /s3-custom-ca 2>/dev/null)" ] || return 1
+
+  _plane_system=
+  for _plane_candidate in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/cert.pem; do
+    if [ -r "$_plane_candidate" ] && [ -s "$_plane_candidate" ]; then
+      _plane_system=$_plane_candidate
+      break
+    fi
+  done
+  if [ -z "$_plane_system" ]; then
+    echo "plane: no system CA bundle found to combine the custom CA certificates with" >&2
+    return 1
+  fi
+
+  # A directory of its own, never the shared one: SSL_CERT_DIR is a trust root,
+  # and anyone who can write to it could add a CA. The echos are there because a
+  # certificate file with no final newline would otherwise run into the next one
+  # and make the whole bundle unreadable. /dev/shm outlives a container restart,
+  # so clear the last run's bundle or a crash loop would slowly fill it.
+  _plane_dir=
+  for _plane_base in "${TMPDIR:-/tmp}" /dev/shm; do
+    rm -rf "$_plane_base"/plane-ca.* 2>/dev/null
+    _plane_dir=$(mktemp -d "$_plane_base/plane-ca.XXXXXX" 2>/dev/null) || { _plane_dir=; continue; }
+    if {
+      cat "$_plane_system" && echo
+      for _plane_src in /s3-custom-ca/*; do
+        [ -f "$_plane_src" ] || continue
+        cat "$_plane_src" && echo
+      done
+    } > "$_plane_dir/ca-bundle.crt" 2>/dev/null; then
+      break
+    fi
+    rm -rf "$_plane_dir"
+    _plane_dir=
+  done
+  if [ -z "$_plane_dir" ]; then
+    echo "plane: no writable directory for a custom CA bundle" >&2
+    return 1
+  fi
+  _plane_bundle="$_plane_dir/ca-bundle.crt"
+
+  # As for the system store, confirm the result before exporting it. It matters
+  # more here: a malformed certificate in a bundle clients are pointed at fails
+  # all their TLS, public hosts included, where the warning below fails only the
+  # private ones. So every file has to be in there, and the whole bundle has to
+  # load the way a client loads it.
+  for _plane_src in /s3-custom-ca/*; do
+    [ -f "$_plane_src" ] || continue
+    _plane_probe=$(grep -m1 -A1 'BEGIN CERTIFICATE' "$_plane_src" 2>/dev/null | tail -1)
+    if [ -z "$_plane_probe" ] || ! grep -qF "$_plane_probe" "$_plane_bundle" 2>/dev/null; then
+      echo "plane: $_plane_src is not in the custom CA bundle; is it a PEM certificate?" >&2
+      rm -rf "$_plane_dir"
+      return 1
+    fi
+  done
+  if command -v python3 >/dev/null 2>&1 \
+    && ! python3 -I -c 'import ssl, sys; ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT).load_verify_locations(cafile=sys.argv[1])' "$_plane_bundle" 2>/dev/null; then
+    echo "plane: the custom CA bundle did not load; is every supplied file a valid PEM certificate?" >&2
+    rm -rf "$_plane_dir"
+    return 1
+  fi
+
+  # Started as root, the entrypoint goes on to drop to the plane user.
+  chmod 755 "$_plane_dir"
+  chmod 644 "$_plane_bundle"
+
+  # OpenSSL takes SSL_CERT_FILE and SSL_CERT_DIR together, so a directory with no
+  # hashed certificates in it is fine: everything trusted is in the file.
+  # AWS_CA_BUNDLE too: the app ConfigMap sets it to the system bundle, and botocore
+  # prefers it to REQUESTS_CA_BUNDLE. The system store path updates that file in place.
+  export SSL_CERT_FILE="$_plane_bundle"
+  export SSL_CERT_DIR="$_plane_dir"
+  export REQUESTS_CA_BUNDLE="$_plane_bundle"
+  export CURL_CA_BUNDLE="$_plane_bundle"
+  export AWS_CA_BUNDLE="$_plane_bundle"
+  echo "plane: custom CA certificates installed ($_plane_bundle, with $_plane_system; the system trust store could not be updated)"
+  return 0
+}
+
 if plane_install_custom_ca; then
+  :
+elif plane_build_ca_bundle; then
   :
 else
   echo "plane: WARNING custom CA certificates were not installed; falling back to this image's own trust store" >&2
@@ -389,8 +477,8 @@ Caller must nindent to the correct depth.
 
 These are the Alpine/Debian paths, i.e. correct for the standard images only.
 They are a starting value, not the final word: plane.s3CAInitScript runs in
-every container that gets these and either re-exports them with the path this
-image's trust store actually produced, or unsets them. Every workload that
+every container that gets these and either re-exports them with the path of the
+bundle it ended up with, or unsets them. Every workload that
 includes this helper also includes that one -- keep it that way.
 */}}
 {{- define "plane.s3CAEnvVars" -}}
