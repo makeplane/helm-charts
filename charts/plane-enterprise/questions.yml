@@ -1856,14 +1856,20 @@ questions:
 
 - variable: env.storage_provider
   label: "Storage Provider"
-  description: "S3 (default; covers MinIO and S3-compatible services) or GCS (Google Cloud Storage native mode)."
+  description: "S3 (default; covers MinIO and S3-compatible services), GCS (Google Cloud Storage native mode) or AZURE (Azure Blob Storage native mode; requires Use Storage Proxy)."
   type: enum
   options:
   - "S3"
   - "GCS"
+  - "AZURE"
   default: "S3"
   group: "Storage Setup"
   subquestions:
+  - variable: env.use_storage_proxy
+    label: "Use Storage Proxy"
+    description: "Proxy browser uploads and downloads through the API. Required for AZURE; recommended for GCS."
+    type: boolean
+    default: false
   - variable: env.gcs_bucket_name
     label: "GCS Bucket Name"
     description: "Falls back to the Doc Store bucket name when left empty."
@@ -1887,6 +1893,24 @@ questions:
     type: string
     default: ""
     show_if: "env.storage_provider=GCS"
+  - variable: env.azure_storage_account_name
+    label: "Azure Storage Account Name"
+    description: "Required for AZURE. Authenticate with Azure Workload Identity (Service Account annotations and pod labels)."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=AZURE"
+  - variable: env.azure_storage_container_name
+    label: "Azure Blob Container Name"
+    description: "Falls back to the Doc Store bucket name when left empty."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=AZURE"
+  - variable: env.azure_storage_blob_endpoint
+    label: "Azure Blob Endpoint"
+    description: "Optional. Defaults to https://<account>.blob.core.windows.net; set for sovereign clouds or Azurite."
+    type: string
+    default: ""
+    show_if: "env.storage_provider=AZURE"
 
 - variable: ingress.enabled
   label: "Enable Ingress"
@@ -2087,6 +2111,13 @@ questions:
   show_if: "external_secrets.storage.secretName!="
 - variable: external_secrets.storage.gcsCredentialsJsonKey
   label: "GCS Credentials JSON Key"
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.storage.secretName!="
+- variable: external_secrets.storage.azureConnectionStringKey
+  label: "Azure Storage Connection String Key"
+  description: "AZURE on dev, Azurite or non-Azure hosts only. On AKS, use Workload Identity instead."
   type: string
   default: ""
   group: "Credential Mirrors"
