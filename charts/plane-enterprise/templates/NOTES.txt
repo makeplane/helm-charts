@@ -198,7 +198,7 @@ as "sign with SigV4".
 {{- end }}
 
 {{- /* Azure Blob authenticates through Workload Identity unless a connection string is mirrored in
-       (dev/Azurite). Plane AI has no Azure Blob backend yet. */}}
+       (dev/Azurite). Plane AI signs its Blob proxy URLs with PI_INTERNAL_SECRET and refuses a public one. */}}
 {{- if eq (include "plane.storageProvider" .) "AZURE" }}
 {{- $azSt := .Values.external_secrets.storage }}
 {{- if not (and (include "plane.externalStorage" .) $azSt.azureConnectionStringKey) }}
@@ -209,8 +209,8 @@ as "sign with SigV4".
 {{- $warnings = append $warnings "env.storage_provider is AZURE, but serviceAccount.podLabels lacks\n    azure.workload.identity/use: \"true\". The AKS Workload Identity webhook only injects\n    the federated token into labelled pods, so Blob calls fail without it." }}
 {{- end }}
 {{- end }}
-{{- if .Values.services.pi.enabled }}
-{{- $warnings = append $warnings "env.storage_provider is AZURE and services.pi.enabled is true. Plane AI does not\n    support Azure Blob storage yet, so its file features will fail. Set\n    services.pi.enabled: false until a Plane release adds it." }}
+{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.app_keys_existingSecret) (empty .Values.external_secrets.pi_api_env_existingSecret) (or (empty .Values.env.pi_envs.internal_secret) (eq .Values.env.pi_envs.internal_secret "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk")) }}
+{{- $warnings = append $warnings "env.storage_provider is AZURE and PI_INTERNAL_SECRET is the chart's public example\n    value. Plane AI signs its file URLs with it on Azure, so it refuses to: file uploads\n    stay off in Plane AI. Set env.pi_envs.internal_secret or\n    external_secrets.app_keys_existingSecret." }}
 {{- end }}
 {{- end }}
 

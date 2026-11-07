@@ -914,7 +914,7 @@ Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `
 - **Workload Identity.** Annotate the ServiceAccount with `azure.workload.identity/client-id` and set the pod label `azure.workload.identity/use: 'true'` (see [Cloud workload identity](#1-cloud-workload-identity-no-credentials-anywhere)). Grant that identity *Storage Blob Data Contributor* on the account or container.
 - **No S3 settings.** The doc-store Secret carries `STORAGE_PROVIDER`, `USE_MINIO=0` and the `AZURE_STORAGE_*` keys only; no `AWS_*`, `GCS_*` or `MINIO_*` keys, and the bundled MinIO is not deployed.
 - **Connection string (dev only).** For Azurite or a non-Azure host, put the connection string in a Secret and set `external_secrets.storage.secretName` and `azureConnectionStringKey`.
-- **Plane AI** has no Azure Blob backend yet. Keep `services.pi.enabled: false`.
+- **Plane AI** stores attachments in the same container, under the same identity. It needs a Plane release with Plane AI Azure Blob support: **Plane vX.Y (TBD)** or later. The account stays private, so its file URLs and mobile upload forms point at Plane AI itself (`/pi/api/v1/blob/`), signed with `PI_INTERNAL_SECRET`. Set that secret to a value of your own: with the chart's public example value Plane AI refuses to sign, and file uploads stay off. Keep the ingress body limit (`proxy-body-size` or `ingress.traefik.maxRequestBodyBytes`) at least as large as `env.doc_upload_size_limit` for `/pi/` too.
 
 See [`examples/azure-blob/values.yaml`](examples/azure-blob/values.yaml).
 

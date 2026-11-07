@@ -9,14 +9,17 @@ env:
   azure_storage_blob_endpoint: ''
   # Required for AZURE: uploads and downloads go through the API.
   use_storage_proxy: true
+  pi_envs:
+    # Signs Plane AI's file URLs. With the chart's public example value, its file uploads stay off.
+    internal_secret: change-me-to-a-long-random-value
 
 services:
   # Ignored for AZURE (MinIO is deployed only for S3); false keeps the intent explicit.
   minio:
     local_setup: false
-  # Plane AI has no Azure Blob backend yet.
+  # Plane AI stores attachments in the same container; its file URLs go through /pi/ on this domain.
   pi:
-    enabled: false
+    enabled: true
 
 # User-assigned managed identity with Storage Blob Data Contributor on the account, federated
 # to system:serviceaccount:<namespace>:<release>-srv-account.

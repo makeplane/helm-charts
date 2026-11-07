@@ -141,6 +141,16 @@ spec:
     services:
       - name: {{ .Release.Name }}-pi-api
         port: 8000
+  {{- if eq (include "plane.storageProvider" .) "AZURE" }}
+  # Azure Blob uploads through pi: keep the body-size limit
+  - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/blob/upload/`)
+    kind: Rule
+    middlewares:
+      - name: {{ .Release.Name }}-body-limit
+    services:
+      - name: {{ .Release.Name }}-pi-api
+        port: 8000
+  {{- end }}
   # Chat answer stream (SSE): no buffering middleware
   - match: Host(`{{ .Values.license.licenseDomain }}`) && PathPrefix(`/pi/api/v1/chat/stream-answer/`)
     kind: Rule

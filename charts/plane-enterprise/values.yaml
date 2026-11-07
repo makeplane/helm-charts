@@ -1259,8 +1259,8 @@ env:
 
   # Storage backend selection: 'S3' (default; covers MinIO and S3-compatible
   # services), 'GCS' (Google Cloud Storage native mode) or 'AZURE' (Azure Blob
-  # Storage native mode). Any other value fails the render. Plane AI (pi)
-  # supports 'GCS' from the Plane release that adds GCS support to it; not 'AZURE' yet.
+  # Storage native mode). Any other value fails the render. Plane AI (pi) supports
+  # 'GCS' and 'AZURE' from the Plane release that adds them to it.
   storage_provider: 'S3'
 
   # REQUIRED IF MINIO LOCAL SETUP IS FALSE
