@@ -21,11 +21,15 @@ metadata:
      already-stale keys still have to go once, with
        kubectl delete secret <release>-doc-store-secrets
      followed by `helm upgrade`, which recreates it. Afterwards this never recurs. */}}
+{{- $provider := include "plane.storageProvider" . }}
 data:
   FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default "20971520" | toString | b64enc | quote }}
+  {{- /* pier reads a present AWS_S3_BUCKET_NAME as "S3 is configured", so AZURE omits it. */}}
+  {{- if ne $provider "AZURE" }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | toString | b64enc | quote }}
-  STORAGE_PROVIDER: {{ .Values.env.storage_provider | default "S3" | upper | b64enc | quote }}
-  {{- if eq (.Values.env.storage_provider | default "S3" | upper) "GCS" }}
+  {{- end }}
+  STORAGE_PROVIDER: {{ $provider | b64enc | quote }}
+  {{- if eq $provider "GCS" }}
   # Google Cloud Storage (GCS) native mode. Browser uploads are proxied through
   # the API (set env.use_storage_proxy=true), so the bucket needs no CORS config.
   USE_MINIO: {{ "0" | b64enc | quote }}
@@ -40,6 +44,15 @@ data:
   {{- with .Values.env.gcs_credentials_json }}
   GCS_CREDENTIALS_JSON: {{ . | b64enc | quote }}
   {{- end }}
+  {{- end }}
+  {{- else if eq $provider "AZURE" }}
+  # Azure Blob native mode, proxy-only (env.use_storage_proxy must be true). Auth is Azure
+  # Workload Identity, or a mirrored connection string; no AWS_*, GCS_* or MINIO_* keys.
+  USE_MINIO: {{ "0" | b64enc | quote }}
+  AZURE_STORAGE_ACCOUNT_NAME: {{ .Values.env.azure_storage_account_name | default "" | toString | b64enc | quote }}
+  AZURE_STORAGE_CONTAINER_NAME: {{ .Values.env.azure_storage_container_name | default .Values.env.docstore_bucket | default "" | toString | b64enc | quote }}
+  {{- with .Values.env.azure_storage_blob_endpoint }}
+  AZURE_STORAGE_BLOB_ENDPOINT: {{ . | b64enc | quote }}
   {{- end }}
   {{- else if .Values.services.minio.local_setup }}
   USE_MINIO: {{ "1" | b64enc | quote }}

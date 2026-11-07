@@ -864,7 +864,7 @@ Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `
 | services.api.searchIndexJob.enabled             |  true   |          | Run the search-index hook Job described above. Set `false` to manage indexes yourself |
 | services.api.searchIndexJob.activeDeadlineSeconds |  3600   |          | Upper bound for the Job, retries and the wait for migrations included |
 
-### Doc Store (Minio/S3/GCS) Setup
+### Doc Store (Minio/S3/GCS/Azure Blob) Setup
 
 | Setting                               |      Default       | Required | Description                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------- | :----------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -890,14 +890,29 @@ Mapping updates and rebuilds of existing indexes stay manual, from an api pod: `
 | env.aws_secret_access_key             |                    |          | External `S3` (or compatible) storage service provides `secret access key` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                                                     |
 | env.aws_region                        |                    |          | External `S3` (or compatible) storage service providers creates any buckets in user selected region. This is also shared with the user as `region` for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                             |
 | env.aws_s3_endpoint_url               |                    |          | External `S3` (or compatible) storage service providers shares a `endpoint_url` for the integration purpose for the application to connect and do the necessary upload/download operations. To be provided when `services.minio.local_setup=false`                                                                                                    |
-| env.use_storage_proxy                 |       false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`. **Recommended `true` when `storage_provider=GCS`** so browser uploads are proxied server-side and the GCS bucket needs no CORS configuration. |
-| env.storage_provider                  |         S3         |          | Storage backend selection. `S3` (default) covers MinIO and any S3-compatible service. Set to `GCS` to use Google Cloud Storage native mode. When `GCS`, MinIO is disabled and the `env.gcs_*` settings below are used.                                                                                                                                |
+| env.use_storage_proxy                 |       false        |          | When set to `true`, all S3 (or compatible) file GET requests from the browser are proxied through Plane's API service instead of accessing the S3 endpoint directly. Enable this if your storage endpoint is not accessible publicly or you want to control/download access through the API. Default is `false`. **Recommended `true` when `storage_provider=GCS`** so browser uploads are proxied server-side and the GCS bucket needs no CORS configuration. **Required `true` when `storage_provider=AZURE`**; the render fails otherwise. |
+| env.storage_provider                  |         S3         |          | Storage backend selection. `S3` (default) covers MinIO and any S3-compatible service. Set to `GCS` to use Google Cloud Storage native mode, or `AZURE` for Azure Blob Storage native mode. When `GCS` or `AZURE`, MinIO is disabled and the `env.gcs_*` or `env.azure_storage_*` settings below are used. Any other value fails the render.                                                                                                                                |
 | env.gcs_bucket_name                   |                    |          | GCS bucket name. Used only when `storage_provider=GCS`. Falls back to `env.docstore_bucket` when left empty.                                                                                                                                                                                                                                          |
 | env.gcs_project_id                    |                    |          | (Optional) GCP project ID for the GCS client. Used only when `storage_provider=GCS`.                                                                                                                                                                                                                                                                 |
 | env.gcs_credentials_json              |                    |          | (Optional) Inline service-account JSON, stored in the doc-store Secret and passed as `GCS_CREDENTIALS_JSON`. Highest-priority credential source. Used only when `storage_provider=GCS`.                                                                                                                                                               |
 | env.gcs_credentials_path              |                    |          | (Optional) In-container path to a service-account file (e.g. `/etc/gcs/service-account.json`) that you mount yourself. Used when `gcs_credentials_json` is empty. If both are empty, Application Default Credentials (e.g. GKE Workload Identity) are used. Used only when `storage_provider=GCS`.                                                       |
+| env.azure_storage_account_name        |                    |          | Azure storage account name, rendered as `AZURE_STORAGE_ACCOUNT_NAME`. Required when `storage_provider=AZURE`. See [Azure Blob Storage](#azure-blob-storage) below. |
+| env.azure_storage_container_name      |                    |          | Blob container name. Used only when `storage_provider=AZURE`. Falls back to `env.docstore_bucket` when left empty. |
+| env.azure_storage_blob_endpoint       |                    |          | (Optional) Blob service endpoint for sovereign clouds or Azurite. Defaults to `https://<account>.blob.core.windows.net`. Used only when `storage_provider=AZURE`. |
 | env.allow_all_attachment_types       |       false        |          | When set to `true`, allows all file types as attachments. When `false`, only permitted types are allowed. Default is `false`.                                                                                                                                                        |
 | env.enable_drf_spectacular            |       false        |          | When set to `true`, enables drf-spectacular OpenAPI schema generation for the API (`ENABLE_DRF_SPECTACULAR`). Default is `false`.                                                                                                                                                       |
+
+#### Azure Blob Storage
+
+`storage_provider: AZURE` stores uploads in an Azure Blob container. It needs a Plane release with Azure Blob support: **Plane vX.Y (TBD)** or later. Earlier images do not read the `AZURE_STORAGE_*` settings.
+
+- **Proxy-only.** Every upload and download goes through the API, so the render fails unless `env.use_storage_proxy: true`. The account needs no CORS rules and no public access.
+- **Workload Identity.** Annotate the ServiceAccount with `azure.workload.identity/client-id` and set the pod label `azure.workload.identity/use: 'true'` (see [Cloud workload identity](#1-cloud-workload-identity-no-credentials-anywhere)). Grant that identity *Storage Blob Data Contributor* on the account or container.
+- **No S3 settings.** The doc-store Secret carries `STORAGE_PROVIDER`, `USE_MINIO=0` and the `AZURE_STORAGE_*` keys only; no `AWS_*`, `GCS_*` or `MINIO_*` keys, and the bundled MinIO is not deployed.
+- **Connection string (dev only).** For Azurite or a non-Azure host, put the connection string in a Secret and set `external_secrets.storage.secretName` and `azureConnectionStringKey`.
+- **Plane AI** has no Azure Blob backend yet. Keep `services.pi.enabled: false`.
+
+See [`examples/azure-blob/values.yaml`](examples/azure-blob/values.yaml).
 
 ### Web Deployment
 
@@ -1629,7 +1644,7 @@ Three mechanisms, in the order you should reach for them:
 
 | | What it covers | How |
 | --- | --- | --- |
-| **Cloud workload identity** | Object storage (S3/GCS), OpenSearch, AWS Secrets Manager | No secret at all — annotate the ServiceAccount |
+| **Cloud workload identity** | Object storage (S3/GCS/Azure Blob), OpenSearch, AWS Secrets Manager | No secret at all — annotate the ServiceAccount |
 | **Infrastructure credentials** | Postgres, RabbitMQ, Redis username/password | `external_secrets.{database,rabbitmq,redis}` — mirror your cloud secret, chart maps its keys |
 | **Whole-Secret replacement** | Signing keys, connector OAuth secrets, LLM keys | `external_secrets.*_existingSecret` — you own every key in the Secret |
 
@@ -1878,7 +1893,7 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.rabbitmq.*` | | RabbitMQ credentials from an existing Secret. |
 | `external_secrets.redis.*` | | Redis password from an existing Secret (needs planeVersion v3.2.0+). |
 | `external_secrets.opensearch.*` | | OpenSearch username/password from an existing Secret; remote domains only. |
-| `external_secrets.storage.*` | | S3-compatible or GCS credentials from an existing Secret: `secretName`, `accessKeyIdKey`, `secretAccessKeyKey`, `gcsCredentialsJsonKey`. Ignored with the bundled MinIO; on a cloud, prefer workload identity. |
+| `external_secrets.storage.*` | | S3-compatible, GCS or Azure Blob credentials from an existing Secret: `secretName`, `accessKeyIdKey`, `secretAccessKeyKey`, `gcsCredentialsJsonKey`, `azureConnectionStringKey` (AZURE on dev/Azurite only). Ignored with the bundled MinIO; on a cloud, prefer workload identity. |
 | `external_secrets.silo_connectors_existingSecret` | | One Secret for every silo connector credential (Slack, GitHub, GitLab, Sentry, Bitbucket, HubSpot). The chart then renders none of the connector keys. |
 | `env.rabbitmq_ssl` | false | Connect to RabbitMQ over TLS (`amqps`). Required by Amazon MQ. |
 | `env.redis_ssl` | false | Connect to Redis over TLS (`rediss`). Required by ElastiCache with in-transit encryption and Azure Cache. |

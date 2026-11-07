@@ -149,7 +149,7 @@ Warn rather than reorder: reordering would change which value existing installs 
 {{- end }}
 
 {{- /* Static object-storage keys where a cloud identity would do. */}}
-{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (not .Values.serviceAccount.annotations) (not .Values.serviceAccount.cloudIdentity) }}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (ne (include "plane.storageProvider" .) "AZURE") (not .Values.serviceAccount.annotations) (not .Values.serviceAccount.cloudIdentity) }}
 {{- $warnings = append $warnings "Object storage is configured with a static AWS access key. Prefer a cloud identity:\n    annotate the ServiceAccount (serviceAccount.annotations) for IRSA / EKS Pod Identity\n    / GKE or Azure Workload Identity and clear env.aws_access_key and\n    env.aws_secret_access_key — the chart then omits those env vars so the SDK's default\n    credential chain picks up the pod's role." }}
 {{- end }}
 
@@ -162,7 +162,7 @@ API object keyed on cluster + namespace + service account — hence the declared
 {{- if $hasIdentity }}
 
 {{- /* A static key beats the identity in the SDK credential chain. */}}
-{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) }}
+{{- if and .Values.env.aws_access_key (not (include "plane.minioEnabled" .)) (ne (include "plane.storageProvider" .) "AZURE") }}
 {{- $warnings = append $warnings "A cloud identity is configured, but env.aws_access_key is also set. Environment\n    credentials take precedence over the identity in every AWS SDK's chain, so the\n    static key is what will be used. Clear env.aws_access_key and\n    env.aws_secret_access_key to let the identity apply." }}
 {{- end }}
 
@@ -186,8 +186,25 @@ as "sign with SigV4".
      keeps its root credentials in the Secret — and a present access key wins the
      credential chain. Fires only when this is a keyless external-storage configuration,
      which is exactly when the leftover is fatal rather than cosmetic. */}}
-{{- if and (not .Values.services.minio.local_setup) (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") (not .Values.env.aws_access_key) (empty .Values.external_secrets.doc_store_existingSecret) }}
+{{- if and (not .Values.services.minio.local_setup) (eq (include "plane.storageProvider" .) "S3") (not .Values.env.aws_access_key) (empty .Values.external_secrets.doc_store_existingSecret) }}
 {{- $warnings = append $warnings (printf "Storage is keyless (no access key), which relies on AWS_ACCESS_KEY_ID being ABSENT.\n    If this release EVER ran with services.minio.local_setup=true, its MinIO root\n    credentials are still in %s-doc-store-secrets: Helm cannot remove a key it no longer\n    renders, and a present access key is found first in boto3's chain, so every S3 call\n    fails with InvalidClientTokenId while the config looks correct. Once:\n      kubectl delete secret %s-doc-store-secrets -n %s && helm upgrade ...\n      kubectl rollout restart deploy -n %s -l app.kubernetes.io/instance=%s\n    The restart matters — envFrom is read once at container start. Fresh installs and\n    releases already on chart 3.6.0+ are unaffected." .Release.Name .Release.Name .Release.Namespace .Release.Namespace .Release.Name) }}
+{{- end }}
+
+{{- /* Azure Blob authenticates through Workload Identity unless a connection string is mirrored in
+       (dev/Azurite). Plane AI has no Azure Blob backend yet. */}}
+{{- if eq (include "plane.storageProvider" .) "AZURE" }}
+{{- $azSt := .Values.external_secrets.storage }}
+{{- if not (and (include "plane.externalStorage" .) $azSt.azureConnectionStringKey) }}
+{{- if and (include "plane.createServiceAccount" .) (not (index (.Values.serviceAccount.annotations | default dict) "azure.workload.identity/client-id")) }}
+{{- $warnings = append $warnings "env.storage_provider is AZURE, but serviceAccount.annotations has no\n    azure.workload.identity/client-id. Without it the pods get no Azure identity and every\n    Blob call fails. Set it to the client ID of the managed identity (or app registration)\n    that holds Storage Blob Data Contributor on the account." }}
+{{- end }}
+{{- if ne (index (.Values.serviceAccount.podLabels | default dict) "azure.workload.identity/use" | toString) "true" }}
+{{- $warnings = append $warnings "env.storage_provider is AZURE, but serviceAccount.podLabels lacks\n    azure.workload.identity/use: \"true\". The AKS Workload Identity webhook only injects\n    the federated token into labelled pods, so Blob calls fail without it." }}
+{{- end }}
+{{- end }}
+{{- if .Values.services.pi.enabled }}
+{{- $warnings = append $warnings "env.storage_provider is AZURE and services.pi.enabled is true. Plane AI does not\n    support Azure Blob storage yet, so its file features will fail. Set\n    services.pi.enabled: false until a Plane release adds it." }}
+{{- end }}
 {{- end }}
 
 {{- if $warnings }}

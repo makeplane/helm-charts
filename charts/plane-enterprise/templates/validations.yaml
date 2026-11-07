@@ -67,3 +67,18 @@ This message only appears when the budget was asked for on this specific service
 {{- fail (printf "services.%s.podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one." $key $opts.minAvailable $opts.maxUnavailable) }}
 {{- end }}
 {{- end }}
+
+{{- /* Object storage. AZURE is proxy-only and has no default account; each AZURE check
+yields to the *_existingSecret that would carry the value instead. */ -}}
+{{- $provider := include "plane.storageProvider" . -}}
+{{- if not (has $provider (list "S3" "GCS" "AZURE")) }}
+{{- fail (printf "env.storage_provider is %q; it must be S3, GCS or AZURE." (toString .Values.env.storage_provider)) }}
+{{- end }}
+{{- if eq $provider "AZURE" }}
+{{- if and (not .Values.env.use_storage_proxy) (empty .Values.external_secrets.app_env_existingSecret) }}
+{{- fail "env.storage_provider is AZURE, which supports only proxied uploads and downloads. Set env.use_storage_proxy: true." }}
+{{- end }}
+{{- if and (empty .Values.env.azure_storage_account_name) (empty .Values.external_secrets.doc_store_existingSecret) }}
+{{- fail "env.storage_provider is AZURE but env.azure_storage_account_name is empty. Set it to the storage account name." }}
+{{- end }}
+{{- end }}

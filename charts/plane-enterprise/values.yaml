@@ -1055,10 +1055,14 @@ external_secrets:
     # gcsCredentialsJsonKey carries the whole service-account JSON, private key
     # included — the single highest-value blob in a GCS deployment, and the reason it
     # should never sit in values.yaml.
+    #
+    # azureConnectionStringKey is for storage_provider AZURE on dev, Azurite or non-Azure
+    # hosts only; on AKS use Workload Identity. With AZURE, the AWS and GCS keys are ignored.
     secretName: ''
     accessKeyIdKey: ''         # -> AWS_ACCESS_KEY_ID
     secretAccessKeyKey: ''     # -> AWS_SECRET_ACCESS_KEY
     gcsCredentialsJsonKey: ''  # -> GCS_CREDENTIALS_JSON
+    azureConnectionStringKey: ''  # -> AZURE_STORAGE_CONNECTION_STRING
 
   opensearch:
     # Credentials for a REMOTE OpenSearch. Ignored when
@@ -1245,7 +1249,8 @@ env:
   doc_upload_size_limit: '5242880' # 5MB
 
   # Storage backend selection: 'S3' (default; covers MinIO and S3-compatible
-  # services) or 'GCS' (Google Cloud Storage native mode).
+  # services), 'GCS' (Google Cloud Storage native mode) or 'AZURE' (Azure Blob
+  # Storage native mode). Any other value fails the render.
   storage_provider: 'S3'
 
   # REQUIRED IF MINIO LOCAL SETUP IS FALSE
@@ -1266,6 +1271,12 @@ env:
   #   3. neither — Application Default Credentials (e.g. GKE Workload Identity)
   gcs_credentials_json: ''
   gcs_credentials_path: ''
+
+  # Azure Blob Storage — used only when storage_provider is 'AZURE'. Proxy-only (set
+  # use_storage_proxy: true); authenticate with Azure Workload Identity (serviceAccount).
+  azure_storage_account_name: ''    # required for AZURE
+  azure_storage_container_name: ''  # defaults to docstore_bucket when left empty
+  azure_storage_blob_endpoint: ''   # optional; defaults to https://<account>.blob.core.windows.net
 
   use_storage_proxy: false
   allow_all_attachment_types: false

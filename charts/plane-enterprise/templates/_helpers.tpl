@@ -186,14 +186,22 @@ Call with a dict carrying the root context and the component values:
 {{- end }}
 
 {{/*
+The object-storage backend, normalised: S3 (default; MinIO and S3-compatible), GCS or
+AZURE. templates/validations.yaml refuses any other value.
+*/}}
+{{- define "plane.storageProvider" -}}
+{{- .Values.env.storage_provider | default "S3" | upper -}}
+{{- end -}}
+
+{{/*
 Returns "true" when the bundled MinIO should be deployed.
 MinIO is deployed only when services.minio.local_setup is enabled AND the storage
-provider is not GCS — GCS native mode never uses the bundled MinIO, so selecting it
-must disable the MinIO StatefulSet, bucket job, ingress routes and certs regardless
-of the local_setup flag's value.
+provider is S3 — GCS and Azure Blob native modes never use the bundled MinIO, so
+selecting either must disable the MinIO StatefulSet, bucket job, ingress routes and
+certs regardless of the local_setup flag's value.
 */}}
 {{- define "plane.minioEnabled" -}}
-  {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
+  {{- if and .Values.services.minio.local_setup (eq (include "plane.storageProvider" .) "S3") -}}
     true
   {{- end -}}
 {{- end -}}
@@ -933,13 +941,20 @@ Secret mounted via envFrom.
 
 Only the keys the operator names are emitted: an S3 deployment sets the two access-key
 keys, a GCS deployment sets gcsCredentialsJsonKey, and a deployment using a pod identity
-sets none of them and relies on the SDK credential chain.
+sets none of them and relies on the SDK credential chain. AZURE takes only
+azureConnectionStringKey (dev/Azurite; on AKS use Workload Identity) and never the
+AWS_* or GCS_* keys.
 
 Caller must indent to the correct depth (env list items).
 */}}
 {{- define "plane.storageCredsEnv" -}}
 {{- $st := .Values.external_secrets.storage -}}
 {{- if include "plane.externalStorage" . }}
+{{- if eq (include "plane.storageProvider" .) "AZURE" }}
+{{- with $st.azureConnectionStringKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AZURE_STORAGE_CONNECTION_STRING" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- else }}
 {{- with $st.accessKeyIdKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "AWS_ACCESS_KEY_ID" "secret" $st.secretName "key" .) }}
 {{- end }}
@@ -948,6 +963,7 @@ Caller must indent to the correct depth (env list items).
 {{- end }}
 {{- with $st.gcsCredentialsJsonKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "GCS_CREDENTIALS_JSON" "secret" $st.secretName "key" .) }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end -}}
