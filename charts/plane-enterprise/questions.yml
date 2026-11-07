@@ -1573,6 +1573,68 @@ questions:
     type: string
     default: "redis://"
     show_if: "services.redis.local_setup=false"
+  - variable: env.redis_ssl
+    label: "Redis TLS"
+    description: "Connect to the Redis data nodes over TLS. Used with the credential mirror and in Sentinel mode."
+    type: boolean
+    default: false
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_sentinels
+    label: "Redis Sentinels (bring your own)"
+    description: "Comma-separated host:port list of your sentinels, e.g. s1:26379,s2:26379,s3:26379. Setting it turns on Sentinel mode; leave the Remote Redis URL empty. Every data node needs notify-keyspace-events with E and x."
+    type: string
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_sentinel_master
+    label: "Sentinel Master Name"
+    description: "Required in Sentinel mode: the master (service) name the sentinels monitor."
+    type: string
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_username
+    label: "Redis Username"
+    description: "ACL username for the data nodes, if any."
+    type: string
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_password
+    label: "Redis Password"
+    description: "Sentinel mode only, and only without external_secrets.redis. Prefer the credential mirror."
+    type: password
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_sentinel_username
+    label: "Sentinel Username"
+    type: string
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_sentinel_password
+    label: "Sentinel Password"
+    description: "Ignored when external_secrets.redis.sentinelPasswordKey is set."
+    type: password
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_db
+    label: "Redis DB Index"
+    type: string
+    default: "0"
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_sentinel_ssl
+    label: "Sentinel TLS"
+    description: "TLS to the sentinels. Empty = same as Redis TLS."
+    type: enum
+    options:
+    - ""
+    - "true"
+    - "false"
+    default: ""
+    show_if: "services.redis.local_setup=false"
+  - variable: env.redis_ssl_verify
+    label: "Verify Redis TLS Certificates"
+    description: "Verify the Redis and Sentinel certificates against the system CA bundle. Off by default."
+    type: boolean
+    default: false
+    show_if: "services.redis.local_setup=false"
 
 - variable: services.postgres.local_setup
   label: "Install Postgres"
@@ -2067,6 +2129,27 @@ questions:
   type: string
   default: ""
   group: "Credential Mirrors"
+- variable: external_secrets.redis.usernameKey
+  label: "Redis Username Key (optional)"
+  description: "Key holding the data nodes' ACL username, if the Secret carries one."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.redis.secretName!="
+- variable: external_secrets.redis.sentinelUsernameKey
+  label: "Sentinel Username Key (optional)"
+  description: "Sentinel mode only: key holding the sentinels' username."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.redis.secretName!="
+- variable: external_secrets.redis.sentinelPasswordKey
+  label: "Sentinel Password Key (optional)"
+  description: "Sentinel mode only: key holding the sentinels' password."
+  type: string
+  default: ""
+  group: "Credential Mirrors"
+  show_if: "external_secrets.redis.secretName!="
 - variable: external_secrets.storage.secretName
   label: "Object Storage Credential Secret"
   description: "Leave empty and annotate the ServiceAccount instead — a pod identity beats a stored access key. Only the key names you fill in below are emitted."

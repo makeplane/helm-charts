@@ -33,7 +33,14 @@ stringData:
   DATABASE_URL: ""
   {{- end }}
 
-  {{- if include "plane.externalRedis" . }}
+  {{- if include "plane.redisSentinel" . }}
+  {{/* Sentinel mode: see app-env.yaml. Rendered empty rather than omitted because the
+       API workloads mount this Secret after their own. */}}
+  REDIS_URL: ""
+  {{- with (include "plane.redisSentinelSecretData" . | trim) }}
+  {{- . | nindent 2 }}
+  {{- end }}
+  {{- else if include "plane.externalRedis" . }}
   REDIS_URL: ""
   {{- else if .Values.services.redis.local_setup }}
   REDIS_URL: "redis://{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:6379/"

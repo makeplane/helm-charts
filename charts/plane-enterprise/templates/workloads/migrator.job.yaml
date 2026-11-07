@@ -21,12 +21,17 @@ spec:
     spec:
       {{- include "plane.podScheduling" .Values.services.api }}
       {{- include "plane.podSecurityContext" . }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-api-migrate
         {{- include "plane.containerSecurityContext" . }}
         image: {{ .Values.services.api.image | default "makeplane/backend-commercial" }}:{{ .Values.planeVersion }}
-        command: 
-          - ./bin/docker-entrypoint-migrator.sh
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        {{- include "plane.s3CACommand" (dict "ctx" . "entrypoint" "./bin/docker-entrypoint-migrator.sh") | nindent 8 }}
         imagePullPolicy: {{ .Values.services.api.pullPolicy | default "Always" }}
         envFrom:
           - configMapRef:
@@ -61,8 +66,11 @@ spec:
                  or live-server auth fails with nothing logged. */}}
           {{- include "plane.appKeysSecretRef" . }}
           {{- include "plane.siloConnectorsSecretRef" . }}
-        {{- if or .Values.extraEnv (include "plane.infraCredsEnv" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.infraCredsEnv" .) }}
         env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.infraCredsEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}

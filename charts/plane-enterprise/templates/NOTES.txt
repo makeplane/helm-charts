@@ -201,6 +201,31 @@ See the "Keeping credentials out of values.yaml" section of the chart README.
 ────────────────────────────────────────────────────────────────────────────────
 {{- end }}
 
+{{- /*
+Redis Sentinel (bring your own). Set $sentinelMinVersion to the first Plane release
+whose images read REDIS_SENTINELS once it ships; until then the note names the work
+instead. An image without Sentinel support finds REDIS_URL empty and has no Redis.
+*/}}
+{{- if include "plane.redisSentinel" . }}
+{{- $sentinelMinVersion := "" }}
+{{- if and $sentinelMinVersion $parsable (semverCompare (printf "< %s" $sentinelMinVersion) $version) }}
+
+WARNING: Redis Sentinel mode needs planeVersion v{{ $sentinelMinVersion }} or later; this release
+runs {{ .Values.planeVersion }}. Older images ignore REDIS_SENTINELS and, with REDIS_URL left
+empty, start without Redis.
+{{- end }}
+
+Redis Sentinel mode: services follow master "{{ .Values.env.redis_sentinel_master }}" via {{ .Values.env.redis_sentinels }}.
+  - Needs {{ if $sentinelMinVersion }}planeVersion v{{ $sentinelMinVersion }} or later{{ else }}a planeVersion that includes INFRA-1336 (Redis Sentinel support){{ end }},
+    and an MCP server image with Sentinel support if services.mcp_server is on.
+  - notify-keyspace-events must include E and x in the config file of EVERY data
+    node, not only the current primary. Without it silo's webhook-driven syncs stop
+    after a failover.
+  - Plane AI (pi) uses Sentinel for its Celery broker, so it needs an image with Sentinel
+    support too. With pi_api_env_existingSecret, set CELERY_BROKER_URL to sentinel:// in
+    that Secret; a fixed Redis URL there won't follow a failover.
+{{- end }}
+
 {{- with $runnerHmacNote }}
 
 Note: {{ . }}

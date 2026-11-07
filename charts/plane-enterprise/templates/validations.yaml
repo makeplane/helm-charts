@@ -67,3 +67,22 @@ This message only appears when the budget was asked for on this specific service
 {{- fail (printf "services.%s.podDisruptionBudget sets both minAvailable (%v) and maxUnavailable (%v); the Kubernetes API accepts only one." $key $opts.minAvailable $opts.maxUnavailable) }}
 {{- end }}
 {{- end }}
+
+{{- /*
+Redis Sentinel (bring your own). Sentinel always means an external Redis: the chart's
+local_setup is a single Valkey node with no sentinels, and a remote URL would pin every
+service to one node, which is what Sentinel mode exists to avoid.
+*/ -}}
+{{- if include "plane.redisSentinel" . }}
+{{- if .Values.services.redis.local_setup }}
+{{- fail "env.redis_sentinels is set (Redis Sentinel mode) while services.redis.local_setup is true. Sentinel mode connects to a Redis you run; the chart never deploys Sentinel. local_setup defaults to true, so set services.redis.local_setup: false explicitly, or clear env.redis_sentinels to keep the bundled Redis." }}
+{{- end }}
+{{- if not (trim (.Values.env.redis_sentinel_master | default "" | toString)) }}
+{{- fail "env.redis_sentinels is set (Redis Sentinel mode) but env.redis_sentinel_master is empty. Set it to the master (service) name your sentinels monitor, e.g. 'mymaster' from `sentinel monitor mymaster ...`." }}
+{{- end }}
+{{- /* A bare scheme is questions.yml's placeholder for the URL field, not a URL. */}}
+{{- $remoteUrl := trim (.Values.env.remote_redis_url | default "" | toString) }}
+{{- if and $remoteUrl (not (has $remoteUrl (list "redis://" "rediss://"))) }}
+{{- fail "env.redis_sentinels is set (Redis Sentinel mode) together with env.remote_redis_url. Choose one: clear env.remote_redis_url to use Sentinel (put the data-node password in env.redis_password or external_secrets.redis), or clear env.redis_sentinels to keep the single URL." }}
+{{- end }}
+{{- end }}

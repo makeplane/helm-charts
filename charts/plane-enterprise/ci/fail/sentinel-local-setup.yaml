@@ -1,0 +1,4 @@
+# Must fail: Sentinel mode with the bundled Redis (local_setup defaults to true).
+env:
+  redis_sentinels: "sentinel-0.example.com:26379"
+  redis_sentinel_master: mymaster
