@@ -804,8 +804,16 @@ true
 {{- end -}}
 {{- end -}}
 
+{{/* Also true with the bundled broker, which reads the same Secret (plane.bundledRabbitmqFromSecret). */}}
 {{- define "plane.externalRabbitmq" -}}
 {{- if .Values.external_secrets.rabbitmq.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/* "true" when the bundled broker takes its first-boot user from external_secrets.rabbitmq. */}}
+{{- define "plane.bundledRabbitmqFromSecret" -}}
+{{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq.secretName -}}
 true
 {{- end -}}
 {{- end -}}
@@ -846,6 +854,11 @@ mirrored cloud secret when it happens to carry them — see hostKey/portKey/dbNa
 {{- else -}}
 {{- .Values.env.rabbitmq_host -}}
 {{- end -}}
+{{- end -}}
+
+{{/* Bundled broker port: 5672 while the Service is headless, servicePort with a ClusterIP. */}}
+{{- define "plane.bundledRabbitmqPort" -}}
+{{- ternary (.Values.services.rabbitmq.servicePort | default 5672) 5672 (.Values.services.rabbitmq.assign_cluster_ip | default false) | toString -}}
 {{- end -}}
 
 {{- define "plane.redisHost" -}}
@@ -1019,13 +1032,22 @@ Caller must indent to the correct depth (env list items).
 {{- end -}}
 
 {{/*
-RabbitMQ credentials from an externally managed Secret.
+RabbitMQ credentials from an externally managed Secret. With the bundled broker,
+env.rabbitmq_* are ignored and the chart's own Service is used.
 */}}
 {{- define "plane.rabbitmqCredsEnv" -}}
 {{- $mq := .Values.external_secrets.rabbitmq -}}
 {{- if $mq.secretName }}
 - name: RABBITMQ_HOST
   value: {{ include "plane.rabbitmqHost" . | quote }}
+{{- if .Values.services.rabbitmq.local_setup }}
+- name: RABBITMQ_PORT
+  value: {{ include "plane.bundledRabbitmqPort" . | quote }}
+- name: RABBITMQ_VHOST
+  value: "/"
+- name: RABBITMQ_SSL
+  value: "0"
+{{- else }}
 - name: RABBITMQ_PORT
   value: {{ .Values.env.rabbitmq_port | default "5672" | quote }}
 - name: RABBITMQ_VHOST
@@ -1034,6 +1056,7 @@ RabbitMQ credentials from an externally managed Secret.
   {{/* The parts path has no URL scheme to carry TLS, so it needs an explicit flag.
        Amazon MQ for RabbitMQ listens on 5671 and refuses plaintext. */}}
   value: {{ .Values.env.rabbitmq_ssl | default false | ternary "1" "0" | quote }}
+{{- end }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PASSWORD" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
 {{- with $mq.hostKey }}
@@ -1045,6 +1068,15 @@ RabbitMQ credentials from an externally managed Secret.
 {{- with $mq.vhostKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_VHOST" "secret" $mq.secretName "key" .) }}
 {{- end }}
+{{- end }}
+{{- end -}}
+
+{{/* Bundled broker's first-boot user from the apps' Secret; explicit env wins over envFrom. */}}
+{{- define "plane.rabbitmqServerCredsEnv" -}}
+{{- $mq := .Values.external_secrets.rabbitmq -}}
+{{- if include "plane.bundledRabbitmqFromSecret" . }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_PASS" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
 {{- end }}
 {{- end -}}
 
