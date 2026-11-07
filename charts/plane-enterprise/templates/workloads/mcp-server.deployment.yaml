@@ -61,6 +61,14 @@ spec:
         - name: http
           containerPort: 8211
           protocol: TCP
+        readinessProbe:
+          # The server has no health route, on any released image, so wait for the port. Without a probe
+          # the Service sends traffic before the server is listening, which returns 502.
+          tcpSocket:
+            port: http
+          periodSeconds: 2
+          timeoutSeconds: 2
+          failureThreshold: 30
         resources:
           requests:
             memory: {{ .Values.services.mcp_server.memoryRequest | default "150Mi" | quote }}
