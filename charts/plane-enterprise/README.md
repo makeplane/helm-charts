@@ -1549,11 +1549,37 @@ Runs user-written automation scripts in a sandbox. Off by default.
 | services.runner.assign_cluster_ip | false | | Set it to `true` if you want to assign `ClusterIP` to the service |
 | services.runner.nodeSelector / tolerations / affinity | {} / [] / {} | | Scheduling rules for the runner pods |
 | services.runner.labels / annotations | {} | | Custom labels and annotations to add to the runner deployment |
-| env.runner_envs.hmac_secret_key | '' | Yes, after v4.0.1 | Key the API and runner share to sign their calls. Generate with `openssl rand -hex 32`; runner images after v4.0.1 refuse to start without it. Or supply `RUNNER_HMAC_SECRET_KEY` through `external_secrets.runner_env_existingSecret` or `app_keys_existingSecret` |
+| env.runner_envs.hmac_secret_key | '' | Only for `helm template` and GitOps renders | Key the API and runner share to sign their calls. When empty, `helm install`/`helm upgrade` generates one per installation and keeps it in `<release>-runner-secrets` across upgrades. A render without cluster access (`helm template`, `--dry-run=client`, ArgoCD) cannot keep a key, so set one there (`openssl rand -hex 32`), or supply `RUNNER_HMAC_SECRET_KEY` through `external_secrets.app_keys_existingSecret` or `external_secrets.runner_env_existingSecret`. Runner images after v4.0.1 refuse to start without it |
 | env.runner_envs.execution_timeout_ms | "10000" | | Maximum run time of one script, in milliseconds |
 | env.runner_envs.init_timeout_ms | "5000" | | Maximum time for a script to initialize, in milliseconds |
 | env.runner_envs.isolate_memory_mb | "128" | | Memory limit of each script's sandbox, in MB |
 | env.runner_envs.control_service_base_url | '' | | Not read by current runner images; leave empty |
+
+#### Runner signing key (chart 3.12.0 and later)
+
+The API signs every call to the runner with `RUNNER_HMAC_SECRET_KEY`, and runner images after v4.0.1 exit at startup without it. Earlier charts rendered it empty. From 3.12.0, when you leave `env.runner_envs.hmac_secret_key` empty, the chart resolves the key in this order:
+
+1. The value already in `<release>-runner-secrets`, so every later upgrade keeps it.
+2. Otherwise, a new random key, when the render can read the release namespace (`helm install`, `helm upgrade`, `--dry-run=server`). `helm upgrade` prints a note when it creates one.
+3. Otherwise empty, as before. This happens with `helm template`, `--dry-run=client`, GitOps renderers, and a namespace that `--create-namespace` is creating in the same command. With `env.requireExplicitSecrets: true` the render fails instead.
+
+   The chart can't tell these cases apart. Generating a key in all of them would give ArgoCD a new key on every sync, and every sync would restart every chart workload. So for a first install, create the namespace beforehand (`kubectl create namespace <ns>`) instead of passing `--create-namespace`, and the chart generates the key on that install. Otherwise the key stays empty until the next `helm upgrade`, and runner images after v4.0.1 won't start until then.
+
+For a plain `helm upgrade` there is nothing to do. The upgrade that creates the key rolls every chart workload once, because they all share one `checksum/config` annotation. On the first upgrade to 3.12.0 this adds nothing, since the new chart version rolls every workload anyway. An upgrade on the same chart version that creates a key, such as the extra `helm upgrade` after a `--create-namespace` install, also rolls the whole release. The key only signs calls between the API and the runner, and nothing stored is encrypted with it, so creating or rotating it loses no data.
+
+If you render with `helm template` or a GitOps tool, set the key yourself so it does not change between renders:
+
+```bash
+openssl rand -hex 32
+```
+
+```yaml
+env:
+  runner_envs:
+    hmac_secret_key: <generated value>
+```
+
+If you use `external_secrets.app_keys_existingSecret`, add `RUNNER_HMAC_SECRET_KEY` to that Secret instead; if you use `external_secrets.runner_env_existingSecret`, put it there. The chart cannot look inside those Secrets.
 
 ### Ingress and SSL Setup
 
@@ -1720,16 +1746,16 @@ For **planeVersion below v3.2.0**, supply silo/live/Plane AI DSNs through `silo_
 
 ### 3. Shared signing keys in one Secret
 
-`SECRET_KEY`, `AES_SECRET_KEY`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY` and `CURSOR_WEBHOOK_SECRET` appear in up to four of the chart's Secrets, and several of them must match for the services to talk to each other. `external_secrets.app_keys_existingSecret` points all of them at a single Secret so they cannot drift:
+`SECRET_KEY`, `AES_SECRET_KEY`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET` and `RUNNER_HMAC_SECRET_KEY` appear in up to four of the chart's Secrets, and several of them must match for the services to talk to each other. `external_secrets.app_keys_existingSecret` points all of them at a single Secret so they cannot drift:
 
 ```yaml
 external_secrets:
   app_keys_existingSecret: plane-app-keys
 ```
 
-The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted last in `envFrom`, so it wins over a copy of the same key in one of the older `*_existingSecret` groups — don't define the same key in both.
+The Secret should carry `SECRET_KEY`, `AES_SECRET_KEY`, `AES_SALT`, `LIVE_SERVER_SECRET_KEY`, `PI_INTERNAL_SECRET`, `SILO_HMAC_SECRET_KEY`, `CURSOR_WEBHOOK_SECRET`, and `RUNNER_HMAC_SECRET_KEY` when the runner is deployed. While it is set, the chart stops emitting those keys in its own Secrets. It is mounted last in `envFrom`, so it wins over a copy of the same key in one of the older `*_existingSecret` groups — don't define the same key in both.
 
-The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. `RUNNER_HMAC_SECRET_KEY` belongs here too when the runner is deployed.
+The Secret must carry every key your deployment uses — a missing key is not a render error, just an absent env var. `SECRET_KEY` matters most: the API falls back to a per-pod random value when it is absent, so JWTs stop verifying across replicas and encrypted instance-configuration rows become unreadable, with no error. A missing `RUNNER_HMAC_SECRET_KEY` makes runner images after v4.0.1 exit at startup; the chart cannot see inside this Secret to catch it, so `helm upgrade` prints a reminder when the runner is enabled.
 
 Do not also define any of these keys in one of the `*_existingSecret` groups. This Secret is mounted after them on every workload, so the duplicate is ignored — until `app_keys_existingSecret` is unset, when the stale copy silently becomes the live value. `helm upgrade` warns when it sees both set.
 
@@ -1737,7 +1763,7 @@ The trade-off: because it is one Secret, every service that mounts it sees all o
 
 > **Never rotate `SECRET_KEY`, `AES_SECRET_KEY` or `AES_SALT` on a running instance.** `SECRET_KEY` derives the Fernet key that encrypts the instance-configuration rows (SMTP password, OAuth client secrets, LLM keys); the AES pair protects stored OAuth application secrets, MCP connections and desktop handoff tokens. Changing either makes existing ciphertext undecryptable, and the failure is silent — values come back empty. Keep them in a secret with no rotation schedule.
 
-The chart ships **public example values** for all of these. Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to them:
+The chart ships **public example values** for all of these except `RUNNER_HMAC_SECRET_KEY`, which has none: the chart generates one per installation (see [Runner signing key](#runner-signing-key-chart-3120-and-later)). Set `env.requireExplicitSecrets: true` to make the render fail rather than fall back to the example values:
 
 ```yaml
 env:
@@ -1778,6 +1804,13 @@ To close it, rotate so that both the old and the new credential are valid at onc
 Two things Reloader will not do: it ignores Jobs, so the migrator Job holds whatever credential it started with — don't rotate during an upgrade window, and re-run `helm upgrade` if a migration fails mid-rotation. And the bundled `local_setup` StatefulSets (postgres, rabbitmq, minio, opensearch) are outside all of this; rotation guidance assumes managed backends. A bundled RabbitMQ reading `external_secrets.rabbitmq` is no exception: it takes the Secret's user only on first boot, so change the password in the broker before the Secret (see [Bundled RabbitMQ with credentials from a Secret](#bundled-rabbitmq-with-credentials-from-a-secret)).
 
 Separately, `helm upgrade` no longer restarts every workload unconditionally. Pods carry a `checksum/config` annotation instead of a timestamp, so an upgrade rolls only what actually changed. Set `global.forceRedeploy: true` to get the old behaviour back.
+
+**GitOps (ArgoCD, Flux, Fleet).** By default the migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are named after the render time, and Argus pods carry a `timestamp` annotation, so every render differs and the release never shows as in sync. Set `global.deterministicRender: true` to render identical manifests for identical values:
+
+- Each of those Jobs is named after a hash of what it runs with, so it reruns only when that changes: the image, the rendered config (the MinIO bucket name included) or the chart version. Job specs are immutable, which is why a change produces a new name instead of an update.
+- Argus pods use the same `checksum/config` annotation as every other workload, plus `checksum/argus-config` for Argus's own settings.
+- The chart cannot see values supplied through an `external_secrets.*_existingSecret`, so changing only those reruns no Job. Delete the Job to rerun it.
+- A failed Job is not retried by rendering the same values again. Delete it (`kubectl delete job <name>`), or apply once with `global.forceRedeploy: true`, which still renames the Jobs on every render.
 
 ### 5. Switching an existing release over: delete the Secret Helm can no longer clean
 
@@ -1879,6 +1912,7 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
+| `global.deterministicRender` | false | Render identical manifests for identical values (for ArgoCD, Flux, Fleet): Job names come from a hash of the Job spec instead of the render time, and Argus drops its per-render `timestamp`. |
 
 ### Provider examples
 

@@ -1184,12 +1184,23 @@ global:
   # upgrades roll only what actually changed. Set true to force a full restart.
   forceRedeploy: false
 
+  # Render identical manifests for identical values, for GitOps tools (ArgoCD,
+  # Flux, Fleet) that otherwise show the release as permanently out of sync. The
+  # migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are then
+  # named after a hash of their own spec instead of the render time, so they rerun
+  # only when something in them changes (an image, config, or the chart version),
+  # and Argus pods stop restarting on every render. A failed Job is not retried by
+  # re-rendering the same values: delete it, or set forceRedeploy for one run.
+  deterministicRender: false
+
 env:
   storageClass: ''
 
   # Fail the render instead of falling back to this chart's public example values
   # for SECRET_KEY, AES_SECRET_KEY, LIVE_SERVER_SECRET_KEY, PI_INTERNAL_SECRET,
-  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. Recommended for production;
+  # SILO_HMAC_SECRET_KEY and CURSOR_WEBHOOK_SECRET. (RUNNER_HMAC_SECRET_KEY has no
+  # example value; the chart generates one, and this only makes a render that cannot
+  # keep a generated key fail instead of leaving it empty.) Recommended for production;
   # defaults to false so existing installs keep rendering. Will default to true in
   # the next major version.
   requireExplicitSecrets: false
@@ -1437,6 +1448,12 @@ env:
     init_timeout_ms: "5000"
     isolate_memory_mb: "128"
     control_service_base_url: ""
+    # RUNNER_HMAC_SECRET_KEY, shared by the API (signs) and the runner (verifies).
+    # Leave empty and helm install/upgrade generates one per installation and keeps
+    # it in <release>-runner-secrets. Set it (openssl rand -hex 32) when you render
+    # with helm template or a GitOps tool, which cannot keep a generated key. Or
+    # supply RUNNER_HMAC_SECRET_KEY through external_secrets.app_keys_existingSecret
+    # or runner_env_existingSecret.
     hmac_secret_key: ""
 
   pi_envs:

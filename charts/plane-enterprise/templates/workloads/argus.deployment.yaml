@@ -57,7 +57,7 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-argus
         {{- include "plane.commonLabels" $ | nindent 8 }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.argusPodAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.argus }}
       {{- include "plane.podSecurityContext" . }}
