@@ -209,8 +209,8 @@ as "sign with SigV4".
 {{- $warnings = append $warnings "env.storage_provider is AZURE, but serviceAccount.podLabels lacks\n    azure.workload.identity/use: \"true\". The AKS Workload Identity webhook only injects\n    the federated token into labelled pods, so Blob calls fail without it." }}
 {{- end }}
 {{- end }}
-{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.app_keys_existingSecret) (empty .Values.external_secrets.pi_api_env_existingSecret) (or (empty .Values.env.pi_envs.internal_secret) (eq .Values.env.pi_envs.internal_secret "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk")) }}
-{{- $warnings = append $warnings "env.storage_provider is AZURE and PI_INTERNAL_SECRET is the chart's public example\n    value. Plane AI signs its file URLs with it on Azure, so it refuses to: file uploads\n    stay off in Plane AI. Set env.pi_envs.internal_secret or\n    external_secrets.app_keys_existingSecret." }}
+{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.app_keys_existingSecret) (empty .Values.external_secrets.pi_api_env_existingSecret) (or (lt (len (toString .Values.env.pi_envs.internal_secret)) 32) (has .Values.env.pi_envs.internal_secret (list "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk" "change-me-to-a-long-random-value"))) }}
+{{- $warnings = append $warnings "env.storage_provider is AZURE and PI_INTERNAL_SECRET is empty, a public example value\n    or under 32 characters. Plane AI signs its file URLs with it on Azure, so it refuses to:\n    file uploads stay off in Plane AI. Set env.pi_envs.internal_secret (for example\n    openssl rand -hex 32) or external_secrets.app_keys_existingSecret." }}
 {{- end }}
 {{- end }}
 

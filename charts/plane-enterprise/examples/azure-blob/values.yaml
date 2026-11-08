@@ -10,8 +10,9 @@ env:
   # Required for AZURE: uploads and downloads go through the API.
   use_storage_proxy: true
   pi_envs:
-    # Signs Plane AI's file URLs. With the chart's public example value, its file uploads stay off.
-    internal_secret: change-me-to-a-long-random-value
+    # Signs Plane AI's file URLs: set your own, 32+ characters (openssl rand -hex 32). Left empty, Plane AI's
+    # file uploads stay off.
+    internal_secret: ''
 
 services:
   # Ignored for AZURE (MinIO is deployed only for S3); false keeps the intent explicit.
