@@ -102,6 +102,9 @@ ca_node() { # file workload
 readiness_port_of() { # file workload
   to_json "$1" | jq -r --arg w "$2" 'select(.metadata.name == $w) | .spec.template.spec.containers[0].readinessProbe.tcpSocket.port // empty' | head -1
 }
+prestop_of() { # file workload
+  to_json "$1" | jq -r --arg w "$2" 'select(.metadata.name == $w) | .spec.template.spec.containers[0].lifecycle.preStop.exec.command // [] | join(" ")' | head -1
+}
 command_of() { # file workload
   jq -rs --arg w "$2" '
     [.[] | select((.kind == "Deployment" or .kind == "Job") and .metadata.name == $w)][0].spec.template.spec.containers[0].command // [] | join(" ")' "$1.json"
@@ -366,6 +369,7 @@ for values in "$CI_DIR"/*-values.yaml; do
       expect "$case_name: migrator command" "$(command_of "$out" plane-api-migrate-TS)" "./bin/docker-entrypoint-migrator.sh"
       expect "$case_name: mcp-server keeps the image's command" "$(command_of "$out" "$MCP_WORKLOAD")" ""
       expect "$case_name: mcp-server waits for its port" "$(readiness_port_of "$out" "$MCP_WORKLOAD")" "http"
+      expect "$case_name: mcp-server drains before stopping" "$(prestop_of "$out" "$MCP_WORKLOAD")" "sleep 8"
       for s in $REDIS_SECRETS; do
         expect "$case_name: $s REDIS_URL" "$(secret_of "$out" "$s" REDIS_URL)" ""
         expect "$case_name: $s REDIS_PASSWORD" "$(secret_of "$out" "$s" REDIS_PASSWORD)" "ci-redis-password"

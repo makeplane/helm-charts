@@ -69,6 +69,11 @@ spec:
           periodSeconds: 2
           timeoutSeconds: 2
           failureThreshold: 30
+        lifecycle:
+          # Keep serving while the ingress stops routing to this pod; without it a restart returns 502s.
+          preStop:
+            exec:
+              command: ["sleep", "8"]
         resources:
           requests:
             memory: {{ .Values.services.mcp_server.memoryRequest | default "150Mi" | quote }}
