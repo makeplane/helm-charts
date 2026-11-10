@@ -193,7 +193,8 @@ data:
   CUSTOM_LLM_MODEL_KEY: ""
   CUSTOM_LLM_BASE_URL: ""
   CUSTOM_LLM_NAME: ""
-  CUSTOM_LLM_MAX_TOKENS: ""
+  {{- /* pi parses this as an integer even when the custom LLM is off; "" stops pi-api and the migrator. */}}
+  CUSTOM_LLM_MAX_TOKENS: "128000"
   CUSTOM_LLM_PROVIDER: ""
   CUSTOM_LLM_AWS_REGION: ""
   {{- end }}
