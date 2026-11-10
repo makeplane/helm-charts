@@ -193,7 +193,7 @@ data:
   CUSTOM_LLM_MODEL_KEY: ""
   CUSTOM_LLM_BASE_URL: ""
   CUSTOM_LLM_NAME: ""
-  CUSTOM_LLM_MAX_TOKENS: ""
+  {{- /* No CUSTOM_LLM_MAX_TOKENS: pier refuses a blank integer and pi-api would not start. Unset is the default. */}}
   CUSTOM_LLM_PROVIDER: ""
   CUSTOM_LLM_AWS_REGION: ""
   {{- end }}
