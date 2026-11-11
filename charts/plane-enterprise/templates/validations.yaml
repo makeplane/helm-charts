@@ -75,3 +75,9 @@ the pod runs but nothing routes to it.
 {{- if and .Values.services.docs.enabled .Values.ingress.enabled (not .Values.ingress.docsHost) }}
 {{- fail "services.docs.enabled is set, but ingress.docsHost is empty. The offline docs are served at \"/\" on a host of their own: set ingress.docsHost (e.g. docs.plane.example.com), or set ingress.enabled=false and route to the <release>-docs service yourself." }}
 {{- end }}
+{{- if and .Values.services.docs.enabled .Values.ingress.enabled (eq (.Values.ingress.docsHost | default "") .Values.license.licenseDomain) }}
+{{- fail "ingress.docsHost is the same as license.licenseDomain. The offline docs and Plane are both served at \"/\", so the docs need a different host (e.g. docs.plane.example.com)." }}
+{{- end }}
+{{- if and .Values.services.docs.enabled (contains ":" (.Values.services.docs.image | default "" | splitList "/" | last)) }}
+{{- fail (printf "services.docs.image (%s) includes a tag. Set the repository only and put the docs version in services.docs.version." .Values.services.docs.image) }}
+{{- end }}

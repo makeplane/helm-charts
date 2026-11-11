@@ -5,9 +5,8 @@ installs that cannot reach the internet. Gated by services.docs.enabled (off by 
 The site is built to be served at "/", so it gets its own host (ingress.docsHost) rather
 than a path prefix on the license domain.
 
-makeplane/plane-docs-commercial is versioned independently of planeVersion (it follows the
-docs repo's tags), so the image is pinned here rather than built from it. It runs as uid 1000,
-gid 0 and works under an arbitrary UID, so the securityContext helpers apply.
+The tag is services.docs.version, a docs release independent of planeVersion. The image runs as
+uid 1000, gid 0 and works under an arbitrary UID, so the securityContext helpers apply.
 */ -}}
 {{- if .Values.services.docs.enabled }}
 apiVersion: v1
@@ -60,7 +59,7 @@ spec:
       - name: {{ .Release.Name }}-docs
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.docs.pullPolicy | default "IfNotPresent" }}
-        image: {{ .Values.services.docs.image | default "makeplane/plane-docs-commercial:v2.1.0" }}
+        image: {{ .Values.services.docs.image | default "makeplane/plane-docs-commercial" }}:{{ .Values.services.docs.version | default "v3.0.0" }}
         ports:
         - containerPort: 8080
         readinessProbe:

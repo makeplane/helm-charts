@@ -1175,10 +1175,16 @@ questions:
   group: "Offline Docs Setup"
   show_subquestion_if: true
   subquestions:
+  - variable: services.docs.version
+    label: "Docs Version"
+    description: "A published docs release tag of makeplane/plane-docs-commercial, independent of the Plane version."
+    type: string
+    default: "v3.0.0"
   - variable: services.docs.image
     label: "Docker Image"
+    description: "Repository only; the tag is Docs Version."
     type: string
-    default: "makeplane/plane-docs-commercial:v2.1.0"
+    default: "makeplane/plane-docs-commercial"
   - variable: services.docs.pullPolicy
     label: "Docs Pull Policy"
     type: enum

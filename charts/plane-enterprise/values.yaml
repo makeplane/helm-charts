@@ -376,8 +376,8 @@ services:
     annotations: {}
 
   # Offline copy of docs.plane.so and developers.plane.so for installs without internet
-  # access, served on its own host (ingress.docsHost). The image is versioned independently
-  # of planeVersion.
+  # access, served on its own host (ingress.docsHost). `version` is a docs release tag of
+  # makeplane/plane-docs-commercial, independent of planeVersion; pick any published one.
   docs:
     enabled: false
     replicas: 1
@@ -385,7 +385,8 @@ services:
     cpuLimit: 250m
     memoryRequest: 32Mi
     cpuRequest: 10m
-    image: makeplane/plane-docs-commercial:v2.1.0
+    image: makeplane/plane-docs-commercial
+    version: v3.0.0
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
     nodeSelector: {}
