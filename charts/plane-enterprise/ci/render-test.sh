@@ -292,7 +292,7 @@ for values in "$CI_DIR"/*-values.yaml; do
 
   # Passwords from values may only ever appear inside a Secret.
   for pw in ci-redis-password ci-sentinel-password; do
-    if jq -c 'select(.kind != "Secret")' "$out.json" | grep -q -- "$pw"; then
+    if jq -c 'select(.kind != "Secret")' "$out.json" | grep -F -- "$pw" >/dev/null; then
       fail "$case_name: '$pw' rendered outside a Secret"
     fi
   done
