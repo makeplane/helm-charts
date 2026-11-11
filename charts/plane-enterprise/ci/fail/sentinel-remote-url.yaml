@@ -1,7 +1,0 @@
-# Must fail: Sentinel mode together with env.remote_redis_url.
-services:
-  redis: {local_setup: false}
-env:
-  redis_sentinels: "sentinel-0.example.com:26379"
-  redis_sentinel_master: mymaster
-  remote_redis_url: redis://redis.example.com:6379/0

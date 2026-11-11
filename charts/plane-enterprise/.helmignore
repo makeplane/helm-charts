@@ -21,5 +21,4 @@
 .idea/
 *.tmproj
 .vscode/
-test-*.yaml# Chart tests (ci/render-test.sh and its values files); not part of the package.
-ci/
+test-*.yaml

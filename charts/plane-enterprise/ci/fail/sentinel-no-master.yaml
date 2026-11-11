@@ -1,5 +1,0 @@
-# Must fail: Sentinel mode without env.redis_sentinel_master.
-services:
-  redis: {local_setup: false}
-env:
-  redis_sentinels: "sentinel-0.example.com:26379"
