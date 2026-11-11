@@ -47,6 +47,9 @@ spec:
     spec:
       {{- include "plane.podScheduling" .Values.services.mcp_server }}
       {{- include "plane.podSecurityContext" . }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-mcp-server
         {{- include "plane.containerSecurityContext" . }}
@@ -58,6 +61,19 @@ spec:
         - name: http
           containerPort: 8211
           protocol: TCP
+        readinessProbe:
+          # The server has no health route, on any released image, so wait for the port. Without a probe
+          # the Service sends traffic before the server is listening, which returns 502.
+          tcpSocket:
+            port: http
+          periodSeconds: 2
+          timeoutSeconds: 2
+          failureThreshold: 30
+        lifecycle:
+          # Keep serving while the ingress stops routing to this pod; without it a restart returns 502s.
+          preStop:
+            exec:
+              command: ["sleep", "8"]
         resources:
           requests:
             memory: {{ .Values.services.mcp_server.memoryRequest | default "150Mi" | quote }}
@@ -65,6 +81,14 @@ spec:
           limits:
             memory: {{ .Values.services.mcp_server.memoryLimit | default "1000Mi" | quote }}
             cpu: {{ .Values.services.mcp_server.cpuLimit | default "500m" | quote }}
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        {{- if include "plane.s3CAEnabled" . }}
+        {{- /* Only with a custom CA: the certificates have to go in before the server starts,
+               so this repeats the image's ENTRYPOINT and CMD. */}}
+        {{- include "plane.s3CACommand" (dict "ctx" . "entrypoint" "python -m plane_mcp http") | nindent 8 }}
+        {{- end }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-mcp-server-vars
@@ -72,19 +96,28 @@ spec:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.mcp_server_env_existingSecret) }}{{ .Values.external_secrets.mcp_server_env_existingSecret }}{{ else }}{{ .Release.Name }}-mcp-server-secrets{{ end }}
               optional: false
-        {{- if or .Values.extraEnv (include "plane.redisCredsEnv" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.redisCredsEnv" .) (include "plane.redisClientEnv" .) }}
         env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.redisCredsEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
-          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl }}
+          {{- with (include "plane.redisClientEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl (not (include "plane.redisSentinel" .)) }}
           {{- /* TLS goes through a rediss:// URL, not REDIS_SSL: on the host/port path the
                  server applies REDIS_SSL to its startup PING only, and the token store itself
                  connects in plaintext, sending REDIS_PASSWORD in the clear. Composed from the
                  entries above so a hostKey/portKey from the Secret still applies; it carries
                  no password, so REDIS_PASSWORD fills it in and rotation keeps working.
                  Images before v0.3.2 ignore REDIS_URL and would keep the plaintext store, so
-                 refuse a known older version; an image without a semver tag passes through. */}}
+                 refuse a known older version; an image without a semver tag passes through.
+                 Never in Sentinel mode: there is usually no env.redis_host, so this became
+                 rediss://:6379/, which released servers try before anything else. TLS there
+                 comes from REDIS_SSL / REDIS_SENTINEL_SSL, which its Sentinel path reads. */}}
           {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
           {{- $mcpVersion := regexFind ":v?[0-9]+\\.[0-9]+\\.[0-9]+$" $mcpImage | trimPrefix ":" | trimPrefix "v" }}
           {{- if and $mcpVersion (semverCompare "<0.3.2" $mcpVersion) }}

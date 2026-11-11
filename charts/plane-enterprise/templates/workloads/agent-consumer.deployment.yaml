@@ -24,6 +24,9 @@ spec:
       {{- include "plane.podScheduling" .Values.services.agent_consumer }}
       {{- include "plane.podSpread" (dict "svc" .Values.services.agent_consumer "app" "agent-consumer" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
+      {{- with (include "plane.s3CAVolumes" .) }}
+{{ . | indent 6 }}
+      {{- end }}
       containers:
       - name: {{ .Release.Name }}-agent-consumer
         {{- include "plane.containerSecurityContext" . }}
@@ -49,8 +52,10 @@ spec:
           periodSeconds: 30
           successThreshold: 1
           timeoutSeconds: 5
-        command:
-          - ./bin/docker-entrypoint-agent-consumer.sh
+        {{- with (include "plane.s3CAVolumeMounts" .) }}
+{{ . | indent 8 }}
+        {{- end }}
+        {{- include "plane.s3CACommand" (dict "ctx" . "entrypoint" "./bin/docker-entrypoint-agent-consumer.sh") | nindent 8 }}
         envFrom:
           - configMapRef:
               name: {{ .Release.Name }}-agent-consumer-vars
@@ -87,8 +92,11 @@ spec:
                  or live-server auth fails with nothing logged. */}}
           {{- include "plane.appKeysSecretRef" . }}
           {{- include "plane.siloConnectorsSecretRef" . }}
-        {{- if or .Values.extraEnv (eq (include "plane.otel.enabled" .) "true") (include "plane.infraCredsEnv" .) }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (eq (include "plane.otel.enabled" .) "true") (include "plane.infraCredsEnv" .) }}
         env:
+          {{- with (include "plane.s3CAEnvVars" .) }}
+{{ . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "agent-consumer")) }}{{ . | nindent 10 }}{{- end }}
           {{- with (include "plane.infraCredsEnv" .) }}
 {{ trim . | indent 10 }}

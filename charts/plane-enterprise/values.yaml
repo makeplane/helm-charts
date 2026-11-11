@@ -21,6 +21,11 @@ airgapped:
 
 # Private/internal CA certificates to trust for outbound TLS (S3, Git, IdP, ...).
 # Works with or without airgapped mode. Each cert is also mounted at /s3-custom-ca/<key>.
+# Python workloads add them to the image's system trust store when they can. Non-root
+# (securityContext.enabled) they can't, so they write a bundle of the image's CAs plus
+# these to /tmp, or /dev/shm if /tmp is read-only, and point the TLS variables at it.
+# "WARNING custom CA certificates were not installed" in a pod's log means neither
+# worked, for example a file that isn't a PEM certificate, and these CAs aren't trusted.
 customCA:
   # List of Secrets holding CA certs, e.g. [{name: corp-ca, key: ca.crt}].
   s3Secrets: []
@@ -1038,6 +1043,14 @@ external_secrets:
     passwordKey: password
     hostKey: ''
     portKey: ''
+    # Optional ACL username for the data nodes (REDIS_USERNAME). Takes precedence
+    # over env.redis_username.
+    usernameKey: ''
+    # Sentinel mode only (env.redis_sentinels): auth to the sentinels themselves,
+    # when they need it. Each takes precedence over env.redis_sentinel_username /
+    # redis_sentinel_password.
+    sentinelUsernameKey: ''
+    sentinelPasswordKey: ''
 
   storage:
     # Object-storage credentials.
@@ -1206,7 +1219,30 @@ env:
   # Secret). Ignored when services.redis.local_setup is true.
   redis_host: ''
   redis_port: '6379'
-  redis_ssl: false
+  redis_ssl: false             # TLS to the data nodes; also used in Sentinel mode
+
+  # Redis Sentinel run by you (bring your own; the chart never deploys Sentinel).
+  # A non-empty redis_sentinels turns Sentinel mode on for api, workers, beat,
+  # consumers, migrator, live, silo, the MCP server and Plane AI: they ask the sentinels for
+  # the current primary and follow it across failovers. Requires
+  # services.redis.local_setup: false (the chart default is true) and
+  # env.remote_redis_url left empty; the render fails otherwise. REDIS_URL is
+  # rendered empty in this mode.
+  # Every data node must have notify-keyspace-events including E and x in its
+  # config file, or silo's webhook-driven syncs stop after a failover.
+  # The passwords below end up in the Helm release Secret and any values file you
+  # commit; prefer external_secrets.redis (passwordKey / sentinelPasswordKey).
+  redis_sentinels: ''          # "h1:26379,h2:26379,h3:26379"; non-empty = Sentinel mode
+  redis_sentinel_master: ''    # required in Sentinel mode
+  redis_sentinel_username: ''
+  redis_sentinel_password: ''  # plain value; ignored when external_secrets.redis.sentinelPasswordKey is used
+  redis_username: ''
+  redis_password: ''           # plain value for Sentinel mode without external_secrets.redis
+  redis_db: '0'
+  redis_sentinel_ssl: ''       # '' = same as redis_ssl
+  # Verify the Redis/Sentinel TLS certificates against the container's system CA
+  # bundle. For a private CA, list it in customCA: every Redis consumer installs it.
+  redis_ssl_verify: false
 
   # POSTGRES DB VALUES
   pgdb_username: plane

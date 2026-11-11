@@ -38,7 +38,14 @@ metadata:
 stringData:
   PLANE_OAUTH_PROVIDER_CLIENT_ID: {{ .Values.services.mcp_server.plane_oauth.client_id | quote }}
   PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.mcp_server.plane_oauth.client_secret | quote }}
-  {{- if include "plane.externalRedis" . }}
+  {{- if include "plane.redisSentinel" . }}
+  {{/* Sentinel mode: REDIS_SENTINELS and friends are env entries on the deployment
+       (plane.redisClientEnv). Empty so a URL cannot pin the token store to one node. */}}
+  REDIS_URL: ""
+  {{- with (include "plane.redisSentinelSecretData" . | trim) }}
+  {{- . | nindent 2 }}
+  {{- end }}
+  {{- else if include "plane.externalRedis" . }}
   {{/* Credentials come from external_secrets.redis as discrete REDIS_* env entries on
        the deployment (plane.redisCredsEnv), the same way live and Plane AI consume
        them. REDIS_URL must stay unset here: the MCP server (v0.3.2+) lets a URL win
