@@ -1508,7 +1508,7 @@ A copy of [docs.plane.so](https://docs.plane.so) (served at `/`) and [developers
 | Setting                                  |                Default                 | Required | Description |
 | ---------------------------------------- | :------------------------------------: | :------: | ----------- |
 | services.docs.enabled                    |                 false                  |          | Set to `true` to deploy the offline docs and route `ingress.docsHost` to them. Requires `ingress.docsHost` when `ingress.enabled` is `true` |
-| services.docs.replicas                   |                   1                    |          | Number of replicas for the docs deployment |
+| services.docs.replicas                   |                   1                    |          | Number of replicas for the docs deployment. It must be >=1 (0 renders 1); turn the docs off with `services.docs.enabled: false` |
 | services.docs.memoryLimit                |                 256Mi                  |          | Memory limit for the docs deployment |
 | services.docs.cpuLimit                   |                  250m                  |          | CPU limit for the docs deployment |
 | services.docs.memoryRequest              |                  32Mi                  |          | Memory request for the docs deployment |
