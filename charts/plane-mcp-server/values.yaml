@@ -15,6 +15,16 @@ ingress:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: admin@example.com
 
+# When `helm upgrade` restarts pods. Each workload carries checksum/config, a hash of the config
+# this chart renders for it, so changing the image tag, the pod spec or that config restarts it and
+# an upgrade that changes none of them does not. A new build pushed under the same tag is the one
+# thing a hash can't see:
+#   auto    (default) also restart on every upgrade when the image tag is not a release version
+#           (does not start with 1.2 or v1.2), e.g. latest, stable or a branch tag CI re-pushes
+#   always  restart every workload on every upgrade (the behaviour before 1.1.0)
+#   never   restart only on a tag, spec or config change
+rolloutOnUpgrade: auto
+
 services:
   api:
     image: makeplane/plane-mcp-server
