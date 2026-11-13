@@ -1803,12 +1803,11 @@ To close it, rotate so that both the old and the new credential are valid at onc
 
 Two things Reloader will not do: it ignores Jobs, so the migrator Job holds whatever credential it started with — don't rotate during an upgrade window, and re-run `helm upgrade` if a migration fails mid-rotation. And the bundled `local_setup` StatefulSets (postgres, rabbitmq, minio, opensearch) are outside all of this; rotation guidance assumes managed backends.
 
-Separately, `helm upgrade` no longer restarts every workload unconditionally. Pods carry a `checksum/config` annotation instead of a timestamp, so an upgrade rolls only what actually changed. Set `global.forceRedeploy: true` to get the old behaviour back.
+Separately, `helm upgrade` no longer restarts every workload unconditionally. Pods carry a `checksum/config` annotation instead of a timestamp, so an upgrade rolls only what actually changed. Argus follows the same rule since 3.13.1, with `checksum/argus-config` for its own settings; before that it restarted on every upgrade unless `global.deterministicRender` was set. Set `global.forceRedeploy: true` to get the old behaviour back.
 
-**GitOps (ArgoCD, Flux, Fleet).** By default the migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are named after the render time, and Argus pods carry a `timestamp` annotation, so every render differs and the release never shows as in sync. Set `global.deterministicRender: true` to render identical manifests for identical values:
+**GitOps (ArgoCD, Flux, Fleet).** By default the migrator, Plane AI migrator, Argus migrator and MinIO bucket Jobs are named after the render time, so every render differs and the release never shows as in sync. Set `global.deterministicRender: true` to render identical manifests for identical values:
 
 - Each of those Jobs is named after a hash of what it runs with, so it reruns only when that changes: the image, the rendered config (the MinIO bucket name included) or the chart version. Job specs are immutable, which is why a change produces a new name instead of an update.
-- Argus pods use the same `checksum/config` annotation as every other workload, plus `checksum/argus-config` for Argus's own settings.
 - The chart cannot see values supplied through an `external_secrets.*_existingSecret`, so changing only those reruns no Job. Delete the Job to rerun it.
 - A failed Job is not retried by rendering the same values again. Delete it (`kubectl delete job <name>`), or apply once with `global.forceRedeploy: true`, which still renames the Jobs on every render.
 
@@ -1912,7 +1911,7 @@ chart: an empty credential is *present*, and a present credential denies the cha
 | `external_secrets.ssl_token_existingSecret` | | DNS-01 API token for the cert-manager Issuer; must contain the key `api-token`. |
 | `env.requireExplicitSecrets` | false | Fail the render instead of falling back to the chart's public example keys. Will default to `true` in the next major version. |
 | `global.forceRedeploy` | false | Restart every workload on every `helm upgrade`, as versions before 3.1.0 did. Off means upgrades roll only what changed. |
-| `global.deterministicRender` | false | Render identical manifests for identical values (for ArgoCD, Flux, Fleet): Job names come from a hash of the Job spec instead of the render time, and Argus drops its per-render `timestamp`. |
+| `global.deterministicRender` | false | Render identical manifests for identical values (for ArgoCD, Flux, Fleet): Job names come from a hash of the Job spec instead of the render time. |
 
 ### Provider examples
 
