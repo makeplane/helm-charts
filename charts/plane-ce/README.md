@@ -164,6 +164,7 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | Setting      | Default | Required | Description |
 | ------------ | :-----: | :------: | ----------- |
 | planeVersion | v1.4.3  |   Yes    |             |
+| rolloutOnUpgrade | auto |       | When `helm upgrade` restarts pods. Every workload carries `checksum/config`, a hash of the config this chart renders for it, so a change to the image tag, the pod spec or that config restarts it and nothing else does. `auto` also restarts on every upgrade when the image tag isn't a release version (doesn't start with `1.2` or `v1.2`, e.g. `stable`, `latest`, a branch tag), because a hash can't see a new build pushed under the same tag. `always` restarts every workload on every upgrade (the behaviour before 1.9.0); `never` restarts only on a tag, spec or config change. |
 
 ### Postgress DB Setup
 

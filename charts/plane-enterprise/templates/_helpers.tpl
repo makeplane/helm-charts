@@ -44,6 +44,7 @@ pi_worker: pi-worker
 runner: runner
 iframely: iframely
 drawio: drawio
+docs: docs
 {{- end }}
 
 {{/*
@@ -600,20 +601,16 @@ Call with (dict "context" $ "spec" <rendered spec>).
 {{- end -}}
 
 {{/*
-Argus pod annotations. Argus has always stamped `timestamp` on every render; it
-keeps doing so unless global.deterministicRender, which moves it onto the
-shared, forceRedeploy-gated plane.podAnnotations like every other workload,
-plus checksum/argus-config: argus-env is not in plane.configChecksum (adding it
-would roll every workload), so this is what rolls Argus when its config changes.
+Argus pod annotations: the shared plane.podAnnotations (checksum/config, plus timestamp
+under global.forceRedeploy) and checksum/argus-config. argus-env is not in
+plane.configChecksum (adding it would roll every workload), so checksum/argus-config is
+what rolls Argus when its own config changes. Before 3.13.1 Argus instead stamped a
+per-render timestamp, restarting on every upgrade, unless global.deterministicRender.
 Call with the root context. Caller must nindent to the correct depth.
 */}}
 {{- define "plane.argusPodAnnotations" -}}
-{{- if .Values.global.deterministicRender -}}
 {{- include "plane.podAnnotations" . }}
 checksum/argus-config: {{ include (print .Template.BasePath "/config-secrets/argus-env.yaml") . | sha256sum | quote }}
-{{- else -}}
-timestamp: {{ now | quote }}
-{{- end -}}
 {{- end -}}
 
 {{/*

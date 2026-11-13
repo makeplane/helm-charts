@@ -82,3 +82,24 @@ yields to the *_existingSecret that would carry the value instead. */ -}}
 {{- fail "env.storage_provider is AZURE but env.azure_storage_account_name is empty. Set it to the storage account name." }}
 {{- end }}
 {{- end }}
+{{- /*
+The offline docs are built to be served at "/", so they need a host of their own; without one
+the pod runs but nothing routes to it.
+*/ -}}
+{{- if and .Values.services.docs.enabled .Values.ingress.enabled (not .Values.ingress.docsHost) }}
+{{- fail "services.docs.enabled is set, but ingress.docsHost is empty. The offline docs are served at \"/\" on a host of their own: set ingress.docsHost (e.g. docs.plane.example.com), or set ingress.enabled=false and route to the <release>-docs service yourself." }}
+{{- end }}
+{{- if and .Values.services.docs.enabled .Values.ingress.enabled .Values.ingress.docsHost }}
+{{- $docsHost := .Values.ingress.docsHost }}
+{{- $taken := dict "license.licenseDomain" .Values.license.licenseDomain }}
+{{- if eq (include "plane.minioEnabled" .) "true" }}{{- $_ := set $taken "ingress.minioHost" .Values.ingress.minioHost }}{{- end }}
+{{- if .Values.services.rabbitmq.local_setup }}{{- $_ := set $taken "ingress.rabbitmqHost" .Values.ingress.rabbitmqHost }}{{- end }}
+{{- range $key, $host := $taken }}
+{{- if eq $docsHost ($host | default "") }}
+{{- fail (printf "ingress.docsHost is the same as %s (%s). Both are served at \"/\", so the offline docs need a host of their own (e.g. docs.plane.example.com)." $key $docsHost) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if and .Values.services.docs.enabled (contains ":" (.Values.services.docs.image | default "" | splitList "/" | last)) }}
+{{- fail (printf "services.docs.image (%s) includes a tag. Set the repository only and put the docs version in services.docs.version." .Values.services.docs.image) }}
+{{- end }}
