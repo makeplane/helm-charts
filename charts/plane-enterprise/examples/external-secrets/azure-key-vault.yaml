@@ -79,7 +79,7 @@ spec:
 # Chart side:
 #   external_secrets.rabbitmq.secretName: plane-rabbitmq
 #   env.rabbitmq_host / rabbitmq_port / rabbitmq_vhost
-# Or keep the bundled broker (local_setup: true) and drop the env.* lines (chart 3.12.2+):
+# Or keep the bundled broker (local_setup: true) and drop the env.* lines (chart 3.14.0+):
 # it takes its first-boot user from this Secret, on an empty volume only.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
