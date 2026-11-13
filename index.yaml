@@ -5,6 +5,23 @@ entries:
       artifacthub.io/license: AGPL-3.0
     apiVersion: v2
     appVersion: 1.4.3
+    created: "2026-11-13T03:44:56.777888859Z"
+    description: Meet Plane. An open-source software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 394c89c74b20123ec692e0011de2da3cda0e1bd2157fbf33bdf8f8a45f776e97
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-ce
+    sources:
+    - https://github.com/makeplane/plane
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.9.0/plane-ce-1.9.0.tgz
+    version: 1.9.0
+  - annotations:
+      artifacthub.io/license: AGPL-3.0
+    apiVersion: v2
+    appVersion: 1.4.3
     created: "2026-10-29T07:26:58.192040972Z"
     description: Meet Plane. An open-source software development tool to manage issues,
       sprints, and product roadmaps with peace of mind.
@@ -716,6 +733,21 @@ entries:
     - https://github.com/makeplane/helm-charts/releases/download/plane-ce-1.0.13/plane-ce-1.0.13.tgz
     version: 1.0.13
   plane-enterprise:
+  - apiVersion: v2
+    appVersion: 4.0.1
+    created: "2026-11-13T03:44:56.928767394Z"
+    description: Meet Plane. An Enterprise software development tool to manage issues,
+      sprints, and product roadmaps with peace of mind.
+    digest: 7ea1dfcccc0962b8370dcdfb5e43d66d5f9d37ed62268922d71a4d5671f4ae9f
+    home: https://plane.so/
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-enterprise
+    sources:
+    - https://github.com/makeplane/plane-ee
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-enterprise-3.13.1/plane-enterprise-3.13.1.tgz
+    version: 3.13.1
   - apiVersion: v2
     appVersion: 4.0.1
     created: "2026-11-05T03:28:57.754499059Z"
@@ -2632,6 +2664,25 @@ entries:
     version: 1.0.4
   plane-mcp-server:
   - apiVersion: v2
+    appVersion: v0.3.5
+    created: "2026-11-13T03:44:57.09159102Z"
+    dependencies:
+    - condition: services.valkey.local_setup
+      name: valkey
+      repository: https://valkey.io/valkey-helm/
+      version: ~0.11.0
+    description: plane-mcp-server Setup
+    digest: 4578d003a7dad6ded07c3e9e1ddc6f442bc0145760559ec1e99f71692496d0fe
+    home: https://plane.so
+    icon: https://plane.so/favicon/favicon-32x32.png
+    name: plane-mcp-server
+    sources:
+    - https://github.com/makeplane/plane-mcp-server
+    type: application
+    urls:
+    - https://github.com/makeplane/helm-charts/releases/download/plane-mcp-server-1.1.0/plane-mcp-server-1.1.0.tgz
+    version: 1.1.0
+  - apiVersion: v2
     appVersion: v0.3.0
     created: "2026-08-18T11:33:08.524665579Z"
     dependencies:
@@ -2650,4 +2701,4 @@ entries:
     urls:
     - https://github.com/makeplane/helm-charts/releases/download/plane-mcp-server-1.0.0/plane-mcp-server-1.0.0.tgz
     version: 1.0.0
-generated: "2026-11-05T03:28:57.754908576Z"
+generated: "2026-11-13T03:44:57.091861147Z"
