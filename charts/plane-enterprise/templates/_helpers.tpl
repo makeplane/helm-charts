@@ -187,14 +187,22 @@ Call with a dict carrying the root context and the component values:
 {{- end }}
 
 {{/*
+The object-storage backend, normalised: S3 (default; MinIO and S3-compatible), GCS or
+AZURE. templates/validations.yaml refuses any other value.
+*/}}
+{{- define "plane.storageProvider" -}}
+{{- .Values.env.storage_provider | default "S3" | upper -}}
+{{- end -}}
+
+{{/*
 Returns "true" when the bundled MinIO should be deployed.
 MinIO is deployed only when services.minio.local_setup is enabled AND the storage
-provider is not GCS — GCS native mode never uses the bundled MinIO, so selecting it
-must disable the MinIO StatefulSet, bucket job, ingress routes and certs regardless
-of the local_setup flag's value.
+provider is S3 — GCS and Azure Blob native modes never use the bundled MinIO, so
+selecting either must disable the MinIO StatefulSet, bucket job, ingress routes and
+certs regardless of the local_setup flag's value.
 */}}
 {{- define "plane.minioEnabled" -}}
-  {{- if and .Values.services.minio.local_setup (ne (.Values.env.storage_provider | default "S3" | upper) "GCS") -}}
+  {{- if and .Values.services.minio.local_setup (eq (include "plane.storageProvider" .) "S3") -}}
     true
   {{- end -}}
 {{- end -}}
@@ -793,8 +801,16 @@ true
 {{- end -}}
 {{- end -}}
 
+{{/* Also true with the bundled broker, which reads the same Secret (plane.bundledRabbitmqFromSecret). */}}
 {{- define "plane.externalRabbitmq" -}}
 {{- if .Values.external_secrets.rabbitmq.secretName -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/* "true" when the bundled broker takes its first-boot user from external_secrets.rabbitmq. */}}
+{{- define "plane.bundledRabbitmqFromSecret" -}}
+{{- if and .Values.services.rabbitmq.local_setup .Values.external_secrets.rabbitmq.secretName -}}
 true
 {{- end -}}
 {{- end -}}
@@ -835,6 +851,11 @@ mirrored cloud secret when it happens to carry them — see hostKey/portKey/dbNa
 {{- else -}}
 {{- .Values.env.rabbitmq_host -}}
 {{- end -}}
+{{- end -}}
+
+{{/* Bundled broker port: 5672 while the Service is headless, servicePort with a ClusterIP. */}}
+{{- define "plane.bundledRabbitmqPort" -}}
+{{- ternary (.Values.services.rabbitmq.servicePort | default 5672) 5672 (.Values.services.rabbitmq.assign_cluster_ip | default false) | toString -}}
 {{- end -}}
 
 {{- define "plane.redisHost" -}}
@@ -930,13 +951,20 @@ Secret mounted via envFrom.
 
 Only the keys the operator names are emitted: an S3 deployment sets the two access-key
 keys, a GCS deployment sets gcsCredentialsJsonKey, and a deployment using a pod identity
-sets none of them and relies on the SDK credential chain.
+sets none of them and relies on the SDK credential chain. AZURE takes only
+azureConnectionStringKey (dev/Azurite; on AKS use Workload Identity) and never the
+AWS_* or GCS_* keys.
 
 Caller must indent to the correct depth (env list items).
 */}}
 {{- define "plane.storageCredsEnv" -}}
 {{- $st := .Values.external_secrets.storage -}}
 {{- if include "plane.externalStorage" . }}
+{{- if eq (include "plane.storageProvider" .) "AZURE" }}
+{{- with $st.azureConnectionStringKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "AZURE_STORAGE_CONNECTION_STRING" "secret" $st.secretName "key" .) }}
+{{- end }}
+{{- else }}
 {{- with $st.accessKeyIdKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "AWS_ACCESS_KEY_ID" "secret" $st.secretName "key" .) }}
 {{- end }}
@@ -945,6 +973,7 @@ Caller must indent to the correct depth (env list items).
 {{- end }}
 {{- with $st.gcsCredentialsJsonKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "GCS_CREDENTIALS_JSON" "secret" $st.secretName "key" .) }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end -}}
@@ -1000,13 +1029,22 @@ Caller must indent to the correct depth (env list items).
 {{- end -}}
 
 {{/*
-RabbitMQ credentials from an externally managed Secret.
+RabbitMQ credentials from an externally managed Secret. With the bundled broker,
+env.rabbitmq_* are ignored and the chart's own Service is used.
 */}}
 {{- define "plane.rabbitmqCredsEnv" -}}
 {{- $mq := .Values.external_secrets.rabbitmq -}}
 {{- if $mq.secretName }}
 - name: RABBITMQ_HOST
   value: {{ include "plane.rabbitmqHost" . | quote }}
+{{- if .Values.services.rabbitmq.local_setup }}
+- name: RABBITMQ_PORT
+  value: {{ include "plane.bundledRabbitmqPort" . | quote }}
+- name: RABBITMQ_VHOST
+  value: "/"
+- name: RABBITMQ_SSL
+  value: "0"
+{{- else }}
 - name: RABBITMQ_PORT
   value: {{ .Values.env.rabbitmq_port | default "5672" | quote }}
 - name: RABBITMQ_VHOST
@@ -1015,6 +1053,7 @@ RabbitMQ credentials from an externally managed Secret.
   {{/* The parts path has no URL scheme to carry TLS, so it needs an explicit flag.
        Amazon MQ for RabbitMQ listens on 5671 and refuses plaintext. */}}
   value: {{ .Values.env.rabbitmq_ssl | default false | ternary "1" "0" | quote }}
+{{- end }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_PASSWORD" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
 {{- with $mq.hostKey }}
@@ -1026,6 +1065,15 @@ RabbitMQ credentials from an externally managed Secret.
 {{- with $mq.vhostKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_VHOST" "secret" $mq.secretName "key" .) }}
 {{- end }}
+{{- end }}
+{{- end -}}
+
+{{/* Bundled broker's first-boot user from the apps' Secret; explicit env wins over envFrom. */}}
+{{- define "plane.rabbitmqServerCredsEnv" -}}
+{{- $mq := .Values.external_secrets.rabbitmq -}}
+{{- if include "plane.bundledRabbitmqFromSecret" . }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_PASS" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
 {{- end }}
 {{- end -}}
 

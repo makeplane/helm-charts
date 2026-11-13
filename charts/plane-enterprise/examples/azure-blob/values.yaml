@@ -1,0 +1,37 @@
+# Plane (plane-enterprise) on AKS with Azure Blob Storage and Workload Identity. Merge into your
+# values; needs Plane vX.Y (TBD) or later. See README.md, "Azure Blob Storage".
+env:
+  storage_provider: AZURE
+  azure_storage_account_name: planestorage
+  # Falls back to env.docstore_bucket when empty.
+  azure_storage_container_name: uploads
+  # Optional: sovereign clouds, e.g. https://planestorage.blob.core.chinacloudapi.cn
+  azure_storage_blob_endpoint: ''
+  # Required for AZURE: uploads and downloads go through the API.
+  use_storage_proxy: true
+  pi_envs:
+    # Signs Plane AI's file URLs: set your own, 32+ characters (openssl rand -hex 32). Left empty, Plane AI's
+    # file uploads stay off.
+    internal_secret: ''
+
+services:
+  # Ignored for AZURE (MinIO is deployed only for S3); false keeps the intent explicit.
+  minio:
+    local_setup: false
+  # Plane AI stores attachments in the same container; its file URLs go through /pi/ on this domain.
+  pi:
+    enabled: true
+
+# User-assigned managed identity with Storage Blob Data Contributor on the account, federated
+# to system:serviceaccount:<namespace>:<release>-srv-account.
+serviceAccount:
+  annotations:
+    azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
+  podLabels:
+    azure.workload.identity/use: 'true'
+
+# Dev/Azurite only, instead of Workload Identity: a Secret holding the connection string.
+# external_secrets:
+#   storage:
+#     secretName: plane-azurite
+#     azureConnectionStringKey: connection-string
