@@ -1,4 +1,5 @@
 {{- if .Values.services.rabbitmq.local_setup }}
+{{- include "plane.validateBrokerClientCompat" (dict "rabbitmq" .Values.services.rabbitmq "planeVersion" .Values.planeVersion) }}
 
 apiVersion: v1
 kind: Service
@@ -64,11 +65,14 @@ spec:
           subPath: ''
         readinessProbe:
           exec:
-            command: ["rabbitmq-diagnostics", "check_port_connectivity"]
-          initialDelaySeconds: 5
-          periodSeconds: 30
-          timeoutSeconds: 30
-          failureThreshold: 50
+            command:
+              - sh
+              - -c
+              - rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_port_connectivity
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
