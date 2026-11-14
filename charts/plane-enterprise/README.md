@@ -1368,11 +1368,34 @@ env:
     smtp_domain: mail.plane.example.com
 ```
 
+### Automations
+
+Automations that run on a work item event (created, updated, state changed, and so on) need **both** the outbox poller and the automation consumer. Both are off by default. Without them you can create and enable automations in the UI, but they never run.
+
+| Trigger                      | Services it needs                                            |
+| ---------------------------- | ------------------------------------------------------------ |
+| Work item events             | `outbox_poller` + `automation_consumer` + worker + RabbitMQ  |
+| Schedules (time-based rules) | worker + beat-worker only                                    |
+
+How an event reaches an automation: a change to a work item writes a row to the `outbox` table. The outbox poller publishes it to the `plane.event_stream` exchange in RabbitMQ. The automation consumer reads the `plane.event_stream.automations` queue and queues the automation on the worker. The webhook and agent consumers read the same exchange. Both services use the RabbitMQ the rest of the chart uses (`services.rabbitmq.local_setup`, or your external broker), so nothing else needs to be configured.
+
+**Turning them on in an existing install.** Do it in two upgrades:
+
+1. Set `services.outbox_poller.enabled: true` and upgrade.
+2. Wait for the backlog to drain. `SELECT count(*) FROM outbox WHERE processed_at IS NULL;` should reach 0.
+3. Set `services.automation_consumer.enabled: true` and upgrade again.
+
+The order matters. While the poller is off, unprocessed events pile up in `outbox`. A daily cleanup deletes the ones older than 2 days, so 2 to 3 days of events are waiting at any time, and the poller publishes all of them when it starts. If the automation consumer is already listening, automations run against changes made days earlier. Started first, the poller publishes that backlog before the automation queue exists, so automations never receive it.
+
+On a new install with no work items yet, you can turn both on together.
+
+**Check that it works:** the automation consumer logs `Starting Automation Consumer` on startup, and the `plane.event_stream.automations` queue appears in RabbitMQ. A work item change that matches an enabled automation should then run it, and the run appears in the automation's activity panel.
+
 ### Outbox Poller Service Deployment
 
 | Setting                                           | Default | Required | Description                                                                                                                                                                                    |
 | ------------------------------------------------- | :-----: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| services.outbox_poller.enabled                    |  false  |          | Set to `true` to enable the outbox poller service deployment                                                                                                                                   |
+| services.outbox_poller.enabled                    |  false  |          | Set to `true` to enable the outbox poller service deployment. Required for event-triggered automations; see [Automations](#automations) for the order to turn it on in                       |
 | services.outbox_poller.replicas                   |    1    |          | Number of replicas for the outbox poller service deployment                                                                                                                                    |
 | services.outbox_poller.memoryLimit                | 1000Mi  |          | Memory limit for the outbox poller service deployment                                                                                                                                          |
 | services.outbox_poller.cpuLimit                   |  500m   |          | CPU limit for the outbox poller service deployment                                                                                                                                             |
@@ -1386,8 +1409,8 @@ env:
 | services.outbox_poller.labels                     |   {}    |          | Custom labels to add to the outbox poller deployment                                                                                                                                           |
 | services.outbox_poller.annotations                |   {}    |          | Custom annotations to add to the outbox poller deployment                                                                                                                                      |
 | env.outbox_poller_envs.memory_limit_mb            |   400   |          | Memory limit in MB for the outbox poller                                                                                                                                                       |
-| env.outbox_poller_envs.interval_min               |  0.25   |          | Minimum interval in minutes for polling                                                                                                                                                        |
-| env.outbox_poller_envs.interval_max               |    2    |          | Maximum interval in minutes for polling                                                                                                                                                        |
+| env.outbox_poller_envs.interval_min               |  0.25   |          | Minimum interval in seconds between polls                                                                                                                                                      |
+| env.outbox_poller_envs.interval_max               |    2    |          | Maximum interval in seconds between polls; the poller backs off to this when the outbox is empty                                                                                              |
 | env.outbox_poller_envs.batch_size                 |   250   |          | Batch size for processing outbox messages                                                                                                                                                      |
 | env.outbox_poller_envs.memory_check_interval      |   30    |          | Memory check interval in seconds                                                                                                                                                               |
 | env.outbox_poller_envs.pool.size                  |    4    |          | Pool size for database connections                                                                                                                                                             |
@@ -1403,7 +1426,7 @@ env:
 
 | Setting                                              |             Default              | Required | Description                                                                                                                                                                                          |
 | ---------------------------------------------------- | :------------------------------: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| services.automation_consumer.enabled                 |              false               |          | Set to `true` to enable the automation consumer service deployment                                                                                                                                   |
+| services.automation_consumer.enabled                 |              false               |          | Set to `true` to enable the automation consumer service deployment. Required for event-triggered automations, together with `services.outbox_poller.enabled`; see [Automations](#automations)       |
 | services.automation_consumer.replicas                |                1                 |          | Number of replicas for the automation consumer service deployment                                                                                                                                    |
 | services.automation_consumer.memoryLimit             |              1000Mi              |          | Memory limit for the automation consumer service deployment                                                                                                                                          |
 | services.automation_consumer.cpuLimit                |               500m               |          | CPU limit for the automation consumer service deployment                                                                                                                                             |
@@ -1418,7 +1441,7 @@ env:
 | env.automation_consumer_envs.event_stream_queue_name | "plane.event_stream.automations" |          | Event stream queue name for automations                                                                                                                                                              |
 | env.automation_consumer_envs.event_stream_prefetch   |                10                |          | Event stream prefetch count                                                                                                                                                                          |
 | env.automation_consumer_envs.exchange_name           |       "plane.event_stream"       |          | Exchange name for event stream                                                                                                                                                                       |
-| env.automation_consumer_envs.event_types             |             "issue"              |          | Event types to process                                                                                                                                                                               |
+| env.automation_consumer_envs.event_types             |             "issue"              |          | Not read by the application: the consumer always processes work item events (`workitem.*` and `issue.*`). Kept for compatibility                                                                     |
 
 ### Webhook Consumer Deployment
 

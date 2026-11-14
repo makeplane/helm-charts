@@ -801,6 +801,7 @@ questions:
 
 - variable: services.outbox_poller.enabled
   label: "Enable Outbox Poller"
+  description: "Required, with the Automation Consumer, for automations triggered by work item events. On an existing install, turn this on first and let the outbox drain before enabling the consumer (see the chart README, Automations)."
   type: boolean
   default: false
   group: "Outbox Poller Setup"
@@ -885,6 +886,7 @@ questions:
 
 - variable: services.automation_consumer.enabled
   label: "Enable Automation Consumer"
+  description: "Required, with the Outbox Poller, for automations triggered by work item events. Scheduled automations need only the worker and beat-worker."
   type: boolean
   default: false
   group: "Automation Consumer Setup"
