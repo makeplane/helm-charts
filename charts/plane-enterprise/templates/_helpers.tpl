@@ -1184,11 +1184,12 @@ Values can be booleans or strings (questions.yml and --set-string pass strings).
 
 {{/*
 Redis settings beyond plane.redisCredsEnv: the Sentinel connection, and the ACL
-usernames for the data nodes and the sentinels. Renders nothing unless Sentinel
-mode is on or a username is configured, so non-Sentinel releases render as before.
+usernames for the data nodes and the sentinels, and REDIS_SSL_VERIFY. Renders
+nothing unless Sentinel mode is on, a username is configured or env.redis_ssl_verify
+is on, so other non-Sentinel releases render as before.
 
-Kept out of plane.redisCredsEnv on purpose: Plane AI includes that helper, and pi
-has no Sentinel support yet, so its env must not change.
+Kept out of plane.redisCredsEnv on purpose: Plane AI includes that helper, and gets
+these settings only in Sentinel mode, so its env doesn't change otherwise.
 
 Passwords given as plain values are not here: they go into each service's own
 Secret (plane.redisSentinelSecretData), never into a manifest. With
@@ -1228,6 +1229,11 @@ Caller must indent to the correct depth (env list items).
 {{- if and $redis.secretName $redis.sentinelPasswordKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "REDIS_SENTINEL_PASSWORD" "secret" $redis.secretName "key" $redis.sentinelPasswordKey) }}
 {{- end }}
+{{- else if eq (include "plane.truthyFlag" ($env.redis_ssl_verify | default false)) "1" }}
+{{- /* Outside Sentinel mode the api, workers, beat and migrator check certificates only
+       with this set. Rendered only when on, so other releases render as before. */}}
+- name: REDIS_SSL_VERIFY
+  value: "1"
 {{- end }}
 {{- /* The data-node username also applies to the non-Sentinel discrete parts
        (external_secrets.redis). Without either, REDIS_URL carries it. */}}

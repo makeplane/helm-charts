@@ -800,7 +800,7 @@ the bundled datastores off. Three things to know before you use it:
 | env.redis_password               |                             |          | Password for the data nodes in Sentinel mode without `external_secrets.redis`. Plain value, written to the services' Secrets. |
 | env.redis_db                     |              0              |          | Database index in Sentinel mode. |
 | env.redis_sentinel_ssl           |                             |          | TLS to the sentinels. Empty = same as `env.redis_ssl`. |
-| env.redis_ssl_verify             |            false            |          | Verify the Redis and Sentinel TLS certificates against the container's system CA bundle. For a private CA, list it in `customCA`: every Redis consumer installs it. |
+| env.redis_ssl_verify             |            false            |          | Verify the Redis and Sentinel TLS certificates against the container's system CA bundle. In Sentinel mode this covers every Redis consumer. With a single Redis it covers the api, workers, beat and migrator; live, silo, the MCP server and Plane AI always verify a `rediss://` URL. For a private CA, list it in `customCA`: every Redis consumer installs it. |
 
 ### RabbitMQ Setup
 

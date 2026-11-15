@@ -1684,7 +1684,7 @@ questions:
     show_if: "services.redis.local_setup=false"
   - variable: env.redis_ssl_verify
     label: "Verify Redis TLS Certificates"
-    description: "Verify the Redis and Sentinel certificates against the system CA bundle. Off by default."
+    description: "Verify the Redis and Sentinel certificates against the system CA bundle. With a single Redis, this covers the api, workers, beat and migrator; the other services always verify. Off by default."
     type: boolean
     default: false
     show_if: "services.redis.local_setup=false"

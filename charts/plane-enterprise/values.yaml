@@ -1265,7 +1265,9 @@ env:
   redis_db: '0'
   redis_sentinel_ssl: ''       # '' = same as redis_ssl
   # Verify the Redis/Sentinel TLS certificates against the container's system CA
-  # bundle. For a private CA, list it in customCA: every Redis consumer installs it.
+  # bundle. With a single Redis it covers the api, workers, beat and migrator; the
+  # other services always verify rediss://. For a private CA, list it in customCA:
+  # every Redis consumer installs it.
   redis_ssl_verify: false
 
   # POSTGRES DB VALUES
