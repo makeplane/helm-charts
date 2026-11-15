@@ -107,7 +107,7 @@ spec:
           {{- with (include "plane.redisClientEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
-          {{- if and (include "plane.externalRedis" .) .Values.env.redis_ssl (not (include "plane.redisSentinel" .)) }}
+          {{- if and (include "plane.externalRedis" .) (eq (include "plane.truthyFlag" (.Values.env.redis_ssl | default false)) "1") (not (include "plane.redisSentinel" .)) }}
           {{- /* TLS goes through a rediss:// URL, not REDIS_SSL: on the host/port path the
                  server applies REDIS_SSL to its startup PING only, and the token store itself
                  connects in plaintext, sending REDIS_PASSWORD in the clear. Composed from the

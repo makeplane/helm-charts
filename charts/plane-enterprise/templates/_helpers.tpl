@@ -1153,7 +1153,7 @@ live server, and by Plane AI, whose Celery broker is Redis in Helm deployments.
 - name: REDIS_PORT
   value: {{ .Values.env.redis_port | default "6379" | quote }}
 - name: REDIS_SSL
-  value: {{ .Values.env.redis_ssl | default false | ternary "1" "0" | quote }}
+  value: {{ include "plane.truthyFlag" (.Values.env.redis_ssl | default false) | quote }}
 {{- include "plane.secretKeyEnv" (dict "name" "REDIS_PASSWORD" "secret" $redis.secretName "key" ($redis.passwordKey | default "password")) }}
 {{- with $redis.hostKey }}
 {{- include "plane.secretKeyEnv" (dict "name" "REDIS_HOST" "secret" $redis.secretName "key" .) }}
@@ -1199,6 +1199,24 @@ REDIS_SSL is emitted only when plane.redisCredsEnv does not already emit it.
 Caller must indent to the correct depth (env list items).
 */}}
 {{- define "plane.redisClientEnv" -}}
+{{- /* Leaves out any entry extraEnv also sets: every workload appends extraEnv after these,
+       and two entries with one name upset helm upgrade patches and GitOps diffs. The value
+       in extraEnv is the one that applies. */}}
+{{- $entries := include "plane.redisClientEnvEntries" . }}
+{{- if and $entries .Values.extraEnv }}
+{{- $taken := dict }}
+{{- range .Values.extraEnv }}{{- if .name }}{{- $_ := set $taken (toString .name) true }}{{- end }}{{- end }}
+{{- $kept := list }}
+{{- range (fromYamlArray $entries) }}{{- if not (hasKey $taken .name) }}{{- $kept = append $kept . }}{{- end }}{{- end }}
+{{- with $kept }}
+{{ toYaml . }}
+{{- end }}
+{{- else }}
+{{- $entries }}
+{{- end }}
+{{- end -}}
+
+{{- define "plane.redisClientEnvEntries" -}}
 {{- $redis := .Values.external_secrets.redis -}}
 {{- $env := .Values.env -}}
 {{- if include "plane.redisSentinel" . }}
