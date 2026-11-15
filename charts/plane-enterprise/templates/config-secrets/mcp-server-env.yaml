@@ -40,7 +40,9 @@ stringData:
   PLANE_OAUTH_PROVIDER_CLIENT_SECRET: {{ .Values.services.mcp_server.plane_oauth.client_secret | quote }}
   {{- if include "plane.redisSentinel" . }}
   {{/* Sentinel mode: REDIS_SENTINELS and friends are env entries on the deployment
-       (plane.redisClientEnv). Empty so a URL cannot pin the token store to one node. */}}
+       (plane.redisClientEnv). An image with Sentinel support uses them over any REDIS_URL
+       and logs a warning when one is set; empty here keeps that warning away. Images
+       without Sentinel support don't follow failovers either way (NOTES says so). */}}
   REDIS_URL: ""
   {{- with (include "plane.redisSentinelSecretData" . | trim) }}
   {{- . | nindent 2 }}
