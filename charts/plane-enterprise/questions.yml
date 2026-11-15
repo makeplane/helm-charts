@@ -1634,7 +1634,7 @@ questions:
     show_if: "services.redis.local_setup=false"
   - variable: env.redis_sentinels
     label: "Redis Sentinels (bring your own)"
-    description: "Comma-separated host:port list of your sentinels, e.g. s1:26379,s2:26379,s3:26379. Setting it turns on Sentinel mode; leave the Remote Redis URL empty. Every data node needs notify-keyspace-events with E and x."
+    description: "Comma-separated host:port list of your sentinels, e.g. s1:26379,s2:26379,s3:26379. Setting it turns on Sentinel mode; leave the Remote Redis URL empty. While upgrading from a version without silo's durable schedule, or if Redis refuses EVAL, every data node needs notify-keyspace-events with E and x."
     type: string
     default: ""
     show_if: "services.redis.local_setup=false"

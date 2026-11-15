@@ -1256,8 +1256,9 @@ env:
   # services.redis.local_setup: false (the chart default is true) and
   # env.remote_redis_url left empty; the render fails otherwise. REDIS_URL is
   # rendered empty in this mode.
-  # Every data node must have notify-keyspace-events including E and x in its
-  # config file, or silo's webhook-driven syncs stop after a failover.
+  # While upgrading from a Plane version without silo's durable schedule, or if
+  # your Redis refuses EVAL, every data node needs notify-keyspace-events with E
+  # and x in its config file; otherwise silo can miss delayed work after a failover.
   # The passwords below end up in the Helm release Secret and any values file you
   # commit; prefer external_secrets.redis (passwordKey / sentinelPasswordKey).
   redis_sentinels: ''          # "h1:26379,h2:26379,h3:26379"; non-empty = Sentinel mode

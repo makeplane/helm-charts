@@ -224,9 +224,9 @@ empty, start without Redis.
 Redis Sentinel mode: services follow master "{{ .Values.env.redis_sentinel_master }}" via {{ .Values.env.redis_sentinels }}.
   - Needs {{ $redisNeeds }},
     and an MCP server image with Sentinel support if services.mcp_server is on.
-  - notify-keyspace-events must include E and x in the config file of EVERY data
-    node, not only the current primary. Without it silo's webhook-driven syncs stop
-    after a failover.
+  - While upgrading from a Plane version without silo's durable schedule, or if your
+    Redis refuses EVAL, set notify-keyspace-events to include E and x in the config
+    file of EVERY data node. Otherwise silo can miss delayed work after a failover.
   - Plane AI (pi) uses Sentinel for its Celery broker, so it needs an image with Sentinel
     support too. With pi_api_env_existingSecret, set CELERY_BROKER_URL to sentinel:// in
     that Secret; a fixed Redis URL there won't follow a failover.
