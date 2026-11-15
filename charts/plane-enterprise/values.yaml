@@ -929,6 +929,10 @@ services:
     cpuRequest: 100m
     image: makeplane/plane-mcp-server:v0.3.2
     pullPolicy: Always
+    # Only with a custom CA (customCA): the CA has to be installed before the server starts,
+    # so the chart runs this instead of the image's own command. Change it if your image
+    # starts differently.
+    entrypoint: 'python -m plane_mcp http'
     assign_cluster_ip: false
     path_prefix: '/mcp'
     plane_base_url: ''

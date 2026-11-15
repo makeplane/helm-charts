@@ -86,8 +86,9 @@ spec:
         {{- end }}
         {{- if include "plane.s3CAEnabled" . }}
         {{- /* Only with a custom CA: the certificates have to go in before the server starts,
-               so this repeats the image's ENTRYPOINT and CMD. */}}
-        {{- include "plane.s3CACommand" (dict "ctx" . "entrypoint" "python -m plane_mcp http") | nindent 8 }}
+               so this replaces the image's ENTRYPOINT and CMD with services.mcp_server.entrypoint
+               (the official image's own command by default). */}}
+        {{- include "plane.s3CACommand" (dict "ctx" . "entrypoint" (.Values.services.mcp_server.entrypoint | default "python -m plane_mcp http")) | nindent 8 }}
         {{- end }}
         envFrom:
           - configMapRef:
