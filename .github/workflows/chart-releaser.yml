@@ -33,8 +33,29 @@ env:
   PAGES_INDEX_PATH: ""
 
 jobs:
+  # services.docs.version is the default docs release a plane-enterprise install gets when it
+  # turns docs on. Refuse to release a chart whose default was never published.
+  docs-image:
+    if: ${{ github.event.inputs.plane-ee == 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the default docs image
+        run: |
+          set -euo pipefail
+          values=charts/plane-enterprise/values.yaml
+          image="$(yq '.services.docs.image' "$values"):$(yq '.services.docs.version' "$values")"
+          echo "Default docs image: $image"
+          if ! docker manifest inspect "$image" > /dev/null; then
+            echo "::error::$image is not on Docker Hub. Push that docs tag in makeplane/docs (or run its Offline docs image workflow), or set services.docs.version to a published one, before releasing the chart."
+            exit 1
+          fi
+
   setup:
-    if: ${{ github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' || github.event.inputs.plane-mcp-server == 'true' }}
+    needs: docs-image
+    if: ${{ !failure() && !cancelled() && (github.event.inputs.plane-ce == 'true' || github.event.inputs.plane-ee == 'true' || github.event.inputs.plane-mcp-server == 'true') }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write

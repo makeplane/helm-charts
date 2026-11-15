@@ -16,8 +16,10 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-worker
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
+      {{- with include "plane-ce.rolloutAnnotations" (dict "ctx" $ "tag" $.Values.planeVersion "configs" (list "config-secrets/app-env.yaml" "config-secrets/doc-store.yaml")) }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-worker

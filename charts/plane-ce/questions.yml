@@ -706,3 +706,14 @@ questions:
   type: boolean
   default: false
   group: "Service Account"
+
+- variable: rolloutOnUpgrade
+  label: Restart Pods on Upgrade
+  description: "auto: restart a workload when its image tag, spec or config changes, and on every upgrade if the tag is not a release version (latest, stable, branch tags). always: restart on every upgrade. never: only on a tag, spec or config change."
+  type: enum
+  options:
+  - "auto"
+  - "always"
+  - "never"
+  default: "auto"
+  group: "Docker Registry"

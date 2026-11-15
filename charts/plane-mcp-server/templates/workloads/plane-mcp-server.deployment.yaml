@@ -36,8 +36,10 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-api
         {{- include "plane-mcp-server.commonLabels" $ | nindent 8 }}
+      {{- with include "plane-mcp-server.rolloutAnnotations" (dict "ctx" $ "tag" ($.Values.services.api.tag | default "v0.3.5") "configs" (list "config-secrets/app-env.yaml")) }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - name: {{ .Release.Name }}-api
