@@ -815,6 +815,8 @@ the bundled datastores off. Three things to know before you use it:
 | env.rabbitmq_host                       |            |          | Hostname of a remote RabbitMQ, used with `external_secrets.rabbitmq` instead of `services.rabbitmq.external_rabbitmq_url` — the credentials then come from the external Secret. Ignored when `services.rabbitmq.local_setup=true`. |
 | env.rabbitmq_port                       |    5672    |          | Port of a remote RabbitMQ, used with `external_secrets.rabbitmq`. Use `5671` for AMQPS (Amazon MQ). |
 | env.rabbitmq_vhost                      |     /      |          | Virtual host of a remote RabbitMQ, used with `external_secrets.rabbitmq`. |
+| external_secrets.rabbitmq.secretName    |            |          | Name of an existing Secret holding the RabbitMQ username and password. Note this is separate from `external_secrets.rabbitmq_existingSecret`, which configures the **bundled** broker. |
+| external_secrets.rabbitmq.usernameKey   |  username  |          | Key inside that Secret holding the username. `passwordKey`, and optionally `hostKey` / `portKey` / `vhostKey`, work the same way. |
 
 To run the bundled broker non-root with a read-only root filesystem (tested with `rabbitmq:3.13.6-management-alpine`):
 
@@ -843,8 +845,6 @@ services:
 ```
 
 An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Changing the uid on an existing install needs that volume re-owned or recreated; on a fresh install it does not matter. Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start.
-| external_secrets.rabbitmq.secretName    |            |          | Name of an existing Secret holding the RabbitMQ username and password. Note this is separate from `external_secrets.rabbitmq_existingSecret`, which configures the **bundled** broker. |
-| external_secrets.rabbitmq.usernameKey   |  username  |          | Key inside that Secret holding the username. `passwordKey`, and optionally `hostKey` / `portKey` / `vhostKey`, work the same way. |
 
 ### OpenSearch Setup
 
