@@ -51,7 +51,7 @@ spec:
       - name: {{ .Release.Name }}-mcp-server
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.mcp_server.pullPolicy | default "Always" }}
-        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
+        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.6" }}
         stdin: true
         tty: true
         ports:
@@ -85,7 +85,7 @@ spec:
                  no password, so REDIS_PASSWORD fills it in and rotation keeps working.
                  Images before v0.3.2 ignore REDIS_URL and would keep the plaintext store, so
                  refuse a known older version; an image without a semver tag passes through. */}}
-          {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
+          {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.6" }}
           {{- $mcpVersion := regexFind ":v?[0-9]+\\.[0-9]+\\.[0-9]+$" $mcpImage | trimPrefix ":" | trimPrefix "v" }}
           {{- if and $mcpVersion (semverCompare "<0.3.2" $mcpVersion) }}
           {{- fail (printf "env.redis_ssl with external_secrets.redis needs services.mcp_server.image v0.3.2 or later (got %s): older images do not encrypt the token-store connection to Redis." $mcpImage) }}

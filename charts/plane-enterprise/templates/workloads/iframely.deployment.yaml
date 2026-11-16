@@ -47,7 +47,7 @@ spec:
       - name: {{ .Release.Name }}-iframely
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: Always
-        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v2.5.4" }}
+        image: {{ .Values.services.iframely.image | default "makeplane/iframely:v2.5.8" }}
         stdin: true
         tty: true
         resources:
