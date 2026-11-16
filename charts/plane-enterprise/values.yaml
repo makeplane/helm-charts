@@ -274,11 +274,10 @@ services:
     # rejects a negotiated frame_max below 8192; amqplib sent 4096 until 0.10.6,
     # so an older app silently loses its silo/live consumers when the broker
     # moves. Rendering fails with an explanation instead. Set to '' to bypass.
-    # 4.1.0 is the first release whose images carry amqplib 0.10.9; v4.0.4 and
-    # v4.1.0-rc4 both still pin 0.10.5. Only exact releases are compared, so rc
-    # and branch tags pass through. Pinned here permanently -- raising it in a
-    # later chart release would block app versions that are fine.
-    minPlaneVersion: 4.1.0
+    # SET BEFORE MERGE, with planeVersion above, to the first release carrying
+    # amqplib 0.10.9. Empty until then: that release does not exist yet, and a floor
+    # above the chart's own planeVersion refuses to render at all.
+    minPlaneVersion: ''
     servicePort: 5672
     managementPort: 15672
     volumeSize: 100Mi
