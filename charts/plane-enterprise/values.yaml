@@ -1,4 +1,4 @@
-planeVersion: v4.0.1
+planeVersion: v4.2.0
 
 dockerRegistry:
   enabled: false
@@ -269,7 +269,15 @@ services:
 
   rabbitmq:
     local_setup: true
-    image: rabbitmq:3.13.6-management-alpine
+    image: rabbitmq:4.2.9-management-alpine
+    # Lowest planeVersion whose amqplib can reach a 4.x broker. RabbitMQ 4.1+
+    # rejects a negotiated frame_max below 8192; amqplib sent 4096 until 0.10.6,
+    # so an older app silently loses its silo/live consumers when the broker
+    # moves. Rendering fails with an explanation instead. Set to '' to bypass.
+    # 4.2.0 is the first release whose images carry amqplib 0.10.9; v4.1.0 and earlier
+    # still pin 0.10.5. Only exact releases are compared, so branch, preview and rc
+    # tags pass through. Set to '' to disable the check.
+    minPlaneVersion: 4.2.0
     servicePort: 5672
     managementPort: 15672
     volumeSize: 100Mi

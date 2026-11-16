@@ -101,7 +101,14 @@ postgres:
 
 rabbitmq:
   local_setup: true
-  image: rabbitmq:3.13.6-management-alpine
+  image: rabbitmq:4.2.9-management-alpine
+  # Lowest planeVersion whose amqplib can reach a 4.x broker. RabbitMQ 4.1+
+  # rejects a negotiated frame_max below 8192; amqplib sent 4096 until 0.10.6,
+  # so an older app silently loses its silo/live consumers when the broker
+  # moves. Rendering fails with an explanation instead. Set to '' to bypass.
+  # Empty for CE: community Plane has no amqplib at all -- its only AMQP client is
+  # Celery over py-amqp, which negotiates a frame_max 4.x accepts. Nothing to gate.
+  minPlaneVersion: ''
   pullPolicy: IfNotPresent
   servicePort: 5672
   managementPort: 15672
