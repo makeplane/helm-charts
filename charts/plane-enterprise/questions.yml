@@ -1023,7 +1023,7 @@ questions:
   - variable: services.mcp_server.image
     label: "Docker Image"
     type: string
-    default: "makeplane/plane-mcp-server:v0.3.2"
+    default: "makeplane/plane-mcp-server:v0.3.6"
   - variable: services.mcp_server.replicas
     label: "Default Replica Count"
     type: int
@@ -1083,7 +1083,7 @@ questions:
   - variable: services.iframely.image
     label: "Docker Image"
     type: string
-    default: "makeplane/iframely:v2.5.4"
+    default: "makeplane/iframely:v2.5.8"
   - variable: services.iframely.pullPolicy
     label: "Iframely Pull Policy"
     type: enum
@@ -1128,7 +1128,7 @@ questions:
   - variable: services.drawio.image
     label: "Docker Image"
     type: string
-    default: "makeplane/drawio:v2.5.0"
+    default: "makeplane/drawio:v2.6.0"
   - variable: services.drawio.pullPolicy
     label: "Draw.io Pull Policy"
     type: enum

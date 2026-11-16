@@ -28,7 +28,7 @@ rolloutOnUpgrade: auto
 services:
   api:
     image: makeplane/plane-mcp-server
-    tag: v0.3.5
+    tag: v0.3.6
     replicas: 1
     memoryLimit: 1000Mi
     cpuLimit: 500m

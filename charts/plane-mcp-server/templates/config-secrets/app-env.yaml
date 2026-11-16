@@ -27,7 +27,7 @@ stringData:
          in-memory store, so refuse to render that rather than lose tokens silently. */}}
   {{- /* Same fallback as the deployment's image line, so an empty tag is judged as
          the image that actually runs. */}}
-  {{- $tag := toString (.Values.services.api.tag | default "v0.3.5") }}
+  {{- $tag := toString (.Values.services.api.tag | default "v0.3.6") }}
   {{- if and (regexMatch "^v?[0-9]+\\.[0-9]+\\.[0-9]+$" $tag) (semverCompare "<0.3.2" (trimPrefix "v" $tag)) }}
   {{- fail (printf "services.valkey.remote_ssl needs services.api.tag v0.3.2 or later (got %s): older images do not encrypt the token-store connection to Redis." $tag) }}
   {{- end }}
