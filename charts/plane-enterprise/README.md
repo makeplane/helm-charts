@@ -488,10 +488,10 @@ This chart now ships `rabbitmq:4.2.9-management-alpine`. RabbitMQ 3.x is end-of-
 > If you must stage them, pin `services.rabbitmq.image` to `rabbitmq:3.13.6-management-alpine` when taking this chart, upgrade
 > `planeVersion`, then remove the pin.
 >
-> **The chart can enforce this.** `services.rabbitmq.minPlaneVersion` is the lowest `planeVersion` known to work with a 4.x
-> broker: set it, and a lower `planeVersion` under a 4.x broker fails to render instead of deploying a broken stack. It ships
-> empty because the first Plane release carrying the newer `amqplib` is not out yet. Branch, preview and prerelease tags are
-> always allowed through — they cannot be compared here.
+> **The chart enforces this.** `services.rabbitmq.minPlaneVersion` is the lowest `planeVersion` known to work with a 4.x
+> broker, and ships as `4.2.0` — the first release whose images carry `amqplib` 0.10.9. Set a lower `planeVersion` while this
+> chart deploys a 4.x broker and rendering fails with an explanation rather than deploying a broken stack. Branch, preview and
+> prerelease tags are always allowed through — they cannot be compared here. Set the floor to `''` to bypass the check.
 
 **If you are upgrading an existing install with `services.rabbitmq.local_setup: true`, do this first.** The chart upgrade restarts the broker StatefulSet against the same volume, and RabbitMQ requires all stable feature flags to be enabled *before* a major upgrade — otherwise the 4.2 node refuses to start and your queues are unreachable until you roll back.
 
@@ -631,7 +631,7 @@ Until you run this the broker is fully supported on 4.2 and Plane works normally
 
 | Setting               |      Default      | Required | Description                                                                                                                                                                          |
 | --------------------- | :---------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| planeVersion          |      v4.0.1       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
+| planeVersion          |      v4.2.0       |   Yes    | Specifies the version of Plane to be deployed. Copy this from prime.plane.so.                                                                                                        |
 | license.licenseDomain | plane.example.com |   Yes    | The fully-qualified domain name (FQDN) in the format `sudomain.domain.tld` or `domain.tld` that the license is bound to. It is also attached to your `ingress` host to access Plane. |
 | license.licenseServer | https://prime.plane.so | | License server the instance activates and syncs with. Keep the default for online installs. |
 
@@ -861,7 +861,7 @@ the bundled datastores off. Three things to know before you use it:
 | --------------------------------------- | :-------------------------------: | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | services.rabbitmq.local_setup           |               true                |          | Plane uses `rabbitmq` as message queuing system. This can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws mq or similar services). Set this to `true` when you choose to setup stateful deployment of `rabbitmq`. Mark it as `false` when using a remotely hosted service |
 | services.rabbitmq.image                 | rabbitmq:4.2.9-management-alpine |          | Using this key, user must provide the docker image name to setup the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                            |
-| services.rabbitmq.minPlaneVersion     |                 `''`                 |          | Lowest `planeVersion` whose `amqplib` can reach a 4.x broker. When this chart deploys a 4.x broker and `planeVersion` is an exact release below this floor, rendering fails instead of deploying a stack whose silo/live consumers cannot connect. Branch, preview and prerelease tags are not compared. Set to `''` to disable the check. |
+| services.rabbitmq.minPlaneVersion     |                4.2.0                 |          | Lowest `planeVersion` whose `amqplib` can reach a 4.x broker. When this chart deploys a 4.x broker and `planeVersion` is an exact release below this floor, rendering fails instead of deploying a stack whose silo/live consumers cannot connect. Branch, preview and prerelease tags are not compared. Set to `''` to disable the check. |
 | services.rabbitmq.pullPolicy            |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `rabbitmq`. (must be set when `services.rabbitmq.local_setup=true`)                                                                                                                                                                                            |
 | services.rabbitmq.servicePort           |               5672                |          | This key sets the default port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                                       |
 | services.rabbitmq.managementPort        |               15672               |          | This key sets the default management port number to be used while setting up stateful deployment of `rabbitmq`.                                                                                                                                                                                                                            |
