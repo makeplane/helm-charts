@@ -61,7 +61,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-drawio
         imagePullPolicy: {{ .Values.services.drawio.pullPolicy | default "IfNotPresent" }}
-        image: {{ .Values.services.drawio.image | default "makeplane/drawio:v2.5.0" }}
+        image: {{ .Values.services.drawio.image | default "makeplane/drawio:v2.6.0" }}
         ports:
         - containerPort: 8080
         readinessProbe:
