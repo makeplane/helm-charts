@@ -826,6 +826,7 @@ services:
       runAsUser: 1000
       runAsGroup: 1000
       fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
       seccompProfile:
         type: RuntimeDefault
     containerSecurityContext:
@@ -841,7 +842,7 @@ services:
         memory: 512Mi
 ```
 
-An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Changing the uid on an existing install needs that volume re-owned or recreated; on a fresh install it does not matter.
+An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Changing the uid on an existing install needs that volume re-owned or recreated; on a fresh install it does not matter. Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start.
 | external_secrets.rabbitmq.secretName    |            |          | Name of an existing Secret holding the RabbitMQ username and password. Note this is separate from `external_secrets.rabbitmq_existingSecret`, which configures the **bundled** broker. |
 | external_secrets.rabbitmq.usernameKey   |  username  |          | Key inside that Secret holding the username. `passwordKey`, and optionally `hostKey` / `portKey` / `vhostKey`, work the same way. |
 
