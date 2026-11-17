@@ -201,6 +201,53 @@ See the "Keeping credentials out of values.yaml" section of the chart README.
 ────────────────────────────────────────────────────────────────────────────────
 {{- end }}
 
+{{- /*
+Redis settings from INFRA-1336: Sentinel mode, and REDIS_SSL_VERIFY / REDIS_USERNAME with a
+single Redis. Set $redisMinVersion to the first Plane release whose images read them once it
+ships; until then the notes name the work instead. An image without Sentinel support finds
+REDIS_URL empty and has no Redis; one without the other two ignores them.
+*/}}
+{{- $redisMinVersion := "" }}
+{{- $redisOld := and $redisMinVersion $parsable (semverCompare (printf "< %s" $redisMinVersion) $version) }}
+{{- $redisNeeds := ternary (printf "planeVersion v%s or later" $redisMinVersion) "a planeVersion that includes INFRA-1336 (Redis Sentinel support)" (ne $redisMinVersion "") }}
+{{- $redisSecret := .Values.external_secrets.redis }}
+{{- $redisVerify := eq (include "plane.truthyFlag" (.Values.env.redis_ssl_verify | default false)) "1" }}
+{{- $redisUser := and $redisSecret.secretName (or $redisSecret.usernameKey .Values.env.redis_username) }}
+{{- if include "plane.redisSentinel" . }}
+{{- if $redisOld }}
+
+WARNING: Redis Sentinel mode needs planeVersion v{{ $redisMinVersion }} or later; this release
+runs {{ .Values.planeVersion }}. Older images ignore REDIS_SENTINELS and, with REDIS_URL left
+empty, start without Redis.
+{{- end }}
+
+Redis Sentinel mode: services follow master "{{ .Values.env.redis_sentinel_master }}" via {{ .Values.env.redis_sentinels }}.
+  - Needs {{ $redisNeeds }},
+    and an MCP server image with Sentinel support (makeplane/plane-mcp-server v0.3.7 or
+    later) if services.mcp_server is on.
+  - While upgrading from a Plane version without silo's durable schedule, or if your
+    Redis refuses EVAL, set notify-keyspace-events to include E and x in the config
+    file of EVERY data node. Otherwise silo can miss delayed work after a failover.
+  - Plane AI (pi) uses Sentinel for its Celery broker, so it needs an image with Sentinel
+    support too. With pi_api_env_existingSecret, set CELERY_BROKER_URL to sentinel:// in
+    that Secret; a fixed Redis URL there won't follow a failover.
+{{- else if or $redisVerify $redisUser }}
+
+{{ if $redisOld }}WARNING{{ else }}Note{{ end }}: {{ if $redisVerify }}env.redis_ssl_verify{{ end }}{{ if and $redisVerify $redisUser }} and {{ end }}{{ if $redisUser }}the Redis ACL username{{ end }} {{ if and $redisVerify $redisUser }}need{{ else }}needs{{ end }} {{ $redisNeeds }}.
+  {{- if $redisOld }} This release runs {{ .Values.planeVersion }}.{{ end }}
+  Older images ignore {{ if and $redisVerify $redisUser }}them{{ else }}it{{ end }}: {{ if $redisVerify }}the api doesn't check Redis certificates{{ end }}{{ if and $redisVerify $redisUser }}, and {{ end }}{{ if $redisUser }}Plane logs in to Redis as the default user{{ end }}.
+{{- if and $redisUser .Values.services.mcp_server.enabled }}
+{{- /* mcp-server has its own releases. An image without a semver tag gets the note: its version is unknown. */}}
+{{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.6" }}
+{{- $mcpVersion := regexFind ":v?[0-9]+\\.[0-9]+\\.[0-9]+$" $mcpImage | trimPrefix ":" | trimPrefix "v" }}
+{{- if or (not $mcpVersion) (semverCompare "<0.3.7" $mcpVersion) }}
+  The MCP server also needs makeplane/plane-mcp-server v0.3.7 or later for the username.
+  Older images log in as the default user, fail the startup PING on an ACL-only Redis,
+  and restart. services.mcp_server.image is {{ $mcpImage }}.
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- with $runnerHmacNote }}
 
 Note: {{ . }}
