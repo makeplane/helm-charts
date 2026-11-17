@@ -2030,7 +2030,7 @@ questions:
 
 - variable: ingress.traefik.ingressClassName
   label: "Traefik IngressRoute Class"
-  description: "spec.ingressClassName on the IngressRoute. Only for clusters whose Traefik filters routes with --providers.kubernetescrd.ingressClass (e.g. separate public and internal Traefiks). Leave empty otherwise: a Traefik without that flag serves only routes with no class or class 'traefik' and silently ignores any other value. Ignored unless the controller resolves to traefik."
+  description: "The IngressRoute class, rendered as spec.ingressClassName (Traefik v3.7+) and the kubernetes.io/ingress.class annotation (older Traefik). Only for clusters whose Traefik filters routes with --providers.kubernetescrd.ingressClass (e.g. separate public and internal Traefiks). Leave empty otherwise: a Traefik without that flag serves only routes with no class or class 'traefik' and silently ignores any other value. Ignored unless the controller resolves to traefik."
   type: string
   default: ""
   group: "Ingress"

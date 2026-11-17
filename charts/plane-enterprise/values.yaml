@@ -74,7 +74,8 @@ ingress:
     # Set explicitly only if your Traefik install renamed the default entrypoints,
     # e.g. entryPoints: ['websecure', 'web'] or ['https'].
     entryPoints: []
-    # spec.ingressClassName on the IngressRoute, for a cluster that runs more than one
+    # The IngressRoute's class, rendered as spec.ingressClassName (read by Traefik v3.7+)
+    # and the kubernetes.io/ingress.class annotation (read by older Traefik). For a cluster that runs more than one
     # Traefik and filters routes with --providers.kubernetescrd.ingressClass (e.g. a
     # public and an internal one). Leave empty unless yours does: a Traefik with no
     # ingressClass set serves only routes with no class or class 'traefik', and
