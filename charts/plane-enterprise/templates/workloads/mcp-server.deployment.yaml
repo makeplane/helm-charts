@@ -54,7 +54,7 @@ spec:
       - name: {{ .Release.Name }}-mcp-server
         {{- include "plane.containerSecurityContext" . }}
         imagePullPolicy: {{ .Values.services.mcp_server.pullPolicy | default "Always" }}
-        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
+        image: {{ .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.6" }}
         stdin: true
         tty: true
         ports:
@@ -119,7 +119,7 @@ spec:
                  Never in Sentinel mode: there is usually no env.redis_host, so this became
                  rediss://:6379/, which released servers try before anything else. TLS there
                  comes from REDIS_SSL / REDIS_SENTINEL_SSL, which its Sentinel path reads. */}}
-          {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.2" }}
+          {{- $mcpImage := .Values.services.mcp_server.image | default "makeplane/plane-mcp-server:v0.3.6" }}
           {{- $mcpVersion := regexFind ":v?[0-9]+\\.[0-9]+\\.[0-9]+$" $mcpImage | trimPrefix ":" | trimPrefix "v" }}
           {{- if and $mcpVersion (semverCompare "<0.3.2" $mcpVersion) }}
           {{- fail (printf "env.redis_ssl with external_secrets.redis needs services.mcp_server.image v0.3.2 or later (got %s): older images do not encrypt the token-store connection to Redis." $mcpImage) }}

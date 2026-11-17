@@ -1,4 +1,4 @@
-planeVersion: v4.0.1
+planeVersion: v4.1.0
 
 dockerRegistry:
   enabled: false
@@ -79,6 +79,13 @@ ingress:
     # Set explicitly only if your Traefik install renamed the default entrypoints,
     # e.g. entryPoints: ['websecure', 'web'] or ['https'].
     entryPoints: []
+    # The IngressRoute's class, rendered as spec.ingressClassName (read by Traefik v3.7+)
+    # and the kubernetes.io/ingress.class annotation (read by older Traefik). For a cluster that runs more than one
+    # Traefik and filters routes with --providers.kubernetescrd.ingressClass (e.g. a
+    # public and an internal one). Leave empty unless yours does: a Traefik with no
+    # ingressClass set serves only routes with no class or class 'traefik', and
+    # silently ignores any other value, so a wrong value here unpublishes Plane.
+    ingressClassName: ''
   # Only read on the openshift path (see controller above).
   openshift:
     # HAProxy's per-route timeout. The router default is 30s, which severs
@@ -345,7 +352,7 @@ services:
     cpuLimit: 1000m
     memoryRequest: 256Mi
     cpuRequest: 100m
-    image: makeplane/iframely:v2.5.4
+    image: makeplane/iframely:v2.5.8
     pullPolicy: Always
     assign_cluster_ip: false
     nodeSelector: {}
@@ -369,7 +376,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 256Mi
     cpuRequest: 100m
-    image: makeplane/drawio:v2.5.0
+    image: makeplane/drawio:v2.6.0
     pullPolicy: IfNotPresent
     assign_cluster_ip: false
     nodeSelector: {}
@@ -927,7 +934,7 @@ services:
     cpuLimit: 500m
     memoryRequest: 150Mi
     cpuRequest: 100m
-    image: makeplane/plane-mcp-server:v0.3.2
+    image: makeplane/plane-mcp-server:v0.3.6
     pullPolicy: Always
     # Only with a custom CA (customCA): the CA has to be installed before the server starts,
     # so the chart runs this instead of the image's own command. Change it if your image

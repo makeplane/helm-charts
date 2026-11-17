@@ -27,7 +27,7 @@ questions:
 - variable: planeVersion
   label: Plane Version (Docker Image Tag)
   type: string
-  default: v4.0.1
+  default: v4.1.0
   required: true
   group: "Docker Registry"
   subquestions:
@@ -1023,7 +1023,7 @@ questions:
   - variable: services.mcp_server.image
     label: "Docker Image"
     type: string
-    default: "makeplane/plane-mcp-server:v0.3.2"
+    default: "makeplane/plane-mcp-server:v0.3.6"
   - variable: services.mcp_server.replicas
     label: "Default Replica Count"
     type: int
@@ -1083,7 +1083,7 @@ questions:
   - variable: services.iframely.image
     label: "Docker Image"
     type: string
-    default: "makeplane/iframely:v2.5.4"
+    default: "makeplane/iframely:v2.5.8"
   - variable: services.iframely.pullPolicy
     label: "Iframely Pull Policy"
     type: enum
@@ -1128,7 +1128,7 @@ questions:
   - variable: services.drawio.image
     label: "Docker Image"
     type: string
-    default: "makeplane/drawio:v2.5.0"
+    default: "makeplane/drawio:v2.6.0"
   - variable: services.drawio.pullPolicy
     label: "Draw.io Pull Policy"
     type: enum
@@ -2087,6 +2087,14 @@ questions:
   description: "Enable when TLS is terminated before traffic reaches Plane (cloud load balancer, Cloudflare, service mesh, or a Traefik entrypoint carrying its own cert) and this chart manages no certificate. App URLs are rendered https:// but no tls block is emitted. Leave off if you set a TLS secret name or generate certificates. See the chart README's 'TLS options' section."
   type: boolean
   default: false
+  group: "Ingress"
+  show_if: "ingress.enabled=true"
+
+- variable: ingress.traefik.ingressClassName
+  label: "Traefik IngressRoute Class"
+  description: "The IngressRoute class, rendered as spec.ingressClassName (Traefik v3.7+) and the kubernetes.io/ingress.class annotation (older Traefik). Only for clusters whose Traefik filters routes with --providers.kubernetescrd.ingressClass (e.g. separate public and internal Traefiks). Leave empty otherwise: a Traefik without that flag serves only routes with no class or class 'traefik' and silently ignores any other value. Ignored unless the controller resolves to traefik."
+  type: string
+  default: ""
   group: "Ingress"
   show_if: "ingress.enabled=true"
 

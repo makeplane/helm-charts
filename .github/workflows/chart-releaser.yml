@@ -162,7 +162,7 @@ jobs:
           CR_SIGN: true
 
   publish:
-    if: ${{ github.ref_name == 'master' }}
+    if: ${{ !failure() && !cancelled() && needs.setup.result == 'success' && github.ref_name == 'master' }}
     needs: setup
     runs-on: ubuntu-22.04
     permissions:
