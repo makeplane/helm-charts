@@ -256,6 +256,61 @@ Renders one `Ingress` with `ingressClassName: openshift-default`. Note this path
    kubectl delete ingress -n plane-ns plane-app-ingress
    ```
 
+### Running Plane behind a Traefik that filters by class (Traefik v3.7+, chart 3.13.5+)
+
+With `ingress.controller: traefik`, the chart renders one `IngressRoute`, `<release>-ingress`. If your cluster has one Traefik and it serves every route, you don't need anything else.
+
+Some clusters run more than one Traefik, for example a public one and an internal one. Each Traefik starts with `--providers.kubernetescrd.ingressClass=<class>` (Traefik Helm chart value `providers.kubernetesCRD.ingressClass`) and serves only routes of that class. That Traefik ignores Plane's route until the route has the same class. To give Plane's route a class, set `ingress.traefik.ingressClassName`.
+
+**Requirements:** Traefik v3.7 or later, with the Traefik CRDs from v3.7 or later. Before v3.7, the `IngressRoute` CRD has no `spec.ingressClassName` field.
+
+1. **Find the class your Traefik serves.** If this prints nothing, the Traefik doesn't filter: leave `ingress.traefik.ingressClassName` empty and stop here.
+
+   ```bash
+   kubectl get deploy -n traefik <traefik-deployment> \
+     -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n' | grep -i ingressclass
+   # --providers.kubernetescrd.ingressClass=public   -> this Traefik serves class "public"
+   ```
+
+2. **Check that your `IngressRoute` CRD has the field.** It should print `string`. If it prints nothing, your CRDs are older than v3.7. Upgrade the Traefik CRDs first: on older CRDs, `helm upgrade` fails with `unknown field "spec.ingressClassName"` or drops the field with a warning, depending on how your client validates.
+
+   ```bash
+   kubectl get crd ingressroutes.traefik.io \
+     -o jsonpath='{.spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.ingressClassName.type}'
+   ```
+
+3. **Set the class** and run `helm upgrade`:
+
+   ```yaml
+   ingress:
+     enabled: true
+     controller: traefik
+     traefik:
+       ingressClassName: public
+   ```
+
+   The chart writes the value to `spec.ingressClassName`, which Traefik v3.7+ reads. It also writes it to the `kubernetes.io/ingress.class` annotation, the only place Traefik before v3.7 reads it from. `ingress.ingressClass` does not set the route's class: on the Traefik path it only picks the template.
+
+4. **Check the route:**
+
+   ```bash
+   kubectl get ingressroute -n plane-ns plane-app-ingress -o jsonpath='{.spec.ingressClassName}'
+   # public
+   ```
+
+A Traefik matches a route's class like this (`shouldProcessIngress` in Traefik's CRD provider):
+
+| Your Traefik              | Serves routes with           |
+| ------------------------- | ---------------------------- |
+| No `ingressClass` setting | No class, or class `traefik` |
+| `ingressClass=<class>`    | Class `<class>` only         |
+
+> **Warning:** Don't set `ingress.traefik.ingressClassName` on a Traefik that doesn't filter, unless the value is `traefik`. That Traefik ignores any other class without an error, and Plane stops answering.
+
+If you are adding a class filter to a Traefik that already serves Plane, use `traefik` as the class name. A Traefik that doesn't filter already serves class `traefik`, so you can set the class on Plane's route first with no effect. Turn on the filter after that, and Plane keeps answering the whole time.
+
+**Upgrading to 3.13.5:** if you leave `ingress.traefik.ingressClassName` empty, the default, nothing changes. 3.13.4 and 3.13.5 render the same apart from the chart-version label and the checksums that carry it.
+
 ### Key values controlling template selection
 
 | Value                                 | Default    | Effect                                                                                    |
