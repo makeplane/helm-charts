@@ -8,6 +8,9 @@ metadata:
     {{- include "plane.commonLabels" $ | nindent 4 }}
   namespace: {{ .Release.Namespace }}
 spec:
+  {{- with (dig "traefik" "ingressClassName" "" .Values.ingress) }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
   entryPoints:
     {{- include "plane.traefikEntryPoints" . | nindent 4 }}
 

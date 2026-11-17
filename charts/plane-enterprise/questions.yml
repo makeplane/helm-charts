@@ -2028,6 +2028,14 @@ questions:
   group: "Ingress"
   show_if: "ingress.enabled=true"
 
+- variable: ingress.traefik.ingressClassName
+  label: "Traefik IngressRoute Class"
+  description: "spec.ingressClassName on the IngressRoute. Only for clusters whose Traefik filters routes with --providers.kubernetescrd.ingressClass (e.g. separate public and internal Traefiks). Leave empty otherwise: a Traefik without that flag serves only routes with no class or class 'traefik' and silently ignores any other value. Ignored unless the controller resolves to traefik."
+  type: string
+  default: ""
+  group: "Ingress"
+  show_if: "ingress.enabled=true"
+
 - variable: ingress.traefik.entryPoints
   label: "Traefik Entrypoints Override"
   description: "Traefik entrypoints the IngressRoute binds to, e.g. 'websecure'. Leave empty to derive from the SSL settings (websecure when this chart manages a certificate, otherwise web). Required as 'websecure' when TLS is terminated by Traefik's own entrypoint. Ignored unless the controller resolves to traefik."
