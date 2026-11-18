@@ -44,12 +44,21 @@ spec:
         {{- include "plane.serviceAccountPodLabels" . }}
     spec:
       {{- include "plane.podScheduling" .Values.services.rabbitmq }}
+      {{- with .Values.services.rabbitmq.podSecurityContext }}
+      securityContext: {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - image: {{ .Values.services.rabbitmq.image }}
         imagePullPolicy: {{ .Values.services.rabbitmq.pullPolicy | default "IfNotPresent" }}
         name: {{ .Release.Name }}-rabbitmq
         stdin: true
         tty: true
+        {{- with .Values.services.rabbitmq.containerSecurityContext }}
+        securityContext: {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.services.rabbitmq.resources }}
+        resources: {{- toYaml . | nindent 10 }}
+        {{- end }}
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.rabbitmq_existingSecret) }}{{ .Values.external_secrets.rabbitmq_existingSecret }}{{ else }}{{ .Release.Name }}-rabbitmq-secrets{{ end }}
@@ -62,6 +71,10 @@ spec:
         - mountPath: /var/lib/rabbitmq
           name: pvc-{{ .Release.Name }}-rabbitmq-vol
           subPath: ''
+        {{- if (.Values.services.rabbitmq.containerSecurityContext).readOnlyRootFilesystem }}
+        - mountPath: /tmp
+          name: tmp
+        {{- end }}
         readinessProbe:
           exec:
             command: ["rabbitmq-diagnostics", "check_port_connectivity"]
@@ -69,6 +82,11 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 30
           failureThreshold: 50
+      {{- if (.Values.services.rabbitmq.containerSecurityContext).readOnlyRootFilesystem }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      {{- end }}
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
   volumeClaimTemplates:
