@@ -17,10 +17,12 @@ spec:
       labels:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-live-exporter
         {{- include "plane.commonLabels" $ | nindent 8 }}
+        {{- include "plane.serviceAccountPodLabels" . }}
       annotations:
-        timestamp: {{ now | quote }}
+        {{- include "plane.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "plane.podScheduling" .Values.services.live_exporter }}
+      {{- include "plane.podSpread" (dict "svc" .Values.services.live_exporter "app" "live-exporter" "root" .) }}
       {{- include "plane.podSecurityContext" . }}
       containers:
       - name: {{ .Release.Name }}-live-exporter
@@ -44,13 +46,26 @@ spec:
               name: {{ if not (empty .Values.external_secrets.live_env_existingSecret) }}{{ .Values.external_secrets.live_env_existingSecret }}{{ else }}{{ .Release.Name }}-live-secrets{{ end }}
               optional: false
           {{- with (include "plane.otel.envFrom" $) }}{{ . | nindent 10 }}{{- end }}
+          {{- /* Same image and env check as live, which exits without LIVE_SERVER_SECRET_KEY;
+                 with app_keys set the live Secret no longer carries it. Last, as on live. */}}
+          {{- include "plane.appKeysSecretRef" . }}
         env:
           - name: LIVE_MODE
             value: "exporter"
+          {{/* The export worker is the whole reason the broker credential matters here, and it
+               had no credential helper at all — it inherited whatever AMQP_URL the live Secret
+               carried, which the mirror blanks on purpose. Redis comes too: the exporter shares
+               live's RedisManager for job state. */}}
+          {{- with (include "plane.rabbitmqCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.redisCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live-exporter")) }}{{ . | nindent 10 }}{{- end }}
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
-      serviceAccount: {{ .Release.Name }}-srv-account
-      serviceAccountName: {{ .Release.Name }}-srv-account
+      serviceAccount: {{ include "plane.serviceAccountName" . }}
+      serviceAccountName: {{ include "plane.serviceAccountName" . }}
 {{- end }}

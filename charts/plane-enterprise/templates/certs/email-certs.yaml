@@ -1,4 +1,5 @@
-{{- if and .Values.services.email_service.enabled .Values.env.email_service_envs.smtp_domain }}
+{{- if eq (include "plane.emailCertEnabled" .) "true" }}
+{{- $issuerRef := .Values.services.email_service.certIssuerRef | default dict }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -11,7 +12,14 @@ spec:
   - {{ .Values.env.email_service_envs.smtp_domain | quote }}
   
   issuerRef:
+    {{- if $issuerRef.name }}
+    name: {{ $issuerRef.name }}
+    {{- with $issuerRef.kind }}
+    kind: {{ . }}
+    {{- end }}
+    {{- else }}
     name: {{ .Release.Name }}-cert-issuer
+    {{- end }}
   secretName: {{ .Release.Name }}-mail-tls-secret
 --- 
 {{- end }}

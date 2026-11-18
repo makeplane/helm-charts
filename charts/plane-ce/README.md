@@ -44,7 +44,7 @@
        helm upgrade --install plane-app makeplane/plane-ce \
            --create-namespace \
            --namespace plane-ce \
-           --set planeVersion=v1.4.1 \
+           --set planeVersion=v1.4.3 \
            --set ingress.appHost="plane.example.com" \
            --set ingress.minioHost="plane-minio.example.com" \
            --set ingress.rabbitmqHost="plane-mq.example.com" \
@@ -163,7 +163,7 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 
 | Setting      | Default | Required | Description |
 | ------------ | :-----: | :------: | ----------- |
-| planeVersion | v1.4.1  |   Yes    |             |
+| planeVersion | v1.4.3  |   Yes    |             |
 
 ### Postgress DB Setup
 
@@ -231,8 +231,8 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | Setting                      |              Default              | Required | Description                                                                                                                                                                                                                                                                                                                                              |
 | ---------------------------- | :-------------------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | minio.local_setup            |               true                |          | Plane uses `minio` as the default file storage drive. This storage can be hosted within kubernetes as part of helm chart deployment or can be used as hosted service remotely (e.g. aws S3 or similar services). Set this to `true` when you choose to setup stateful deployment of `postgres`. Mark it as `false` when using a remotely hosted database |
-| minio.image                  |        minio/minio:latest         |          | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `minio.local_setup=true`)                                                                                                                                                                                                         |
-| minio.image_mc               |          minio/mc:latest          |          | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `minio.local_setup=true`)                                                                                                                                                                                              |
+| minio.image | docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z | | Using this key, user must provide the docker image name to setup the stateful deployment of `minio`. (must be set when `minio.local_setup=true`) |
+| minio.image_mc | docker.io/pgsty/mc:RELEASE.2026-09-16T00-00-00Z | | Using this key, user must provide the docker image name to setup the job deployment of `minio client`. (must be set when `minio.local_setup=true`) |
 | minio.init_image             |              busybox              |          | Using this key, user must provide the docker image name used by the init container of the `minio client` job, which waits for `minio` to become resolvable. (must be set when `minio.local_setup=true`)                                                                                                                                                    |
 | minio.pullPolicy             |           IfNotPresent            |          | Using this key, user can set the pull policy for the stateful deployment of `minio`. (must be set when `minio.local_setup=true`)                                                                                                                                                                                                                         |
 | minio.volumeSize             |                5Gi                |          | While setting up the stateful deployment, while creating the persistant volume, volume allocation size need to be provided. This key helps you set the volume allocation size. Unit of this value must be in Mi (megabyte) or Gi (gigabyte)                                                                                                              |
@@ -341,6 +341,7 @@ The default value is `"traefik"`. If you previously relied on the implicit defau
 | env.sentry_dsn         |                                            |          | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry provided DSN for this integration.                                  |
 | env.sentry_environment |                                            |          | (optional) API service deployment comes with some of the preconfigured integration. Sentry is one among those. Here user can set the Sentry environment name (as configured in Sentry) for this integration.    |
 | env.api_key_rate_limit |                 60/minute                  |          | (optional) User can set the maximum number of requests the API can handle in a given time frame.                                                                                                                |
+| env.enable_drf_spectacular |                   false                    |          | When set to `true`, enables the drf-spectacular OpenAPI schema and Swagger UI at `/api/schema/swagger-ui/` (`ENABLE_DRF_SPECTACULAR`).                                                                          |
 | api.assign_cluster_ip  |                   false                    |          | Set it to `true` if you want to assign `ClusterIP` to the service                                                                                                                                               |
 | api.nodeSelector       |                     {}                     |          | This key allows you to set the node selector for the deployment of `api`. This is useful when you want to run the deployment on specific nodes in your Kubernetes cluster.                                      |
 | api.tolerations        |                     []                     |          | This key allows you to set the tolerations for the deployment of `api`. This is useful when you want to run the deployment on nodes with specific taints in your Kubernetes cluster.                            |
