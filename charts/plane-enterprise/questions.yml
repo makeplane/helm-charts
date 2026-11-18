@@ -397,6 +397,22 @@ questions:
     label: "Cursor Webhook Secret"
     type: string
     default: "TTqazTcoBajYKzIAeIKFZeTX9czAoUsG"
+  - variable: env.silo_envs.integration_event_ingest_enabled
+    label: "Enable Integration Event Ingest"
+    description: "Forward normalized webhook events from Silo to Plane's integration event stream"
+    type: boolean
+    default: false
+  - variable: env.silo_envs.integration_event_providers
+    label: "Integration Event Providers"
+    description: "Comma-separated list of providers whose webhook events are forwarded (e.g. github,gitlab,slack)"
+    type: string
+    default: "github,gitlab,slack"
+    show_if: "env.silo_envs.integration_event_ingest_enabled=true"
+  - variable: env.silo_envs.integration_event_ingest_timeout_ms
+    label: "Integration Event Ingest Timeout (ms)"
+    type: int
+    default: 2000
+    show_if: "env.silo_envs.integration_event_ingest_enabled=true"
 - variable: services.silo.connectors.slack.enabled
   label: "Slack Integration"
   type: boolean
