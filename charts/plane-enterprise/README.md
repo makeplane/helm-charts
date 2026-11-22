@@ -844,7 +844,7 @@ services:
         memory: 512Mi
 ```
 
-Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start. A fresh install needs nothing else.
+Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start. A fresh install needs nothing else if the storage driver applies `fsGroup` (see the `fsGroupPolicy` check under [OpenShift](#openshift-restricted-v2-scc)); if it does not, prepare the new volume as below before the first start (there is no cookie yet, so skip that line).
 
 An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Before the first start with the new uid, prepare the volume as root (for example from a one-off pod that mounts the PVC while the broker is scaled to zero):
 
@@ -854,7 +854,7 @@ chmod 2770 /var/lib/rabbitmq
 chmod 600 /var/lib/rabbitmq/.erlang.cookie
 ```
 
-The kubelet skips the recursive change only when the volume root has the `fsGroup` as its group, at least `0770`, and the setgid bit. Re-owning the files alone is not enough: the kubelet then still makes the cookie group-readable. Recreating the volume instead deletes durable messages and broker metadata, so drain the queues or back up the definitions first.
+The kubelet skips the recursive change only when the volume root has the `fsGroup` as its group, at least `0770`, and the setgid bit. Re-owning the files alone is not enough: the kubelet then still makes the cookie group-readable. Recreating the volume instead deletes durable messages and broker metadata: drain the queues first, and also export the definitions if you need the topology, since they hold no messages.
 
 ### OpenSearch Setup
 
