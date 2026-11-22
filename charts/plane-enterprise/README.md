@@ -844,7 +844,17 @@ services:
         memory: 512Mi
 ```
 
-An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Changing the uid on an existing install needs that volume re-owned or recreated; on a fresh install it does not matter. Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start.
+Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start. A fresh install needs nothing else.
+
+An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Before the first start with the new uid, prepare the volume as root (for example from a one-off pod that mounts the PVC while the broker is scaled to zero):
+
+```sh
+chown -R 1000:1000 /var/lib/rabbitmq
+chmod 2770 /var/lib/rabbitmq
+chmod 600 /var/lib/rabbitmq/.erlang.cookie
+```
+
+The kubelet skips the recursive change only when the volume root has the `fsGroup` as its group, at least `0770`, and the setgid bit. Re-owning the files alone is not enough: the kubelet then still makes the cookie group-readable. Recreating the volume instead deletes durable messages and broker metadata, so drain the queues or back up the definitions first.
 
 ### OpenSearch Setup
 
