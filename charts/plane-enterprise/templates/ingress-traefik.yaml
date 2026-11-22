@@ -6,8 +6,17 @@ metadata:
   name: {{ .Release.Name }}-ingress
   labels:
     {{- include "plane.commonLabels" $ | nindent 4 }}
+  {{- with (dig "traefik" "ingressClassName" "" .Values.ingress) }}
+  # Traefik before v3.7 reads the class only from this annotation (its CRD has no
+  # spec.ingressClassName); v3.7+ reads spec.ingressClassName below and ignores this.
+  annotations:
+    kubernetes.io/ingress.class: {{ . | quote }}
+  {{- end }}
   namespace: {{ .Release.Namespace }}
 spec:
+  {{- with (dig "traefik" "ingressClassName" "" .Values.ingress) }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
   entryPoints:
     {{- include "plane.traefikEntryPoints" . | nindent 4 }}
 
