@@ -112,15 +112,34 @@ spec:
           {{- toYaml .Values.extraEnv | nindent 10 }}
           {{- end }}
         {{- end }}
-        readinessProbe:
-          failureThreshold: 30
+        {{- /* pi serves its probes under PI_BASE_PATH (/pi in pi-api-env.yaml): /pi/live/ is a
+               static 200 with no I/O, /pi/ready/ also checks pi's database. Startup allows up to
+               30 minutes, as the entrypoint can wait for the database and pi's migrations before
+               uvicorn listens; liveness and readiness start only after it passes. */}}
+        startupProbe:
           httpGet:
-            path: /pi/
+            path: /pi/live/
             port: 8000
             scheme: HTTP
           periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
+          timeoutSeconds: 5
+          failureThreshold: 180
+        livenessProbe:
+          httpGet:
+            path: /pi/live/
+            port: 8000
+            scheme: HTTP
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /pi/ready/
+            port: 8000
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
       serviceAccount: {{ include "plane.serviceAccountName" . }}
       serviceAccountName: {{ include "plane.serviceAccountName" . }}
 
