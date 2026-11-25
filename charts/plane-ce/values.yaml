@@ -1,4 +1,4 @@
-planeVersion: v1.5.0
+planeVersion: v1.5.1
 
 # When `helm upgrade` restarts pods. Each workload carries checksum/config, a hash of the config
 # this chart renders for it, so changing the image tag, the pod spec or that config restarts it and
