@@ -1031,7 +1031,7 @@ RabbitMQ credentials from an externally managed Secret.
 
 {{/*
 Redis credentials from an externally managed Secret. Consumed on its own by the
-live server, and by Plane AI, whose Celery broker is Redis in Helm deployments.
+live server. Plane AI doesn't get them: its Celery broker is RabbitMQ.
 */}}
 {{- define "plane.redisCredsEnv" -}}
 {{- $redis := .Values.external_secrets.redis -}}
@@ -1092,9 +1092,10 @@ the same external_secrets.database Secret — one managed instance hosting two
 databases is the shape the chart provisions. A deployment with genuinely separate
 credentials per database should use pi_api_env_existingSecret instead.
 
-Redis is included because Plane AI's Celery broker is Redis in Helm deployments.
-RabbitMQ deliberately is NOT: pi resolves an AMQP broker ahead of a Redis one, so
-emitting RABBITMQ_* here would silently move its queue off Redis.
+RabbitMQ is included because it is Plane AI's Celery broker: with
+external_secrets.rabbitmq, pi builds its broker URL from these RABBITMQ_* parts, as
+the api and silo do. Redis deliberately is NOT: pi doesn't use Redis, and
+REDIS_* parts here would be a broker pi falls back to when it finds no RabbitMQ.
 
 Caller must indent to the correct depth (env list items).
 */}}
@@ -1126,7 +1127,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_PORT" "secret" $db.secretName "key" .) }}
 {{- end }}
 {{- end }}
-{{- include "plane.redisCredsEnv" . }}
+{{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
 {{- include "plane.storageCredsEnv" . }}
 {{- end -}}
