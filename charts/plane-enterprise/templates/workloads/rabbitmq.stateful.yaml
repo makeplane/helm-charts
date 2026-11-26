@@ -50,13 +50,21 @@ spec:
         name: {{ .Release.Name }}-rabbitmq
         stdin: true
         tty: true
+        {{- if or .Values.external_secrets.rabbitmq_existingSecret (not (include "plane.bundledRabbitmqFromSecret" .)) }}
         envFrom:
           - secretRef:
               name: {{ if not (empty .Values.external_secrets.rabbitmq_existingSecret) }}{{ .Values.external_secrets.rabbitmq_existingSecret }}{{ else }}{{ .Release.Name }}-rabbitmq-secrets{{ end }}
               optional: false
-        {{- if .Values.extraEnv }}
+        {{- end }}
+        {{- if or .Values.extraEnv (include "plane.bundledRabbitmqFromSecret" .) }}
         env:
+          {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+          {{- /* After extraEnv: the later duplicate wins, and these must match what the apps read. */}}
+          {{- with (include "plane.rabbitmqServerCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
         {{- end }}
         volumeMounts:
         - mountPath: /var/lib/rabbitmq

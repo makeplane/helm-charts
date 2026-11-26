@@ -77,7 +77,7 @@ spec:
           - name: bootstrap.memory_lock
             value: "false"
           - name: OPENSEARCH_JAVA_OPTS
-            value: "-Xms768m -Xmx768m"
+            value: {{ .Values.services.opensearch.javaOpts | default "-Xms768m -Xmx768m" | quote }}
           - name: OPENSEARCH_USER
             valueFrom:
               secretKeyRef:
@@ -85,6 +85,9 @@ spec:
                 key: OPENSEARCH_USERNAME
           {{- if .Values.extraEnv }}
           {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}
+          {{- with .Values.services.opensearch.extraEnv }}
+          {{- toYaml . | nindent 10 }}
           {{- end }}
         command: ["/bin/bash", "/docker-entrypoint-init.d/create-user.sh"]
         volumeMounts:
