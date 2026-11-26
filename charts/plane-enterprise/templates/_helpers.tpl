@@ -1074,6 +1074,10 @@ env.rabbitmq_* are ignored and the chart's own Service is used.
 {{- if include "plane.bundledRabbitmqFromSecret" . }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_USER" "secret" $mq.secretName "key" ($mq.usernameKey | default "username")) }}
 {{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_PASS" "secret" $mq.secretName "key" ($mq.passwordKey | default "password")) }}
+{{- /* Clients read RABBITMQ_VHOST from vhostKey, so the broker must create that vhost on first boot. */}}
+{{- with $mq.vhostKey }}
+{{- include "plane.secretKeyEnv" (dict "name" "RABBITMQ_DEFAULT_VHOST" "secret" $mq.secretName "key" .) }}
+{{- end }}
 {{- end }}
 {{- end -}}
 

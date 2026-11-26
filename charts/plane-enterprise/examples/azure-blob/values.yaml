@@ -1,5 +1,6 @@
 # Plane (plane-enterprise) on AKS with Azure Blob Storage and Workload Identity. Merge into your
-# values; needs Plane vX.Y (TBD) or later. See README.md, "Azure Blob Storage".
+# values; needs the first Plane release with Azure Blob support or later. See README.md,
+# "Azure Blob Storage".
 env:
   storage_provider: AZURE
   azure_storage_account_name: planestorage
