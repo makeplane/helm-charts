@@ -290,6 +290,10 @@ services:
     affinity: {}
     labels: {}
     annotations: {}
+    # Opt-in hardening for the bundled broker; the global securityContext does not cover it.
+    podSecurityContext: {}
+    containerSecurityContext: {}
+    resources: {}
 
   opensearch:
     local_setup: false

@@ -638,7 +638,8 @@ their busybox init containers).
 It is **not** applied to the bundled local infrastructure (postgres, redis, rabbitmq,
 minio, opensearch), which use third-party images with their own UID/GID requirements
 and are intended for local/dev use — run those externally in hardened clusters and
-leave `local_setup` off. The email service also keeps its own `securityContext`
+leave `local_setup` off. The bundled RabbitMQ takes its own opt-in `securityContext` and
+`resources`; see [RabbitMQ Setup](#rabbitmq-setup). The email service also keeps its own `securityContext`
 (its image pins UID 100).
 
 | Setting                                  |     Default      | Required | Description                                                                                    |
@@ -807,12 +808,53 @@ the bundled datastores off. Three things to know before you use it:
 | services.rabbitmq.affinity              |                {}                 |          | This key allows you to set the affinity rules for the stateful deployment of `rabbitmq`. This is useful when you want to control how pods are scheduled on nodes in your Kubernetes cluster.                                                                                                                                               |
 | services.rabbitmq.labels                |                {}                 |          | This key allows you to set custom labels for the stateful deployment of `rabbitmq`. This is useful for organizing and selecting resources in your Kubernetes cluster.                                                                                                                                                                      |
 | services.rabbitmq.annotations           |                {}                 |          | This key allows you to set custom annotations for the stateful deployment of `rabbitmq`. This is useful for adding metadata or configuration hints to your resources.                                                                                                                                                                      |
+| services.rabbitmq.podSecurityContext     |                {}                 |          | Pod-level `securityContext` for the bundled `rabbitmq`. Not covered by `securityContext.enabled`. Set `fsGroup` to the `runAsGroup` so the volume is writable. |
+| services.rabbitmq.containerSecurityContext |              {}                 |          | Container-level `securityContext` for the bundled `rabbitmq`. With `readOnlyRootFilesystem: true` the chart mounts an `emptyDir` at `/tmp`. See the example below. |
+| services.rabbitmq.resources              |                {}                 |          | Container `resources` for the bundled `rabbitmq`. Rendered as given. |
 | services.rabbitmq.external_rabbitmq_url |                                   |          | Users can also decide to use the remote hosted service and link to Plane deployment. Ignoring all the above keys, set `services.rabbitmq.local_setup` to `false` and set this key with remote connection url.                                                                                                                              |
 | env.rabbitmq_host                       |            |          | Hostname of a remote RabbitMQ, used with `external_secrets.rabbitmq` instead of `services.rabbitmq.external_rabbitmq_url` — the credentials then come from the external Secret. Ignored when `services.rabbitmq.local_setup=true`. |
 | env.rabbitmq_port                       |    5672    |          | Port of a remote RabbitMQ, used with `external_secrets.rabbitmq`. Use `5671` for AMQPS (Amazon MQ). |
 | env.rabbitmq_vhost                      |     /      |          | Virtual host of a remote RabbitMQ, used with `external_secrets.rabbitmq`. |
 | external_secrets.rabbitmq.secretName    |            |          | Name of an existing Secret holding the RabbitMQ username and password. Note this is separate from `external_secrets.rabbitmq_existingSecret`, which configures the **bundled** broker. |
 | external_secrets.rabbitmq.usernameKey   |  username  |          | Key inside that Secret holding the username. `passwordKey`, and optionally `hostKey` / `portKey` / `vhostKey`, work the same way. |
+
+To run the bundled broker non-root with a read-only root filesystem (tested with `rabbitmq:3.13.6-management-alpine`):
+
+```yaml
+services:
+  rabbitmq:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: [ALL]
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 512Mi
+```
+
+Keep `fsGroupChangePolicy: OnRootMismatch`: without it the kubelet makes `.erlang.cookie` group-readable on every restart, and RabbitMQ then refuses to start. A fresh install needs nothing else if the storage driver applies `fsGroup` (see the `fsGroupPolicy` check under [OpenShift](#openshift-restricted-v2-scc)); if it does not, prepare the new volume as below before the first start (there is no cookie yet, so skip that line).
+
+An existing broker's volume holds files, including `.erlang.cookie`, owned by the image's `rabbitmq` user (uid 100). Before the first start with the new uid, prepare the volume as root (for example from a one-off pod that mounts the PVC while the broker is scaled to zero):
+
+```sh
+chown -R 1000:1000 /var/lib/rabbitmq
+chmod 2770 /var/lib/rabbitmq
+chmod 600 /var/lib/rabbitmq/.erlang.cookie
+```
+
+The kubelet skips the recursive change only when the volume root has the `fsGroup` as its group, at least `0770`, and the setgid bit. Re-owning the files alone is not enough: the kubelet then still makes the cookie group-readable. Recreating the volume instead deletes durable messages and broker metadata: drain the queues first, and also export the definitions if you need the topology, since they hold no messages.
 
 ### OpenSearch Setup
 
