@@ -1142,8 +1142,9 @@ RabbitMQ credentials from an externally managed Secret.
 {{- end -}}
 
 {{/*
-Redis credentials from an externally managed Secret. Consumed on its own by the
-live server, and by Plane AI, whose Celery broker is Redis in Helm deployments.
+Redis credentials from an externally managed Secret. Every workload that includes
+it also includes plane.redisClientEnv. Plane AI gets neither: its Celery broker is
+RabbitMQ.
 */}}
 {{- define "plane.redisCredsEnv" -}}
 {{- $redis := .Values.external_secrets.redis -}}
@@ -1187,9 +1188,6 @@ Redis settings beyond plane.redisCredsEnv: the Sentinel connection, and the ACL
 usernames for the data nodes and the sentinels, and REDIS_SSL_VERIFY. Renders
 nothing unless Sentinel mode is on, a username is configured or env.redis_ssl_verify
 is on, so other non-Sentinel releases render as before.
-
-Kept out of plane.redisCredsEnv on purpose: Plane AI includes that helper, and gets
-these settings only in Sentinel mode, so its env doesn't change otherwise.
 
 Passwords given as plain values are not here: they go into each service's own
 Secret (plane.redisSentinelSecretData), never into a manifest. With
@@ -1325,9 +1323,10 @@ the same external_secrets.database Secret — one managed instance hosting two
 databases is the shape the chart provisions. A deployment with genuinely separate
 credentials per database should use pi_api_env_existingSecret instead.
 
-Redis is included because Plane AI's Celery broker is Redis in Helm deployments.
-RabbitMQ deliberately is NOT: pi resolves an AMQP broker ahead of a Redis one, so
-emitting RABBITMQ_* here would silently move its queue off Redis.
+RabbitMQ is included because it is Plane AI's Celery broker: with
+external_secrets.rabbitmq, pi builds its broker URL from these RABBITMQ_* parts, as
+the api and silo do. Redis deliberately is NOT: pi doesn't use Redis, and
+REDIS_* parts here would be a broker pi falls back to when it finds no RabbitMQ.
 
 Caller must indent to the correct depth (env list items).
 */}}
@@ -1359,11 +1358,7 @@ Caller must indent to the correct depth (env list items).
 {{- include "plane.secretKeyEnv" (dict "name" "FOLLOWER_POSTGRES_PORT" "secret" $db.secretName "key" .) }}
 {{- end }}
 {{- end }}
-{{- include "plane.redisCredsEnv" . }}
-{{- /* Sentinel settings reach pi only in Sentinel mode, so other installs render as before. */}}
-{{- if include "plane.redisSentinel" . }}
-{{- include "plane.redisClientEnv" . }}
-{{- end }}
+{{- include "plane.rabbitmqCredsEnv" . }}
 {{- include "plane.opensearchCredsEnv" . }}
 {{- include "plane.storageCredsEnv" . }}
 {{- end -}}
