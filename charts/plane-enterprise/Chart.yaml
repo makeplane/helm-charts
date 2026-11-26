@@ -5,7 +5,7 @@ description: Meet Plane. An Enterprise software development tool to manage issue
 
 type: application
 
-version: 3.13.8
+version: 3.14.0
 appVersion: "4.1.2"
 
 home: https://plane.so/

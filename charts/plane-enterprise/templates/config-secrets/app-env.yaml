@@ -57,7 +57,14 @@ stringData:
   PI_INTERNAL_SECRET: {{ include "plane.secretValue" (dict "context" $ "name" "env.pi_envs.internal_secret" "value" .Values.env.pi_envs.internal_secret "fallback" "tyfvfqvBJAgpm9bzvf3r4urJer0Ehfdubk") | quote }}
   {{- end }}
 
-  {{- if include "plane.externalRedis" . }}
+  {{- if include "plane.redisSentinel" . }}
+  {{/* Sentinel mode: the services find the primary through REDIS_SENTINELS (env
+       entries from plane.redisClientEnv). A URL would point at one fixed node. */}}
+  REDIS_URL: ""
+  {{- with (include "plane.redisSentinelSecretData" . | trim) }}
+  {{- . | nindent 2 }}
+  {{- end }}
+  {{- else if include "plane.externalRedis" . }}
   {{/* Credentials come from external_secrets.redis as discrete REDIS_* parts.
        Left empty on purpose: the API prefers REDIS_URL when it is set, so a
        composed URL here would shadow the rotated password. */}}

@@ -107,7 +107,7 @@ spec:
                  not another -- the app and live copies of LIVE_SERVER_SECRET_KEY must agree
                  or live-server auth fails with nothing logged. */}}
           {{- include "plane.appKeysSecretRef" . }}
-        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.redisCredsEnv" .) (include "plane.rabbitmqCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
+        {{- if or .Values.extraEnv (include "plane.s3CAEnabled" .) (include "plane.redisCredsEnv" .) (include "plane.redisClientEnv" .) (include "plane.rabbitmqCredsEnv" .) (eq (include "plane.otel.enabled" .) "true") }}
         env:
           {{- with (include "plane.s3CANodeEnvVars" .) }}
 {{ . | indent 10 }}
@@ -119,6 +119,9 @@ spec:
 {{ trim . | indent 10 }}
           {{- end }}
           {{- with (include "plane.redisCredsEnv" .) }}
+{{ trim . | indent 10 }}
+          {{- end }}
+          {{- with (include "plane.redisClientEnv" .) }}
 {{ trim . | indent 10 }}
           {{- end }}
           {{- with (include "plane.otel.serviceEnv" (dict "ctx" $ "service" "live")) }}{{ . | nindent 10 }}{{- end }}
