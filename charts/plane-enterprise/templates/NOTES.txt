@@ -28,12 +28,6 @@ Plane Enterprise {{ .Chart.Version }} — release {{ .Release.Name }} in namespa
 {{- $warnings = append $warnings (printf "env.web_url (%s) does not match license.licenseDomain (%s).\n    Integration redirect URIs are generated from licenseDomain, so they will point at\n    a host your users are not on and OAuth will fail the redirect check. Set both to\n    the host users actually reach." .Values.env.web_url .Values.license.licenseDomain) }}
 {{- end }}
 
-{{- /* Plane AI's Celery broker is RabbitMQ. Without one configured here, the chart renders
-       pi an empty AMQP_URL and pi falls back to a broker on localhost. */}}
-{{- if and .Values.services.pi.enabled (empty .Values.external_secrets.pi_api_env_existingSecret) (not .Values.services.rabbitmq.local_setup) (not .Values.services.rabbitmq.external_rabbitmq_url) (not (include "plane.externalRabbitmq" .)) }}
-{{- $warnings = append $warnings "Plane AI (services.pi) needs RabbitMQ for its Celery broker, and none is configured:\n    services.rabbitmq.local_setup is false and neither\n    services.rabbitmq.external_rabbitmq_url nor external_secrets.rabbitmq.secretName is\n    set. Set one of them, or supply AMQP_URL through\n    external_secrets.pi_api_env_existingSecret." }}
-{{- end }}
-
 {{- /* Externalized credentials with no way to pick up a rotation. */}}
 {{- if or .Values.external_secrets.database.secretName .Values.external_secrets.rabbitmq.secretName .Values.external_secrets.redis.secretName .Values.external_secrets.app_keys_existingSecret }}
 {{- $warnings = append $warnings "Credentials come from an external Secret. Whatever refreshes that Secret does not\n    restart anything, so pods keep the values they started with and a rotated\n    credential does not take effect until something rolls them. Install Stakater\n    Reloader and annotate the workloads that read it:\n      services.<name>.annotations:\n        reloader.stakater.com/auto: \"true\"" }}
@@ -234,6 +228,13 @@ Redis Sentinel mode: services follow master "{{ .Values.env.redis_sentinel_maste
   - While upgrading from a Plane version without silo's durable schedule, or if your
     Redis refuses EVAL, set notify-keyspace-events to include E and x in the config
     file of EVERY data node. Otherwise silo can miss delayed work after a failover.
+{{- if and .Values.services.pi.enabled (include "plane.externalRabbitmq" .) (empty .Values.external_secrets.pi_api_env_existingSecret) }}
+  - Plane AI (pi) isn't part of Sentinel mode. With external_secrets.rabbitmq the chart
+    gives pi no AMQP_URL and no RABBITMQ_* parts, so its Celery broker falls back to the
+    REDIS_* parts external_secrets.redis gives it (env.redis_host or the Secret's hostKey,
+    a single node that doesn't follow a failover), or to localhost when there are none.
+    Set AMQP_URL through external_secrets.pi_api_env_existingSecret.
+{{- end }}
 {{- else if or $redisVerify $redisUser }}
 
 {{ if $redisOld }}WARNING{{ else }}Note{{ end }}: {{ if $redisVerify }}env.redis_ssl_verify{{ end }}{{ if and $redisVerify $redisUser }} and {{ end }}{{ if $redisUser }}the Redis ACL username{{ end }} {{ if and $redisVerify $redisUser }}need{{ else }}needs{{ end }} {{ $redisNeeds }}.
@@ -248,30 +249,6 @@ Redis Sentinel mode: services follow master "{{ .Values.env.redis_sentinel_maste
   Older images log in as the default user, fail the startup PING on an ACL-only Redis,
   and restart. services.mcp_server.image is {{ $mcpImage }}.
 {{- end }}
-{{- end }}
-{{- end }}
-
-{{- /* Chart 3.14.0 moved Plane AI's Celery broker from Redis to RabbitMQ. Shown on upgrades
-       only (a fresh install has nothing queued anywhere), and only where an earlier chart
-       gave pi Redis with these values: the bundled Redis or env.remote_redis_url, or
-       external_secrets.redis without a RabbitMQ URL (with one, pi already used RabbitMQ).
-       Sentinel mode is new in 3.14.0, so the release used some other Redis setup before;
-       with pi_api_env_existingSecret the broker is the operator's to check. */}}
-{{- $piAmqpUrl := and (not (include "plane.externalRabbitmq" .)) (or .Values.services.rabbitmq.local_setup .Values.services.rabbitmq.external_rabbitmq_url) }}
-{{- $piWasRedis := ternary (not $piAmqpUrl) (or .Values.services.redis.local_setup .Values.env.remote_redis_url) (eq (include "plane.externalRedis" .) "true") }}
-{{- if and .Values.services.pi.enabled .Release.IsUpgrade (or $piWasRedis (include "plane.redisSentinel" .) .Values.external_secrets.pi_api_env_existingSecret) }}
-
-Note: from chart 3.14.0, Plane AI (pi) uses RabbitMQ as its Celery broker, like the rest
-of Plane; with these values, earlier charts gave it Redis. Tasks still queued in Redis
-when pi switches over are not moved to RabbitMQ and don't run: background jobs queued
-in the minutes before the upgrade, such as vectorization, search-index updates and
-agent runs. Periodic jobs are queued again on their next run. pi needs RabbitMQ:
-services.rabbitmq.local_setup (the default), services.rabbitmq.external_rabbitmq_url
-or external_secrets.rabbitmq.
-{{- with .Values.external_secrets.pi_api_env_existingSecret }}
-  pi_api_env_existingSecret ({{ . }}) is set, so the broker comes from that Secret:
-  leave CELERY_BROKER_URL out of it or empty, and set AMQP_URL to your RabbitMQ. A
-  Redis URL in CELERY_BROKER_URL keeps pi on Redis.
 {{- end }}
 {{- end }}
 
