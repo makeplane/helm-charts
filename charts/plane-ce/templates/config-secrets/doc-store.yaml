@@ -11,11 +11,12 @@ stringData:
   FILE_SIZE_LIMIT: {{ .Values.env.doc_upload_size_limit | default 5242880 | quote }}
   AWS_S3_BUCKET_NAME: {{ .Values.env.docstore_bucket | default "" | quote  }}
   {{- if .Values.minio.local_setup }}
+  {{- include "plane.minioPasswordResolve" . }}
   USE_MINIO: "1"
   MINIO_ROOT_USER: {{ .Values.minio.root_user | default "admin" | quote }}
-  MINIO_ROOT_PASSWORD: {{ .Values.minio.root_password | default "password" | quote}}
+  MINIO_ROOT_PASSWORD: {{ .Values._planeMinioPassword.value | quote }}
   AWS_ACCESS_KEY_ID: {{ .Values.minio.root_user | default "admin" | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.minio.root_password | default "password" | quote  }}
+  AWS_SECRET_ACCESS_KEY: {{ .Values._planeMinioPassword.value | quote }}
   AWS_S3_ENDPOINT_URL: http://{{ .Release.Name }}-minio:9000
   {{- else }}
   USE_MINIO: "0"

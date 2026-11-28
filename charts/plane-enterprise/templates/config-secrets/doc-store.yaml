@@ -42,11 +42,12 @@ data:
   {{- end }}
   {{- end }}
   {{- else if .Values.services.minio.local_setup }}
+  {{- include "plane.minioPasswordResolve" . }}
   USE_MINIO: {{ "1" | b64enc | quote }}
   MINIO_ROOT_USER: {{ .Values.services.minio.root_user | default "admin" | b64enc | quote }}
-  MINIO_ROOT_PASSWORD: {{ .Values.services.minio.root_password | default "password" | b64enc | quote }}
+  MINIO_ROOT_PASSWORD: {{ .Values._planeMinioPassword.value | b64enc | quote }}
   AWS_ACCESS_KEY_ID: {{ .Values.services.minio.root_user | default "admin" | b64enc | quote }}
-  AWS_SECRET_ACCESS_KEY: {{ .Values.services.minio.root_password | default "password" | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ .Values._planeMinioPassword.value | b64enc | quote }}
   AWS_S3_ENDPOINT_URL: {{ printf "http://%s-minio.%s.svc.%s:9000" .Release.Name .Release.Namespace (.Values.env.default_cluster_domain | default "cluster.local") | b64enc | quote }}
   {{- else }}
   USE_MINIO: {{ "0" | b64enc | quote }}

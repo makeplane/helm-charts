@@ -42,6 +42,14 @@ spec:
         app.name: {{ .Release.Namespace }}-{{ .Release.Name }}-minio
         {{- include "plane.commonLabels" $ | nindent 8 }}
         {{- include "plane.serviceAccountPodLabels" . }}
+      {{- if empty .Values.external_secrets.doc_store_existingSecret }}
+      annotations:
+        {{- /* MinIO reads its root login from this Secret only at start. Without a restart a
+               changed password reaches the app pods but not MinIO, and every file request
+               fails until MinIO restarts. Not plane-ce.rolloutAnnotations: MinIO's image tag
+               is not a release version, so "auto" would restart it on every upgrade. */}}
+        checksum/doc-store: {{ include (print .Template.BasePath "/config-secrets/doc-store.yaml") . | sha256sum | quote }}
+      {{- end }}
     spec:
       containers:
       - image: {{ .Values.minio.image }}
@@ -105,13 +113,24 @@ spec:
       containers:
         - command:
             - /bin/sh
+          {{- /* Every step must succeed, so a failure retries the Job instead of leaving the
+                 bucket missing or on an older policy. Anonymous clients may read a file by its
+                 path (the links Plane wrote before its v2 asset endpoints point straight at
+                 the bucket) but never list the bucket, which all workspaces share. */}}
           args:
             - '-c'
             - >-
-              /usr/bin/mc alias set plane-app-minio
-              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"; 
-              /usr/bin/mc mb plane-app-minio/$AWS_S3_BUCKET_NAME; 
-              /usr/bin/mc anonymous set download plane-app-minio/$AWS_S3_BUCKET_NAME; exit 0;
+              i=0;
+              until /usr/bin/mc alias set plane-app-minio
+              http://{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.{{ .Values.env.default_cluster_domain | default "cluster.local" }}:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY";
+              do i=$((i+1)); [ "$i" -ge 30 ] && exit 1; sleep 2; done;
+              /usr/bin/mc mb --ignore-existing plane-app-minio/$AWS_S3_BUCKET_NAME &&
+              {{- if include "plane.minioAnonymousObjectRead" . }}
+              printf '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}' "$AWS_S3_BUCKET_NAME" > /tmp/anonymous-read.json &&
+              /usr/bin/mc anonymous set-json /tmp/anonymous-read.json plane-app-minio/$AWS_S3_BUCKET_NAME
+              {{- else }}
+              /usr/bin/mc anonymous set none plane-app-minio/$AWS_S3_BUCKET_NAME
+              {{- end }}
           envFrom:
             - secretRef:
                 name: {{ if not (empty .Values.external_secrets.doc_store_existingSecret) }}{{ .Values.external_secrets.doc_store_existingSecret }}{{ else }}{{ .Release.Name }}-doc-store-secrets{{ end }}

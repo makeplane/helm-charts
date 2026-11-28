@@ -325,7 +325,15 @@ services:
     volumeSize: 3Gi
     pullPolicy: IfNotPresent
     root_user: admin
-    root_password: password
+    # Empty: keep the password this release already has, or generate one on first install
+    # (helm install/upgrade only; see plane.minioPasswordResolve). Releases that render with
+    # helm template or a GitOps tool must set it (`openssl rand -hex 20`, at most 40 chars).
+    # Changing it on a running install is safe: MinIO restarts with it and keeps every file.
+    root_password: ''
+    # Anonymous clients may download a file by its path, which links written before Plane's
+    # v2 asset endpoints still need. Listing the bucket is never allowed. false turns public
+    # reads off completely, for installs with no files uploaded before Plane v0.23.
+    anonymous_object_read: true
     # MINIO_IDLE_TIMEOUT: how long MinIO keeps a stalled or idle connection open.
     # Empty keeps MinIO's 30s default. A large import (e.g. Confluence) can fail with
     # ECONNRESET "aborted" when silo pauses its read longer than that; set e.g. 1h.
