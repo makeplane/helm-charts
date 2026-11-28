@@ -283,7 +283,7 @@ different facts:
 2. the scheme of every URL Plane is told about itself — `WEB_URL`,
    `APP_BASE_URL`, `PI_BASE_URL`, `PLANE_FRONTEND_URL`, `PLANE_API_HOST`,
    `PLANE_OAUTH_REDIRECT_URI`, `SILO_API_BASE_URL`, `EXPORT_DOWNLOAD_BASE_URL`.
-   (`CORS_ALLOWED_ORIGINS` always lists both schemes and is unaffected.)
+   `CORS_ALLOWED_ORIGINS` follows the same rule: with TLS on it lists only the `https://` origin.
 
 Find the row that matches your environment:
 

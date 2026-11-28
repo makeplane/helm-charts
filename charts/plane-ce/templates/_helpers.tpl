@@ -98,6 +98,18 @@ plane.chartManagedCert instead and ingress.traefik.entryPoints overrides it.
 {{- end -}}
 
 {{/*
+The instance's own origins for CORS_ALLOWED_ORIGINS. With TLS on, only https: an http:// entry
+lets the API accept that origin with credentials and drop the Secure flag on its cookies.
+*/}}
+{{- define "plane.ownOrigins" -}}
+{{- if eq (include "plane.tlsEnabled" .) "true" -}}
+https://{{ .Values.ingress.appHost }}
+{{- else -}}
+http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Traefik entrypoint names for the IngressRoutes.
 
 Honours an explicit ingress.traefik.entryPoints override (some clusters rename
