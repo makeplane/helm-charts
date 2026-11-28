@@ -722,19 +722,28 @@ include doc-store.yaml, and they must all see the same value.
 
 Charts before 3.13.11 rendered the published value "password" when none was set, and
 the ingress exposes MinIO's S3 API under /<docstore_bucket>, so that login works from
-outside the cluster. MinIO reads its root login from the environment at every start
-and stores nothing derived from it with the data, so a new password on an existing
-volume loses no files.
+outside the cluster. Every published version keeps the login in this same Secret.
+
+An upgrade never changes the login. Anything outside the chart may use it (backup
+jobs, scripts, the console under ingress.minioHost), so only the operator rotates it,
+by setting services.minio.root_password. NOTES.txt warns while it is "password".
 
 In order:
   1. services.minio.root_password, when set.
-  2. The value already in <release>-doc-store-secrets, so an upgrade never changes the
-     login of a running install, even one still on "password" (NOTES.txt warns).
-  3. A new random password, when this render can read the release namespace and so
-     will find it again next time. Same probe as plane.runnerHmacResolve.
-  4. Otherwise (helm template, --dry-run=client, GitOps renderers): a random value
-     would change on every render, so fail under env.requireExplicitSecrets, and
-     otherwise keep the old "password" so these renders do not change. NOTES.txt warns.
+  2. The value already in <release>-doc-store-secrets.
+  3. On a first install only (.Release.IsInstall), a new random password, when this
+     render reaches the cluster and so stores it for the next upgrade. Probes, in order:
+     the kube-root-ca.crt ConfigMap Kubernetes publishes into every namespace (needs only
+     `get configmaps` in the release namespace, which the chart's installer has); then,
+     only if that finds nothing, the kube-system Namespace. The second covers
+     `helm install --create-namespace`, which renders before it creates the namespace;
+     an installer that may create namespaces may read them. Without cluster access both
+     return nothing, so helm template and GitOps renders stay deterministic.
+  4. Otherwise the old "password": an upgrade whose Secret lacks the key, and renders
+     without cluster access (helm template, --dry-run=client, GitOps), where a random
+     value would change on every render. These render exactly what earlier charts did.
+     env.requireExplicitSecrets does not fail here, so an upgrade that rendered before
+     still renders.
 
 Result: .Values._planeMinioPassword = dict "value" <password> "source" values|existing|generated|default
 Call with the root context.
@@ -748,26 +757,18 @@ Call with the root context.
 {{- $value = get (get $existing "data" | default dict) "MINIO_ROOT_PASSWORD" | default "" | b64dec -}}
 {{- $source = "existing" -}}
 {{- if not $value -}}
-{{- if or $existing (lookup "v1" "ConfigMap" .Release.Namespace "kube-root-ca.crt") -}}
+{{- /* Cluster reachable? Nested ifs, not `or`: Go templates before 1.18 evaluate every
+       argument of `or`, and a lookup the installer may not make fails the render. */ -}}
+{{- $reachable := $existing -}}
+{{- if and .Release.IsInstall (not $reachable) -}}
+{{- $reachable = lookup "v1" "ConfigMap" .Release.Namespace "kube-root-ca.crt" -}}
+{{- end -}}
+{{- if and .Release.IsInstall (not $reachable) -}}
+{{- $reachable = lookup "v1" "Namespace" "" "kube-system" -}}
+{{- end -}}
+{{- if and .Release.IsInstall $reachable -}}
 {{- $value = randAlphaNum 40 -}}
 {{- $source = "generated" -}}
-{{- else if .Values.env.requireExplicitSecrets -}}
-{{- fail `
-env.requireExplicitSecrets is on and the bundled MinIO has no root password.
-
-The chart generates one, and keeps it across upgrades, only when the render can read
-the release namespace (helm install/upgrade, or --dry-run=server). This render cannot:
-helm template, --dry-run=client and GitOps renderers have no cluster access.
-Generate a password once (MinIO accepts at most 40 characters):
-
-  openssl rand -hex 20
-
-and supply it in ONE of these ways:
-
-  services.minio.root_password: <value>
-  external_secrets.doc_store_existingSecret: a Secret that carries MINIO_ROOT_USER,
-      MINIO_ROOT_PASSWORD, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (same password)
-` -}}
 {{- else -}}
 {{- $value = "password" -}}
 {{- $source = "default" -}}

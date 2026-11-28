@@ -124,10 +124,11 @@ minio:
   init_image: busybox
   local_setup: true
   pullPolicy: IfNotPresent
-  # Empty: keep the password this release already has, or generate one on first install
-  # (helm install/upgrade only; see plane.minioPasswordResolve). Releases that render with
-  # helm template or a GitOps tool must set it (`openssl rand -hex 20`, at most 40 chars).
-  # Changing it on a running install is safe: MinIO restarts with it and keeps every file.
+  # Empty: keep the password this release already has; a first `helm install` generates one
+  # (see plane.minioPasswordResolve). Upgrades never change it, so a release installed with
+  # an older chart keeps the old default "password" until you set one here. helm template and
+  # GitOps renders must set it too (`openssl rand -hex 20`, at most 40 characters). Changing
+  # it on a running install is safe: MinIO restarts with it and keeps every file.
   root_password: ''
   root_user: admin
   # Anonymous clients may download a file by its path, which links written before Plane's
