@@ -1,0 +1,18 @@
+{{- /* Bundled MinIO root password (plane.minioPasswordResolve). The ingress exposes MinIO's
+       S3 API under /<docstore_bucket>, so the published "password" works from outside.
+       Renders nothing when there is nothing to report. */}}
+{{- if and .Values.minio.local_setup (empty .Values.external_secrets.doc_store_existingSecret) }}
+{{- include "plane.minioPasswordResolve" . }}
+{{- if eq .Values._planeMinioPassword.value "password" }}
+WARNING: the bundled MinIO's root password is the published default "password".
+  MinIO's S3 API is reachable at /{{ .Values.env.docstore_bucket | default "uploads" }} on the app host, so anyone can use this
+  login to read, overwrite and delete every workspace's files. Set your own:
+    helm upgrade {{ .Release.Name }} ... --set minio.root_password=$(openssl rand -hex 20)
+  Changing it is safe: MinIO and the app restart with the new value and every file
+  stays. If you render with helm template or a GitOps tool, put it in your values.
+{{- else if eq .Values._planeMinioPassword.source "generated" }}
+Note: no MinIO root password was set or found, so this render generated one. An
+install or upgrade stores it in Secret {{ .Release.Name }}-doc-store-secrets (a dry run
+stores nothing), and later upgrades keep it. To use your own, set minio.root_password.
+{{- end }}
+{{- end }}

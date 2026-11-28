@@ -1860,8 +1860,15 @@ questions:
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.root_password
     label: "Root Password"
+    description: "Leave empty to generate one on install and keep it on upgrades. At most 40 characters."
     type: password
-    default: "password"
+    default: ""
+    show_if: "services.minio.local_setup=true"
+  - variable: services.minio.anonymous_object_read
+    label: "Anonymous File Reads"
+    description: "Let anonymous clients download a file by its path (needed by links from before Plane v0.23). Listing the bucket is never allowed."
+    type: boolean
+    default: true
     show_if: "services.minio.local_setup=true"
   - variable: services.minio.volumeSize
     label: "Volume Size"

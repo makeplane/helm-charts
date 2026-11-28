@@ -196,6 +196,82 @@ Call with: (dict "context" $ "name" "env.secret_key" "value" .Values.env.secret_
 {{- end -}}
 
 {{/*
+Root password of the bundled MinIO, rendered into <release>-doc-store-secrets as
+MINIO_ROOT_PASSWORD and as the app's AWS_SECRET_ACCESS_KEY. Resolved once per render:
+the Secret and the checksums of the MinIO pod and the api-family pods include
+doc-store.yaml, and they must all see the same value.
+
+Charts before 1.9.3 rendered the published value "password" when none was set, and the
+ingress exposes MinIO's S3 API under /<docstore_bucket>, so that login works from
+outside the cluster. Every published version keeps the login in this same Secret.
+
+An upgrade never changes the login. Anything outside the chart may use it (backup jobs,
+scripts, the console under ingress.minioHost), so only the operator rotates it, by
+setting minio.root_password. NOTES.txt warns while it is "password".
+
+In order:
+  1. minio.root_password, when set.
+  2. The value already in <release>-doc-store-secrets.
+  3. On a first install only (.Release.IsInstall), a new random password, when this
+     render reaches the cluster and so stores it for the next upgrade. Probes, in order:
+     the kube-root-ca.crt ConfigMap Kubernetes publishes into every namespace (needs only
+     `get configmaps` in the release namespace, which the chart's installer has); then,
+     only if that finds nothing, the kube-system Namespace. The second covers
+     `helm install --create-namespace`, which renders before it creates the namespace;
+     an installer that may create namespaces may read them. Without cluster access both
+     return nothing, so helm template and GitOps renders stay deterministic.
+  4. Otherwise the old "password": an upgrade whose Secret lacks the key, and renders
+     without cluster access (helm template, --dry-run=client, GitOps), where a random
+     value would change on every render. These render exactly what earlier charts did.
+     env.requireExplicitSecrets does not fail here, so an upgrade that rendered before
+     still renders.
+
+Result: .Values._planeMinioPassword = dict "value" <password> "source" values|existing|generated|default
+Call with the root context.
+*/}}
+{{- define "plane.minioPasswordResolve" -}}
+{{- if not (hasKey .Values "_planeMinioPassword") -}}
+{{- $value := toString (.Values.minio.root_password | default "") -}}
+{{- $source := "values" -}}
+{{- if not $value -}}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace (printf "%s-doc-store-secrets" .Release.Name) -}}
+{{- $value = get (get $existing "data" | default dict) "MINIO_ROOT_PASSWORD" | default "" | b64dec -}}
+{{- $source = "existing" -}}
+{{- if not $value -}}
+{{- /* Cluster reachable? Nested ifs, not `or`: Go templates before 1.18 evaluate every
+       argument of `or`, and a lookup the installer may not make fails the render. */ -}}
+{{- $reachable := $existing -}}
+{{- if and .Release.IsInstall (not $reachable) -}}
+{{- $reachable = lookup "v1" "ConfigMap" .Release.Namespace "kube-root-ca.crt" -}}
+{{- end -}}
+{{- if and .Release.IsInstall (not $reachable) -}}
+{{- $reachable = lookup "v1" "Namespace" "" "kube-system" -}}
+{{- end -}}
+{{- if and .Release.IsInstall $reachable -}}
+{{- $value = randAlphaNum 40 -}}
+{{- $source = "generated" -}}
+{{- else -}}
+{{- $value = "password" -}}
+{{- $source = "default" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set .Values "_planeMinioPassword" (dict "value" $value "source" $source) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+"true" when the bundled MinIO serves files to anonymous clients by path
+(minio.anonymous_object_read, default true). hasKey, not `default`: `default` treats an
+explicit false as unset.
+*/}}
+{{- define "plane.minioAnonymousObjectRead" -}}
+{{- if or (not (hasKey .Values.minio "anonymous_object_read")) .Values.minio.anonymous_object_read -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
 envFrom entry for the Secret carrying the shared signing keys (SECRET_KEY,
 LIVE_SERVER_SECRET_KEY). Renders nothing unless
 external_secrets.app_keys_existingSecret is set.

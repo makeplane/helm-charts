@@ -122,6 +122,18 @@ silently becomes the live value again if app_keys_existingSecret is ever unset.
 {{- end }}
 {{- end }}
 
+{{- /* Bundled MinIO root password (plane.minioPasswordResolve). The ingress exposes MinIO's
+       S3 API under /<docstore_bucket>, so the published "password" works from outside. */}}
+{{- $minioPasswordNote := "" }}
+{{- if and (eq (include "plane.minioEnabled" .) "true") (empty .Values.external_secrets.doc_store_existingSecret) }}
+{{- include "plane.minioPasswordResolve" . }}
+{{- if eq .Values._planeMinioPassword.value "password" }}
+{{- $warnings = append $warnings (printf "The bundled MinIO's root password is the published default \"password\".\n    MinIO's S3 API is reachable at /%s on the app host, so anyone can use this\n    login to read, overwrite and delete every workspace's files. Set your own:\n      helm upgrade %s ... --set services.minio.root_password=$(openssl rand -hex 20)\n    Changing it is safe: MinIO and the app restart with the new value and every file\n    stays. If you render with helm template or a GitOps tool, put it in your values." (.Values.env.docstore_bucket | default "uploads") .Release.Name) }}
+{{- else if eq .Values._planeMinioPassword.source "generated" }}
+{{- $minioPasswordNote = printf "No MinIO root password was set or found, so this render generated one. An\ninstall or upgrade stores it in Secret %s-doc-store-secrets (a dry run stores\nnothing), and later upgrades keep it. To use your own, set services.minio.root_password." .Release.Name }}
+{{- end }}
+{{- end }}
+
 {{- /*
 silo-secrets is mounted on the API workloads (they verify silo's HMAC) after app_env,
 so a Secret supplied as silo_env decides their DATABASE_URL/REDIS_URL/AMQP_URL too.
@@ -202,6 +214,11 @@ See the "Keeping credentials out of values.yaml" section of the chart README.
 {{- end }}
 
 {{- with $runnerHmacNote }}
+
+Note: {{ . }}
+{{- end }}
+
+{{- with $minioPasswordNote }}
 
 Note: {{ . }}
 {{- end }}
