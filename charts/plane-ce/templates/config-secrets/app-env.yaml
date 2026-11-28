@@ -67,11 +67,11 @@ data:
   {{- if eq .Values.env.cors_allowed_origins "*"}}
   CORS_ALLOWED_ORIGINS: "*"
   {{- else if and .Values.ingress.appHost .Values.env.cors_allowed_origins }}
-  CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }},{{ .Values.env.cors_allowed_origins }}"
+  CORS_ALLOWED_ORIGINS: "{{ include "plane.ownOrigins" . }},{{ .Values.env.cors_allowed_origins }}"
   {{- else if .Values.env.cors_allowed_origins }}
   CORS_ALLOWED_ORIGINS: "{{ .Values.env.cors_allowed_origins }}"
   {{- else if .Values.ingress.appHost}}
-  CORS_ALLOWED_ORIGINS: "http://{{ .Values.ingress.appHost }},https://{{ .Values.ingress.appHost }}"
+  CORS_ALLOWED_ORIGINS: "{{ include "plane.ownOrigins" . }}"
   {{- else }}
   CORS_ALLOWED_ORIGINS: ""
   {{- end }}
